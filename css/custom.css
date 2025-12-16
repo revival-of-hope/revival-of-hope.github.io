@@ -1,21 +1,127 @@
-/* ===== 半透明玻璃内容区（Butterfly）===== */
-
-/* 文章页 / 页面主体 */
-#main {
-  background: rgba(255, 255, 255, 0.25); /* 关键：半透明 */
-  backdrop-filter: blur(12px);          /* 毛玻璃模糊 */
-  -webkit-backdrop-filter: blur(12px);  /* Safari 兼容 */
-  border-radius: 18px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-}
-
-/* 文章正文 */
-.post-content {
-  background: transparent; /* 必须透明，否则盖住玻璃效果 */
-}
-
-/* 页面正文 */
+/* ================================
+   正文字体（白天 / 暗黑共用）
+================================ */
+.post-content,
 .page-content {
-  background: transparent;
+  font-family:
+    "LXGW WenKai",
+    "Noto Serif SC",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    serif;
+
+  font-size: 17px;
+  line-height: 1.9;
+  letter-spacing: 0.01em;
+}
+
+/* ================================
+   白天模式（亮色）
+================================ */
+[data-theme="light"] #main {
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .post-content,
+[data-theme="light"] .page-content {
+  color: rgba(0, 0, 0, 0.78);
+  background: transparent !important;
+}
+
+/* 引用块（白天） */
+[data-theme="light"] .post-content blockquote {
+  background: rgba(0, 0, 0, 0.03);
+  border-left: 4px solid rgba(0, 0, 0, 0.2);
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* ================================
+   暗黑模式（夜间）
+================================ */
+[data-theme="dark"] #main {
+  background: rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .post-content,
+[data-theme="dark"] .page-content {
+  color: rgba(235, 235, 235, 0.88);
+  background: transparent !important;
+}
+
+/* 引用块（暗黑） */
+[data-theme="dark"] .post-content blockquote {
+  background: rgba(255, 255, 255, 0.06);
+  border-left: 4px solid rgba(255, 255, 255, 0.25);
+  color: rgba(235, 235, 235, 0.75);
+}
+
+/* ================================
+   段落 & 列表（通用）
+================================ */
+.post-content p,
+.page-content p {
+  margin: 1.2em 0;
+}
+
+.post-content p:first-child,
+.page-content p:first-child {
+  margin-top: 0;
+}
+
+.post-content ul,
+.post-content ol {
+  padding-left: 1.5em;
+  margin: 1em 0;
+}
+
+.post-content li {
+  margin: 0.4em 0;
+}
+
+/* ================================
+   图片
+================================ */
+.post-content img {
+  display: block;
+  margin: 1.8em auto;
+  max-width: 100%;
+}
+
+/* ================================
+   移动端优化
+================================ */
+@media (max-width: 768px) {
+  .post-content,
+  .page-content {
+    font-size: 16px;
+    line-height: 1.85;
+  }
+}
+
+/* ===== 文章页面背景颜色 ===== */
+#post,
+.post,
+.post-content,
+#page,
+.page {
+  background: #f4f6f8 !important;   /* 浅灰 / 米白 */
+}
+
+.post,
+.page {
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
 }
