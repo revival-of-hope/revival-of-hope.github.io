@@ -111,17 +111,3 @@
   }
 }
 
-/* ===== 文章页面背景颜色 ===== */
-#post,
-.post,
-.post-content,
-#page,
-.page {
-  background: #f4f6f8 !important;   /* 浅灰 / 米白 */
-}
-
-.post,
-.page {
-  border-radius: 16px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
-}
