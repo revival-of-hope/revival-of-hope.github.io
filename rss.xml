@@ -6,7 +6,7 @@
   <link href="https://revival-of-hope.github.io/rss.xml" rel="self"/>
   
   <link href="https://revival-of-hope.github.io/"/>
-  <updated>2025-12-24T02:34:54.747Z</updated>
+  <updated>2025-12-24T06:48:07.831Z</updated>
   <id>https://revival-of-hope.github.io/</id>
   
   <author>
@@ -15,28 +15,6 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
-  
-  <entry>
-    <title>2025-12-24 病毒攻击</title>
-    <link href="https://revival-of-hope.github.io/2025/12/24/%E7%97%85%E6%AF%92%E6%94%BB%E5%87%BB/"/>
-    <id>https://revival-of-hope.github.io/2025/12/24/%E7%97%85%E6%AF%92%E6%94%BB%E5%87%BB/</id>
-    <published>2025-12-24T00:00:00.000Z</published>
-    <updated>2025-12-24T02:34:54.747Z</updated>
-    
-    <content type="html"><![CDATA[<p>下了一个破解版游戏,结果火绒直接弹出窗口提示我有三百多个exe感染了jadtre ax 病毒<br><img src="/images/archives/2025-12-24-%E7%97%85%E6%AF%92%E6%94%BB%E5%87%BB/PixPin_2025-12-24_09-58-14.webp"></p><p>到这个时候我才发现我对网络安全实际上是一窍不通,<br>只好先用火绒把所有感染的exe放到隔离区,然后来了一个全盘扫描,我以后一定要好好研究一下计算机的底层知识和病毒攻击原理.</p><p>首先我找到了<a href="https://www.virusview.net/malware/Virus/Win32/Jadtre">计算机病毒百科</a>里关于这个病毒的详细信息</p><blockquote><p>它会修改系统文件，包括操作系统的关键文件，以隐藏自身并且避免被杀软检测到。<br>该病毒会通过劫持用户的浏览器、修改主页和搜索引擎设置等方式，进行钓鱼攻击，诱导用户点击恶意链接，从而进一步传播病毒。<br>它会窃取用户的个人敏感信息，如登录密码、银行账号等，并将这些信息发送到黑客的服务器上。<br>病毒会利用系统的漏洞，进行远程控制，从而盗取用户的隐私信息或者操控计算机进行其他恶意行为。<br>该病毒还会利用系统资源进行挖矿或者进行分布式拒绝服务（DDoS）攻击。<br>它会禁用或损坏杀软程序的功能，以保证自身不被杀软识别和清除。</p></blockquote><p>发现它主要是诱导用户点击恶意链接,还好火绒直接帮我拦截了网页跳转.</p><p>顺藤摸瓜找到了这个<a href="https://www.antiycloud.com/#/antiy/safeinfor">网站</a>,我才发现网络安全确实是一个壁垒高却极为重要的领域,<br>想着在网上找一点入门教程,结果用中文搜全是AI文章或者垃圾文字,再一次体会到中文互联网的封闭性,只好问gpt,找到了以下网站:</p><blockquote><p>By Sunday evening, you could have taken your first real step into cybersecurity.<br>Here are 15 websites to kick-start your cybersecurity journey (all beginner-friendly):<br>    1.TryHackMe  – Hands-on labs for all skill levels<br><a href="https://tryhackme.com/">https://tryhackme.com</a><br>    2.Hack The Box  – Gamified hacking challenges<br><a href="https://www.hackthebox.com/">https://www.hackthebox.com</a><br>    3.Blue Team Labs Online  – Defensive security scenarios<br><a href="https://lnkd.in/dckAehnQ">https://lnkd.in/dckAehnQ</a><br>    4.OverTheWire – Fun war games to learn Linux &amp; networking<br><a href="https://lnkd.in/d66wAqDb">https://lnkd.in/d66wAqDb</a><br>    5.PortSwigger Web Security Academy – Web app hacking from the pros<br><a href="https://lnkd.in/dyrBGjRh">https://lnkd.in/dyrBGjRh</a><br>    6.VulnHub – Download vulnerable machines and hack away<br><a href="https://www.vulnhub.com/">https://www.vulnhub.com</a><br>    7.LetsDefend  – SOC analyst simulation<br><a href="https://letsdefend.io/">https://letsdefend.io</a><br>    8.CyberDefenders  – Threat hunting and forensics labs<br><a href="https://cyberdefenders.org/">https://cyberdefenders.org</a><br>    9.CTFtime – Find Capture the Flag competitions<br><a href="https://ctftime.org/">https://ctftime.org</a><br>    10.Security Blue Team  – Blue teaming certifications and practice<br><a href="https://lnkd.in/dmuUFfQX">https://lnkd.in/dmuUFfQX</a><br>    11.PentesterLab – Web security training<br><a href="https://pentesterlab.com/">https://pentesterlab.com</a><br>    12.MITRE ATT&amp;CK – Learn real adversary tactics and techniques<br><a href="https://attack.mitre.org/">https://attack.mitre.org</a><br>    13.OWASP – Secure coding &amp; app security resources<br><a href="https://owasp.org/">https://owasp.org</a><br>    14.DFIR Diva – Free digital forensics resources<br><a href="https://dfirdiva.com/">https://dfirdiva.com</a><br>    15.Flare-On Challenges – Reverse engineering practice<br><a href="https://flare-on.com/">https://flare-on.com</a></p></blockquote><blockquote><p><a href="https://github.com/404notf0und/Security-Data-Analysis-and-Visualization">找到了一个汇总链接</a><br>不多说了,尽管期末周快来了,兴趣学习的时间还是有的,开练.</p></blockquote>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;下了一个破解版游戏,结果火绒直接弹出窗口提示我有三百多个exe感染了jadtre ax 病毒&lt;br&gt;&lt;img src=&quot;/images/archives/2025-12-24-%E7%97%85%E6%AF%92%E6%94%BB%E5%87%BB/PixPin_2025-</summary>
-      
-    
-    
-    
-    
-    <category term="新技术" scheme="https://revival-of-hope.github.io/tags/%E6%96%B0%E6%8A%80%E6%9C%AF/"/>
-    
-  </entry>
   
   <entry>
     <title>2025-12-24 每日阅读</title>
@@ -58,6 +36,28 @@
     
     
     <category term="每日阅读" scheme="https://revival-of-hope.github.io/tags/%E6%AF%8F%E6%97%A5%E9%98%85%E8%AF%BB/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>2025-12-24 病毒攻击</title>
+    <link href="https://revival-of-hope.github.io/2025/12/24/%E7%97%85%E6%AF%92%E6%94%BB%E5%87%BB/"/>
+    <id>https://revival-of-hope.github.io/2025/12/24/%E7%97%85%E6%AF%92%E6%94%BB%E5%87%BB/</id>
+    <published>2025-12-24T00:00:00.000Z</published>
+    <updated>2025-12-24T02:34:54.747Z</updated>
+    
+    <content type="html"><![CDATA[<p>下了一个破解版游戏,结果火绒直接弹出窗口提示我有三百多个exe感染了jadtre ax 病毒<br><img src="/images/archives/2025-12-24-%E7%97%85%E6%AF%92%E6%94%BB%E5%87%BB/PixPin_2025-12-24_09-58-14.webp"></p><p>到这个时候我才发现我对网络安全实际上是一窍不通,<br>只好先用火绒把所有感染的exe放到隔离区,然后来了一个全盘扫描,我以后一定要好好研究一下计算机的底层知识和病毒攻击原理.</p><p>首先我找到了<a href="https://www.virusview.net/malware/Virus/Win32/Jadtre">计算机病毒百科</a>里关于这个病毒的详细信息</p><blockquote><p>它会修改系统文件，包括操作系统的关键文件，以隐藏自身并且避免被杀软检测到。<br>该病毒会通过劫持用户的浏览器、修改主页和搜索引擎设置等方式，进行钓鱼攻击，诱导用户点击恶意链接，从而进一步传播病毒。<br>它会窃取用户的个人敏感信息，如登录密码、银行账号等，并将这些信息发送到黑客的服务器上。<br>病毒会利用系统的漏洞，进行远程控制，从而盗取用户的隐私信息或者操控计算机进行其他恶意行为。<br>该病毒还会利用系统资源进行挖矿或者进行分布式拒绝服务（DDoS）攻击。<br>它会禁用或损坏杀软程序的功能，以保证自身不被杀软识别和清除。</p></blockquote><p>发现它主要是诱导用户点击恶意链接,还好火绒直接帮我拦截了网页跳转.</p><p>顺藤摸瓜找到了这个<a href="https://www.antiycloud.com/#/antiy/safeinfor">网站</a>,我才发现网络安全确实是一个壁垒高却极为重要的领域,<br>想着在网上找一点入门教程,结果用中文搜全是AI文章或者垃圾文字,再一次体会到中文互联网的封闭性,只好问gpt,找到了以下网站:</p><blockquote><p>By Sunday evening, you could have taken your first real step into cybersecurity.<br>Here are 15 websites to kick-start your cybersecurity journey (all beginner-friendly):<br>    1.TryHackMe  – Hands-on labs for all skill levels<br><a href="https://tryhackme.com/">https://tryhackme.com</a><br>    2.Hack The Box  – Gamified hacking challenges<br><a href="https://www.hackthebox.com/">https://www.hackthebox.com</a><br>    3.Blue Team Labs Online  – Defensive security scenarios<br><a href="https://lnkd.in/dckAehnQ">https://lnkd.in/dckAehnQ</a><br>    4.OverTheWire – Fun war games to learn Linux &amp; networking<br><a href="https://lnkd.in/d66wAqDb">https://lnkd.in/d66wAqDb</a><br>    5.PortSwigger Web Security Academy – Web app hacking from the pros<br><a href="https://lnkd.in/dyrBGjRh">https://lnkd.in/dyrBGjRh</a><br>    6.VulnHub – Download vulnerable machines and hack away<br><a href="https://www.vulnhub.com/">https://www.vulnhub.com</a><br>    7.LetsDefend  – SOC analyst simulation<br><a href="https://letsdefend.io/">https://letsdefend.io</a><br>    8.CyberDefenders  – Threat hunting and forensics labs<br><a href="https://cyberdefenders.org/">https://cyberdefenders.org</a><br>    9.CTFtime – Find Capture the Flag competitions<br><a href="https://ctftime.org/">https://ctftime.org</a><br>    10.Security Blue Team  – Blue teaming certifications and practice<br><a href="https://lnkd.in/dmuUFfQX">https://lnkd.in/dmuUFfQX</a><br>    11.PentesterLab – Web security training<br><a href="https://pentesterlab.com/">https://pentesterlab.com</a><br>    12.MITRE ATT&amp;CK – Learn real adversary tactics and techniques<br><a href="https://attack.mitre.org/">https://attack.mitre.org</a><br>    13.OWASP – Secure coding &amp; app security resources<br><a href="https://owasp.org/">https://owasp.org</a><br>    14.DFIR Diva – Free digital forensics resources<br><a href="https://dfirdiva.com/">https://dfirdiva.com</a><br>    15.Flare-On Challenges – Reverse engineering practice<br><a href="https://flare-on.com/">https://flare-on.com</a></p></blockquote><blockquote><p><a href="https://github.com/404notf0und/Security-Data-Analysis-and-Visualization">找到了一个汇总链接</a><br>不多说了,尽管期末周快来了,兴趣学习的时间还是有的,开练.</p></blockquote>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;下了一个破解版游戏,结果火绒直接弹出窗口提示我有三百多个exe感染了jadtre ax 病毒&lt;br&gt;&lt;img src=&quot;/images/archives/2025-12-24-%E7%97%85%E6%AF%92%E6%94%BB%E5%87%BB/PixPin_2025-</summary>
+      
+    
+    
+    
+    
+    <category term="新技术" scheme="https://revival-of-hope.github.io/tags/%E6%96%B0%E6%8A%80%E6%9C%AF/"/>
     
   </entry>
   
