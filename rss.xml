@@ -66,14 +66,15 @@
     <link href="https://revival-of-hope.github.io/2025/12/25/%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E9%80%BB%E8%BE%91%E5%85%B3%E7%B3%BB/"/>
     <id>https://revival-of-hope.github.io/2025/12/25/%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E9%80%BB%E8%BE%91%E5%85%B3%E7%B3%BB/</id>
     <published>2025-12-25T00:00:00.000Z</published>
-    <updated>2025-12-27T04:28:34.426Z</updated>
+    <updated>2025-12-27T06:54:03.892Z</updated>
     
-    <content type="html"><![CDATA[<h2 id="用一个例子搞懂集合运算"><a href="#用一个例子搞懂集合运算" class="headerlink" title="用一个例子搞懂集合运算"></a>用一个例子搞懂集合运算</h2><p><img src="/images/archives/2025-12-25-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E9%80%BB%E8%BE%91%E5%85%B3%E7%B3%BB/PixPin_2025-12-25_21-34-39.webp"><br><img src="/images/archives/2025-12-25-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E9%80%BB%E8%BE%91%E5%85%B3%E7%B3%BB/PixPin_2025-12-25_21-37-39.webp" alt="重要的德摩根律"></p><h2 id="范式"><a href="#范式" class="headerlink" title="范式"></a>范式</h2><h3 id=""><a href="#" class="headerlink" title=""></a></h3>]]></content>
+    <content type="html"><![CDATA[<p>本文根据离散数学简明教程整理,仅为一本一百多页的薄书,但涵盖了大部分概念.</p><h1 id="集合"><a href="#集合" class="headerlink" title="集合"></a>集合</h1><h2 id="用一个例子搞懂集合运算"><a href="#用一个例子搞懂集合运算" class="headerlink" title="用一个例子搞懂集合运算"></a>用一个例子搞懂集合运算</h2><p><img src="/images/archives/2025-12-25-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E9%80%BB%E8%BE%91%E5%85%B3%E7%B3%BB/PixPin_2025-12-25_21-34-39.webp"><br><img src="/images/archives/2025-12-25-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E9%80%BB%E8%BE%91%E5%85%B3%E7%B3%BB/PixPin_2025-12-25_21-37-39.webp" alt="重要的德摩根律"></p><h2 id="对称差运算"><a href="#对称差运算" class="headerlink" title="对称差运算"></a>对称差运算</h2><p>对称差运算满足结合律,交换律,分配律<br>其中分配律最难理解,但在网上甚至找不到什么人解释<br><img src="/../images/archives/2025-12-25-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E9%80%BB%E8%BE%91%E5%85%B3%E7%B3%BB/PixPin_2025-12-27_14-41-15.webp" alt="公式"></p><h1 id="关系"><a href="#关系" class="headerlink" title="关系"></a>关系</h1><p><img src="/../images/archives/2025-12-25-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E9%80%BB%E8%BE%91%E5%85%B3%E7%B3%BB/PixPin_2025-12-27_14-49-58.webp" alt="定义"></p><p><img src="/images/archives/2025-12-25-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E9%80%BB%E8%BE%91%E5%85%B3%E7%B3%BB/PixPin_2025-12-27_14-53-32.webp"></p>]]></content>
     
     
       
       
-    <summary type="html">&lt;h2 id=&quot;用一个例子搞懂集合运算&quot;&gt;&lt;a href=&quot;#用一个例子搞懂集合运算&quot; class=&quot;headerlink&quot; title=&quot;用一个例子搞懂集合运算&quot;&gt;&lt;/a&gt;用一个例子搞懂集合运算&lt;/h2&gt;&lt;p&gt;&lt;img src=&quot;/images/archives/2025-12</summary>
+    <summary type="html">&lt;p&gt;本文根据离散数学简明教程整理,仅为一本一百多页的薄书,但涵盖了大部分概念.&lt;/p&gt;
+&lt;h1 id=&quot;集合&quot;&gt;&lt;a href=&quot;#集合&quot; class=&quot;headerlink&quot; title=&quot;集合&quot;&gt;&lt;/a&gt;集合&lt;/h1&gt;&lt;h2 id=&quot;用一个例子搞懂集合运算&quot;&gt;&lt;a href</summary>
       
     
     
