@@ -6,7 +6,7 @@
   <link href="https://revival-of-hope.github.io/rss.xml" rel="self"/>
   
   <link href="https://revival-of-hope.github.io/"/>
-  <updated>2025-12-31T11:48:28.498Z</updated>
+  <updated>2025-12-31T11:52:54.672Z</updated>
   <id>https://revival-of-hope.github.io/</id>
   
   <author>
@@ -17,11 +17,11 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
-    <title>2025-12-31 失败的大作业</title>
+    <title>2025 年终总结</title>
     <link href="https://revival-of-hope.github.io/2025/12/31/%E5%A4%B1%E8%B4%A5%E7%9A%84%E5%A4%A7%E4%BD%9C%E4%B8%9A/"/>
     <id>https://revival-of-hope.github.io/2025/12/31/%E5%A4%B1%E8%B4%A5%E7%9A%84%E5%A4%A7%E4%BD%9C%E4%B8%9A/</id>
     <published>2025-12-31T00:00:00.000Z</published>
-    <updated>2025-12-31T11:48:28.498Z</updated>
+    <updated>2025-12-31T11:52:54.672Z</updated>
     
     <content type="html"><![CDATA[<p>最近一周都在忙cocos大作业,差点在30号晚上熬通宵.今天下午答辩,答辩前五分钟才把ppt写完,而项目到演示时都没能完整运行,还好老师们都不怎么在意真正的成品,反而是一直拷打代码中继承和多态的应用,侥幸过关,如果真的要当场演示,那估计就有大问题了.</p><p>究其原因,是小组合作的环节出了问题,我们组有一个本来能自己单干的大佬,而剩下的两人包括我则是不一般的菜鸡,大多数代码都是由AI完成的,很多报错也只有问AI才能解决,因为我之前根本就没接触过CPP的工程构建,多文件的集成也都是靠AI解决的.</p><p>尽管大佬给了很详细的接口文档,但由于文档全是英文,于是我们就直接贴给AI让它翻译,又没好意思让他一个人帮我们看代码,那样他就把活儿都干了.于是就悲剧了.尽管UI层的隔离测试可以跑通,Gameplay和Engine部分单独跑也可以,但由于我们这边的实现不够完全,接口没能全部写完整,于是在答辩前三天的合并时就出问题了,而且在大佬很早就提出要对齐接口的时候我们不够重视,导致接口一直有偏差,等发现是由于接口没对齐导致报错的时候离答辩只有不到一天了.而大佬以为我们都实现好了,只是路径包含或者平台差异导致报错,之前就没有来帮我们改代码,而这个时候再改就已经来不及了.</p><p><strong>复盘</strong><br>小组项目成功的必要条件:</p><ul><li>组员之间关系平等,不存在不好意思说话的情况,只有好好的沟通交流才能保证项目协作正常</li><li>组员之间能力不能相差太大,如果能力都有限反而更好团队协作,光是抱大腿未免有些太要不得了</li><li>组员需要掌握基本的Debug能力,光是靠AI或者求爷爷告奶奶是不行的,而是要能够自己独立解决基本的技术问题</li><li>每次更新都需要及时通过文档告知其他组员,详细写明更改的地方,以及对合作者的接口要求,最好是中文(😀)</li><li>在开始项目之前就要搭出一个最基本的框架,即使再抽象也可以,把所有必须要实现的功能要求先列出来,才可以保证后续运行的时候不跑偏</li><li>分工不合理很有可能导致组员间暗藏怨气,需要找到一个合理的分工方式和架构保证工作量分配均匀</li><li>使用git进行版本控制,每次commit时不要偷懒,多打几个字把本次commit好好说清楚,才不会在日后受罪</li><li>需要尽早进行合并,才能确认基本功能有没有正常实现,否则后期的合并会极其痛苦</li><li>永远不要孤军奋战,给代码一通乱改,而是虚心请教他人,如果拉不下脸,想想项目失败的后果</li></ul><p>想来这也是对我这一个学期课业的一个糟糕的总结吧,学的不够精,学的不够多,到最后啥都没剩下,还有三个小时就跨年了,祝新的一年我能更成熟一点,更好学一点,更活泼一点,更努力一点,不用太多,一点点就够了,能让我自己感觉到就够了.</p><p><strong>目标</strong></p><ul><li><input disabled="" type="checkbox"> cpp工程学习</li><li><input disabled="" type="checkbox"> 后端学习(数据库+Java)</li><li><input disabled="" type="checkbox"> 网络安全学习</li><li><input disabled="" type="checkbox"> 编写一个开源项目</li><li><input disabled="" type="checkbox"> 参加十场以上的比赛</li><li><input disabled="" type="checkbox"> 明确就业还是读研</li></ul>]]></content>
     
