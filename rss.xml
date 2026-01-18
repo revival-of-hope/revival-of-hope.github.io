@@ -6,7 +6,7 @@
   <link href="https://revival-of-hope.github.io/rss.xml" rel="self"/>
   
   <link href="https://revival-of-hope.github.io/"/>
-  <updated>2026-01-18T06:07:08.484Z</updated>
+  <updated>2026-01-18T06:24:22.420Z</updated>
   <id>https://revival-of-hope.github.io/</id>
   
   <author>
@@ -21,8 +21,16 @@
     <link href="https://revival-of-hope.github.io/2026/01/18/astro%E5%B0%9D%E8%AF%95/"/>
     <id>https://revival-of-hope.github.io/2026/01/18/astro%E5%B0%9D%E8%AF%95/</id>
     <published>2026-01-18T00:00:00.000Z</published>
-    <updated>2026-01-18T06:07:08.484Z</updated>
+    <updated>2026-01-18T06:24:22.420Z</updated>
     
+    <content type="html"><![CDATA[<p>本来觉得hexo的图片管理太麻烦了,部署速度又比较慢,做不到动态同步,就想着换其他的博客框架试试,经过多方搜寻敲定了astro来尝鲜,下面是没有模板时的效果<br /><img src="/images/2026-01-18/PixPin_2026-01-18_14-15-02.webp" alt="alt text" /></p><blockquote><p>看着还不错,之后再改改就是个还不错的博客框架了,但问题就是所有组件都要我一个个自己写,没有前端基础的话光靠AI做不出太好的效果,而当我一点点添加组件的时候部署速度就飞速下降了</p></blockquote><p><img src="/images/2026-01-18/PixPin_2026-01-18_14-18-42.webp" alt="alt text" /></p><p><img src="/images/2026-01-18-astro%E5%B0%9D%E8%AF%95/PixPin_2026-01-18_14-19-29.webp" alt="alt text" /></p><p><img src="/images/2026-01-18-astro%E5%B0%9D%E8%AF%95/PixPin_2026-01-18_14-20-28.webp" alt="alt text" /></p><blockquote><p>尽管相比起来的话astro还是快了不少,但我一想到之后再加入图片管理功能和访客统计,评论系统,加载动画这些东西之后那臃肿的package库,就觉得不太可能会有多快,所以决定及时止损,虽然hexo跑的不够快,但也是一辆历久弥新的自行车!</p></blockquote><ul><li>而且不用我自己写组件</li></ul><blockquote><p>准备再试试hugo,如果真的有质的飞跃,再考虑换过去</p></blockquote>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;本来觉得hexo的图片管理太麻烦了,部署速度又比较慢,做不到动态同步,就想着换其他的博客框架试试,经过多方搜寻敲定了astro来尝鲜,下面是没有模板时的效果&lt;br /&gt;
+&lt;img src=&quot;/images/2026-01-18/PixPin_2026-01-18_14-15</summary>
+      
     
     
     
