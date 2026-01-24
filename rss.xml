@@ -6,7 +6,7 @@
   <link href="https://revival-of-hope.github.io/rss.xml" rel="self"/>
   
   <link href="https://revival-of-hope.github.io/"/>
-  <updated>2026-01-21T06:56:58.717Z</updated>
+  <updated>2026-01-24T07:14:01.327Z</updated>
   <id>https://revival-of-hope.github.io/</id>
   
   <author>
@@ -15,6 +15,56 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>2026-01-24 python语法糖</title>
+    <link href="https://revival-of-hope.github.io/2026/01/24/python%E8%AF%AD%E6%B3%95%E7%B3%96/"/>
+    <id>https://revival-of-hope.github.io/2026/01/24/python%E8%AF%AD%E6%B3%95%E7%B3%96/</id>
+    <published>2026-01-24T00:00:00.000Z</published>
+    <updated>2026-01-24T07:14:01.327Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote><p>刚开始学python的时候看到那些<code>@app.get('/')</code>这样的写法总觉得好高级,但真正接触后发现原来只是一种嵌套函数的简化写法,于是就怯魅了.</p></blockquote><blockquote><p>题外话:一开始翻了翻中文互联网,查不到一点有用的东西,一怒之下搜索在搜索结果里屏蔽某些网站的方法,找到了ublacklist,瞬间清爽了</p></blockquote><blockquote><p><a href="https://en.wikipedia.org/wiki/Syntactic_sugar">定义</a><br>In computer science, syntactic sugar is syntax within a programming language that is designed to make things easier to read or to express.<br>It makes the language “sweeter” for human use: things can be expressed more clearly, more concisely, or in an alternative style that some may prefer.</p></blockquote><ul><li>尽管意思很明了,但这个名字确实很奇怪</li></ul><p>总而言之,语法糖就是用简单的写法来取代复杂难懂的写法,实现的功能并不变,但读起来简洁很多</p><p>python中最有名的语法糖自然就是’@decoration’这样的了</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;blockquote&gt;
+&lt;p&gt;刚开始学python的时候看到那些&lt;code&gt;@app.get(&#39;/&#39;)&lt;/code&gt;这样的写法总觉得好高级,但真正接触后发现原来只是一种嵌套函数的简化写法,于是就怯魅了.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;题外话</summary>
+      
+    
+    
+    
+    
+    <category term="每日阅读" scheme="https://revival-of-hope.github.io/tags/%E6%AF%8F%E6%97%A5%E9%98%85%E8%AF%BB/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>2026-01-23 python-fastapi</title>
+    <link href="https://revival-of-hope.github.io/2026/01/23/python-fastapi/"/>
+    <id>https://revival-of-hope.github.io/2026/01/23/python-fastapi/</id>
+    <published>2026-01-23T00:00:00.000Z</published>
+    <updated>2026-01-24T06:09:10.800Z</updated>
+    
+    <content type="html"><![CDATA[<p><a href="https://fastapi.tiangolo.com/python-types">官方文档</a></p><h2 id="Intro">Intro</h2><h3 id="PYTHON-TYPES-INTRO">PYTHON TYPES INTRO</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">get_full_name</span>(<span class="params">first_name, last_name</span>):</span><br><span class="line">    full_name = first_name.title() + <span class="string">&quot; &quot;</span> + last_name.title()</span><br><span class="line">    <span class="keyword">return</span> full_name</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(get_full_name(<span class="string">&quot;john&quot;</span>, <span class="string">&quot;doe&quot;</span>))</span><br></pre></td></tr></table></figure><p><code>    first_name, last_name</code><br>-&gt;:<br><code>    first_name: str, last_name: str</code></p><blockquote><p>这就是类型注释,不仅方便自己和别人阅读代码,也方便编辑器理解并能够支持自动补全</p></blockquote><h3 id="ASYNC-AWAIT">ASYNC/AWAIT</h3><ul><li><strong>async</strong>:asynchronous,异步的</li></ul><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> asyncio</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">async</span> <span class="keyword">def</span> <span class="title function_">task_a</span>():</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;A: start&quot;</span>)</span><br><span class="line">    <span class="keyword">await</span> asyncio.sleep(<span class="number">3</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;A: end&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">async</span> <span class="keyword">def</span> <span class="title function_">task_b</span>():</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;B: start&quot;</span>)</span><br><span class="line">    <span class="keyword">await</span> asyncio.sleep(<span class="number">1</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;B: end&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">async</span> <span class="keyword">def</span> <span class="title function_">main</span>():</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;main: start&quot;</span>)</span><br><span class="line"></span><br><span class="line">    asyncio.create_task(task_a())</span><br><span class="line">    asyncio.create_task(task_b())</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;main: tasks created&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">await</span> asyncio.sleep(<span class="number">4</span>)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;main: end&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">asyncio.run(main())</span><br></pre></td></tr></table></figure><blockquote><p>在这段代码中,await代码块会在原地等待对应的秒数,允许同时进行其他的模块,因此整个代码总用时只有4秒</p></blockquote><ul><li><strong>await</strong> only take effect in the function decorated with <strong>async</strong></li></ul><h2 id="Start">Start</h2>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;a href=&quot;https://fastapi.tiangolo.com/python-types&quot;&gt;官方文档&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&quot;Intro&quot;&gt;Intro&lt;/h2&gt;
+&lt;h3 id=&quot;PYTHON-TYPES-INTRO&quot;&gt;PYTHON TYPES INTRO</summary>
+      
+    
+    
+    
+    
+    <category term="python" scheme="https://revival-of-hope.github.io/tags/python/"/>
+    
+  </entry>
   
   <entry>
     <title>2026-01-21 python重学-源码剖析</title>
@@ -432,53 +482,6 @@
       
     <summary type="html">&lt;h2 id=&quot;cpp构造与析构&quot;&gt;&lt;a href=&quot;https://blog.csdn.net/2501_91275995/article/details/156042381&quot;&gt;cpp构造与析构&lt;/a&gt;&lt;/h2&gt;
 &lt;h2 id=&quot;校招流程&quot;&gt;&lt;a href=&quot;https://w</summary>
-      
-    
-    
-    
-    <category term="动态更新" scheme="https://revival-of-hope.github.io/categories/%E5%8A%A8%E6%80%81%E6%9B%B4%E6%96%B0/"/>
-    
-    
-  </entry>
-  
-  <entry>
-    <title>2025-12-20 数据结构重点例题分析</title>
-    <link href="https://revival-of-hope.github.io/2025/12/20/archives-2025-2025-12-20-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%94%90%E6%B0%8F%E8%80%83%E7%82%B9/"/>
-    <id>https://revival-of-hope.github.io/2025/12/20/archives-2025-2025-12-20-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%94%90%E6%B0%8F%E8%80%83%E7%82%B9/</id>
-    <published>2025-12-20T00:00:00.000Z</published>
-    <updated>2026-01-06T09:59:37.656Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="稀疏矩阵的三元组表">稀疏矩阵的三元组表</h2><p>三元组表需要把行,列,值分别列出来(意义在哪里?)<br><img src="/images/archives/2025/2025-12-20-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%94%90%E6%B0%8F%E8%80%83%E7%82%B9/image.webp" alt=""></p><p>甚至还要再写辅助数组rowSize和rowStart,把很明显的东西再写一遍,却又不考算法,没招了.</p><h2 id="链表反转">链表反转</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> <span class="title class_">LNode</span> &#123;</span><br><span class="line">    <span class="type">int</span> data;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">LNode</span>* next;</span><br><span class="line">&#125; LNode, *LinkList;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">ReverseList</span><span class="params">(LinkList L)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    LNode* p = L-&gt;next;</span><br><span class="line">    LNode* q;</span><br><span class="line"></span><br><span class="line">    L-&gt;next = <span class="literal">NULL</span>;   <span class="comment">// 断开头结点与原链表</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (p != <span class="literal">NULL</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        q = p-&gt;next;      <span class="comment">// 保存后继</span></span><br><span class="line">        p-&gt;next = L-&gt;next;</span><br><span class="line">        L-&gt;next = p;      <span class="comment">// 头插</span></span><br><span class="line">        p = q;            <span class="comment">// 处理下一个结点</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>贴下代码就能看懂了,其实我觉得就是两端交换</p><h2 id="KMP">KMP</h2><p><a href="https://www.cnblogs.com/Higurashi-kagome/p/18013626">参考1</a><br><a href="https://www.xdull.cn/kmp.html">参考2</a><br>都讲的挺好.</p><p>重点是明确next数组的作用,之所以存储模式的对应字串最长公共前后缀,是因为当匹配失败时,原字符串中在匹配失败位置前的成功匹配部分刚好可以作为重置后的模式字符串的前缀,它同时也是先前匹配时得到对应长度模式字串的后缀.搞懂了这个就能彻底理解kmp了.</p><blockquote><p>例题: 设主串T=”abaabaabcabaabc”，模式串P=”abaabc”，采用KMP算法进行模式匹配，到匹配成功为止，在匹配过程中进行的单个字符间的比较次数是（ ）.</p></blockquote><blockquote><p>解题: int num=0,<br>先写出next数组[0,0,1,1,2,0],第一次匹配到abaab,num+=5,但由于失败的匹配也要算上,num+=1<br>指针移到后缀ab,接着比较找到abaabc,num+=4,故num=10</p></blockquote><h2 id="组合数求解">组合数求解</h2><blockquote><p>【例4】编写一个递归算法，找出从自<br>然数1,2,3,4,…,n中任取r个数的所有组<br>合。例如，n=5，r=3时的组合是543，<br>542，541，532，531，521，432，431<br>，421，321.</p><p>【解答】本问题就是求解组合数。<br>int Combin(int m, int n)<br>{ if(m==n||n==0) return 1;<br>else return Combin(m-1,n)+<br>Combin(m-1,n-1);}</p></blockquote><p>一开始是用dfs写的,但没想到ppt里根本没考虑把组合写出来,不过这个递归也挺难想到的.</p><h2 id="广义表">广义表</h2><blockquote><p>假设广义表是由带头节点的链<br>表存储，请画出广义表A(a, B((),<br>C(1)))的存储结构；假设head，tail分<br>别是求首元素操作和求尾表操作，求<br>如何获得元素1.</p></blockquote><p><img src="/images/archives/2025/2025-12-20-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%94%90%E6%B0%8F%E8%80%83%E7%82%B9/image2.webp" alt="解答"><br>其中,一个结点的定义如下:</p><blockquote><p>utype = 0/1/2/3 ;<br>value = ref /intgrinfo /charinfo / hlink ;tlink</p></blockquote><p>0表示该节点为头节点,1表示为整数,2表示为char,3表示为子表节点,∧表示该节点为尾节点,指向该子表头节点</p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> GenList :: <span class="built_in">depth</span> ( GenListNode *ls ) &#123;</span><br><span class="line"><span class="keyword">if</span> ( ls→tlink == <span class="literal">NULL</span> ) <span class="keyword">return</span> <span class="number">1</span>; <span class="comment">//空表</span></span><br><span class="line">GenListNode *temp = ls→tlink;</span><br><span class="line"><span class="type">int</span> m = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">while</span> ( temp != <span class="literal">NULL</span> ) &#123;</span><br><span class="line"> <span class="comment">//横扫广义表</span></span><br><span class="line"><span class="keyword">if</span> ( temp→utype == LST ) &#123;</span><br><span class="line"> <span class="comment">//子表深度</span></span><br><span class="line"><span class="type">int</span> n = <span class="built_in">depth</span> ( temp→value.hlink );</span><br><span class="line"><span class="keyword">if</span> ( m &lt; n ) m = n;</span><br><span class="line">&#125;</span><br><span class="line"> <span class="comment">//不是子表不加深度</span></span><br><span class="line">temp = temp→tlink;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">return</span> m<span class="number">+1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h2 id="二叉链的应用">二叉链的应用</h2><blockquote><p>假设二叉树采用二叉链存储，设计一个算法Level()求二叉树中值为 x 的节点的层数。</p></blockquote><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">Level</span><span class="params">(BiNode *T, <span class="type">int</span> x, <span class="type">int</span> level)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!T) <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (T-&gt;data == x) <span class="keyword">return</span> level;</span><br><span class="line"></span><br><span class="line">    <span class="type">int</span> l = <span class="built_in">Level</span>(T-&gt;lchild, x, level + <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">if</span> (l) <span class="keyword">return</span> l;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">Level</span>(T-&gt;rchild, x, level + <span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h2 id="二叉树与森林典型例题">二叉树与森林典型例题</h2><p><img src="/images/archives/2025/2025-12-20-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%94%90%E6%B0%8F%E8%80%83%E7%82%B9/PixPin_2025-12-26_12-34-19.webp" alt="题目"></p><p><img src="/images/archives/2025/2025-12-20-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%94%90%E6%B0%8F%E8%80%83%E7%82%B9/PixPin_2025-12-26_12-35-26.webp" alt="解答"></p><h2 id="静态搜索表的应用">静态搜索表的应用</h2><h3 id="顺序搜索">顺序搜索</h3><p><img src="/images/archives/2025/2025-12-14-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E6%95%B4%E7%90%86-4/PixPin_2025-12-27_12-12-10.webp%3E" alt="不能写个循环吗急死我了"><br>还装模做样加一个概念ASL(Average Search Length)<br><img src="/images/archives/2025/2025-12-14-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E6%95%B4%E7%90%86-4/PixPin_2025-12-27_12-13-47.webp%3E" alt=""><br><img src="/images/archives/2025/2025-12-14-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E6%95%B4%E7%90%86-4/PixPin_2025-12-25_10-52-23.webp%3E" alt="公式"></p><h3 id="折半搜索">折半搜索</h3><p><img src="/images/archives/2025/2025-12-20-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%94%90%E6%B0%8F%E8%80%83%E7%82%B9/PixPin_2025-12-27_12-34-38.webp" alt="代码"></p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h2 id=&quot;稀疏矩阵的三元组表&quot;&gt;稀疏矩阵的三元组表&lt;/h2&gt;
-&lt;p&gt;三元组表需要把行,列,值分别列出来(意义在哪里?)&lt;br&gt;
-&lt;img src=&quot;/images/archives/2025/2025-12-20-%E6%95%B0%E6%8D%AE%E7%BB%93%E6</summary>
-      
-    
-    
-    
-    
-    <category term="数据结构" scheme="https://revival-of-hope.github.io/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>我遇到的各种调试问题</title>
-    <link href="https://revival-of-hope.github.io/2025/12/19/dynamic-2025-12-19-%E6%88%91%E9%81%87%E5%88%B0%E7%9A%84%E5%90%84%E7%A7%8D%E8%B0%83%E8%AF%95%E9%97%AE%E9%A2%98/"/>
-    <id>https://revival-of-hope.github.io/2025/12/19/dynamic-2025-12-19-%E6%88%91%E9%81%87%E5%88%B0%E7%9A%84%E5%90%84%E7%A7%8D%E8%B0%83%E8%AF%95%E9%97%AE%E9%A2%98/</id>
-    <published>2025-12-19T01:58:56.000Z</published>
-    <updated>2026-01-19T04:52:05.966Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="vscode-powershell终端打字缺字漏字"><a class="markdownIt-Anchor" href="#vscode-powershell终端打字缺字漏字"></a> vscode powershell终端打字缺字漏字</h2><p>解决方法:</p><blockquote><p>搜索设置<br />Terminal &gt; Integrated &gt; Default Profile: Windows<br />换为cmd</p></blockquote><h2 id="左斜线和右斜线问题"><a class="markdownIt-Anchor" href="#左斜线和右斜线问题"></a> 左斜线和右斜线问题</h2><p>windows路径都是,转义符是,而网页链接,linux都是/<br />解决方法:</p><blockquote><p>在搜索框输入：“Explorer: Copy Relative Path Separator”<br />将\改为正斜杠/<br /><a href="https://blog.csdn.net/kdz6511/article/details/148712726">参考链接</a></p></blockquote><h2 id="gpt废话太多"><a class="markdownIt-Anchor" href="#gpt废话太多"></a> gpt废话太多</h2><p>解决方法</p><blockquote><p>在设置里可以加入自定义提示词,这样就不用每次都提示让他精简输出了</p></blockquote><h2 id="cmd输入python弹出微软应用商店"><a class="markdownIt-Anchor" href="#cmd输入python弹出微软应用商店"></a> cmd输入python弹出微软应用商店</h2><p>解决方法</p><blockquote><p>进入设置里的应用执行别名,去掉跟python有关的别名(很好奇为什么要把这玩意加进来)</p></blockquote><h2 id="path环境变量变成一行"><a class="markdownIt-Anchor" href="#path环境变量变成一行"></a> path环境变量变成一行</h2><p>解决方法</p><blockquote><p>由于Windows的无敌bug,第一个如果是带有%开头的变量会把path变成一行,把带有盘符的变量放到第一行即可</p></blockquote>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h2 id=&quot;vscode-powershell终端打字缺字漏字&quot;&gt;&lt;a class=&quot;markdownIt-Anchor&quot; href=&quot;#vscode-powershell终端打字缺字漏字&quot;&gt;&lt;/a&gt; vscode powershell终端打字缺字漏字&lt;/h2&gt;
-&lt;p&gt;解决方</summary>
       
     
     
