@@ -6,7 +6,7 @@
   <link href="https://revival-of-hope.github.io/rss.xml" rel="self"/>
   
   <link href="https://revival-of-hope.github.io/"/>
-  <updated>2026-02-03T06:58:33.361Z</updated>
+  <updated>2026-02-03T13:54:49.243Z</updated>
   <id>https://revival-of-hope.github.io/</id>
   
   <author>
@@ -21,9 +21,9 @@
     <link href="https://revival-of-hope.github.io/2026/02/03/fastapi%E6%A8%A1%E6%9D%BF%E9%A1%B9%E7%9B%AE%E5%AD%A6%E4%B9%A0/"/>
     <id>https://revival-of-hope.github.io/2026/02/03/fastapi%E6%A8%A1%E6%9D%BF%E9%A1%B9%E7%9B%AE%E5%AD%A6%E4%B9%A0/</id>
     <published>2026-02-03T00:00:00.000Z</published>
-    <updated>2026-02-03T06:58:33.361Z</updated>
+    <updated>2026-02-03T13:54:49.243Z</updated>
     
-    <content type="html"><![CDATA[<blockquote><p>如果你像我一样没怎么用过docker,不了解前后端之间具体如何工作,而只是照着模板项目的md边问ai边运行项目的话,看到这个界面肯定是懵的</p></blockquote><p><img src="/images/2026-02-03/PixPin_2026-02-03_13-56-30.webp" alt="alt text" /></p><blockquote><p>当我尝试问ai时,它直接告诉我有这么多端口</p></blockquote><p><img src="/images/2026-02-03/PixPin_2026-02-03_13-59-17.webp" alt="alt text" /><br />点进去是这些画面<br /><img src="/images/2026-02-03/PixPin_2026-02-03_14-00-27.webp" alt="alt text" /><br /><img src="/images/2026-02-03/PixPin_2026-02-03_14-00-51.webp" alt="alt text" /><br /><img src="/images/2026-02-03/PixPin_2026-02-03_14-01-06.webp" alt="alt text" /></p><p>即便我大致看过了fastapi的教程,稍微了解了一点数据库知识,自以为可以开始做项目了,这些界面直接将我打回原形,显然工程上的前后端还是很难懂的,不是一个普通学生可以轻易学会的</p><p>于是我开始翻阅项目文档,并发现项目中基本没写原理,写的都是运行方法,问了问ai,给了以下回答.</p><blockquote><p>这个模板（full-stack-fastapi-template）针对生产级最佳实践设计，不是为零基础初学者写的。官方文档和 README 假设你已有 FastAPI、Docker、React 基础知识。GitHub discussion #1115 明确说：not beginner friendly，目标是给有经验开发者提供起点。</p></blockquote><p>也正是如此,如果我连这个项目都可以驾驭的话,那么之后做任何前后端应该都不会有任何问题了,下面是我的学习历程</p><h2 id="what-is-docker-how-does-it-works"><a class="markdownIt-Anchor" href="#what-is-docker-how-does-it-works"></a> What is docker? How does it works?</h2><p><strong>参考</strong></p><ul><li><a href="https://ruanyifeng.com/blog/2018/02/docker-tutorial.html">阮一峰教程</a></li></ul><blockquote><p>不得不说大牛的教程就是写的深入浅出</p></blockquote>]]></content>
+    <content type="html"><![CDATA[<blockquote><p>如果你像我一样没怎么用过docker,不了解前后端之间具体如何工作,而只是照着模板项目的md边问ai边运行项目的话,看到这个界面肯定是懵的</p></blockquote><p><img src="/images/2026-02-03/PixPin_2026-02-03_13-56-30.webp" alt="alt text"></p><blockquote><p>当我尝试问ai时,它直接告诉我有这么多端口</p></blockquote><p><img src="/images/2026-02-03/PixPin_2026-02-03_13-59-17.webp" alt="alt text"><br>点进去是这些画面<br><img src="/images/2026-02-03/PixPin_2026-02-03_14-00-27.webp" alt="alt text"><br><img src="/images/2026-02-03/PixPin_2026-02-03_14-00-51.webp" alt="alt text"><br><img src="/images/2026-02-03/PixPin_2026-02-03_14-01-06.webp" alt="alt text"></p><p>即便我大致看过了fastapi的教程,稍微了解了一点数据库知识,自以为可以开始做项目了,这些界面直接将我打回原形,显然工程上的前后端还是很难懂的,不是一个普通学生可以轻易学会的</p><p>于是我开始翻阅项目文档,并发现项目中基本没写原理,写的都是运行方法,问了问ai,给了以下回答.</p><blockquote><p>这个模板（full-stack-fastapi-template）针对生产级最佳实践设计，不是为零基础初学者写的。官方文档和 README 假设你已有 FastAPI、Docker、React 基础知识。GitHub discussion #1115 明确说：not beginner friendly，目标是给有经验开发者提供起点。</p></blockquote><p>也正是如此,如果我连这个项目都可以驾驭的话,那么之后做任何前后端应该都不会有任何问题了,下面是我的学习历程</p><h2 id="What-is-docker-How-does-it-works">What is docker? How does it works?</h2><p><strong>参考</strong></p><ul><li><a href="https://ruanyifeng.com/blog/2018/02/docker-tutorial.html">阮一峰教程</a></li></ul><h3 id="简单入门">简单入门</h3><blockquote><p>Docker 把应用程序及其依赖，打包在 image 文件里面。只有通过这个文件，才能生成 Docker 容器。image 文件可以看作是容器的模板。Docker 根据 image 文件生成容器的实例。同一个 image 文件，可以生成多个同时运行的容器实例。</p></blockquote><p>也就是说image是一个集成了组件和应用程序的zip,container则可以看成是解压缩,将zip解压成对应平台的适配版本</p><h3 id="docker-compose">docker compose</h3><h2 id=""></h2>]]></content>
     
     
       
