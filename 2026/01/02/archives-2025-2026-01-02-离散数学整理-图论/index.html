@@ -1,9 +1,9 @@
-<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>2026-01-02 离散数学整理-图论 | 独角恋歌</title><meta name="author" content="Revival-of-hope"><meta name="copyright" content="Revival-of-hope"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="图的基本概念 有向图  &lt;V,E&gt;（v &#x3D; vertex(节点)，e &#x3D; edge(边)） 平凡图：只有一个 v，没有 e 的图 n 阶图：n 为节点数 邻接：有向边起点邻接到终点，故邻接矩阵中第 n 行为第 n 个节点作为起点，第 n 列为第 n 个节点作为终点，以此统计出度和入度   子图  真子图：与原图不一样就行 生成子图：节点数一样就行，边可以比原图连的少，但不能自己加边 导">
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>2026-01-02 离散数学整理-图论 | 独角恋歌</title><meta name="author" content="Revival-of-hope"><meta name="copyright" content="Revival-of-hope"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="图的基本概念  有向图  &lt;V,E&gt;（v &#x3D; vertex(节点)，e &#x3D; edge(边)） 平凡图：只有一个 v，没有 e 的图 n 阶图：n 为节点数 邻接：有向边起点邻接到终点，故邻接矩阵中第 n 行为第 n 个节点作为起点，第 n 列为第 n 个节点作为终点，以此统计出度和入度    子图  真子图：与原图不一样就行 生成子图：节点数一样就行，边可以比原图连的少，但不能自己加">
 <meta property="og:type" content="article">
 <meta property="og:title" content="2026-01-02 离散数学整理-图论">
 <meta property="og:url" content="https://revival-of-hope.github.io/2026/01/02/archives-2025-2026-01-02-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E5%9B%BE%E8%AE%BA/index.html">
 <meta property="og:site_name" content="独角恋歌">
-<meta property="og:description" content="图的基本概念 有向图  &lt;V,E&gt;（v &#x3D; vertex(节点)，e &#x3D; edge(边)） 平凡图：只有一个 v，没有 e 的图 n 阶图：n 为节点数 邻接：有向边起点邻接到终点，故邻接矩阵中第 n 行为第 n 个节点作为起点，第 n 列为第 n 个节点作为终点，以此统计出度和入度   子图  真子图：与原图不一样就行 生成子图：节点数一样就行，边可以比原图连的少，但不能自己加边 导">
+<meta property="og:description" content="图的基本概念  有向图  &lt;V,E&gt;（v &#x3D; vertex(节点)，e &#x3D; edge(边)） 平凡图：只有一个 v，没有 e 的图 n 阶图：n 为节点数 邻接：有向边起点邻接到终点，故邻接矩阵中第 n 行为第 n 个节点作为起点，第 n 列为第 n 个节点作为终点，以此统计出度和入度    子图  真子图：与原图不一样就行 生成子图：节点数一样就行，边可以比原图连的少，但不能自己加">
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://revival-of-hope.github.io/images/archives/2025/%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E5%9B%BE%E8%AE%BA/60095408_p0-Autumn.jpg">
 <meta property="article:published_time" content="2026-01-02T00:00:00.000Z">
@@ -197,32 +197,32 @@ btf.addGlobalFn('pjaxComplete', () => {
     btf.addGlobalFn('pjaxSend', preloader.initLoading, 'preloader_init')
     btf.addGlobalFn('pjaxComplete', preloader.endLoading, 'preloader_end')
   }
-})()</script><div id="web_bg" style="background-image: url(/img/56866134_p0-%E6%A2%85%E9%9B%A8%E3%81%AE%E6%99%B4%E3%82%8C%E9%96%93.webp);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/reimu.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">56</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">12</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">1</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/categories/%E5%8A%A8%E6%80%81%E6%9B%B4%E6%96%B0/"><i class="fa-fw fas fa-bolt"></i><span> 动态更新</span></a></div><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/images/archives/2025/%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E5%9B%BE%E8%AE%BA/60095408_p0-Autumn.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"></a><a class="nav-page-title" href="/"><span class="site-name">2026-01-02 离散数学整理-图论</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/categories/%E5%8A%A8%E6%80%81%E6%9B%B4%E6%96%B0/"><i class="fa-fw fas fa-bolt"></i><span> 动态更新</span></a></div><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">2026-01-02 离散数学整理-图论</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-01-02T00:00:00.000Z" title="Created 2026-01-02 08:00:00">2026-01-02</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-02-01T03:53:25.538Z" title="Updated 2026-02-01 11:53:25">2026-02-01</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">Word Count:</span><span class="word-count">4.3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">Reading Time:</span><span>14mins</span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:730,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-01 11:53:25&quot;}" hidden></div><h1>图的基本概念</h1>
-<h2 id="有向图">有向图</h2>
+})()</script><div id="web_bg" style="background-image: url(/img/56866134_p0-%E6%A2%85%E9%9B%A8%E3%81%AE%E6%99%B4%E3%82%8C%E9%96%93.webp);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/reimu.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">56</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">12</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">1</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/categories/%E5%8A%A8%E6%80%81%E6%9B%B4%E6%96%B0/"><i class="fa-fw fas fa-bolt"></i><span> 动态更新</span></a></div><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/images/archives/2025/%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E5%9B%BE%E8%AE%BA/60095408_p0-Autumn.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"></a><a class="nav-page-title" href="/"><span class="site-name">2026-01-02 离散数学整理-图论</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/categories/%E5%8A%A8%E6%80%81%E6%9B%B4%E6%96%B0/"><i class="fa-fw fas fa-bolt"></i><span> 动态更新</span></a></div><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">2026-01-02 离散数学整理-图论</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-01-02T00:00:00.000Z" title="Created 2026-01-02 08:00:00">2026-01-02</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-02-01T03:53:25.538Z" title="Updated 2026-02-01 11:53:25">2026-02-01</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">Word Count:</span><span class="word-count">4.3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">Reading Time:</span><span>14mins</span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:730,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-01 11:53:25&quot;}" hidden></div><h1 id="图的基本概念"><a class="markdownIt-Anchor" href="#图的基本概念"></a> 图的基本概念</h1>
+<h2 id="有向图"><a class="markdownIt-Anchor" href="#有向图"></a> 有向图</h2>
 <ul>
 <li><code>&lt;V,E&gt;</code>（<code>v = vertex(节点)</code>，<code>e = edge(边)</code>）</li>
 <li>平凡图：只有一个 <code>v</code>，没有 <code>e</code> 的图</li>
 <li>n 阶图：<code>n</code> 为节点数</li>
 <li>邻接：有向边起点邻接到终点，故邻接矩阵中第 <code>n</code> 行为第 <code>n</code> 个节点作为起点，第 <code>n</code> 列为第 <code>n</code> 个节点作为终点，以此统计出度和入度</li>
 </ul>
-<hr>
-<h2 id="子图">子图</h2>
+<hr />
+<h2 id="子图"><a class="markdownIt-Anchor" href="#子图"></a> 子图</h2>
 <ul>
 <li>真子图：与原图不一样就行</li>
 <li>生成子图：节点数一样就行，边可以比原图连的少，但不能自己加边</li>
 <li>导出子图：可以不用到所有节点，但母图中对应用到节点的边都要保留（或者不用到所有边，但对应的节点保留（废话，你都用到边了，那没节点哪来的边））</li>
 </ul>
-<hr>
-<h2 id="补图">补图</h2>
+<hr />
+<h2 id="补图"><a class="markdownIt-Anchor" href="#补图"></a> 补图</h2>
 <blockquote>
 <p><strong>补图</strong>：设简单无向图 G = (V, E)，其补图记为 Ḡ = (V, Ē)，其中</p>
 <ul>
-<li>Ē = { {u, v} | u, v ∈ V，u ≠ v，且 {u, v} ∉ E }<br>
+<li>Ē = { {u, v} | u, v ∈ V，u ≠ v，且 {u, v} ∉ E }<br />
 即在保持顶点集不变的情况下，Ḡ 中的边恰好是 G 中不存在的边。</li>
 </ul>
 </blockquote>
-<hr>
-<h2 id="同构图">同构图</h2>
+<hr />
+<h2 id="同构图"><a class="markdownIt-Anchor" href="#同构图"></a> 同构图</h2>
 <blockquote>
 <p><strong>同构图</strong>：设图 G₁ = (V₁, E₁)，G₂ = (V₂, E₂)，若存在一个双射 f : V₁ → V₂，使得</p>
 <ul>
@@ -233,11 +233,11 @@ btf.addGlobalFn('pjaxComplete', () => {
 <ul>
 <li>顶点数相同，边数相同，度数序列相同,但这只是必要条件，充分条件只能用瞪眼法了</li>
 </ul>
-<hr>
-<h2 id="连通性">连通性</h2>
-<h3 id="回路与通路">回路与通路</h3>
+<hr />
+<h2 id="连通性"><a class="markdownIt-Anchor" href="#连通性"></a> 连通性</h2>
+<h3 id="回路与通路"><a class="markdownIt-Anchor" href="#回路与通路"></a> 回路与通路</h3>
 <blockquote>
-<p>当一条回路中的所有边互不相同时为简单回路，与此相反，有边相同时就是复杂回路，一个由 3 个节点形成的 <code>8</code> 是简单回路<br>
+<p>当一条回路中的所有边互不相同时为简单回路，与此相反，有边相同时就是复杂回路，一个由 3 个节点形成的 <code>8</code> 是简单回路<br />
 若简单回路中除了初始节点和结束节点相同外，其他节点都不相同，则为初级回路，上文的 <code>8</code> 就不是初级回路</p>
 </blockquote>
 <ul>
@@ -245,26 +245,26 @@ btf.addGlobalFn('pjaxComplete', () => {
 <li>把上面的回路两个字换成通路就可以得到简单通路,复杂通路,初级通路的定义了</li>
 </ul>
 <blockquote>
-<p>如果 <code>u</code> 到 <code>v</code> 存在通路，则称u和v是连通的,在有向图中称 <code>u</code> 可达 <code>v</code>，若图 <code>G</code> 任意两个顶点都连通，则称 <code>G</code> 是<strong>连通图</strong>，注意平凡图也是连通图<br>
-<strong>连通分支</strong>:图G相互之间不连通的导出子图<br>
+<p>如果 <code>u</code> 到 <code>v</code> 存在通路，则称u和v是连通的,在有向图中称 <code>u</code> 可达 <code>v</code>，若图 <code>G</code> 任意两个顶点都连通，则称 <code>G</code> 是<strong>连通图</strong>，注意平凡图也是连通图<br />
+<strong>连通分支</strong>:图G相互之间不连通的导出子图<br />
 G的连通分支的数量记为p(G)</p>
 </blockquote>
-<hr>
-<h3 id="有向图的连通性">有向图的连通性</h3>
-<h4 id="可达与相互可达">可达与相互可达</h4>
+<hr />
+<h3 id="有向图的连通性"><a class="markdownIt-Anchor" href="#有向图的连通性"></a> 有向图的连通性</h3>
+<h4 id="可达与相互可达"><a class="markdownIt-Anchor" href="#可达与相互可达"></a> 可达与相互可达</h4>
 <p>设有向图 D = &lt;V, E&gt;，u, v ∈ V。</p>
 <ul>
 <li>
-<p><strong>u 可达 v</strong>：<br>
-从 u 到 v 存在一条有向通路。<br>
+<p><strong>u 可达 v</strong>：<br />
+从 u 到 v 存在一条有向通路。<br />
 规定：u 到自身总是可达。</p>
 </li>
 <li>
-<p><strong>u 与 v 相互可达</strong>：<br>
+<p><strong>u 与 v 相互可达</strong>：<br />
 u 可达 v 且 v 可达 u。</p>
 </li>
 </ul>
-<hr>
+<hr />
 <ul>
 <li><strong>弱连通</strong></li>
 </ul>
@@ -283,36 +283,36 @@ u 可达 v 且 v 可达 u。</p>
 <blockquote>
 <p>对任意 u, v ∈ V,u 与 v 相互可达</p>
 </blockquote>
-<h3 id="割集">割集</h3>
+<h3 id="割集"><a class="markdownIt-Anchor" href="#割集"></a> 割集</h3>
 <p>设 G = (V, E) 为连通图。</p>
 <blockquote>
 <p><strong>边割集</strong>：设 C ⊆ E，若</p>
 <ul>
 <li>图 G − C 不连通；</li>
-<li>对任意 e ∈ C，G − (C \ {e}) 仍连通；<br>
+<li>对任意 e ∈ C，G − (C \ {e}) 仍连通；<br />
 则称 C 为 G 的边割集。</li>
 </ul>
 </blockquote>
 <ul>
 <li>即C已经是能够让G不连通的最小边集合了,若C只有一条边e,称e为割边或桥</li>
 </ul>
-<hr>
+<hr />
 <blockquote>
 <p><strong>点割集</strong>：设 S ⊆ V，若</p>
 <ul>
 <li>图 G − S 不连通或退化为单点图；</li>
-<li>对任意 v ∈ S，G − (S \ {v}) 仍连通；<br>
+<li>对任意 v ∈ S，G − (S \ {v}) 仍连通；<br />
 则称 S 为 G 的点割集。</li>
 </ul>
 </blockquote>
 <ul>
 <li>即S已经是能够让G不连通的最小点集合了,若S只有一个顶点v,称v为割点</li>
 </ul>
-<h3 id="分量与割">分量与割</h3>
-<h4 id="连通分量">连通分量</h4>
+<h3 id="分量与割"><a class="markdownIt-Anchor" href="#分量与割"></a> 分量与割</h3>
+<h4 id="连通分量"><a class="markdownIt-Anchor" href="#连通分量"></a> 连通分量</h4>
 <ul>
 <li>
-<p><strong>无向图的连通分量</strong><br>
+<p><strong>无向图的连通分量</strong><br />
 无向图 G 的一个极大连通子图称为 G 的一个连通分量（或连通分支）。</p>
 <ul>
 <li>每一个顶点和每一条边都属于唯一的一个连通分量</li>
@@ -321,7 +321,7 @@ u 可达 v 且 v 可达 u。</p>
 </ul>
 </li>
 <li>
-<p><strong>有向图的强连通分量</strong><br>
+<p><strong>有向图的强连通分量</strong><br />
 有向图中的强连通分量是其极大的强连通子图。</p>
 <ul>
 <li>强连通图只有一个强连通分量，即其自身</li>
@@ -329,32 +329,32 @@ u 可达 v 且 v 可达 u。</p>
 </ul>
 </li>
 </ul>
-<hr>
-<h4 id="点割与点连通度">点割与点连通度</h4>
+<hr />
+<h4 id="点割与点连通度"><a class="markdownIt-Anchor" href="#点割与点连通度"></a> 点割与点连通度</h4>
 <ul>
 <li>
-<p><strong>割点集</strong><br>
+<p><strong>割点集</strong><br />
 在连通图 G 中，一个由顶点组成的集合，若从 G 中删除这些顶点后图变得不连通，则称该集合为割点集。</p>
 </li>
 <li>
-<p><strong>点连通度</strong><br>
+<p><strong>点连通度</strong><br />
 点连通度 κ(G) 定义为割点集中顶点数的最小值。</p>
 </li>
 <li>
-<p><strong>k-点连通图</strong><br>
-若图 G 可以在删除 k 个顶点后变得不连通，但不能在删除 k−1 个顶点后变得不连通，则称 G 为 k-点连通图。<br>
+<p><strong>k-点连通图</strong><br />
+若图 G 可以在删除 k 个顶点后变得不连通，但不能在删除 k−1 个顶点后变得不连通，则称 G 为 k-点连通图。<br />
 特别地，阶数为 n 的完全图是 (n−1)-点连通的。</p>
 </li>
 </ul>
-<hr>
-<h4 id="局部连通度">局部连通度</h4>
+<hr />
+<h4 id="局部连通度"><a class="markdownIt-Anchor" href="#局部连通度"></a> 局部连通度</h4>
 <ul>
 <li>
-<p><strong>u, v 的割点集</strong><br>
+<p><strong>u, v 的割点集</strong><br />
 对一对顶点 u, v，若删除某个顶点集合后使 u 与 v 不连通，则该集合称为 u, v 的割点集。</p>
 </li>
 <li>
-<p><strong>局部连通度</strong><br>
+<p><strong>局部连通度</strong><br />
 κ(u, v) 表示使 u 与 v 不连通的最小割点集的大小。</p>
 </li>
 <li>
@@ -365,32 +365,32 @@ u 可达 v 且 v 可达 u。</p>
 </ul>
 </li>
 </ul>
-<hr>
-<h4 id="边割与边连通度">边割与边连通度</h4>
+<hr />
+<h4 id="边割与边连通度"><a class="markdownIt-Anchor" href="#边割与边连通度"></a> 边割与边连通度</h4>
 <ul>
 <li>
-<p><strong>桥</strong><br>
+<p><strong>桥</strong><br />
 在图 G 中，删除某一条边后图变得不连通，则该边称为桥。</p>
 </li>
 <li>
-<p><strong>割边集</strong><br>
+<p><strong>割边集</strong><br />
 一个由边组成的集合，若删除这些边后图变得不连通，则称为割边集。</p>
 </li>
 <li>
-<p><strong>边连通度</strong><br>
+<p><strong>边连通度</strong><br />
 λ(G) 表示最小割边集的大小。</p>
 </li>
 <li>
-<p><strong>局部边连通度</strong><br>
+<p><strong>局部边连通度</strong><br />
 λ(u, v) 表示使 u 与 v 不连通的最小割边集的大小。</p>
 </li>
 <li>
-<p><strong>k-边连通图</strong><br>
+<p><strong>k-边连通图</strong><br />
 若 λ(G) ≥ k，则称图 G 为 k-边连通图。</p>
 </li>
 </ul>
-<hr>
-<h4 id="连通度之间的关系">连通度之间的关系</h4>
+<hr />
+<h4 id="连通度之间的关系"><a class="markdownIt-Anchor" href="#连通度之间的关系"></a> 连通度之间的关系</h4>
 <ul>
 <li>设 δ(G) 为图 G 的最小度，则有不等式：</li>
 </ul>
@@ -400,11 +400,11 @@ u 可达 v 且 v 可达 u。</p>
 <li>若 κ(G) = δ(G)，称 G 为极大连通图</li>
 <li>若 λ(G) = δ(G)，称 G 为极大边连通图</li>
 </ul>
-<h2 id="图的矩阵表示">图的矩阵表示</h2>
-<hr>
-<h3 id="无向图的关联矩阵">无向图的关联矩阵</h3>
+<h2 id="图的矩阵表示"><a class="markdownIt-Anchor" href="#图的矩阵表示"></a> 图的矩阵表示</h2>
+<hr />
+<h3 id="无向图的关联矩阵"><a class="markdownIt-Anchor" href="#无向图的关联矩阵"></a> 无向图的关联矩阵</h3>
 <blockquote>
-<p><strong>定义</strong>：设无向图 G = (V, E)，|V| = n，|E| = m。<br>
+<p><strong>定义</strong>：设无向图 G = (V, E)，|V| = n，|E| = m。<br />
 无向图的关联矩阵是一个 n × m 的 0-1 矩阵 M，其中</p>
 <ul>
 <li>M[i][j] = 1或2，当且仅当顶点 v_i 与边 e_j 关联；</li>
@@ -414,14 +414,14 @@ u 可达 v 且 v 可达 u。</p>
 <ul>
 <li>关联即顶点作为该边的起点或者终点出现次数,当出现自环时关联次数为2</li>
 <li>每一列都恰好有两个1或一个2</li>
-<li>第i行元素之和为vi的度数,所有元素之和为2m<br>
+<li>第i行元素之和为vi的度数,所有元素之和为2m<br />
 <strong>例</strong>：</li>
 <li>V = {v1, v2, v3, v4}</li>
-<li>E = {<br>
-e1 = {v1, v2},<br>
-e2 = {v1, v3},<br>
-e3 = {v2, v3},<br>
-e4 = {v4, v4}<br>
+<li>E = {<br />
+e1 = {v1, v2},<br />
+e2 = {v1, v3},<br />
+e3 = {v2, v3},<br />
+e4 = {v4, v4}<br />
 }</li>
 </ul>
 <table>
@@ -465,10 +465,10 @@ e4 = {v4, v4}<br>
 </tr>
 </tbody>
 </table>
-<hr>
-<h3 id="有向图的关联矩阵">有向图的关联矩阵</h3>
+<hr />
+<h3 id="有向图的关联矩阵"><a class="markdownIt-Anchor" href="#有向图的关联矩阵"></a> 有向图的关联矩阵</h3>
 <blockquote>
-<p><strong>定义</strong>：设无环有向图 G = (V, E)，|V| = n，|E| = m。<br>
+<p><strong>定义</strong>：设无环有向图 G = (V, E)，|V| = n，|E| = m。<br />
 有向图的关联矩阵是一个 n × m 的矩阵 M，其中</p>
 <ul>
 <li>M[i][j] = -1，若边 e_j 从 v_i 出发；</li>
@@ -482,11 +482,11 @@ e4 = {v4, v4}<br>
 <p><strong>例</strong>：</p>
 <ul>
 <li>V = {v1, v2, v3, v4}</li>
-<li>E = {<br>
-e1: v1 → v2,<br>
-e2: v1 → v3,<br>
-e3: v2 → v4,<br>
-e4: v3 → v4<br>
+<li>E = {<br />
+e1: v1 → v2,<br />
+e2: v1 → v3,<br />
+e3: v2 → v4,<br />
+e4: v3 → v4<br />
 }</li>
 </ul>
 <table>
@@ -530,10 +530,10 @@ e4: v3 → v4<br>
 </tr>
 </tbody>
 </table>
-<hr>
-<h3 id="有向图的邻接矩阵">有向图的邻接矩阵</h3>
+<hr />
+<h3 id="有向图的邻接矩阵"><a class="markdownIt-Anchor" href="#有向图的邻接矩阵"></a> 有向图的邻接矩阵</h3>
 <blockquote>
-<p><strong>定义</strong>：设有向图 G = (V, E)，|V| = n。<br>
+<p><strong>定义</strong>：设有向图 G = (V, E)，|V| = n。<br />
 有向图的邻接矩阵是一个 n × n 的矩阵 A，其中</p>
 <ul>
 <li>A[i][j] = 1，表示存在从 v_i 到 v_j 的有向边；</li>
@@ -588,10 +588,10 @@ e4: v3 → v4<br>
 </tr>
 </tbody>
 </table>
-<hr>
-<h3 id="有向图的可达矩阵">有向图的可达矩阵</h3>
+<hr />
+<h3 id="有向图的可达矩阵"><a class="markdownIt-Anchor" href="#有向图的可达矩阵"></a> 有向图的可达矩阵</h3>
 <blockquote>
-<p><strong>定义</strong>：设有向图 G = (V, E)，|V| = n。<br>
+<p><strong>定义</strong>：设有向图 G = (V, E)，|V| = n。<br />
 可达矩阵是一个 n × n 的矩阵 R，其中</p>
 <ul>
 <li>R[i][j] = 1，表示从 v_i 出发存在一条路径可到达 v_j；</li>
@@ -599,8 +599,8 @@ e4: v3 → v4<br>
 </ul>
 </blockquote>
 <ul>
-<li>由于顶点到自身都是可达的,故可达矩阵对角线上的元素恒为1<br>
-<strong>例</strong>：<br>
+<li>由于顶点到自身都是可达的,故可达矩阵对角线上的元素恒为1<br />
+<strong>例</strong>：<br />
 基于上述有向图</li>
 </ul>
 <table>
@@ -644,16 +644,16 @@ e4: v3 → v4<br>
 </tr>
 </tbody>
 </table>
-<h2 id="着色问题">着色问题</h2>
+<h2 id="着色问题"><a class="markdownIt-Anchor" href="#着色问题"></a> 着色问题</h2>
 <blockquote>
 <p><em>着色问题</em>：设 G = (V, E) 为无向无环图，给每个顶点分配一种颜色，使得</p>
 <ul>
-<li>若 {u, v} ∈ E，则 u 与 v 的颜色不同,即<strong>相邻顶点颜色不同</strong><br>
+<li>若 {u, v} ∈ E，则 u 与 v 的颜色不同,即<strong>相邻顶点颜色不同</strong><br />
 记使用的最少颜色数为k,称G为k-可着色的</li>
 </ul>
 </blockquote>
 <blockquote>
-<p><strong>Welsh–Powell 算法</strong>：<br>
+<p><strong>Welsh–Powell 算法</strong>：<br />
 是一种求图顶点着色的启发式算法，其基本思想是优先为度数大的顶点着色。</p>
 </blockquote>
 <p><strong>算法步骤</strong>：</p>
@@ -663,88 +663,88 @@ e4: v3 → v4<br>
 <li>在剩余未着色顶点中，按排序顺序选择与已着该颜色顶点均不相邻的顶点，赋予同一颜色；</li>
 <li>重复步骤 2–3，直到所有顶点均被着色。</li>
 </ol>
-<hr>
+<hr />
 <p><strong>例题</strong></p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">设  </span><br><span class="line">V = &#123;v1, v2, v3, v4, v5&#125;  </span><br><span class="line">E = &#123; &#123;v1,v2&#125;, &#123;v1,v3&#125;, &#123;v1,v4&#125;, &#123;v2,v3&#125;, &#123;v3,v4&#125;, &#123;v4,v5&#125; &#125;</span><br><span class="line"></span><br><span class="line">各顶点度数：  </span><br><span class="line">deg(v1)=3，deg(v3)=3，deg(v4)=3，deg(v2)=2，deg(v5)=1  </span><br><span class="line"></span><br><span class="line">排序结果：  </span><br><span class="line">v1, v3, v4, v2, v5  </span><br><span class="line"></span><br><span class="line">着色过程：  </span><br><span class="line">- 颜色 1：v1，v5  </span><br><span class="line">- 颜色 2：v3  </span><br><span class="line">- 颜色 3：v4  </span><br><span class="line">- 颜色 4：v2  </span><br><span class="line"></span><br><span class="line">因此该算法得到 G 为 4-可着色（不一定是最小色数）。</span><br></pre></td></tr></table></figure>
-<h3 id="练手">练手</h3>
-<p><img src="/images/archives/2026-01-02/PixPin_2026-01-05_18-46-51.webp" alt=""></p>
-<hr>
-<p><strong>答案</strong><br>
-<img src="/images/archives/2026-01-02/PixPin_2026-01-05_18-59-15.webp" alt=""></p>
-<h1>特殊的图</h1>
-<h2 id="二部图">二部图</h2>
+<h3 id="练手"><a class="markdownIt-Anchor" href="#练手"></a> 练手</h3>
+<p><img src="/images/archives/2026-01-02/PixPin_2026-01-05_18-46-51.webp" alt="" /></p>
+<hr />
+<p><strong>答案</strong><br />
+<img src="/images/archives/2026-01-02/PixPin_2026-01-05_18-59-15.webp" alt="" /></p>
+<h1 id="特殊的图"><a class="markdownIt-Anchor" href="#特殊的图"></a> 特殊的图</h1>
+<h2 id="二部图"><a class="markdownIt-Anchor" href="#二部图"></a> 二部图</h2>
 <blockquote>
 <p>把一个图的顶点划分为两个不相交子集，使得每一条边都分别连接两个集合中的顶点，如果存在这样的划分，则此图为一个二部图</p>
-<p>[深入理解](htt ps://blog.csdn.net/qq_26822029/article/details/90382581)<br>
-若 <code>G</code> 中无长度为奇数的回路，则无向图 <code>G</code> 是二部图<br>
+<p>[深入理解](htt ps://blog.csdn.net/qq_26822029/article/details/90382581)<br />
+若 <code>G</code> 中无长度为奇数的回路，则无向图 <code>G</code> 是二部图<br />
 <a target="_blank" rel="noopener" href="https://www.zhihu.com/question/474576285">证明</a></p>
 </blockquote>
 <ul>
 <li>也就是说各自的子集中两个顶点之间都没有边</li>
 </ul>
-<h3 id="匹配">匹配</h3>
+<h3 id="匹配"><a class="markdownIt-Anchor" href="#匹配"></a> 匹配</h3>
 <blockquote>
-<p><strong>匹配（Matching）</strong><br>
-在无向图 <code>G = (V, E)</code> 中，若边集 <code>M ⊆ E</code> 满足：<br>
+<p><strong>匹配（Matching）</strong><br />
+在无向图 <code>G = (V, E)</code> 中，若边集 <code>M ⊆ E</code> 满足：<br />
 任意两条边不共享公共顶点(即<strong>不相连</strong>)，则称 <code>M</code> 为图 <code>G</code> 的一个匹配。</p>
 </blockquote>
 <blockquote>
-<p><strong>极大匹配（Maximal Matching）</strong><br>
-若匹配 <code>M</code> 满足：<br>
+<p><strong>极大匹配（Maximal Matching）</strong><br />
+若匹配 <code>M</code> 满足：<br />
 在图中不能再加入任何一条边而仍保持是匹配，则称 <code>M</code> 为极大匹配。</p>
 </blockquote>
 <blockquote>
-<p><strong>最大匹配（Maximum Matching）</strong><br>
+<p><strong>最大匹配（Maximum Matching）</strong><br />
 在图 <code>G</code> 的所有匹配中，边数最多的匹配称为最大匹配。</p>
 </blockquote>
 <ul>
-<li><strong>匹配数</strong><br>
+<li><strong>匹配数</strong><br />
 最大匹配 <code>M</code> 中边的条数称为匹配数</li>
 </ul>
-<hr>
+<hr />
 <blockquote>
-<p><strong>完美匹配（Perfect Matching）</strong><br>
-若匹配 <code>M</code> 覆盖图中所有顶点，即每个顶点都恰好与一条匹配边相关联，<br>
+<p><strong>完美匹配（Perfect Matching）</strong><br />
+若匹配 <code>M</code> 覆盖图中所有顶点，即每个顶点都恰好与一条匹配边相关联，<br />
 则称 <code>M</code> 为完美匹配。</p>
 </blockquote>
 <blockquote>
-<p><strong>完备匹配（Complete Matching）</strong><br>
-在二部图 <code>G = (X, Y, E)</code> 中，若存在一个匹配使得 <code>X</code> 中的每个顶点<br>
+<p><strong>完备匹配（Complete Matching）</strong><br />
+在二部图 <code>G = (X, Y, E)</code> 中，若存在一个匹配使得 <code>X</code> 中的每个顶点<br />
 都与 <code>Y</code> 中某个顶点匹配，则称该匹配为完备匹配。(<em>当|X|&lt;|Y|时允许存在有顶点不匹配的情况</em>)</p>
 </blockquote>
-<hr>
-<h3 id="hall-定理及其引申">Hall 定理及其引申</h3>
+<hr />
+<h3 id="hall-定理及其引申"><a class="markdownIt-Anchor" href="#hall-定理及其引申"></a> Hall 定理及其引申</h3>
 <blockquote>
-<p><strong>Hall 定理（婚姻定理）</strong><br>
-设 <code>G = (X, Y, E)</code> 为二部图。<br>
-存在一个覆盖 <code>X</code> 的完备匹配，当且仅当对 <code>X</code> 的任意子集 <code>S</code>，<br>
+<p><strong>Hall 定理（婚姻定理）</strong><br />
+设 <code>G = (X, Y, E)</code> 为二部图。<br />
+存在一个覆盖 <code>X</code> 的完备匹配，当且仅当对 <code>X</code> 的任意子集 <code>S</code>，<br />
 <code>S</code> 的邻接顶点集合 <code>N(S)</code> 满足：</p>
 </blockquote>
 <ul>
 <li><code>|N(S)| ≥ |S|</code></li>
 </ul>
-<hr>
+<hr />
 <blockquote>
-<p><strong>Hall 定理的等价表述</strong><br>
-二部图 <code>G = (X, Y, E)</code> 中存在完备匹配<br>
+<p><strong>Hall 定理的等价表述</strong><br />
+二部图 <code>G = (X, Y, E)</code> 中存在完备匹配<br />
 当且仅当 <code>X</code> 的任意子集都不“缺少”可匹配的邻接顶点。</p>
 </blockquote>
 <ul>
 <li>用人话说,当|X|&lt;=|Y|时需要保证X中任意k个顶点至少邻接Y中k个顶点</li>
 </ul>
 <blockquote>
-<p><strong>Hall 定理的推论</strong><br>
+<p><strong>Hall 定理的推论</strong><br />
 设 <code>G = (X, Y, E)</code> 为二部图，若存在t&gt;0,使得:</p>
 <ul>
 <li>X中每个顶点至少关联t条边</li>
-<li>Y中每个顶点至多关联t条边<br>
+<li>Y中每个顶点至多关联t条边<br />
 则称G中存在X到Y的完备匹配</li>
 </ul>
 </blockquote>
 <ul>
 <li>显然这是一个很强烈的充分条件而非必要条件</li>
 </ul>
-<h2 id="欧拉图">欧拉图</h2>
+<h2 id="欧拉图"><a class="markdownIt-Anchor" href="#欧拉图"></a> 欧拉图</h2>
 <blockquote>
 <p><strong>欧拉回路</strong>:通过图中所有边且每边仅通过一次的回路，具有欧拉回路的图称为欧拉图（Euler Graph）</p>
 </blockquote>
@@ -764,29 +764,29 @@ e4: v3 → v4<br>
 <blockquote>
 <p>有向图中：</p>
 <ul>
-<li>有欧拉回路：当且仅当 <code>G</code> 是连通图且每个顶点的入度等于出度<br>
+<li>有欧拉回路：当且仅当 <code>G</code> 是连通图且每个顶点的入度等于出度<br />
 直观上很好理解，证明还是算了吧</li>
 </ul>
 </blockquote>
-<hr>
-<h2 id="哈密顿图">哈密顿图</h2>
+<hr />
+<h2 id="哈密顿图"><a class="markdownIt-Anchor" href="#哈密顿图"></a> 哈密顿图</h2>
 <blockquote>
 <p>通过图 <code>G</code> 的每个结点一次且仅一次的通路（回路），就是<strong>哈密顿通路</strong>（回路），存在哈密顿回路的图就是哈密顿图</p>
 </blockquote>
-<h3 id="判定方法">判定方法</h3>
+<h3 id="判定方法"><a class="markdownIt-Anchor" href="#判定方法"></a> 判定方法</h3>
 <blockquote>
 <p>若n阶有向图G对应的无向图中含有生成子图Kn(即生成子图为完全图),则G中存在哈密顿通路</p>
 </blockquote>
 <ul>
 <li>这个挺显然的,如果每个顶点间都有连线,怎么都能把所有顶点连接起来</li>
 </ul>
-<hr>
-<h2 id="平面图">平面图</h2>
+<hr />
+<h2 id="平面图"><a class="markdownIt-Anchor" href="#平面图"></a> 平面图</h2>
 <blockquote>
 <p>若 <code>G</code> 能画在平面上而不出现边交叉，则为<strong>平面图</strong>，画出的图称为 <code>G</code> 的平面嵌入</p>
 </blockquote>
 <blockquote>
-<p><strong>面</strong>:设G是一个平面嵌入,G<br>
+<p><strong>面</strong>:设G是一个平面嵌入,G<br />
 的边将整个平面划分成若干区域,每个区域称为G的一个面,其中面积无限的区域称为<em>无限面</em>或<em>外部面</em>,面积有限的区域称为<em>有限面</em>或<em>内部面</em></p>
 </blockquote>
 <ul>
@@ -802,92 +802,92 @@ e4: v3 → v4<br>
 <li><strong>平面图各面的次数之和等于边数的2倍</strong></li>
 </ul>
 <blockquote>
-<p>证明<br>
+<p>证明<br />
 在平面图中，每一条边都有两侧：</p>
 <ul>
 <li>要么分别邻接两个不同的面；</li>
 <li>要么作为桥或割边，在同一个面边界上出现两次</li>
 </ul>
-<p>无论哪种情况，<br>
+<p>无论哪种情况，<br />
 <strong>每一条边都会被恰好计入两个面的次数中</strong>。</p>
 </blockquote>
-<h3 id="极大平面图">极大平面图</h3>
+<h3 id="极大平面图"><a class="markdownIt-Anchor" href="#极大平面图"></a> 极大平面图</h3>
 <blockquote>
-<p>若G是简单平面图, 且在任意两个不相邻的顶点<br>
+<p>若G是简单平面图, 且在任意两个不相邻的顶点<br />
 之间加一条新边所得图为非平面图, 则称G为极大平面图</p>
 </blockquote>
 <ul>
 <li>极大平面图是连通的 (若不连通则可以继续加边,矛盾)</li>
 <li>设G为n(n3)阶简单图, G为极大平面图的充分必要条件是, G每个面的次数均为3.</li>
 </ul>
-<h3 id="欧拉公式">欧拉公式</h3>
+<h3 id="欧拉公式"><a class="markdownIt-Anchor" href="#欧拉公式"></a> 欧拉公式</h3>
 <blockquote>
 <p>对于连通平面图有欧拉公式：<code>n + r - 2 = m</code>，其中 <code>n</code> 为顶点数，<code>m</code> 为边数，<code>r</code> 为面数（显然边数总是最多的一方）</p>
 </blockquote>
 <ul>
 <li>记住有个两个数相加减2等于另一个数,然后立方体中边数为12,顶点数为8,面数为6,就能记住欧拉公式</li>
 </ul>
-<hr>
-<h1>树</h1>
+<hr />
+<h1 id="树"><a class="markdownIt-Anchor" href="#树"></a> 树</h1>
 <p><strong>定义</strong></p>
 <blockquote>
 <p>不含回路的连通无向图称为树，平凡图(即一个点)称为平凡树,度数为 <code>1</code> 的顶点称为树叶，度数大于 <code>1</code> 的称为分支点</p>
 </blockquote>
 <ul>
-<li><strong>注意!!!</strong><br>
+<li><strong>注意!!!</strong><br />
 <strong>关于二叉树本教材默认第一层高度为0,第二层高度为1,以此类推!!!</strong></li>
 </ul>
-<h2 id="生成树">生成树</h2>
+<h2 id="生成树"><a class="markdownIt-Anchor" href="#生成树"></a> 生成树</h2>
 <p>生成树</p>
 <blockquote>
 <p><code>G</code> 是无向连通图，<code>T</code> 是 <code>G</code> 的生成子图且是树，则 <code>T</code> 为 <code>G</code> 的生成树（即连接了所有节点），<code>G</code> 在 <code>T</code> 中的边称为 <code>T</code> 的树枝，不在 <code>T</code> 中的边称为 <code>T</code> 的弦，<code>T</code> 中所有弦生成的导出子图称为 <code>T</code> 的余树(不一定是树,也未必连通)</p>
 </blockquote>
-<h3 id="定理-任何无向连通图g都有生成树">定理:任何无向连通图G都有生成树</h3>
+<h3 id="定理任何无向连通图g都有生成树"><a class="markdownIt-Anchor" href="#定理任何无向连通图g都有生成树"></a> 定理:任何无向连通图G都有生成树</h3>
 <blockquote>
 <p>证明:若G无回路,则本身就是生成树,若含有回路,则删去回路上任意一条边,直到图中不再有回路,这不影响G的连通性,从而得到生成树</p>
 </blockquote>
-<h3 id="推论-n阶无向连通图g的边数大于等于n-1">推论:n阶无向连通图G的边数大于等于n-1</h3>
+<h3 id="推论n阶无向连通图g的边数大于等于n-1"><a class="markdownIt-Anchor" href="#推论n阶无向连通图g的边数大于等于n-1"></a> 推论:n阶无向连通图G的边数大于等于n-1</h3>
 <blockquote>
 <p>证明:其生成树的边数为n-1</p>
 </blockquote>
-<h3 id="基本回路和基本割集">基本回路和基本割集</h3>
+<h3 id="基本回路和基本割集"><a class="markdownIt-Anchor" href="#基本回路和基本割集"></a> 基本回路和基本割集</h3>
 <blockquote>
-<p><strong>基本回路（Fundamental Circuit）</strong><br>
-设 <code>T</code> 是连通图 <code>G</code> 的一棵生成树。<br>
-对任意一条不属于 <code>T</code> 的边 <code>e</code>(弦)，将 <code>e</code> 加入 <code>T</code> 中，<br>
+<p><strong>基本回路（Fundamental Circuit）</strong><br />
+设 <code>T</code> 是连通图 <code>G</code> 的一棵生成树。<br />
+对任意一条不属于 <code>T</code> 的边 <code>e</code>(弦)，将 <code>e</code> 加入 <code>T</code> 中，<br />
 则在 <code>T ∪ &#123;e&#125;</code> 中产生且<strong>唯一</strong>的回路，称为关于生成树 <code>T</code> 的一个基本回路。</p>
 </blockquote>
-<hr>
+<hr />
 <blockquote>
-<p><strong>基本回路系统</strong><br>
-由生成树 <code>T</code> 中<strong>所有弦</strong>各自对应的基本回路所组成的集合，<br>
+<p><strong>基本回路系统</strong><br />
+由生成树 <code>T</code> 中<strong>所有弦</strong>各自对应的基本回路所组成的集合，<br />
 称为图 <code>G</code> 的一个基本回路系统。</p>
 </blockquote>
-<hr>
+<hr />
 <blockquote>
-<p><strong>基本割集（Fundamental Cutset）</strong><br>
-设 <code>T</code> 是连通图 <code>G</code> 的一棵生成树。<br>
-对任意一条属于 <code>T</code> 的边 <code>e</code>，从 <code>T</code> 中删去 <code>e</code>，<br>
-生成树被分成两个连通分量。<br>
-在原图 <code>G</code> 中，所有连接这两个分量的边构成的集合，<br>
+<p><strong>基本割集（Fundamental Cutset）</strong><br />
+设 <code>T</code> 是连通图 <code>G</code> 的一棵生成树。<br />
+对任意一条属于 <code>T</code> 的边 <code>e</code>，从 <code>T</code> 中删去 <code>e</code>，<br />
+生成树被分成两个连通分量。<br />
+在原图 <code>G</code> 中，所有连接这两个分量的边构成的集合，<br />
 称为关于生成树 <code>T</code> 和边 <code>e</code> 的基本割集。</p>
 </blockquote>
-<hr>
+<hr />
 <blockquote>
-<p><strong>基本割集系统</strong><br>
-由生成树 <code>T</code> 中<strong>每一条树边</strong>所对应的基本割集组成的集合，<br>
+<p><strong>基本割集系统</strong><br />
+由生成树 <code>T</code> 中<strong>每一条树边</strong>所对应的基本割集组成的集合，<br />
 称为图 <code>G</code> 的一个基本割集系统。</p>
 </blockquote>
-<hr>
+<hr />
 <ul>
 <li><strong>加一条非树边 → 一个基本回路</strong></li>
 <li><strong>删一条树边 → 一个基本割集</strong></li>
 <li>基本回路数 = 非树边数  (m-n+1)</li>
 <li>基本割集数 = 树边数    (n-1)</li>
 </ul>
-<hr>
+<hr />
 <p><strong>真整理完了发现确实是文科,基本上所有例题只要懂了概念就能做,唯一难的地方就是证明题,很多证明想破脑袋都想不到,只好继续背书了</strong></p>
-</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/revival-of-hope">Revival-of-hope</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://revival-of-hope.github.io/2026/01/02/archives-2025-2026-01-02-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E5%9B%BE%E8%AE%BA/">https://revival-of-hope.github.io/2026/01/02/archives-2025-2026-01-02-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E5%9B%BE%E8%AE%BA/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6/">离散数学</a></div><div class="post-share"><div class="social-share" data-image="/images/archives/2025/%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E5%9B%BE%E8%AE%BA/60095408_p0-Autumn.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/01/03/archives-2026-01-03-%E6%84%9F%E6%83%B3/" title="2026-01-03 考研人数的下降"><img class="cover" src="/images/archives/2026-01-03/95539505_p0-%E7%84%A1%E9%A1%8C.webp" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">2026-01-03 考研人数的下降</div></div><div class="info-2"><div class="info-item-1">  可以看出来,尽管本科毕业人数越来越多,研究生招生人数越来越多,报考研究生的人数却越来越少,接着看下图   疫情的影响太大了,大家都开始捂住钱包,不会再去做大胆的投资了,因此收入较稳定的餐饮业...</div></div></div></a><a class="pagination-related" href="/2026/01/01/archives-2025-2026-01-01-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E7%BE%A4%E8%AE%BA/" title="2026-01-01 离散数学整理-群论"><img class="cover" src="/images/archives/2026-01-01/62258773_p0-%E6%A8%B1%E8%8A%B1.webp" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">2026-01-01 离散数学整理-群论</div></div><div class="info-2"><div class="info-item-1"> 由于学校规定的那本臭不可闻的ts离散教材已经沉浸在自己的优越感里了,找不到一点点系统性,只好我自己从头开始梳理,大多数定义都是直接引用的wiki 运算律 结合律  a+(b+c)=(a+b)+...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/12/25/archives-2025-2025-12-25-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E9%80%BB%E8%BE%91%E5%85%B3%E7%B3%BB/" title="2025-12-25 离散数学整理-逻辑关系"><img class="cover" src="/images/archives/2025/2025-12-25-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E9%80%BB%E8%BE%91%E5%85%B3%E7%B3%BB/60223956_p0-%E5%90%9B%E3%82%92%E5%BE%85%E3%81%A3%E3%81%A6%E3%82%8B.webp" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-25</div><div class="info-item-2">2025-12-25 离散数学整理-逻辑关系</div></div><div class="info-2"><div class="info-item-1">命题逻辑 逻辑联结词 析取与合取  析取符号: ∨ 合取符号: ∧   想象合取就是两个条件都要满足,析取符号就像漏斗一样析取东西,因此朝上  蕴含与等价  p-&gt;q =¬p∨q   不要...</div></div></div></a><a class="pagination-related" href="/2026/01/01/archives-2025-2026-01-01-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E7%BE%A4%E8%AE%BA/" title="2026-01-01 离散数学整理-群论"><img class="cover" src="/images/archives/2026-01-01/62258773_p0-%E6%A8%B1%E8%8A%B1.webp" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-01</div><div class="info-item-2">2026-01-01 离散数学整理-群论</div></div><div class="info-2"><div class="info-item-1"> 由于学校规定的那本臭不可闻的ts离散教材已经沉浸在自己的优越感里了,找不到一点点系统性,只好我自己从头开始梳理,大多数定义都是直接引用的wiki 运算律 结合律  a+(b+c)=(a+b)+...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> Comments</span></div></div><div class="comment-wrap"><div><div id="giscus-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/reimu.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Revival-of-hope</div><div class="author-info-description">为赋新词强说愁</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">56</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">12</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">1</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/revival-of-hope"><i class="fab fa-github"></i><span>My Github Page</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/revival-of-hope" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="/rss.xml" target="_blank" title="'#ff6600'"><i class="fas fa-rss"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">1.</span> <span class="toc-text">图的基本概念</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%89%E5%90%91%E5%9B%BE"><span class="toc-number">1.1.</span> <span class="toc-text">有向图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AD%90%E5%9B%BE"><span class="toc-number">1.2.</span> <span class="toc-text">子图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%A1%A5%E5%9B%BE"><span class="toc-number">1.3.</span> <span class="toc-text">补图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%8C%E6%9E%84%E5%9B%BE"><span class="toc-number">1.4.</span> <span class="toc-text">同构图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%9E%E9%80%9A%E6%80%A7"><span class="toc-number">1.5.</span> <span class="toc-text">连通性</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%9E%E8%B7%AF%E4%B8%8E%E9%80%9A%E8%B7%AF"><span class="toc-number">1.5.1.</span> <span class="toc-text">回路与通路</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%89%E5%90%91%E5%9B%BE%E7%9A%84%E8%BF%9E%E9%80%9A%E6%80%A7"><span class="toc-number">1.5.2.</span> <span class="toc-text">有向图的连通性</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8F%AF%E8%BE%BE%E4%B8%8E%E7%9B%B8%E4%BA%92%E5%8F%AF%E8%BE%BE"><span class="toc-number">1.5.2.1.</span> <span class="toc-text">可达与相互可达</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%89%B2%E9%9B%86"><span class="toc-number">1.5.3.</span> <span class="toc-text">割集</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%86%E9%87%8F%E4%B8%8E%E5%89%B2"><span class="toc-number">1.5.4.</span> <span class="toc-text">分量与割</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%BF%9E%E9%80%9A%E5%88%86%E9%87%8F"><span class="toc-number">1.5.4.1.</span> <span class="toc-text">连通分量</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%82%B9%E5%89%B2%E4%B8%8E%E7%82%B9%E8%BF%9E%E9%80%9A%E5%BA%A6"><span class="toc-number">1.5.4.2.</span> <span class="toc-text">点割与点连通度</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B1%80%E9%83%A8%E8%BF%9E%E9%80%9A%E5%BA%A6"><span class="toc-number">1.5.4.3.</span> <span class="toc-text">局部连通度</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%BE%B9%E5%89%B2%E4%B8%8E%E8%BE%B9%E8%BF%9E%E9%80%9A%E5%BA%A6"><span class="toc-number">1.5.4.4.</span> <span class="toc-text">边割与边连通度</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%BF%9E%E9%80%9A%E5%BA%A6%E4%B9%8B%E9%97%B4%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">1.5.4.5.</span> <span class="toc-text">连通度之间的关系</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%BE%E7%9A%84%E7%9F%A9%E9%98%B5%E8%A1%A8%E7%A4%BA"><span class="toc-number">1.6.</span> <span class="toc-text">图的矩阵表示</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%97%A0%E5%90%91%E5%9B%BE%E7%9A%84%E5%85%B3%E8%81%94%E7%9F%A9%E9%98%B5"><span class="toc-number">1.6.1.</span> <span class="toc-text">无向图的关联矩阵</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%89%E5%90%91%E5%9B%BE%E7%9A%84%E5%85%B3%E8%81%94%E7%9F%A9%E9%98%B5"><span class="toc-number">1.6.2.</span> <span class="toc-text">有向图的关联矩阵</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%89%E5%90%91%E5%9B%BE%E7%9A%84%E9%82%BB%E6%8E%A5%E7%9F%A9%E9%98%B5"><span class="toc-number">1.6.3.</span> <span class="toc-text">有向图的邻接矩阵</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%89%E5%90%91%E5%9B%BE%E7%9A%84%E5%8F%AF%E8%BE%BE%E7%9F%A9%E9%98%B5"><span class="toc-number">1.6.4.</span> <span class="toc-text">有向图的可达矩阵</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9D%80%E8%89%B2%E9%97%AE%E9%A2%98"><span class="toc-number">1.7.</span> <span class="toc-text">着色问题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BB%83%E6%89%8B"><span class="toc-number">1.7.1.</span> <span class="toc-text">练手</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">2.</span> <span class="toc-text">特殊的图</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E9%83%A8%E5%9B%BE"><span class="toc-number">2.1.</span> <span class="toc-text">二部图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8C%B9%E9%85%8D"><span class="toc-number">2.1.1.</span> <span class="toc-text">匹配</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#hall-%E5%AE%9A%E7%90%86%E5%8F%8A%E5%85%B6%E5%BC%95%E7%94%B3"><span class="toc-number">2.1.2.</span> <span class="toc-text">Hall 定理及其引申</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%AC%A7%E6%8B%89%E5%9B%BE"><span class="toc-number">2.2.</span> <span class="toc-text">欧拉图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%93%88%E5%AF%86%E9%A1%BF%E5%9B%BE"><span class="toc-number">2.3.</span> <span class="toc-text">哈密顿图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A4%E5%AE%9A%E6%96%B9%E6%B3%95"><span class="toc-number">2.3.1.</span> <span class="toc-text">判定方法</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B9%B3%E9%9D%A2%E5%9B%BE"><span class="toc-number">2.4.</span> <span class="toc-text">平面图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%81%E5%A4%A7%E5%B9%B3%E9%9D%A2%E5%9B%BE"><span class="toc-number">2.4.1.</span> <span class="toc-text">极大平面图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%AC%A7%E6%8B%89%E5%85%AC%E5%BC%8F"><span class="toc-number">2.4.2.</span> <span class="toc-text">欧拉公式</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">3.</span> <span class="toc-text">树</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%9F%E6%88%90%E6%A0%91"><span class="toc-number">3.1.</span> <span class="toc-text">生成树</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9A%E7%90%86-%E4%BB%BB%E4%BD%95%E6%97%A0%E5%90%91%E8%BF%9E%E9%80%9A%E5%9B%BEg%E9%83%BD%E6%9C%89%E7%94%9F%E6%88%90%E6%A0%91"><span class="toc-number">3.1.1.</span> <span class="toc-text">定理:任何无向连通图G都有生成树</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8E%A8%E8%AE%BA-n%E9%98%B6%E6%97%A0%E5%90%91%E8%BF%9E%E9%80%9A%E5%9B%BEg%E7%9A%84%E8%BE%B9%E6%95%B0%E5%A4%A7%E4%BA%8E%E7%AD%89%E4%BA%8En-1"><span class="toc-number">3.1.2.</span> <span class="toc-text">推论:n阶无向连通图G的边数大于等于n-1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E5%9B%9E%E8%B7%AF%E5%92%8C%E5%9F%BA%E6%9C%AC%E5%89%B2%E9%9B%86"><span class="toc-number">3.1.3.</span> <span class="toc-text">基本回路和基本割集</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/02/03/fastapi%E6%A8%A1%E6%9D%BF%E9%A1%B9%E7%9B%AE%E5%AD%A6%E4%B9%A0/" title="2026-02-03 fastapi模板项目学习"><img src="/images/2026-02-01/85139347_p0-%E7%84%A1%E9%A1%8C.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="2026-02-03 fastapi模板项目学习"/></a><div class="content"><a class="title" href="/2026/02/03/fastapi%E6%A8%A1%E6%9D%BF%E9%A1%B9%E7%9B%AE%E5%AD%A6%E4%B9%A0/" title="2026-02-03 fastapi模板项目学习">2026-02-03 fastapi模板项目学习</a><time datetime="2026-02-08T08:17:43.105Z" title="Updated 2026-02-08 16:17:43">2026-02-08</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/02/08/archives-2026-02-08-%E6%96%B9%E5%90%91%E9%80%89%E6%8B%A9/" title="2026-02-08 方向选择与信息差"><img src="/images/2026-02-06/91882132_p0-glow.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="2026-02-08 方向选择与信息差"/></a><div class="content"><a class="title" href="/2026/02/08/archives-2026-02-08-%E6%96%B9%E5%90%91%E9%80%89%E6%8B%A9/" title="2026-02-08 方向选择与信息差">2026-02-08 方向选择与信息差</a><time datetime="2026-02-08T07:20:55.968Z" title="Updated 2026-02-08 15:20:55">2026-02-08</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/02/04/archives-2026-02-04-%E8%BF%B7%E8%8C%AB%E6%97%B6%E5%B0%B1%E5%A4%9A%E7%9C%8B%E7%9C%8B%E5%8D%9A%E5%AE%A2/" title="2026-02-04 迷茫时就多看看博客"><img src="/images/2026-02-06/88252299_p0-%E7%A7%81%E6%9C%8D.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="2026-02-04 迷茫时就多看看博客"/></a><div class="content"><a class="title" href="/2026/02/04/archives-2026-02-04-%E8%BF%B7%E8%8C%AB%E6%97%B6%E5%B0%B1%E5%A4%9A%E7%9C%8B%E7%9C%8B%E5%8D%9A%E5%AE%A2/" title="2026-02-04 迷茫时就多看看博客">2026-02-04 迷茫时就多看看博客</a><time datetime="2026-02-08T06:42:08.611Z" title="Updated 2026-02-08 14:42:08">2026-02-08</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/19/python-2026-01-19-python%E9%87%8D%E5%AD%A6/" title="2026-01-19 python语法"><img src="/images/archives/2026-01-21/68936009_p0-%E6%97%A5%E5%90%91%E3%81%AE%E5%B9%BD%E9%9C%8A.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="2026-01-19 python语法"/></a><div class="content"><a class="title" href="/2026/01/19/python-2026-01-19-python%E9%87%8D%E5%AD%A6/" title="2026-01-19 python语法">2026-01-19 python语法</a><time datetime="2026-02-07T05:15:43.085Z" title="Updated 2026-02-07 13:15:43">2026-02-07</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/101891205_p0-Epilogue.webp);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Revival-of-hope</span></div><div class="footer_custom_text">仰天大笑出门去,谁想门槛撞到头</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="Scroll to Comments"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.3-b1"></script><script src="/js/main.js?v=5.5.3-b1"></script><script src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js"></script><div class="js-pjax"><script>(async () => {
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/revival-of-hope">Revival-of-hope</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://revival-of-hope.github.io/2026/01/02/archives-2025-2026-01-02-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E5%9B%BE%E8%AE%BA/">https://revival-of-hope.github.io/2026/01/02/archives-2025-2026-01-02-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E5%9B%BE%E8%AE%BA/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6/">离散数学</a></div><div class="post-share"><div class="social-share" data-image="/images/archives/2025/%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E5%9B%BE%E8%AE%BA/60095408_p0-Autumn.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/01/03/archives-2026-01-03-%E6%84%9F%E6%83%B3/" title="2026-01-03 考研人数的下降"><img class="cover" src="/images/archives/2026-01-03/95539505_p0-%E7%84%A1%E9%A1%8C.webp" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">2026-01-03 考研人数的下降</div></div><div class="info-2"><div class="info-item-1">  可以看出来,尽管本科毕业人数越来越多,研究生招生人数越来越多,报考研究生的人数却越来越少,接着看下图   疫情的影响太大了,大家都开始捂住钱包,不会再去做大胆的投资了,因此收入较稳定的餐饮业...</div></div></div></a><a class="pagination-related" href="/2026/01/01/archives-2025-2026-01-01-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E7%BE%A4%E8%AE%BA/" title="2026-01-01 离散数学整理-群论"><img class="cover" src="/images/archives/2026-01-01/62258773_p0-%E6%A8%B1%E8%8A%B1.webp" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">2026-01-01 离散数学整理-群论</div></div><div class="info-2"><div class="info-item-1"> 由于学校规定的那本臭不可闻的ts离散教材已经沉浸在自己的优越感里了,找不到一点点系统性,只好我自己从头开始梳理,大多数定义都是直接引用的wiki  运算律  结合律  a+(b+c)=(a+b...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/12/25/archives-2025-2025-12-25-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E9%80%BB%E8%BE%91%E5%85%B3%E7%B3%BB/" title="2025-12-25 离散数学整理-逻辑关系"><img class="cover" src="/images/archives/2025/2025-12-25-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E9%80%BB%E8%BE%91%E5%85%B3%E7%B3%BB/60223956_p0-%E5%90%9B%E3%82%92%E5%BE%85%E3%81%A3%E3%81%A6%E3%82%8B.webp" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-25</div><div class="info-item-2">2025-12-25 离散数学整理-逻辑关系</div></div><div class="info-2"><div class="info-item-1"> 命题逻辑  逻辑联结词  析取与合取  析取符号: ∨ 合取符号: ∧   想象合取就是两个条件都要满足,析取符号就像漏斗一样析取东西,因此朝上   蕴含与等价  p-&gt;q =¬p∨q ...</div></div></div></a><a class="pagination-related" href="/2026/01/01/archives-2025-2026-01-01-%E7%A6%BB%E6%95%A3%E6%95%B0%E5%AD%A6%E6%95%B4%E7%90%86-%E7%BE%A4%E8%AE%BA/" title="2026-01-01 离散数学整理-群论"><img class="cover" src="/images/archives/2026-01-01/62258773_p0-%E6%A8%B1%E8%8A%B1.webp" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-01</div><div class="info-item-2">2026-01-01 离散数学整理-群论</div></div><div class="info-2"><div class="info-item-1"> 由于学校规定的那本臭不可闻的ts离散教材已经沉浸在自己的优越感里了,找不到一点点系统性,只好我自己从头开始梳理,大多数定义都是直接引用的wiki  运算律  结合律  a+(b+c)=(a+b...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> Comments</span></div></div><div class="comment-wrap"><div><div id="giscus-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/reimu.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Revival-of-hope</div><div class="author-info-description">为赋新词强说愁</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">56</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">12</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">1</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/revival-of-hope"><i class="fab fa-github"></i><span>My Github Page</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/revival-of-hope" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="/rss.xml" target="_blank" title="'#ff6600'"><i class="fas fa-rss"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9B%BE%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="toc-number">1.</span> <span class="toc-text"> 图的基本概念</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%89%E5%90%91%E5%9B%BE"><span class="toc-number">1.1.</span> <span class="toc-text"> 有向图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AD%90%E5%9B%BE"><span class="toc-number">1.2.</span> <span class="toc-text"> 子图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%A1%A5%E5%9B%BE"><span class="toc-number">1.3.</span> <span class="toc-text"> 补图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%8C%E6%9E%84%E5%9B%BE"><span class="toc-number">1.4.</span> <span class="toc-text"> 同构图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%9E%E9%80%9A%E6%80%A7"><span class="toc-number">1.5.</span> <span class="toc-text"> 连通性</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%9E%E8%B7%AF%E4%B8%8E%E9%80%9A%E8%B7%AF"><span class="toc-number">1.5.1.</span> <span class="toc-text"> 回路与通路</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%89%E5%90%91%E5%9B%BE%E7%9A%84%E8%BF%9E%E9%80%9A%E6%80%A7"><span class="toc-number">1.5.2.</span> <span class="toc-text"> 有向图的连通性</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8F%AF%E8%BE%BE%E4%B8%8E%E7%9B%B8%E4%BA%92%E5%8F%AF%E8%BE%BE"><span class="toc-number">1.5.2.1.</span> <span class="toc-text"> 可达与相互可达</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%89%B2%E9%9B%86"><span class="toc-number">1.5.3.</span> <span class="toc-text"> 割集</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%86%E9%87%8F%E4%B8%8E%E5%89%B2"><span class="toc-number">1.5.4.</span> <span class="toc-text"> 分量与割</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%BF%9E%E9%80%9A%E5%88%86%E9%87%8F"><span class="toc-number">1.5.4.1.</span> <span class="toc-text"> 连通分量</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%82%B9%E5%89%B2%E4%B8%8E%E7%82%B9%E8%BF%9E%E9%80%9A%E5%BA%A6"><span class="toc-number">1.5.4.2.</span> <span class="toc-text"> 点割与点连通度</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B1%80%E9%83%A8%E8%BF%9E%E9%80%9A%E5%BA%A6"><span class="toc-number">1.5.4.3.</span> <span class="toc-text"> 局部连通度</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%BE%B9%E5%89%B2%E4%B8%8E%E8%BE%B9%E8%BF%9E%E9%80%9A%E5%BA%A6"><span class="toc-number">1.5.4.4.</span> <span class="toc-text"> 边割与边连通度</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%BF%9E%E9%80%9A%E5%BA%A6%E4%B9%8B%E9%97%B4%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">1.5.4.5.</span> <span class="toc-text"> 连通度之间的关系</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%BE%E7%9A%84%E7%9F%A9%E9%98%B5%E8%A1%A8%E7%A4%BA"><span class="toc-number">1.6.</span> <span class="toc-text"> 图的矩阵表示</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%97%A0%E5%90%91%E5%9B%BE%E7%9A%84%E5%85%B3%E8%81%94%E7%9F%A9%E9%98%B5"><span class="toc-number">1.6.1.</span> <span class="toc-text"> 无向图的关联矩阵</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%89%E5%90%91%E5%9B%BE%E7%9A%84%E5%85%B3%E8%81%94%E7%9F%A9%E9%98%B5"><span class="toc-number">1.6.2.</span> <span class="toc-text"> 有向图的关联矩阵</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%89%E5%90%91%E5%9B%BE%E7%9A%84%E9%82%BB%E6%8E%A5%E7%9F%A9%E9%98%B5"><span class="toc-number">1.6.3.</span> <span class="toc-text"> 有向图的邻接矩阵</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%89%E5%90%91%E5%9B%BE%E7%9A%84%E5%8F%AF%E8%BE%BE%E7%9F%A9%E9%98%B5"><span class="toc-number">1.6.4.</span> <span class="toc-text"> 有向图的可达矩阵</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9D%80%E8%89%B2%E9%97%AE%E9%A2%98"><span class="toc-number">1.7.</span> <span class="toc-text"> 着色问题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BB%83%E6%89%8B"><span class="toc-number">1.7.1.</span> <span class="toc-text"> 练手</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%89%B9%E6%AE%8A%E7%9A%84%E5%9B%BE"><span class="toc-number">2.</span> <span class="toc-text"> 特殊的图</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E9%83%A8%E5%9B%BE"><span class="toc-number">2.1.</span> <span class="toc-text"> 二部图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8C%B9%E9%85%8D"><span class="toc-number">2.1.1.</span> <span class="toc-text"> 匹配</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#hall-%E5%AE%9A%E7%90%86%E5%8F%8A%E5%85%B6%E5%BC%95%E7%94%B3"><span class="toc-number">2.1.2.</span> <span class="toc-text"> Hall 定理及其引申</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%AC%A7%E6%8B%89%E5%9B%BE"><span class="toc-number">2.2.</span> <span class="toc-text"> 欧拉图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%93%88%E5%AF%86%E9%A1%BF%E5%9B%BE"><span class="toc-number">2.3.</span> <span class="toc-text"> 哈密顿图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A4%E5%AE%9A%E6%96%B9%E6%B3%95"><span class="toc-number">2.3.1.</span> <span class="toc-text"> 判定方法</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B9%B3%E9%9D%A2%E5%9B%BE"><span class="toc-number">2.4.</span> <span class="toc-text"> 平面图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%81%E5%A4%A7%E5%B9%B3%E9%9D%A2%E5%9B%BE"><span class="toc-number">2.4.1.</span> <span class="toc-text"> 极大平面图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%AC%A7%E6%8B%89%E5%85%AC%E5%BC%8F"><span class="toc-number">2.4.2.</span> <span class="toc-text"> 欧拉公式</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%A0%91"><span class="toc-number">3.</span> <span class="toc-text"> 树</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%9F%E6%88%90%E6%A0%91"><span class="toc-number">3.1.</span> <span class="toc-text"> 生成树</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9A%E7%90%86%E4%BB%BB%E4%BD%95%E6%97%A0%E5%90%91%E8%BF%9E%E9%80%9A%E5%9B%BEg%E9%83%BD%E6%9C%89%E7%94%9F%E6%88%90%E6%A0%91"><span class="toc-number">3.1.1.</span> <span class="toc-text"> 定理:任何无向连通图G都有生成树</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8E%A8%E8%AE%BAn%E9%98%B6%E6%97%A0%E5%90%91%E8%BF%9E%E9%80%9A%E5%9B%BEg%E7%9A%84%E8%BE%B9%E6%95%B0%E5%A4%A7%E4%BA%8E%E7%AD%89%E4%BA%8En-1"><span class="toc-number">3.1.2.</span> <span class="toc-text"> 推论:n阶无向连通图G的边数大于等于n-1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E5%9B%9E%E8%B7%AF%E5%92%8C%E5%9F%BA%E6%9C%AC%E5%89%B2%E9%9B%86"><span class="toc-number">3.1.3.</span> <span class="toc-text"> 基本回路和基本割集</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/02/03/fastapi%E6%A8%A1%E6%9D%BF%E9%A1%B9%E7%9B%AE%E5%AD%A6%E4%B9%A0/" title="2026-02-03 fastapi模板项目学习"><img src="/images/2026-02-01/85139347_p0-%E7%84%A1%E9%A1%8C.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="2026-02-03 fastapi模板项目学习"/></a><div class="content"><a class="title" href="/2026/02/03/fastapi%E6%A8%A1%E6%9D%BF%E9%A1%B9%E7%9B%AE%E5%AD%A6%E4%B9%A0/" title="2026-02-03 fastapi模板项目学习">2026-02-03 fastapi模板项目学习</a><time datetime="2026-02-08T08:17:43.105Z" title="Updated 2026-02-08 16:17:43">2026-02-08</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/02/08/archives-2026-02-08-%E6%96%B9%E5%90%91%E9%80%89%E6%8B%A9/" title="2026-02-08 方向选择与信息差"><img src="/images/2026-02-06/91882132_p0-glow.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="2026-02-08 方向选择与信息差"/></a><div class="content"><a class="title" href="/2026/02/08/archives-2026-02-08-%E6%96%B9%E5%90%91%E9%80%89%E6%8B%A9/" title="2026-02-08 方向选择与信息差">2026-02-08 方向选择与信息差</a><time datetime="2026-02-08T07:20:55.968Z" title="Updated 2026-02-08 15:20:55">2026-02-08</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/02/04/archives-2026-02-04-%E8%BF%B7%E8%8C%AB%E6%97%B6%E5%B0%B1%E5%A4%9A%E7%9C%8B%E7%9C%8B%E5%8D%9A%E5%AE%A2/" title="2026-02-04 迷茫时就多看看博客"><img src="/images/2026-02-06/88252299_p0-%E7%A7%81%E6%9C%8D.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="2026-02-04 迷茫时就多看看博客"/></a><div class="content"><a class="title" href="/2026/02/04/archives-2026-02-04-%E8%BF%B7%E8%8C%AB%E6%97%B6%E5%B0%B1%E5%A4%9A%E7%9C%8B%E7%9C%8B%E5%8D%9A%E5%AE%A2/" title="2026-02-04 迷茫时就多看看博客">2026-02-04 迷茫时就多看看博客</a><time datetime="2026-02-08T06:42:08.611Z" title="Updated 2026-02-08 14:42:08">2026-02-08</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/19/python-2026-01-19-python%E9%87%8D%E5%AD%A6/" title="2026-01-19 python语法"><img src="/images/archives/2026-01-21/68936009_p0-%E6%97%A5%E5%90%91%E3%81%AE%E5%B9%BD%E9%9C%8A.webp" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="2026-01-19 python语法"/></a><div class="content"><a class="title" href="/2026/01/19/python-2026-01-19-python%E9%87%8D%E5%AD%A6/" title="2026-01-19 python语法">2026-01-19 python语法</a><time datetime="2026-02-07T05:15:43.085Z" title="Updated 2026-02-07 13:15:43">2026-02-07</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/101891205_p0-Epilogue.webp);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Revival-of-hope</span></div><div class="footer_custom_text">仰天大笑出门去,谁想门槛撞到头</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="Scroll to Comments"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.3-b1"></script><script src="/js/main.js?v=5.5.3-b1"></script><script src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js"></script><div class="js-pjax"><script>(async () => {
   const showKatex = () => {
     document.querySelectorAll('#article-container .katex').forEach(el => el.classList.add('katex-show'))
   }
