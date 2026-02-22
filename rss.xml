@@ -6,7 +6,7 @@
   <link href="https://revival-of-hope.github.io/rss.xml" rel="self"/>
   
   <link href="https://revival-of-hope.github.io/"/>
-  <updated>2026-02-22T03:42:45.156Z</updated>
+  <updated>2026-02-22T03:42:56.952Z</updated>
   <id>https://revival-of-hope.github.io/</id>
   
   <author>
@@ -15,6 +15,21 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>2026-02-22 nextjs-learn</title>
+    <link href="https://revival-of-hope.github.io/2026/02/22/nextjs-learn/"/>
+    <id>https://revival-of-hope.github.io/2026/02/22/nextjs-learn/</id>
+    <published>2026-02-22T00:00:00.000Z</published>
+    <updated>2026-02-22T03:42:56.952Z</updated>
+    
+    
+    
+    
+    
+    <category term="前端" scheme="https://revival-of-hope.github.io/tags/%E5%89%8D%E7%AB%AF/"/>
+    
+  </entry>
   
   <entry>
     <title>2026-02-22 日语动词全解析</title>
@@ -37,21 +52,6 @@
     
     
     <category term="日语" scheme="https://revival-of-hope.github.io/tags/%E6%97%A5%E8%AF%AD/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>2026-02-22 nextjs-learn</title>
-    <link href="https://revival-of-hope.github.io/2026/02/22/nextjs-learn/"/>
-    <id>https://revival-of-hope.github.io/2026/02/22/nextjs-learn/</id>
-    <published>2026-02-22T00:00:00.000Z</published>
-    <updated>2026-02-22T03:42:56.952Z</updated>
-    
-    
-    
-    
-    
-    <category term="前端" scheme="https://revival-of-hope.github.io/tags/%E5%89%8D%E7%AB%AF/"/>
     
   </entry>
   
