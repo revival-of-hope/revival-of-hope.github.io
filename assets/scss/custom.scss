@@ -1,3 +1,33 @@
-/*
-    You can add your own custom styles here.
-*/
+:root {
+  /* 1. 背景色：由纯白改为柔和的浅米色或灰白色 */
+  --body-background: #f5f5f3;
+
+  /* 2. 卡片背景：略亮于底色，增加层次感 */
+  --card-background: #fafafa;
+
+  /* 3. 文字颜色：避免纯黑，使用深灰色减轻对比压力 */
+  --body-text-color: #333333;
+
+  /* 4. 标题颜色：稍深一点以保持清晰度 */
+  --heading-text-color: #222222;
+
+  /* 5. 链接与强调色：如果觉得原生的蓝色太刺眼，可以调暗 */
+  --accent-color: #536471;
+
+  /* 6. 代码块背景：调为更稳重的颜色 */
+  --code-background-color: #f0f0f0;
+}
+
+/* 针对侧边栏背景的微调（如果是 Stack 主题） */
+.sidebar {
+  background-color: var(--body-background);
+}
+
+/* 降低图片亮度（可选：防止亮色模式下图片太晃眼） */
+.article-content img {
+  filter: brightness(0.95);
+  transition: filter 0.3s ease;
+}
+.article-content img:hover {
+  filter: brightness(1);
+}
