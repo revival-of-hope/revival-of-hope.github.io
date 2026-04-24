@@ -19,7 +19,7 @@ image:
 
 ## 人工智能(AI)的概念
 尽管我们总是在说机器学习啊AI啊之类的概念,但很少会有人知道机器学习只是AI的子集之一,而AI这个概念的内涵比我们想象的要多得多.
-![alt text](../images/2026-04-14/1.webp)
+![alt text](1.webp)
 
 - [wiki](https://en.wikipedia.org/wiki/Artificial_intelligence)
 >Artificial intelligence (AI) is the capability of **computational systems** to perform tasks typically associated with human intelligence, such as learning, reasoning, problem-solving, perception, and decision-making. It is a field of research in **engineering, mathematics and computer science** that develops and studies methods and software that **enable machines** to **perceive their environment** and use learning and intelligence to **take actions that maximize their chances of achieving defined goals**.

@@ -14,6 +14,8 @@ hasCJKLanguage = false
 # Change it to your Disqus shortname before using
 disqusShortname = "aitianpai"
 
+
+
 [pagination]
     pagerSize = 8
 

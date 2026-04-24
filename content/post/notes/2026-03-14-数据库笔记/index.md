@@ -2383,7 +2383,7 @@ SQL 语句：`SELECT * FROM table WHERE Gender='m' AND Income='L1';`
 - (3/28)我服了原来这个ppt是[官网](https://db-book.com/slides-dir/index.html)上的,而我们老师实际啥都没干...
 
 ## 本教材核心: 大学数据库
-![alt text](../images/2026-03-25/PixPin_2026-03-26_08-23-16.webp)
+![alt text](PixPin_2026-03-26_08-23-16.webp)
 - keys used
 ![alt text](PixPin_2026-03-26_08-24-59.webp)
 - schema diagram
