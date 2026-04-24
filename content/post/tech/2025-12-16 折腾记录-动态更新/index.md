@@ -1,4 +1,4 @@
-﻿---
+---
 title: 折腾记录
 date: 2025-12-16 08:00:00
 tags:
@@ -14,7 +14,7 @@ categories:
 config_yml里修改
 `new_post_name: :year-:month-:day-:title.md`
 同时,听从大佬建议,将所有图片改成webp格式,效果立竿见影
-![](<../../images/archives/2025/2025-12/tmpDAFA.png>)
+![](<../tmpDAFA.png>)
 
 ## 还是图片问题,每次复制images子文件夹路径太麻烦
 根据[](https://www.hwpo.top/posts/d87f7e0c/index.html)教程在post文件夹里设置同名文件夹没解决
@@ -167,10 +167,10 @@ busuanzi现在天天转圈,于是换成[别人推荐的](https://youyeyejie.gith
 
 只要在以下两个地方中改一下就行了
 
-![alt text](../../images/archives/2026/2026-01-30/PixPin_2026-01-30_17-39-01.webp)
+![alt text](../PixPin_2026-01-30_17-39-01.webp)
 >这里插入脚本`<script defer src="https://events.vercount.one/js"></script>`
 
-![alt text](../../images/archives/2026/2026-01-30/PixPin_2026-01-30_17-36-06.webp)
+![alt text](../PixPin_2026-01-30_17-36-06.webp)
 >这里可以直接换成下面代码,因为busuanzi真没必要再放上去了
 ```pug
 if theme.aside.card_webinfo.enable
@@ -223,7 +223,7 @@ if theme.aside.card_webinfo.enable
 - [参考教程](https://lizhening.github.io/posts/b467327c/)
 vercount也出问题了,显示一堆乱码,这次换个大杀器.
 google_analytics 是免费的,给自己网站注册一下获得一串以G打头的神秘数字-tag,再填入butterfly的config.yml就可以了,当然网站上是看不到访客数据的,只能去后台看.
-![美滋滋](../../images/archives/2026/2026-02-08/image.png)
+![美滋滋](../image.png)
 
 - (2/13)发现之前的vercount乱码只是因为我把同名压缩包放到脚本里面所以出错了
 ## 加入live2d(2/22)

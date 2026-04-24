@@ -22,13 +22,13 @@ image:
 [有史料为证](https://galgame.dev/topic/639/%E5%85%B3%E4%BA%8E%E6%88%91%E4%B8%80%E5%B9%B4%E4%B8%8D%E5%88%B0%E9%80%9F%E9%80%9An1%E8%BF%99%E4%BB%B6%E4%BA%8B-%E5%9F%BA%E4%BA%8E%E5%95%83%E7%94%9F%E8%82%89galgame%E7%9A%84%E6%97%A5%E8%AF%AD%E5%AD%A6%E4%B9%A0%E6%94%BB%E7%95%A5)
 
 ## AIMP
-![](../images/archives/2025/2025-12/tmpEFB5.png)
+![](tmpEFB5.png)
 由于网易云启动太慢,加载音乐太卡,很多功能太臃肿了,因此我转而加入AIMP神教,不仅可以自定义界面,还可以下载各式各样的皮肤.运行速度飞快,而且有手机桌面双端.尽管这个软件是离线的,只能下好歌之后再导入,歌词也要自己下,但这一切都值得!
-![](../images/archives/2025/2025-12/tmp4042.png)
+![](tmp4042.png)
 
 ## qView
 Windows自己的图片浏览器真的是拉完了,加载慢的离谱,换成qview后就舒服多了,界面简洁的异常,毕竟看个图片而已,要什么名堂.
-![](../images/archives/2025/2025-12/tmp8703.png)
+![](tmp8703.png)
 
 ## 常见
 - Everything,PotPlayer,JiJiDown,Motrix,Quicker,Pixpin

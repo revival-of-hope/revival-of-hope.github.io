@@ -547,7 +547,7 @@ coverage html --title "${@-coverage}"
 
 也就是说,到头来还是用pytest执行了tests文件夹里的测试,只不过多了一些其他的包装而已.
 
-![alt text](../images/2026-03-31/PixPin_2026-04-01_18-37-20.webp)
+![alt text](PixPin_2026-04-01_18-37-20.webp)
 - 这就是全部的测试文件了,还是很多的,这说明测试并非是无关轻重的代码部分
 
 先来看看最外层的conftest.py文件:

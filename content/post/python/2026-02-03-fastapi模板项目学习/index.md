@@ -7,15 +7,15 @@ image: 85139347_p0-無題.webp
 ---
 >如果你像我一样没怎么用过docker,不了解前后端之间具体如何工作,而只是照着模板项目的md边问ai边运行项目的话,看到这个界面肯定是懵的
 
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-03_13-56-30.webp)
+![alt text](PixPin_2026-02-03_13-56-30.webp)
 
 >当我尝试问ai时,它直接告诉我有这么多端口
 
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-03_13-59-17.webp)
+![alt text](PixPin_2026-02-03_13-59-17.webp)
 点进去是这些画面
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-03_14-00-27.webp)
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-03_14-00-51.webp)
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-03_14-01-06.webp)
+![alt text](PixPin_2026-02-03_14-00-27.webp)
+![alt text](PixPin_2026-02-03_14-00-51.webp)
+![alt text](PixPin_2026-02-03_14-01-06.webp)
 
 即便我大致看过了fastapi的教程,稍微了解了一点数据库知识,自以为可以开始做项目了,这些界面直接将我打回原形,显然工程上的前后端还是很难懂的,不是一个普通学生可以轻易学会的
 
@@ -430,7 +430,7 @@ python app/initial_data.py
 
 由于课业原因,暂时不深入了解,若还要用到sh会专门写新博客
 ## What is adminer and How to use .env file
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-04_14-31-44.webp)
+![alt text](PixPin_2026-02-04_14-31-44.webp)
 
 官网的口号如下:
 `Database management in a single PHP file`
@@ -495,18 +495,18 @@ DOCKER_IMAGE_FRONTEND=frontend
       1. 物理限制：这个地址通常必须和你登录 SMTP_USER 的账号一致，否则邮件服务器会认为你在伪造身份（欺骗），从而拒绝发信
 
 输入对应账户后登录adminer,可以看到就是一个普通的数据库管理界面
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-04_14-50-38.webp)
+![alt text](PixPin_2026-02-04_14-50-38.webp)
 
 随便做些修改
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-04_14-59-01.webp)
+![alt text](PixPin_2026-02-04_14-59-01.webp)
 ## Look into frontend
 
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-04_14-54-55.webp)
+![alt text](PixPin_2026-02-04_14-54-55.webp)
 登录后看到这个界面
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-04_14-56-26.webp)
+![alt text](PixPin_2026-02-04_14-56-26.webp)
 随便做些修改
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-04_14-56-55.webp)
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-04_14-58-34.webp)
+![alt text](PixPin_2026-02-04_14-56-55.webp)
+![alt text](PixPin_2026-02-04_14-58-34.webp)
 
 >之后关闭容器,重新运行docker compose watch,结果发现prestart失败,原来是一不小心在数据库里改了版本号.这也侧面说明数据库的修改在本地文件里存储了
 ```powershell
@@ -515,7 +515,7 @@ prestart-1  | ERROR [alembic.util.messaging] Can't locate revision identified by
 prestart-1  | FAILED: Can't locate revision identified by '1eddcfe73d4b96aed0830bb587ece8d9'
 ```
 重新登入adminer页面修改表,再次运行成功,看一下后端页面,发现修改都还保留着.
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-04_15-08-38.webp)
+![alt text](PixPin_2026-02-04_15-08-38.webp)
 
 现在再看一遍compose.yml,感觉上就亲切了许多
 `volumes:- app-db-data:/var/lib/postgresql/data/pgdata`保证了只有数据库的修改会保存在本地,services中不同容器通过networks中写的`- traefik-public - default`进行通信,`environment:`写明了所需的众多环境变量并从.env文件中读取.
@@ -523,7 +523,7 @@ prestart-1  | FAILED: Can't locate revision identified by '1eddcfe73d4b96aed0830
 - 这样看来docker确实非常方便,成功的整合了这么多进程并保证彼此之间相互通信而不出错.
 
 ## Look into backend
-![alt text](../images/archives/2026/2026-02-03/PixPin_2026-02-04_15-26-29.webp)
+![alt text](PixPin_2026-02-04_15-26-29.webp)
 
 实际点进去一看文件并没有多到吓人,真正重要的只有api,core和根目录app下的py文件,下面开始逐文件分析
 

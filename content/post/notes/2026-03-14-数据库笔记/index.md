@@ -90,33 +90,33 @@ The **project** operation is a unary operation that returns its argument relatio
 “Find the names of all instructors in the Physics department.”:
 `Π name (σ dept_name = “Physics” (instructor))`
 ### The Cartesian-Product Operation
-![alt text](../images/2026-03-25/PixPin_2026-03-26_09-03-48.webp)
+![alt text](PixPin_2026-03-26_09-03-48.webp)
 - 也就是说关系上的笛卡尔积会生成一个nxm大小的单元组表
 
 ### The Join Operation
-![alt text](../images/2026-03-25/PixPin_2026-03-26_09-08-22.webp)
+![alt text](PixPin_2026-03-26_09-08-22.webp)
 注意这里的join没有过滤掉重复的id列!
-![alt text](../images/2026-03-25/PixPin_2026-03-26_09-10-02.webp)
+![alt text](PixPin_2026-03-26_09-10-02.webp)
 
 ### Set Operations
 求并集(union)的前提条件:
 1. 输入的两个关系具有相同数量的属性
 2. 当属性相关联时,两个关系中对应属性的类型必须相同
-![alt text](../images/2026-03-25/PixPin_2026-03-26_09-16-15.webp)
+![alt text](PixPin_2026-03-26_09-16-15.webp)
 
 求交集(intersection):
-![alt text](../images/2026-03-25/PixPin_2026-03-26_09-19-11.webp)
+![alt text](PixPin_2026-03-26_09-19-11.webp)
 
 求集差(set-diﬀerence):
-![alt text](../images/2026-03-25/PixPin_2026-03-26_09-21-50.webp)
+![alt text](PixPin_2026-03-26_09-21-50.webp)
 ### The Assignment Operation
 >It is convenient at times to write a relational-algebra expression by assigning parts of it to temporary relation variables. 
 The **assignment** operation, denoted by **←**, works like assignment in a programming language.
 
-![alt text](../images/2026-03-25/PixPin_2026-03-26_09-24-00.webp)
+![alt text](PixPin_2026-03-26_09-24-00.webp)
 ### The Rename Operation
 >The **rename** operator  refers to  the results of relational-algebra expressions,denoted by the lowercase Greek letter rho (ρ).
-![alt text](../images/2026-03-25/PixPin_2026-03-27_08-46-34.webp)
+![alt text](PixPin_2026-03-27_08-46-34.webp)
 
 # Introduction to SQL
 ### Overview of the SQL Query Language
@@ -1885,7 +1885,7 @@ where student.ID = takes.ID;
 以left outer join为例子来说明:
 1. The attributes of tuple r that are **derived from** the left-hand-side relation are ﬁlled in with the values from tuple t.
 2. The remaining attributes of r are ﬁlled with **null values**.
-![alt text](../images/2026-03-27/PixPin_2026-03-30_10-42-15.webp)
+![alt text](PixPin_2026-03-30_10-42-15.webp)
 
 ```sql
 select ID
@@ -1915,23 +1915,23 @@ where semester = 'Spring' and year = 2017);
 - relationship: 多个实体之间的关系
 - relationship set: 相同类型的联系集合
 
-![alt text](../images/2026-04-08/PixPin_2026-04-09_09-40-11.webp)
+![alt text](PixPin_2026-04-09_09-40-11.webp)
 
 - 看这个图就很好理解了,单独的两个实体,如Crick和Tanaka之间的关系就是relationship,而实体集之间的映射关系就是relationship set
 ## E-R图
 - entity set: 使用矩形来表示,分为两个部分,一部分是实体集的名称,一部分是实体集所有属性的名称
 - relationship set: 使用菱形来标识,通过线条连接到多个实体集
   - relationship set的描述性属性用单矩形虚线连接
-![alt text](../images/2026-04-08/PixPin_2026-04-09_09-37-00.webp)
+![alt text](PixPin_2026-04-09_09-37-00.webp)
 
 - **映射基数(mapping cardinality)**: 一个实体通过一个联系集关联的其他实体的数量,有以下四种:
   - 一对一: 从联系集到两个实体集各画一个有向线段
   - 一对多: "多方"使用无向线段连接,"一方"使用有向线段
   - 多对一: 与一对多刚好相反
   - 多对多: 两边都是无向线段
-![alt text](../images/2026-04-08/PixPin_2026-04-10_08-44-57.webp)
+![alt text](PixPin_2026-04-10_08-44-57.webp)
 
-![alt text](../images/2026-04-08/PixPin_2026-04-10_10-05-54.webp)
+![alt text](PixPin_2026-04-10_10-05-54.webp)
 
 >The participation of an entity set E in a relationship set R is said to be **total** if every entity in E must participate in **at least one** relationship in R. 
 If it is possible that some entities in E do not participate in relationships in R, the participation of entity set E in relationship R is said to be **partial**.
@@ -1959,7 +1959,7 @@ If it is possible that some entities in E do not participate in relationships in
 * **例子**：`Section`（开课班级）。单独看 `sec_id`（如 1 班）无法确定是哪门课。它必须物理依赖于 `Course`（课程），主键通常是 `(course_id, sec_id, semester, year)`。
 
 ### 概化与特化
-![alt text](../images/2026-04-08/PixPin_2026-04-10_11-33-45.webp)
+![alt text](PixPin_2026-04-10_11-33-45.webp)
 #### 特化 (Specialization) —— 自上而下
 * **物理逻辑**：将一个高层级的实体集（父类）根据特定特征，物理拆分为多个低层级的子实体集（子类）。
 * **触发场景**：当你发现某些属性只适用于部分成员，而不适用于全体时。
@@ -1979,13 +1979,13 @@ If it is possible that some entities in E do not participate in relationships in
 
 
 ### 汇总
-![alt text](../images/2026-04-08/PixPin_2026-04-10_10-35-46.webp)
+![alt text](PixPin_2026-04-10_10-35-46.webp)
 
 
 ##  The Unified Modeling Language (UML)(待补充)
 # Relational Database Design(较难,待补充)
 根据上一章的E-R图我们可以导出一组关系模式:
-![alt text](../images/2026-03-25/PixPin_2026-03-26_08-23-16.webp)
+![alt text](PixPin_2026-03-26_08-23-16.webp)
 # Complex Data Types
 >In this chapter, we discuss several non-atomic data types that are widely used,including **semi-structured data, object-based data, textual data, and spatial data**.
 ## Semi-structured Data
@@ -2107,7 +2107,7 @@ Information-retrieval systems therefore estimate relevance of documents to a que
 - TF: term frequency
 
 One way of measuring TF(d, t), the relevance of a term t to a document d, is:
-![alt text](../images/2026-04-03/PixPin_2026-04-14_10-07-26.webp)
+![alt text](PixPin_2026-04-14_10-07-26.webp)
 where n(d) denotes the number of term occurrences in the document and n(d, t) denotes the number of occurrences of term t in the document d.
 
 >However, not all terms used as keywords are equal. Suppose a query uses two terms, one
@@ -2117,10 +2117,10 @@ ranked higher than a document containing the term “database” but not “Silb
 
 To ﬁx this problem, weights are assigned to terms using the inverse document fre-
 quency (IDF), deﬁned as:
-![alt text](../images/2026-04-03/PixPin_2026-04-14_10-12-52.webp)
+![alt text](PixPin_2026-04-14_10-12-52.webp)
 
 where n(t) denotes the number of documents (among those indexed by the system) that contain the term t. The **relevance** of a document d to **a set of terms Q** is then deﬁned as:
-![alt text](../images/2026-04-03/PixPin_2026-04-14_10-13-55.webp)
+![alt text](PixPin_2026-04-14_10-13-55.webp)
 
 >Almost all text documents (in English) contain words such as “and,” “or,” “a,” and
 so on, and hence these words are useless for querying purposes since their inverse doc-
@@ -2385,7 +2385,7 @@ SQL 语句：`SELECT * FROM table WHERE Gender='m' AND Income='L1';`
 ## 本教材核心: 大学数据库
 ![alt text](../images/2026-03-25/PixPin_2026-03-26_08-23-16.webp)
 - keys used
-![alt text](../images/2026-03-25/PixPin_2026-03-26_08-24-59.webp)
+![alt text](PixPin_2026-03-26_08-24-59.webp)
 - schema diagram
 
 ### 关系表解析

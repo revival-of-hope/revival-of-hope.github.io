@@ -62,7 +62,7 @@ typedef struct {
 ```
 >可以看到python里还有一类PyVarObject,用来管理可变长度的容器对象
 
-![alt text](../images/archives/2026/2026-01-21/PixPin_2026-01-21_11-23-40.webp)
+![alt text](PixPin_2026-01-21_11-23-40.webp)
 
 ## PyIntObject
 **intobject.h**

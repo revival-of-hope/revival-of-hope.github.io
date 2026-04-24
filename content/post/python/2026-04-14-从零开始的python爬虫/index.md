@@ -333,7 +333,7 @@ unique_paragraph = soup.find('p', id='unique-id')
 git clone https://git.launchpad.net/beautifulsoup
 ```
 
-![alt text](../images/archives/2026/2026-03-16/image.png)
+![alt text](image.png)
 事实上,当我们翻阅源码时,会惊讶的发现这个有着20年悠久历史的python库竟然只有这么一点文件!
 - 而且还能看到**dammit.py**这么一个神奇的名字
 
@@ -620,7 +620,7 @@ with sync_playwright() as p:
 ### 基本语法
 #### 同步/异步API
 - [参考](https://devtest-notes.readthedocs.io/zh/latest/web/web-testing-with-playwright-introduction.html)
-![alt text](../images/2026-04-03/PixPin_2026-04-03_21-42-39.webp)
+![alt text](PixPin_2026-04-03_21-42-39.webp)
 看上图就知道playwright中有两个主要的模块:sync_api和async_api,分别对应着同步和异步的请求,我们先来看同步请求的用法:
 ```py
 from playwright.sync_api import sync_playwright
