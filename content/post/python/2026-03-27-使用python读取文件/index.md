@@ -1,46 +1,49 @@
 ﻿---
-title: 2026-03-27 浣跨敤python璇诲彇鏂囦欢
+title: 使用python读取文件
 tags:
   - python
 date: 2026-03-27 08:00:00
 image: 54943053_p0-a fantastical journey.webp
 ---
 
->涓嶄細鐢╬ython鏉ヨ鍙栨枃浠剁殑璇?鎴戞兂鏄笉澶彲鑳戒細瀛︿細鐖櫕鐨?涓嶇劧浣犳€庝箞澶勭悊鑾峰彇鐨勬暟鎹?
-鏈枃鎵€鐢ㄧ殑weekly_hiring_comments.json绀轰緥鐨勭粨鏋勫涓?
+>不会用python来读取文件的话,我想是不太可能会学会爬虫的,不然你怎么处理获取的数据
+
+本文所用的weekly_hiring_comments.json示例的结构如下:
 ```json
 [
   {
     "issue": 692,
     "author": "ruanyf",
     "created_at": "2019-07-18T07:00:46Z",
-    "text": "### **楂樼骇 Web 鍓嶇宸ョ▼甯?*\r\n  \r\n[娣卞湷杩戒竴绉戞妧](https://zhuiyi.ai/)锛屼汉宸ユ櫤鑳藉垱涓氬叕鍙搞€傚伐浣滃湴鐐癸細娣卞湷甯傚崡灞卞尯銆俓r\n\r\n鍏徃涓绘墦 NLP 鏂瑰悜鐨?B 绔?AI 浜у搧钀藉湴锛岃瘹姹傝嫳鎵嶃€傝姹?骞翠互涓婂疄闄呭墠绔」鐩殑寮€鍙戠粡楠岋紝鐔熺粌鎺屾彙 Vue 鎴?React 鐢熸€侊紝鏌ョ湅[璇︾粏淇℃伅](https://www.zhipin.com/job_detail/79ca9be7fb736e4d03Nz3924FVA~.html)銆俓r\n\r\nEmail 鑱旂郴锛歔winchang@wezhuiyi.com](mailto:winchang@wezhuiyi.com)",
+    "text": "### **高级 Web 前端工程师**\r\n  \r\n[深圳追一科技](https://zhuiyi.ai/)，人工智能创业公司。工作地点：深圳市南山区。\r\n\r\n公司主打 NLP 方向的 B 端 AI 产品落地，诚求英才。要求4年以上实际前端项目的开发经验，熟练掌握 Vue 或 React 生态，查看[详细信息](https://www.zhipin.com/job_detail/79ca9be7fb736e4d03Nz3924FVA~.html)。\r\n\r\nEmail 联系：[winchang@wezhuiyi.com](mailto:winchang@wezhuiyi.com)",
     "url": "https://github.com/ruanyf/weekly/issues/692#issuecomment-512691467"
   },
 //   ...
 ]
 ```
-## open鏂规硶
-璇诲啓鏂囦欢涓€鑸兘閫氳繃open鏂规硶鏉ヨ繘琛屾搷浣?鍩烘湰鐢ㄦ硶鐪嬩笅闈㈢殑浠ｇ爜灏卞緢瀹规槗鐞嗚В浜?
+## open方法
+读写文件一般都通过open方法来进行操作,基本用法看下面的代码就很容易理解了:
 ```py
 with open("weekly_hiring_comments.json", "r", encoding="utf-8") as f:
     posts = json.load(f)
 
-with open("鏈鍙婁互涓?json", "w", encoding="utf-8") as f:
+with open("本科及以上.json", "w", encoding="utf-8") as f:
     json.dump(bachelor_posts, f, ensure_ascii=False, indent=2)
 ```
-涓変釜鍙傛暟鍒嗗埆涓?
-1. file(鏂囦欢璺緞)
-2. mode(鎿嶄綔鏂瑰紡)
-3. encoding(瑙ｇ爜鏂瑰紡)
+三个参数分别为:
+1. file(文件路径)
+2. mode(操作方式)
+3. encoding(解码方式)
 
-mode 鐨勫€煎寘鎷互涓嬪嚑绉?
-- 'r' 锛岃〃绀鸿鍙栨枃浠?- 'w' 琛ㄧず鍐欏叆鏂囦欢锛堢幇鏈夊悓鍚嶆枃浠朵細琚鐩栵級
-- 'a' 琛ㄧず鎵撳紑鏂囦欢骞惰拷鍔犲唴瀹癸紝浠讳綍鍐欏叆鐨勬暟鎹細鑷姩娣诲姞鍒版枃浠舵湯灏?- 'r+' 琛ㄧず鎵撳紑鏂囦欢杩涜璇诲啓
-- **mode 瀹炲弬鏄彲閫夌殑锛岀渷鐣ユ椂鐨勯粯璁ゅ€间负 'r'**
+mode 的值包括以下几种:
+- 'r' ，表示读取文件
+- 'w' 表示写入文件（现有同名文件会被覆盖）
+- 'a' 表示打开文件并追加内容，任何写入的数据会自动添加到文件末尾
+- 'r+' 表示打开文件进行读写
+- **mode 实参是可选的，省略时的默认值为 'r'**
 
 
-褰撶劧,濡傛灉鐪嬫簮鐮佺殑璇濊繕鑳界湅鍒颁竴鍫嗗弬鏁?浣嗘垜浠竴鑸彧鐢ㄥ緱鍒颁笂杩扮殑涓変釜鍙傛暟:
+当然,如果看源码的话还能看到一堆参数,但我们一般只用得到上述的三个参数:
 ```py
 def open(
     file: FileDescriptorOrPath,
@@ -54,31 +57,33 @@ def open(
 ) -> TextIOWrapper: ...
 ```
 
-鐜板湪鐨勯棶棰樻槸杩欎釜璇诲啓鐨勬枃浠朵細鏈夊緢澶氱鏍煎紡(.pdf,.txt,.json,.html,.js, ...),鎴戜滑鏉ョ湅鐪媜pen鏄€庝箞澶勭悊鐨?
-1. text mode - 榛樿鏍煎紡: 閫氬父鎯呭喌涓?鏂囦欢浠ヨ妯″紡鎵撳紑,涓€鑸娇鐢╱tf-8杩涜缂栫爜,璇ユā寮忎富瑕佺敤浜庡鐞嗘枃鏈枃浠?2. binary mode - 浠ヤ簩杩涘埗妯″紡璇诲彇鏂囦欢,闇€瑕佸湪mode璇嶅熬鍔犱笂涓€涓?b',濡俙wb`,`ab`绛?鍦ㄤ簩杩涘埗妯″紡涓嬫棤娉曟寚瀹歟ncoding(涔熸病鏈夊繀瑕佹寚瀹?,璇ユā寮忎富瑕佺敤浜庤鍙?png,.mp3,.pdf杩欐牱鐨勪簩杩涘埗鏂囦欢
+现在的问题是这个读写的文件会有很多种格式(.pdf,.txt,.json,.html,.js, ...),我们来看看open是怎么处理的:
+1. text mode - 默认格式: 通常情况下,文件以该模式打开,一般使用utf-8进行编码,该模式主要用于处理文本文件
+2. binary mode - 以二进制模式读取文件,需要在mode词尾加上一个'b',如`wb`,`ab`等,在二进制模式下无法指定encoding(也没有必要指定),该模式主要用于读取.png,.mp3,.pdf这样的二进制文件
 
-鎹㈠彞璇濊,open鍑芥暟鏍规湰涓嶄細瀵规瘡绉嶆枃浠惰繘琛岀壒娈婂鐞?鍙槸鏈変袱绉嶈鍙栨柟寮忚€屽凡浜?瀵逛簬涓€浜涚壒娈婄殑鏂囦欢鏍煎紡,鎴戜滑閮介渶瑕侀澶栫敤鍏朵粬搴撳幓澶勭悊.
+换句话说,open函数根本不会对每种文件进行特殊处理,只是有两种读取方式而已了,对于一些特殊的文件格式,我们都需要额外用其他库去处理.
 
-浣嗘槸瀵逛簬涓€鑸殑鏂囦欢鏍煎紡,open鍑芥暟璇诲彇鏂囦欢鍚嶅悗浼氳繑鍥炰竴涓猅extIOWrapper瀵硅薄,瀹冩湁涓ょ甯哥敤鐨勬柟娉?
-1. .read()鏂规硶: 灏嗗叏鏂囪鍏ヤ竴涓瓧绗︿覆鍙橀噺
-   1. 渚嬪瓙: `content = f.read()`
-2. .write()鏂规硶: 鍐欏叆瀛楃涓?   1. 渚嬪瓙: `f.write(f"## 鎷涜仒 \n\n")`
+但是对于一般的文件格式,open函数读取文件名后会返回一个TextIOWrapper对象,它有两种常用的方法:
+1. .read()方法: 将全文读入一个字符串变量
+   1. 例子: `content = f.read()`
+2. .write()方法: 写入字符串
+   1. 例子: `f.write(f"## 招聘 \n\n")`
 
 
-### json绯荤粺搴?澶勭悊json鏂囦欢
-鏃㈢劧鏄郴缁熷簱,閭ｈ嚜鐒惰鍏堝鍏ュ悗浣跨敤,浜嬪疄涓婂彧鏈変袱涓父鐢ㄥ嚱鏁? json.load()鍜宩son.dump().
+### json系统库:处理json文件
+既然是系统库,那自然要先导入后使用,事实上只有两个常用函数: json.load()和json.dump().
 
-**绀轰緥**
+**示例**
 ```py
 with open("weekly_hiring_comments.json", "r", encoding="utf-8") as f:
     posts = json.load(f)
 
 bachelor_posts = []
 
-with open(out_dir / "鏈鍙婁互涓?json", "w", encoding="utf-8") as f:
+with open(out_dir / "本科及以上.json", "w", encoding="utf-8") as f:
     json.dump(bachelor_posts, f, ensure_ascii=False, indent=2)
 ```
-鐪嬬湅婧愮爜鍜屽弬鏁?
+看看源码和参数:
 ```py
 # load()
 (function) def load(
@@ -110,8 +115,9 @@ with open(out_dir / "鏈鍙婁互涓?json", "w", encoding="utf-8") as f:
     **kwds: Any
 ) -> None
 ```
-閫熻涓€涓嬪氨鐭ラ亾鐢ㄦ硶浜?璇籮son鏂囦欢鏃舵寚瀹氭枃浠跺悕,鍐檍son鏂囦欢鏃舵寚瀹氬啓鍏ュ唴瀹瑰拰鍐欏叆鏂囦欢鍚嶅氨鍙互浜?### 澶勭悊md鏂囦欢
-md鏂囦欢娌℃湁涓撻棬鐨勫簱,鐩存帴璇诲啓灏卞彲浠ヤ簡
+速览一下就知道用法了,读json文件时指定文件名,写json文件时指定写入内容和写入文件名就可以了
+### 处理md文件
+md文件没有专门的库,直接读写就可以了
 ```py
 with open("weekly_hiring_comments.json", "r", encoding="utf-8") as f:
     posts = json.load(f)
@@ -120,54 +126,60 @@ out = Path("weekly_hiring_comments.md")
 
 with out.open("w", encoding="utf-8") as f:
     for i, p in enumerate(posts, 1):
-        f.write(f"## 鎷涜仒 {i}\n\n")
+        f.write(f"## 招聘 {i}\n\n")
         f.write(f"- Issue: #{p['issue']}\n")
-        f.write(f"- 浣滆€? {p['author']}\n")
-        f.write(f"- 鏃堕棿: {p['created_at']}\n")
-        f.write(f"- 鏉ユ簮: {p['url']}\n\n")
+        f.write(f"- 作者: {p['author']}\n")
+        f.write(f"- 时间: {p['created_at']}\n")
+        f.write(f"- 来源: {p['url']}\n\n")
         f.write(p["text"])
         f.write("\n\n---\n\n")
 ```
 
-## pathlib搴?**璇ュ簱鍦ㄤ笉鍚屽钩鍙颁笅閮借兘杞绘澗璇诲彇鏂囦欢璺緞**,鑰屼笉闇€瑕佹搷蹇冪郴缁熼棶棰樻垨鑰呭瓧绗︿覆闂.
+## pathlib库
+**该库在不同平台下都能轻松读取文件路径**,而不需要操心系统问题或者字符串问题.
 
-- [瀹樻柟鏂囨。](https://docs.python.org/zh-cn/3/library/pathlib.html)
+- [官方文档](https://docs.python.org/zh-cn/3/library/pathlib.html)
 
->濡傛灉浠ュ墠浠庢湭鐢ㄨ繃姝ゆā鍧楋紝鎴栦笉纭畾鍝釜绫婚€傚悎瀹屾垚浠诲姟锛岄偅瑕佺敤鐨勫彲鑳藉氨鏄?Path銆傚畠鍦ㄨ繍琛屼唬鐮佺殑骞冲彴涓婂疄渚嬪寲涓哄叿浣撹矾寰?
+>如果以前从未用过此模块，或不确定哪个类适合完成任务，那要用的可能就是 Path。它在运行代码的平台上实例化为具体路径.
 
-鎺ヤ笅鏉ユ垜浠潵璇︾粏浠嬬粛杩欎釜Path瀵硅薄
-### Path瀵硅薄鐨勫垱寤?```py
-from pathlib import Path
-
-# 鍩虹鐢ㄦ硶
-out_file: Path = Path("a.md")
-
-# 鎷兼帴璺緞鐨勪袱绉嶅啓娉?
-# 绠€鍐?out_file: Path = Path("modules") / "a.py"
-
-# 鍒嗗紑鍐?out_dir: Path = Path("modules")
-out_file: Path = out_dir / "issues.md"
-
-```
-涓婅堪鐨勪唬鐮佺敱浜庢病鏈夋寚瀹氱粷瀵硅矾寰?鏁呴兘鏄浉瀵逛簬python杩愯鐩綍鐨勮矾寰?浣嗘垜浠篃鍙互鎸囧畾缁濆璺緞,濡備笅鏂囨墍绀?
+接下来我们来详细介绍这个Path对象
+### Path对象的创建
 ```py
 from pathlib import Path
 
-# Windows 椋庢牸
+# 基础用法
+out_file: Path = Path("a.md")
+
+# 拼接路径的两种写法
+
+# 简写
+out_file: Path = Path("modules") / "a.py"
+
+# 分开写
+out_dir: Path = Path("modules")
+out_file: Path = out_dir / "issues.md"
+
+```
+上述的代码由于没有指定绝对路径,故都是相对于python运行目录的路径,但我们也可以指定绝对路径,如下文所示:
+```py
+from pathlib import Path
+
+# Windows 风格
 abs_path_win = Path("C:/Users/Admin/Desktop/a.md")
 
-# Linux/macOS 椋庢牸
+# Linux/macOS 风格
 abs_path_unix = Path("/home/user/project/a.md")
 ```
-涔熷氨鏄,鎴戜滑涓嶉渶瑕佸啀鍘绘姌鑵句笉鍚屾搷浣滅郴缁熺殑璺緞闂浜?缁熶竴鐢╜/`灏卞彲浠ョ‘瀹氱浉瀵圭殑璺緞.
-### 浣跨敤Path鏉ュ垱寤烘枃浠跺す
-鍙渶瑕佽皟鐢╩kdir鏂规硶鍗冲彲:
+也就是说,我们不需要再去折腾不同操作系统的路径问题了,统一用`/`就可以确定相对的路径.
+### 使用Path来创建文件夹
+只需要调用mkdir方法即可:
 ```py
 out_dir: Path = Path("issues_md")
 out_dir.mkdir(exist_ok=True)
 ```
-- exist_ok鍙傛暟鐨勪綔鐢? 榛樿涓篎alse,璁剧疆涓篢rue鏃?鍗充究褰撳墠璺緞涓嬫湁杩欎釜鏂囦欢澶?涔熶笉浼氭姤閿?### Path瀵硅薄鐨刼pen鏂规硶
-浜嬪疄涓?杩欎釜open鏂规硶涓巔ython鍐呯疆鐨刼pen鏂规硶鍩烘湰娌℃湁鍖哄埆,鍙槸鎶婃枃浠惰矾寰勬彁鍒板闈㈡潵浜嗚€屽凡:
+- exist_ok参数的作用: 默认为False,设置为True时,即便当前路径下有这个文件夹,也不会报错
+### Path对象的open方法
+事实上,这个open方法与python内置的open方法基本没有区别,只是把文件路径提到外面来了而已:
 ```py
 out_dir: Path = Path("issues_md")
 out_dir.mkdir(exist_ok=True)
@@ -175,12 +187,12 @@ out_dir.mkdir(exist_ok=True)
 for issue, items in by_issue.items():
     path = out_dir / f"issue_{issue}.md"
     with path.open("w", encoding="utf-8") as f:
-        f.write(f"# Issue #{issue} 鎷涜仒姹囨€籠n\n")
+        f.write(f"# Issue #{issue} 招聘汇总\n\n")
 ```
 
-### Path瀵硅薄鐨刧lob鏂规硶(寰呰ˉ鍏?
+### Path对象的glob方法(待补充)
 
-### 瀹炴垬
+### 实战
 ```py
 import json
 from pathlib import Path
@@ -188,48 +200,52 @@ from collections import defaultdict
 
 with open("weekly_hiring_comments.json", "r", encoding="utf-8") as f:
     posts = json.load(f)
-# 璇诲彇json鍒楄〃
+# 读取json列表
 by_issue = defaultdict(list)
 for p in posts:
     by_issue[p["issue"]].append(p)
-# 澶勭悊涓轰竴涓湁搴忓瓧鍏?杩欏湪json鍒楄〃鏈韩鏄棤搴忕殑鏃跺€欐瘮杈冨ソ鐢?out_dir: Path = Path("issues_md")
+# 处理为一个有序字典,这在json列表本身是无序的时候比较好用
+out_dir: Path = Path("issues_md")
 out_dir.mkdir(exist_ok=True)
 
 for issue, items in by_issue.items():
     path = out_dir / f"issue_{issue}.md"
     with path.open("w", encoding="utf-8") as f:
-        f.write(f"# Issue #{issue} 鎷涜仒姹囨€籠n\n")
+        f.write(f"# Issue #{issue} 招聘汇总\n\n")
 
         for i, p in enumerate(items, 1):
-            f.write(f"## 鎷涜仒 {i}\n\n")
-            f.write(f"- 浣滆€? {p['author']}\n")
-            f.write(f"- 鏃堕棿: {p['created_at']}\n")
-            f.write(f"- 鏉ユ簮: {p['url']}\n\n")
+            f.write(f"## 招聘 {i}\n\n")
+            f.write(f"- 作者: {p['author']}\n")
+            f.write(f"- 时间: {p['created_at']}\n")
+            f.write(f"- 来源: {p['url']}\n\n")
             f.write(p["text"])
             f.write("\n\n---\n\n")
 ```
 
-## re绯荤粺搴?- [瀹樻柟鏂囨。](https://docs.python.org/zh-tw/3.8/library/re.html)
+## re系统库
+- [官方文档](https://docs.python.org/zh-tw/3.8/library/re.html)
 
-璇ュ簱鏄姝ｅ垯琛ㄨ揪寮?regular expression)鐨勫皝瑁?鎵€浠ュ彨re.
+该库是对正则表达式(regular expression)的封装,所以叫re.
 
-### compile鏂规硶
-compile鏄竴涓疄渚嬪寲pattern瀵硅薄鐨勬柟娉?pattern涓€璇嶅湪re涓寚鐨勬槸姝ｅ垯琛ㄨ揪寮忓瓧绗︿覆
+### compile方法
+compile是一个实例化pattern对象的方法,pattern一词在re中指的是正则表达式字符串
 ```py
 prog = re.compile(pattern)
 result = prog.match(string)
-# 涓婅堪浠ｇ爜绛変环浜庝笅闈㈢殑杩欎釜
+# 上述代码等价于下面的这个
 result = re.match(pattern, string)
-# 涓轰簡瑙勮寖鍖栧拰澶嶇敤,鎴戜滑杩樻槸澶氱敤compile鏂规硶鏉ユ寚鏄巔attern瀵硅薄
+# 为了规范化和复用,我们还是多用compile方法来指明pattern对象
 ```
 
->浜嬪疄涓?re搴撲腑鐨勫ぇ澶氭暟甯哥敤鏂规硶閮芥湁涓ょ鍐欐硶,涓€绉嶆槸`妯″紡.鏂规硶(鍙傛暟)`,鍙︿竴绉嶆槸`鏂规硶.(妯″紡,鍙傛暟)`.涓轰簡瑙勮寖璧疯,鎴戜滑鍚庨潰閮介噰鐢╜妯″紡.鏂规硶(鍙傛暟)`鍐欐硶,灏变笉鍐嶆璇存槑浜?
+>事实上,re库中的大多数常用方法都有两种写法,一种是`模式.方法(参数)`,另一种是`方法.(模式,参数)`.为了规范起见,我们后面都采用`模式.方法(参数)`写法,就不再次说明了
 
 
-### search鏂规硶涓巑atch鏂规硶
-- [鑿滈笩鏁欑▼](https://www.runoob.com/python/python-reg-expressions.html)
 
->re.match鍙尮閰嶅瓧绗︿覆鐨勫紑濮嬶紝濡傛灉瀛楃涓插紑濮嬩笉绗﹀悎姝ｅ垯琛ㄨ揪寮忥紝鍒欏尮閰嶅け璐ワ紝鍑芥暟杩斿洖None锛涜€宺e.search鍖归厤鏁翠釜瀛楃涓诧紝鐩村埌鎵惧埌涓€涓尮閰嶃€?
+### search方法与match方法
+- [菜鸟教程](https://www.runoob.com/python/python-reg-expressions.html)
+
+>re.match只匹配字符串的开始，如果字符串开始不符合正则表达式，则匹配失败，函数返回None；而re.search匹配整个字符串，直到找到一个匹配。
+
 ```py
 #!/usr/bin/python
 import re
@@ -248,70 +264,71 @@ if matchObj:
 else:
    print "No match!!"
 ```
-**杩愯缁撴灉**
+**运行结果**
 ```bash
 No match!!
 search --> searchObj.group() :  dogs
 ```
 
-### 瀹炴垬
-涓嬮潰鐨勬暣涓唬鐮佹祦绋嬩负:
-1. 杞藉叆json鏂囦欢涓哄垪琛╬osts
-2. 浣跨敤compile鏂规硶缁勭粐鍖归厤妯″紡
-3. 灏唒osts閲屽搴斿鍘嗚姹傜殑甯栧瓙涓殑text瀛楁閲岀殑鍊兼彃鍏ュ垪琛ㄤ腑
-4. 瀵煎嚭json鏂囦欢
+### 实战
+下面的整个代码流程为:
+1. 载入json文件为列表posts
+2. 使用compile方法组织匹配模式
+3. 将posts里对应学历要求的帖子中的text字段里的值插入列表中
+4. 导出json文件
 ```py
 with open("weekly_hiring_comments.json", "r", encoding="utf-8") as f:
     posts = json.load(f)
 
 bachelor_patterns = [
-    r"鏈鍙婁互涓?,
-    r"鏈浠ヤ笂",
+    r"本科及以上",
+    r"本科以上",
 ]
 
 master_patterns = [
-    r"纭曞＋鍙婁互涓?,
-    r"纭曞＋浠ヤ笂",
+    r"硕士及以上",
+    r"硕士以上",
 ]
-# 杩欓噷鐨剅鏄负浜嗙鐢╜\`杞箟绗?浣嗚繖閲岄兘鏄腑鏂?涓嶅啓涔熷彲浠?涓轰簡瑙勮寖鎵€浠ュ姞涓婁簡
+# 这里的r是为了禁用`\`转义符,但这里都是中文,不写也可以,为了规范所以加上了
 
 bachelor_re = re.compile("|".join(bachelor_patterns))
 master_re = re.compile("|".join(master_patterns))
-# 鎷兼帴浜嗕袱涓尮閰嶅瓧绗︿覆
+# 拼接了两个匹配字符串
 
 bachelor_posts = []
 master_posts = []
 
 for p in posts:
-    # 杩欎釜p鏄垪琛ㄧ殑瀛愬厓绱?鍦ㄨ繖閲屼负瀛楀吀
+    # 这个p是列表的子元素,在这里为字典
     text = p.get("text", "")
-    # get鏂规硶鐨勭涓€涓弬鏁版槸,鏌ユ壘璇ュ瓧鍏镐腑鐨勫搴斿瓧娈靛苟杩斿洖鍊?绗簩涓弬鏁版槸,鑻ユ煡鎵句笉鍒拌繑鍥炵殑榛樿鍊?    if master_re.search(text):
+    # get方法的第一个参数是,查找该字典中的对应字段并返回值,第二个参数是,若查找不到返回的默认值
+    if master_re.search(text):
         master_posts.append(p)
     elif bachelor_re.search(text):
         bachelor_posts.append(p)
 
-# === 杈撳嚭鐩綍 ===
+# === 输出目录 ===
 out_dir = Path("degree_split")
 out_dir.mkdir(exist_ok=True)
 
-# === 鍐欐枃浠?===
-with open(out_dir / "鏈鍙婁互涓?json", "w", encoding="utf-8") as f:
+# === 写文件 ===
+with open(out_dir / "本科及以上.json", "w", encoding="utf-8") as f:
     json.dump(bachelor_posts, f, ensure_ascii=False, indent=2)
 
-with open(out_dir / "纭曞＋鍙婁互涓?json", "w", encoding="utf-8") as f:
+with open(out_dir / "硕士及以上.json", "w", encoding="utf-8") as f:
     json.dump(master_posts, f, ensure_ascii=False, indent=2)
 
 ```
 
 
 
-## 璇诲彇.env鏂囦欢
-瀵逛簬瀵嗙爜,API瀵嗛挜杩欎簺鏂囦欢,鐢╦son鏂囦欢瀛樺彇涓嶅鏂逛究涔熶笉澶熷畨鍏?鍥犳鎴戜滑鏈変簡.env鏂囦欢,鏍峰紡濡備笅:
+## 读取.env文件
+对于密码,API密钥这些文件,用json文件存取不够方便也不够安全,因此我们有了.env文件,样式如下:
 ```toml
 # github token
 token="ghp_xxxxxxxxxxxx"
 ```
-褰撴垜浠兂瑕佽鍙栬繖涓?env鏂囦欢涓殑token瀛楁鏃?鎴戜滑鍙互瀵煎叆dotenv搴撳拰os搴撴潵杩涜绠€鍗曠殑璇诲彇:
+当我们想要读取这个.env文件中的token字段时,我们可以导入dotenv库和os库来进行简单的读取:
 ```py
 from dotenv import load_dotenv
 import os
@@ -319,4 +336,5 @@ import os
 load_dotenv()
 TOKEN = os.getenv("token")
 ```
-`load_dotenv()`鍑芥暟浼氶€掑綊瀵绘壘.env鏂囦欢骞惰繑鍥炲唴瀹逛緵os搴撹鍙?浠庤€岄伩鍏嶄簡鍐欒矾寰勭殑楹荤儲.
+`load_dotenv()`函数会递归寻找.env文件并返回内容供os库读取,从而避免了写路径的麻烦.
+
