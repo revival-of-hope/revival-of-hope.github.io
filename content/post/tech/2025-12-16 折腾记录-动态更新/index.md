@@ -392,10 +392,12 @@ function hugo {
 
 前前后后也花了差不多四个小时,可知糟糕的架构设计确实很累人.
 ### 取代原hexo仓库
+将原仓库名字改成随便的其他名字即可,再将该测试仓库名字改成username.github.io即可原样替换
 ### 加入vercount访客统计
 - [参考链接](https://blog.farb.top/p/hugo_stack_vercount/)
 ### 加入gisgus评论系统
-
+- [参考链接](https://www.lixueduan.com/posts/blog/02-add-giscus-comment/)
+### 配置tags界面
 # 折腾环境问题
 
 ## vscode powershell终端打字缺字漏字

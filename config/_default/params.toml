@@ -58,19 +58,19 @@ SortBy              = "default"
     enabled  = true
     provider = "giscus"
 
-    # [comments.giscus]
-    #     repo             = "revival-of-hope/hexo-blog-comments"
-    #     repoID           = "R_kgDORAMULA"
-    #     category         = ""
-    #     categoryID       = "DIC_kwDORAMULM4C1W_w"
-    #     mapping          = "title"
-    #     lightTheme       = "light"
-    #     darkTheme        = "dark_dimmed"
-    #     reactionsEnabled = 1
-    #     emitMetadata     = 0
-    #     inputPosition    = "top"
-    #     lang             = "zh"
-    #     strict           = 0
-    #     loading          = "lazy"
+    [comments.giscus]
+        repo             = "revival-of-hope/revival-of-hope.github.io"
+        repoID           = "R_kgDOSKqyMg"
+        category         = "Announcements"
+        categoryID       = "DIC_kwDOSKqyMs4C7mKB"
+        mapping          = "pathname"
+        lightTheme       = "light"
+        darkTheme        = "dark_dimmed"
+        reactionsEnabled = 1
+        emitMetadata     = 0
+        inputPosition    = "top"
+        lang             = "zh-CN"
+        strict           = 0
+        loading          = "lazy"
     # See all the available configurations at https://github.com/CaiJimmy/hugo-theme-stack/blob/master/config/_default/params.toml
 
