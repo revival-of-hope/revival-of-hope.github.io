@@ -6,3 +6,4 @@ assets/jsconfig.json
 
 images/
 *.zip
+*.ps1

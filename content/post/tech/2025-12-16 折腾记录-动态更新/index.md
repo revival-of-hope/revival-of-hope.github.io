@@ -247,6 +247,7 @@ inject:
 title: 这是一个私密文章
 date: 2026-04-07 20:00:00
 tags: [秘密]
+
 # 以下是加密核心配置
 password: your_password_here
 abstract: 输入密码前，读者能看到的预览文字（可选）
@@ -255,7 +256,140 @@ message: 这里是密码提示语（可选）
 
 这里是加密后的正文内容，只有输入正确密码才能看到。
 ```
+## 将博客从hexo迁移到hugo(4/24)
+由于hexo有很多地方是我不满意的,而且当时创建博客的时候还不太懂编程,用AI魔改了很多地方,修复起来很难.
+所以就想着换一下博客框架,顺便整理以往的所有文章,把魔改的地方全部清空.
+### 整理魔改的地方
+因为我的图片路径弄得特别混乱,而hugo默认只支持文章md与图片在同一文件夹下时,才能识别图片,所以还得去整一些脚本来帮助我快速转换:
 
+**将魔改的路径还原**
+```ps1
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$contentDir = "content/post"
+$imagesSourceDir = "images"
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+
+# 1. 预构建图片全局索引（解决路径偏移问题）
+Write-Host "Building image library index..." -ForegroundColor Cyan
+if (-not (Test-Path $imagesSourceDir)) {
+    Write-Error "Source images directory not found!"; exit
+}
+$imageLibrary = Get-ChildItem -Path $imagesSourceDir -File -Recurse
+
+# 2. 获取所有待处理的 .md 文件
+$mdFiles = Get-ChildItem -Path $contentDir -Filter "*.md" -Recurse | Where-Object { 
+    $_.Name -ne "index.md" -and $_.Name -ne "_index.md" 
+}
+
+foreach ($file in $mdFiles) {
+    Write-Host "`nProcessing: $($file.Name)" -ForegroundColor Cyan
+    
+    # 3. 创建 Page Bundle 文件夹
+    $folderName = $file.BaseName
+    $targetDir = Join-Path $file.DirectoryName $folderName
+    if (-not (Test-Path $targetDir)) {
+        New-Item -ItemType Directory -Path $targetDir | Out-Null
+    }
+
+    # 4. 预读取内容并重命名/移动 MD 文件
+    $content = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
+    $newMdPath = Join-Path $targetDir "index.md"
+    
+    # 5. 图片处理逻辑
+    $hasChanged = $false
+    # 匹配各类 images/ 路径变体
+    $pattern = '(?:"|(?<=\())(?:(?:\.\./)+|\./)?images/([^")\r\n\s]+)(?:"|\))'
+    $matches = [regex]::Matches($content, $pattern)
+    
+    foreach ($match in $matches) {
+        $extractedPath = $match.Groups[1].Value.Trim()
+        $fileName = Split-Path $extractedPath -Leaf
+        
+        # 忽略变量占位符
+        if ($fileName -like "*$*") { continue }
+
+        # 搜索图片：先查直接路径，找不到再查全局索引
+        $sourceFile = Join-Path (Get-Location) (Join-Path $imagesSourceDir $extractedPath)
+        if (-not (Test-Path -LiteralPath $sourceFile)) {
+            $foundFile = $imageLibrary | Where-Object { $_.Name -eq $fileName } | Select-Object -First 1
+            if ($foundFile) { $sourceFile = $foundFile.FullName }
+        }
+
+        if (Test-Path -LiteralPath $sourceFile) {
+            $destFile = Join-Path $targetDir $fileName
+            
+            # 移动图片到新文件夹
+            if (Test-Path -LiteralPath $sourceFile) {
+                Move-Item -LiteralPath $sourceFile -Destination $destFile -Force
+            }
+            
+            # 修正 Markdown 引用路径为纯文件名
+            $oldFullString = $match.Value
+            $newFullString = $oldFullString.Substring(0,1) + $fileName + $oldFullString.Substring($oldFullString.Length - 1)
+            $content = $content.Replace($oldFullString, $newFullString)
+            $hasChanged = $true
+            Write-Host "  [Image] Moved & Relinked: $fileName" -ForegroundColor Green
+        } else {
+            Write-Warning "  [Image] Missing: $fileName"
+        }
+    }
+
+    # 6. 写入新 index.md 并物理删除旧 .md
+    [System.IO.File]::WriteAllText($newMdPath, $content, $utf8NoBom)
+    Remove-Item -Path $file.FullName -Force
+    Write-Host "  [Bundle] Created folder and index.md" -ForegroundColor Gray
+}
+
+Write-Host "`nAll operations completed." -ForegroundColor Yellow
+
+```
+
+**注册环境变量将hugo的复杂命令简化为`hn <文章名>`并给目录加上日期前缀**
+
+1. 在 PowerShell 中输入以下命令，如果文件不存在会自动创建：
+```bash
+if (!(Test-Path $PROFILE)) { New-Item -Type File -Path $PROFILE -Force }
+notepad $PROFILE
+```
+2. 将以下代码粘贴进记事本并保存：
+```ps1
+function hn {
+    param($name)
+    # 调用下面定义的拦截函数
+    hugo new "post/$name/index.md"
+}
+
+function hugo {
+    # 仅拦截 hugo new 命令，且参数包含路径
+    if ($args[0] -eq "new" -and $args.Count -ge 2) {
+        $datePrefix = Get-Date -Format "yyyy-MM-dd-"
+        $originalPath = $args[1]
+
+        # 逻辑：匹配最后一个斜杠后的名称，在名称前插入日期
+        # 示例：post/test/index.md -> post/2026-04-24-test/index.md
+        if ($originalPath -match '(.*/)([^/]+/[^/]+)$') {
+            $newPath = $matches[1] + $datePrefix + $matches[2]
+        } 
+        else {
+            # 如果没有深层路径，直接加在前缀
+            $newPath = $datePrefix + $originalPath
+        }
+
+        $newArgs = @($args[0], $newPath) + $args[2..($args.Count-1)]
+        & (Get-Command hugo.exe -CommandType Application) $newArgs
+    }
+    else {
+        & (Get-Command hugo.exe -CommandType Application) $args
+    }
+}
+```
+3. 回到 PowerShell，执行：
+```bash
+. $PROFILE
+```
+
+前前后后也花了差不多四个小时,可知糟糕的架构设计确实很累人.
+### 
 # 折腾环境问题
 
 ## vscode powershell终端打字缺字漏字

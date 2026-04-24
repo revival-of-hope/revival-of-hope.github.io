@@ -3,7 +3,7 @@ title: 2026-03-16 uv使用
 tags:
   - python
 date: 2026-03-16 08:00:00
-image:
+image: 12904418_p0-夏の日の昼下がり.webp
 ---
 
 
