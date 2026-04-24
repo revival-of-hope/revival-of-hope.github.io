@@ -475,7 +475,27 @@ menu:
 - 比默认配置柔和了不少
 ### 总结
 不得不说,hugo的部署比起hexo快了好几倍,而且界面更加现代流畅.
+## hugo增加专栏
+例如,我想要将python相关的笔记放在一起:
+![alt text](PixPin_2026-04-24_21-31-58.webp)
+可以将笔记放在**python**文件夹里,并设置_index.md和封面图片:
 
+```md
+---
+title: "Python"
+description: "python相关的笔记"
+image: 58231596_p0-暑中見舞い.webp
+
+menu:
+    main:
+        name: "Python"
+        weight: 100        # 数字越小，在侧边栏位置越靠上
+            
+---
+```
+
+这就是效果了:
+![alt text](PixPin_2026-04-24_21-36-51.webp)
 # 折腾环境问题
 
 ## vscode powershell终端打字缺字漏字
