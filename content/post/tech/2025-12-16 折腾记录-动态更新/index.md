@@ -398,6 +398,24 @@ function hugo {
 ### 加入gisgus评论系统
 - [参考链接](https://www.lixueduan.com/posts/blog/02-add-giscus-comment/)
 ### 配置tags界面
+![alt text](PixPin_2026-04-24_19-40-42.webp)
+在pages目录里新增该tags文件夹即可,可以这么写内容:
+```md
+---
+title: "Tags"
+slug: "tags"
+layout: "tags"
+menu:
+    main:
+        weight: 4
+        params:
+            icon: tag
+
+---
+```
+
+### 总结
+不得不说,hugo的部署比起hexo快了好几倍,而且界面更加现代流畅,美中不足的是一级标题无法被目录识别,也就是说写文章得从二级目录开始了
 # 折腾环境问题
 
 ## vscode powershell终端打字缺字漏字
