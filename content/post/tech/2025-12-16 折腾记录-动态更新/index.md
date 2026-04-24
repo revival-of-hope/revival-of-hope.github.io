@@ -399,12 +399,12 @@ function hugo {
 - [参考链接](https://www.lixueduan.com/posts/blog/02-add-giscus-comment/)
 ### 配置tags界面
 ![alt text](PixPin_2026-04-24_19-40-42.webp)
-在pages目录里新增该tags文件夹即可,可以这么写内容:
+在pages目录里新增该tags文件夹即可,可以这么写从而启用内置的tag-cloud样式:
 ```md
 ---
 title: "Tags"
 slug: "tags"
-layout: "tags"
+layout: "tag-cloud"
 menu:
     main:
         weight: 4
@@ -413,9 +413,12 @@ menu:
 
 ---
 ```
+- 但实际效果不是很好,能用就行
+
 
 ### 总结
 不得不说,hugo的部署比起hexo快了好几倍,而且界面更加现代流畅,美中不足的是一级标题无法被目录识别,也就是说写文章得从二级目录开始了
+
 # 折腾环境问题
 
 ## vscode powershell终端打字缺字漏字
