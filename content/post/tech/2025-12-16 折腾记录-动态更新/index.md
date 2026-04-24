@@ -256,10 +256,10 @@ message: 这里是密码提示语（可选）
 
 这里是加密后的正文内容，只有输入正确密码才能看到。
 ```
-## 将博客从hexo迁移到hugo(4/24)
+## 将博客从hexo迁移到hugo-stack(4/24)
 由于hexo有很多地方是我不满意的,而且当时创建博客的时候还不太懂编程,用AI魔改了很多地方,修复起来很难.
 所以就想着换一下博客框架,顺便整理以往的所有文章,把魔改的地方全部清空.
-### 整理魔改的地方
+### 整理原仓库
 - 正常人的博客不会像我一样混乱的
 
 因为我的图片路径弄得特别混乱,而hugo默认只支持文章md与图片在同一文件夹下时,才能识别图片,所以还得去整一些脚本来帮助我快速转换:
@@ -390,9 +390,20 @@ function hugo {
 . $PROFILE
 ```
 
-前前后后也花了差不多四个小时,可知糟糕的架构设计确实很累人.
-### 取代原hexo仓库
-将原仓库名字改成随便的其他名字即可,再将该测试仓库名字改成username.github.io即可原样替换
+光是处理这些前前后后也花了差不多两个小时,可知处理糟糕的架构设计确实很累人.
+### 初始化hugo仓库
+- 将原博客仓库名字改成随便的其他名字,预留`username.github.io`仓库名字
+先fork[stack仓库](https://github.com/CaiJimmy/hugo-theme-stack)命名为`username.github.io`后,`git clone`到本地.
+
+进入仓库的settings>Pages页面,给该仓库配置以下两个GitHub Actions:
+1. build and deploy
+2. hugo模板
+
+之后在根目录的.github\workflows文件夹下会出现两个新文件分别对应两个actions
+![alt text](PixPin_2026-04-24_20-08-35.webp)
+
+然后将原仓库整理好的文档一键复制到hugo仓库的content/post文件夹中,除了`cover`字段需要改成`image`字段外,其他的frontmatter都是兼容的.
+- 至于其他的初始化操作由于[官方文档](https://hugo.opendocs.io/)都写的很明白我就不加上了
 ### 加入vercount访客统计
 - [参考链接](https://blog.farb.top/p/hugo_stack_vercount/)
 ### 加入gisgus评论系统
@@ -415,9 +426,16 @@ menu:
 ```
 - 但实际效果不是很好,能用就行
 
-
+### 修改目录属性保证一级标题和五级标题可以被识别
+在markup.toml里修改下列字段即可:
+```toml
+[tableOfContents]
+    endLevel   = 5
+    ordered    = true
+    startLevel = 1
+```
 ### 总结
-不得不说,hugo的部署比起hexo快了好几倍,而且界面更加现代流畅,美中不足的是一级标题无法被目录识别,也就是说写文章得从二级目录开始了
+不得不说,hugo的部署比起hexo快了好几倍,而且界面更加现代流畅.
 
 # 折腾环境问题
 

@@ -15,5 +15,5 @@ hasCJKLanguage = false
 disqusShortname = "aitianpai"
 
 [pagination]
-    pagerSize = 5
+    pagerSize = 8
 
