@@ -33,9 +33,9 @@ const path = require('path');
 
 hexo.on('new', function(data) {
   // 用 data.path 生成文件夹名
-  // data.path 是相对于 source/_posts 的路径，带后缀
+  // data.path 是相对于 _posts 的路径，带后缀
   const filename = path.basename(data.path, path.extname(data.path)); // 去掉扩展名
-  const imagesDir = path.join(hexo.base_dir, 'source/images', filename);
+  const imagesDir = path.join(hexo.base_dir, 'images', filename);
 
   if (!fs.existsSync(imagesDir)) {
     fs.mkdirSync(imagesDir, { recursive: true });
@@ -43,7 +43,7 @@ hexo.on('new', function(data) {
   }
 });
 ```
-在同级目录下生成图像文件夹来管理,麻烦的是每次都要删去相对路径里的'source/'
+在同级目录下生成图像文件夹来管理,麻烦的是每次都要删去相对路径里的''
 
 
 ## 改用butterfly主题
@@ -64,7 +64,7 @@ hexo.on('new', function(data) {
 之前我还想文章多了要怎么处理呢.
 
 ## 还是图片问题,hexo本地无法正确解析相对路径
-例如`source/images/archives/2025/2025-11-26/image.png`
+例如`images/archives/2025/2025-11-26/image.png`
 需要改为'images/archives/2025/2025-11-26/image.png',每次改就很麻烦了
 于是找ai弄了脚本
 ```javascript
@@ -98,10 +98,10 @@ hexo.on('new', function (data) {
   // 取前 10 个字符作为日期
   const date = basename.substring(0, 10);
 
-  // 图片目录：source/images/2025-12-26
+  // 图片目录：images/2025-12-26
   const imagesDir = path.join(
     hexo.base_dir,
-    'source/images',
+    'images',
     date
   );
 

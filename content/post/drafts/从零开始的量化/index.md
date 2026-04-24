@@ -20,9 +20,9 @@ image:
 而拿这三个概念去搜索GitHub仓库,都能得到不少的答案,而对应仓库数量最多的其实是**Algorithmic trading**.
 
 而在google上搜索时,搜索结果数量最多的则是**Quantitative analysis**.
-![alt text](../images/2026-04-14/PixPin_2026-04-14_17-20-17.webp)
-![alt text](../images/2026-04-14/PixPin_2026-04-14_17-21-31.webp)
-![alt text](../images/2026-04-14/PixPin_2026-04-14_17-22-00.webp)
+![alt text](.PixPin_2026-04-14_17-20-17.webp)
+![alt text](.PixPin_2026-04-14_17-21-31.webp)
+![alt text](.PixPin_2026-04-14_17-22-00.webp)
 
 就算改为中文进行搜索,量化交易的结果也是最少的.所以中文股票圈一致使用量化交易这个词我就不是很理解了...
 
