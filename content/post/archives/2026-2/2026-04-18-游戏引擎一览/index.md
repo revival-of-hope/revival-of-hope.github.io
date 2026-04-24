@@ -71,7 +71,7 @@ Unity 5 被视为实现“通用开发”目标的重要一步。
 团结引擎是 Unity 中国的引擎研发团队基于 Unity 2022 LTS 版本**为中国开发者定制的实时 3D 引擎**；基于 Unity 的核心能力，团结引擎团队倾听中国开发者的声音和需求，为团结引擎加入了一些中国开发者需要的定制化功能，并会在未来持续不断的为中国开发者量身定制需要的功能。
 团结引擎以 Unity 2022 LTS 为研发基础，融入了团结引擎独有功能和优化，未来会加入更多为中国开发者量身定制的功能和优化。
 
->[unity is losing users in china](https://discussions.unity.com/t/unity-is-losing-users-in-china/1711678)
+- [unity is losing users in china](https://discussions.unity.com/t/unity-is-losing-users-in-china/1711678)
 >It’s also worth noting that in certain industries, foreign companies in China are required to form a joint venture with a Chinese partner and **are not allowed to hold more than 50%**. That’s why Unity created Unity China, and it’s likely the reason why the regular global version of Unity can no longer be distributed directly in China by Unity itself.
 >
 >The global Asset Store probably operated in a gray area for a while and was tolerated, but that seems to have changed.
@@ -224,7 +224,7 @@ blacksouls1&&2,恐惧与饥饿1&&2,Lisa两部曲,魔女之家
 - [拓展阅读](https://felipepepe.medium.com/the-history-of-rpg-maker-its-games-c93685f41ae6)
 ### 开发环境
 - 由于是一次性收费,故怎么想都不会便宜的,而且不同版本的引擎素材不可混用,只能针对特定引擎购买特定的官方素材或者自己画素材
-以2020年发布,使用js的RPG Maker MZ为例,我们先看看它的[steam商品页面](https://store.steampowered.com/app/1096900/RPG_Maker_MZ/),只够买引擎本体的话需要四百多人名币,如果想使用官方素材的话还得额外购买,不过本地带的素材也已经很多了
+以2020年发布,使用js的RPG Maker MZ为例,我们先看看它的[steam商品页面](https://store.steampowered.com/app/1096900/RPG_Maker_MZ/),只够买引擎本体的话需要四百多人民币,如果想使用官方素材的话还得额外购买,不过本地带的素材也已经很多了
 ### 学习资料
 [新手入门](https://forum.gamer.com.tw/C.php?bsn=4918&snA=31047)
 [插件与素材网站合集](https://rpg.blue/forum.php?mod=viewthread&tid=483881)
