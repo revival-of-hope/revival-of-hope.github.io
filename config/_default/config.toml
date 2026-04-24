@@ -1,5 +1,5 @@
 # Change baseurl before deploy
-baseurl      = "https://revival-of-hope.github.io/hugo-stack-blog/"
+baseurl      = "https://revival-of-hope.github.io"
 languageCode = "zh"
 title        = "Revival-of-hope"
 
