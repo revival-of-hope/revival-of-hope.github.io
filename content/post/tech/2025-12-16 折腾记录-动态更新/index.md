@@ -358,7 +358,7 @@ notepad $PROFILE
 function hn {
     param($name)
     # 调用下面定义的拦截函数
-    hugo new "post/$name/index.md"
+    hugo new "post/drafts/$name/index.md"
 }
 
 function hugo {

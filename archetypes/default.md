@@ -4,5 +4,5 @@ date: {{ .Date }}
 description: 
 image: 
 math: 
-draft: 
+draft: true
 ---
