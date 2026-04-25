@@ -250,6 +250,52 @@ GitHub仓库: k8s-books
 cpp/Java/Go你总得精通一个吧,数据库总得精通一个吧,网络通信总得熟悉吧,操作系统总得懂吧,微服务总得学习吧.
 ### 算法岗
 Pytorch总得会吧,常用的数据处理库得会吧,Agent优化,RAG处理总得熟练吧,传统神经网络和数学模型总得了解吧.
+## 什么岗位需求大
+我们用两个案例来分析,一个是需求庞大的字节招聘官网,一个是阮一峰的weekly谁在招人issue集.
+### 字节招聘
+搜索python:
+![alt text](PixPin_2026-04-25_22-03-51.webp)
+搜索Java:
+![alt text](PixPin_2026-04-25_22-04-16.webp)
+搜索cpp:
+![alt text](PixPin_2026-04-25_22-04-31.webp)
+搜索Go:
+![alt text](PixPin_2026-04-25_22-04-55.webp)
+搜索rust:
+![alt text](PixPin_2026-04-25_23-04-28.webp)
+搜索前端:
+![alt text](PixPin_2026-04-25_23-05-06.webp)
+搜索Redis:
+![alt text](PixPin_2026-04-25_22-05-42.webp)
+搜索MySQL:
+![alt text](PixPin_2026-04-25_22-05-58.webp)
+搜索PostgreSQL:
+![alt text](PixPin_2026-04-25_22-06-30.webp)
+搜素kuber:
+![alt text](PixPin_2026-04-25_22-07-29.webp)
+
+### 谁在招人issue
+- 我爬取了从2023-01-01至今天的issues
+搜索python:
+![alt text](PixPin_2026-04-25_22-21-53.webp)
+搜索Java:
+![alt text](PixPin_2026-04-25_22-50-22.webp)
+搜索go:
+![alt text](PixPin_2026-04-25_22-59-55.webp)
+![alt text](PixPin_2026-04-25_23-00-06.webp)
+搜索cpp:
+![alt text](PixPin_2026-04-25_23-00-59.webp)
+搜索rust:
+![alt text](PixPin_2026-04-25_23-01-13.webp)
+搜索前端:
+![alt text](PixPin_2026-04-25_23-00-40.webp)
+搜索kuber:
+![alt text](PixPin_2026-04-25_23-05-24.webp)
+
+
+### 总结
+1. 前端的缺口依然很大,需求很多.
+2. 后端里cpp/Java/Go/python必须要精通一门
 # 实战
 本章通过剖析一些常见的招聘信息来说明找工作真没有那么难,**难的只是找到自己心仪的工作而已**.
 

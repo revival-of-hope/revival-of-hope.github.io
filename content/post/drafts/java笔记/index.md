@@ -1,7 +1,9 @@
 ---
-title: 从零开始的java
+title: java笔记
 draft: true
-tags: [java,后端]
+tags: 
+    - java
+    - 后端
 image:
 ---
 
