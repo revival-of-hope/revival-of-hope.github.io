@@ -6,7 +6,7 @@ date: 2026-01-21 08:00:00
 image: 72866935_p0-競泳ランス～戦姫～.webp
 draft: true 
 ---
-
+# python源码剖析
 **参考书籍:(python源码剖析:深度探索动态语言核心技术),本书围绕的是06年的python2.5.0**
 
 ## 概览(include/object.h)

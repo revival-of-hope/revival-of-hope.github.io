@@ -1,17 +1,17 @@
 ---
-title: 终端常用命令一览
+title: 脚本与工具笔记
 tags:
-  - 合集
 categories:
   - 动态更新
 date: 2026-04-08 08:00:00
 image: 95539505_p0-無題.webp
 ---
 
+# 常用工具
 本文主要聚焦于Windows系统,尽管有不少命令是和Linux通用的
 
-# 网络连接
-## ping
+## 网络连接
+### ping
 - 系统自带组件,基于ICMP实现的网络状态查询工具,换句话说,ping借助TCP/IP协议实现对网络状态的简单解析
 ```bash
 用法: ping [-t] [-a] [-n count] [-l size] [-f] [-i TTL] [-v TOS]
@@ -53,12 +53,12 @@ ping google.com
 # 判断VPN是否有效的最快方法
 ```
 
-## curl
+### curl
 - [wiki](https://en.wikipedia.org/wiki/CURL)
 curl,意为"Client for URLs",是ping的上位替代,可以对指定网页采用多种方式进行查询,支持几乎所有的主流通信协议.由于是开源项目,几乎所有的操作系统都会预先安装.
 
 **常用参数一览**
-### curl 常用参数速查表
+#### curl 常用参数速查表
 
 | 参数         | 全称            | 功能描述                                                            | 典型示例                                 |
 | :----------- | :-------------- | :------------------------------------------------------------------ | :--------------------------------------- |
@@ -86,33 +86,33 @@ ParsedHtml        : mshtml.HTMLDocumentClass
 RawContentLength  : 80569
 ```
 
-## route
+### route
 - [wiki](https://en.wikipedia.org/wiki/Route_(command))
 用于查看和修改本电脑的IP路由表, 一般用不上
-## ipconfig
+### ipconfig
 - [wiki](https://en.wikipedia.org/wiki/Ipconfig)
 
 >[微软官网介绍](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/ipconfig)
 Displays **all current TCP/IP network configuration values** and refreshes Dynamic Host Configuration Protocol (DHCP) and Domain Name System (DNS) settings. Used without parameters, ipconfig displays Internet Protocol version 4 (IPv4) and IPv6 addresses, subnet mask, and default gateway for all adapters.
 
 - 即ipconfig用于查看自己电脑的TCP/IP网络配置
-## nslookup
+### nslookup
 - [wiki](https://en.wikipedia.org/wiki/Nslookup)
 nslookup(Name System Lookup)用于查询DNS记录,检查DNS服务器是否正常
-## ssh
+### ssh
 >[wiki](https://en.wikipedia.org/wiki/Secure_Shell)
 SSH(Secure Shell)协议是一种加密网络协议，用于在不安全的网络上安全地运行网络服务.通常用于登录远程计算机的shell或命令行界面(CLI)，并在远程服务器上执行命令.
 
-### 基础操作
+#### 基础操作
 ```bash
 ssh root@100.80.251.1
 # 输入密码
 # 在远程服务器中进行操作
 ```
 
-### 进阶操作(待补充)
+#### 进阶操作(待补充)
 
-## wget
+### wget
 - [wiki](https://en.wikipedia.org/wiki/Wget)
 
 >GNU Wget (or just Wget, formerly Geturl, also written as its package name, wget) is a computer program that retrieves content from web servers. It is part of the GNU Project. Its name derives from "World Wide Web" and "get", a HTTP request method. It supports **downloading via HTTP, HTTPS, and FTP**.
@@ -181,8 +181,8 @@ RawContentLength  : 632441
 - 从返回内容也能看出来基础功能与curl没什么区别
 
 
-# 包管理器
-## Scoop(推荐)
+## 包管理器
+### Scoop(推荐)
 - [官网](https://scoop.sh/)
 
 官网的介绍很简单,只有一行:
@@ -238,7 +238,7 @@ which      Locate a shim/executable (similar to 'which' on Linux)
 scoop解决了应用安装路径不统一的问题,将安装的应用一律放到scoop文件夹中,而且用户可以自己指定默认安装位置.
 
 尽管大多数应用都可以很方便的使用scoop找到,但对于已经习惯了普通安装方式的我来说还是用的不太顺手.
-## Winget(不推荐)
+### Winget(不推荐)
 >[官方说明](https://learn.microsoft.com/zh-cn/windows/package-manager/winget/)
 WinGet 是一种命令行工具，使用户能够在 Windows 10、Windows 11 和 Windows Server 2025 计算机上发现、安装、升级、删除和配置应用程序
 
@@ -299,32 +299,11 @@ Bun              Oven-sh.Bun  winget
 winget默认全局安装,如果不操心应用安装位置的话,使用winget比上官网找资源是要快一点的;但捣鼓计算机的一般都很在意应用的安装位置,所以winget基本就没什么用了...
 
 
-# 基本操作
-# 部署
-**博客命令**
-## hexo
-```bash
-hexo new post/draft/page # 使用模板
-hexo publish draft 文章名
-hexo d          # push my blog  deploy
-hexo new  +name     # new blog
-hexo g            # apply changes  generate
-hexo s            # local static html 预览
-hexo g -d   # 一次完成
-```
->draft也就是草稿，在使用hexo创建文章时，可以先指定为草稿:
-```bash
-hexo new draft <title>
-```
-
->完成之后，使用publish命令将draft转移到post下:
-```bash
-hexo publish <title>
-```
 
 
 
-# --version
+
+## --version
 尽管很多工具都支持**工具名 --version**的方式查询版本,但遗憾的是有一些工具**不愿意**沿用这个惯例,所以只好单独在这里分类讨论了
 
 - 事实上,尽管大多数工具都统一使用--参数的形式,但也有不少工具使用-参数的形式,真的就没人想过统一一下吗...

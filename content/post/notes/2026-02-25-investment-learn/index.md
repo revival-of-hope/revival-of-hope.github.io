@@ -1,5 +1,5 @@
 ---
-title: 从零开始的理财
+title: 理财笔记
 tags:
   - 理财
 categories:
