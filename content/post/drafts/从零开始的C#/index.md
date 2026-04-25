@@ -1,5 +1,5 @@
 ---
-title: 从零开始的C#
+title: C#笔记
 draft: true
 tags:
 image:

@@ -105,7 +105,7 @@ char myLetter = 'D';
 boolean myBool = true;
 String myText = "Hello";
 ```
-值得注意的是唯独String这个变量类型是大写的,因为它是一个类,如前面所说Java中的类名都需要大写,所以这里就大写了.
+值得注意的是唯独String这个变量类型是大写的,因为它是一个类,如前面所说,Java中的类名都需要大写,所以这里就大写了.
 
 
 # Java构建工具

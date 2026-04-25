@@ -3,7 +3,8 @@ title: "python笔记"
 date: 2026-04-25T09:56:06+08:00
 description: 
 image: 12904418_p0-夏の日の昼下がり.webp
-
+categories:
+  - 动态更新
 ---
 
 python最大的魅力在于各种各样的第三方库让它能够适配几乎所有的应用场景
