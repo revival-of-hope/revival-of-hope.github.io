@@ -8,15 +8,15 @@ categories:
 ---
 
 # 折腾博客
-
-## hexo图片管理困难,帖子多了很难阅读
+## hexo管理
+### hexo图片管理困难,帖子多了很难阅读
 解决方法:
 config_yml里修改
 `new_post_name: :year-:month-:day-:title.md`
 同时,听从大佬建议,将所有图片改成webp格式,效果立竿见影
 ![](tmpDAFA.png)
 
-## 还是图片问题,每次复制images子文件夹路径太麻烦
+### 还是图片问题,每次复制images子文件夹路径太麻烦
 根据[](https://www.hwpo.top/posts/d87f7e0c/index.html)教程在post文件夹里设置同名文件夹没解决
 ```yml
 post_asset_folder: true
@@ -46,24 +46,24 @@ hexo.on('new', function(data) {
 在同级目录下生成图像文件夹来管理,麻烦的是每次都要删去相对路径里的''
 
 
-## 改用butterfly主题
+### 改用butterfly主题
 这个主题确实好用了不少
 
-## 增加评论系统
+### 增加评论系统
 [参考文章](https://tech.yemengstar.com/vercel-twikoo-comment-your-hexo/)
 
-## 尝试新部署方式
+### 尝试新部署方式
 
 [](https://tech.yemengstar.com/github-actions-auto-hexo/)
 
-## 增加了category条目,tag条目和背景图片 
+### 增加了category条目,tag条目和背景图片 
 原来要用`hexo new page tag`才能在hexo里显示tag页和category页
 
-## 发现md只要在posts下都能被直接解析(25/12/21)
+### 发现md只要在posts下都能被直接解析(25/12/21)
 于是我将不会再修改的文章都移动到了archives文件夹,图片路径也做了对应的修改,
 之前我还想文章多了要怎么处理呢.
 
-## 还是图片问题,hexo本地无法正确解析相对路径
+### 还是图片问题,hexo本地无法正确解析相对路径
 例如`images/archives/2025/2025-11-26/image.png`
 需要改为'images/archives/2025/2025-11-26/image.png',每次改就很麻烦了
 于是找ai弄了脚本
@@ -82,11 +82,11 @@ hexo.extend.filter.register('before_post_render', function (data) {
 ```
 完美解决,以后只要复制相对路径就可以了,不用再删删减减了.
 
-## 增加rss订阅图标
+### 增加rss订阅图标
 [参考文章](https://mitpoppy.github.io/posts/fe13d434.html)
 发现了RSS订阅方式,于是增加了这一功能
 
-## 更改了图像文件夹创建方式(25/12/26)
+### 更改了图像文件夹创建方式(25/12/26)
 ```JavaScript
 const fs = require('fs');
 const path = require('path');
@@ -115,7 +115,7 @@ hexo.on('new', function (data) {
 `new_post_name: :year-:month-:day-:title.md`
 故可以根据日期直接找到对应的图片,这样图片管理起来更加方便了,但原来的几十个文件夹我是真不想再改了.
 
-## 突然发现没必要用file utils粘贴相对路径,直接复制图片就好了(12/27)
+### 突然发现没必要用file utils粘贴相对路径,直接复制图片就好了(12/27)
 
 在settings.json里加上
 ```json
@@ -126,7 +126,7 @@ hexo.on('new', function (data) {
 就可以在md里直接复制图片而不是自己写了![]()这些东西了,
 甚至会根据图片复制的位置智能选择是插入相对路径还是插入整个图片链接格式,又能偷一点懒了.
 
-## 每次hexo d的时候都要报warning(2026/1/1)
+### 每次hexo d的时候都要报warning(2026/1/1)
 
 ```bash
 warning: in the working copy of 'tags/离散数学/index.html', LF will be replaced by CRLF the next time Git touches it
@@ -149,20 +149,20 @@ Carriage n.马车,火车车厢;运输费用 在carriage return中,carriage译为
 + [扔掉CRLF](https://www.163.com/dy/article/JEG01TL50511FQO9.html)
 
 
-## 嵌入数学公式(unsolved)
+### 嵌入数学公式(unsolved)
 按照[官方文档](https://butterfly.js.org/posts/4aa8abbe/)的步骤进行操作并没有解决,尝试了[这个教程](https://nickxu.me/2022/04/17/Hexo-Butterfly-%E5%BB%BA%E7%AB%99%E6%8C%87%E5%8D%97%EF%BC%88%E5%85%AB%EF%BC%89%E4%BD%BF%E7%94%A8-KaTeX-%E6%95%B0%E5%AD%A6%E5%85%AC%E5%BC%8F/)也没有解决
 
-## 图片路径又出问题了
+### 图片路径又出问题了
 待我期末周回来再搞,毕竟本地看图片还是正常的
 (2026/1/18)
 修好了,只要保证都是相对路径的格式就能正常渲染,尽管我也不知道为什么
 `![alt text](../images/archives/2026/2026-01-18/PixPin_2026-01-18_14-18-42.webp)`
 >这大概是图片路径的最终解决方案了
-## 觉得'hexo g -d'还是太长了
+### 觉得'hexo g -d'还是太长了
 写一个bat脚本,命名为d.bat,每次只要输一个d就可以了,完美解决懒癌,自然我还写了一个s脚本,作用是什么不言而喻
-## 将twikoo改为giscus(2026/1/24)
+### 将twikoo改为giscus(2026/1/24)
 发现twikoo还是太麻烦了,于是改成不要动脑子操作的giscus
-## 将busuanzi换成Vercount(1/30)
+### 将busuanzi换成Vercount(1/30)
 busuanzi现在天天转圈,于是换成[别人推荐的](https://youyeyejie.github.io/_posts/Hexo%E4%BD%BF%E7%94%A8Vercount%E7%BB%9F%E8%AE%A1%E8%AE%BF%E9%97%AE%E6%95%B0%E6%8D%AE/)Vercount,由于busuanzi写在了源代码pug里,因此不太好直接改,问了问ai,提前**存档**,改了之后发现立刻就不转圈了.
 
 只要在以下两个地方中改一下就行了
@@ -219,14 +219,14 @@ if theme.aside.card_webinfo.enable
             i.fa-solid.fa-spinner.fa-spin
 ```
 
-## 增加google-analytics
+### 增加google-analytics
 - [参考教程](https://lizhening.github.io/posts/b467327c/)
 vercount也出问题了,显示一堆乱码,这次换个大杀器.
 google_analytics 是免费的,给自己网站注册一下获得一串以G打头的神秘数字-tag,再填入butterfly的config.yml就可以了,当然网站上是看不到访客数据的,只能去后台看.
 ![美滋滋](image.png)
 
 - (2/13)发现之前的vercount乱码只是因为我把同名压缩包放到脚本里面所以出错了
-## 加入live2d(2/22)
+### 加入live2d(2/22)
 看大家都有那么帅的看板娘,我也试试整一个,在butterfly的_config.yml里对应的bottom注入js就可以了
 ```yml
 inject:
@@ -239,7 +239,7 @@ inject:
     # - <script src="xxxx"></script>
 ```
 确实可爱😄
-## 尝试加密文章(4/7)
+### 尝试加密文章(4/7)
 - [参考文章](https://insectmk.cn/posts/ca85c64c/#%E6%A0%B9%E6%8D%AE%E6%A0%87%E7%AD%BE%E5%AF%B9%E6%96%87%E7%AB%A0%E8%BF%9B%E8%A1%8C%E5%8A%A0%E5%AF%86)
 
 ```md
@@ -357,28 +357,35 @@ notepad $PROFILE
 ```ps1
 function hn {
     param($name)
-    # 调用下面定义的拦截函数
     hugo new "post/drafts/$name/index.md"
 }
 
 function hugo {
-    # 仅拦截 hugo new 命令，且参数包含路径
     if ($args[0] -eq "new" -and $args.Count -ge 2) {
         $datePrefix = Get-Date -Format "yyyy-MM-dd-"
         $originalPath = $args[1]
 
-        # 逻辑：匹配最后一个斜杠后的名称，在名称前插入日期
-        # 示例：post/test/index.md -> post/2026-04-24-test/index.md
+        if ($originalPath -match '([^/]+)/index\.md$') {
+            $pureName = $matches[1]
+        } else {
+            $pureName = Split-Path $originalPath -LeafBase
+        }
+
         if ($originalPath -match '(.*/)([^/]+/[^/]+)$') {
             $newPath = $matches[1] + $datePrefix + $matches[2]
-        } 
-        else {
-            # 如果没有深层路径，直接加在前缀
+        } else {
             $newPath = $datePrefix + $originalPath
         }
 
         $newArgs = @($args[0], $newPath) + $args[2..($args.Count-1)]
         & (Get-Command hugo.exe -CommandType Application) $newArgs
+
+        $fullPath = Join-Path (Get-Location) "content/$newPath"
+        if (Test-Path $fullPath) {
+            $content = Get-Content $fullPath -Raw -Encoding UTF8
+            $content = $content -replace '(?m)^title\s*:\s*.*$', "title: `"$pureName`""
+            [System.IO.File]::WriteAllText($fullPath, $content, (New-Object System.Text.UTF8Encoding($false)))
+        }
     }
     else {
         & (Get-Command hugo.exe -CommandType Application) $args
