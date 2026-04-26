@@ -2,8 +2,8 @@
 title: java笔记
 tags: 
     - java
-    - 后端
-image:
+image: 55474959_p0-式さん.webp
+date: 2026-04-26 08:00:00
 ---
 
 # Java历史
@@ -70,7 +70,7 @@ OpenJDK 64-Bit Server VM Microsoft-13106404 (build 21.0.10+7-LTS, mixed mode, sh
 ## 基础语法
 ### 学习前的要点
 我们首先需要知道JAVA的面向对象特性:
-1. 所有函数和变量都写在类里面
+1. 所有函数和变量都写在类里面,因此函数都变成了`方法`,变量都变成了`属性`
 2. 如果源文件中包含public类,则文件名必须与该类名完全一致
 3. 所有的类名都需要大写,仅是一种规范,但最好大写.
 
@@ -118,7 +118,416 @@ System.out.println(x);
 var x; // Error
 var x = 5;  // OK
 ```
-### 
+### Java数组
+由于cpp反直觉的类似`int a[10]`这样的语法,所以Java将声明时的`[]`优化到了变量名前面,变成了这样:
+```java
+String[] cars = {"Volvo", "BMW", "Ford", "Mazda"};
+System.out.println(cars[0]);
+// Outputs Volvo
+```
+- 尽管其他特性没什么改变,但看上去顺眼多了,毕竟我们都说`int 数组a`,而不会说`int a数组`
+
+#### 二维数组
+自然,如果是二维数组,就要写两个[]了:
+```java
+int[][] myNumbers = { {1, 4, 2}, {3, 6, 8, 5, 2} };
+
+for (int row = 0; row < myNumbers.length; row++) {
+  for (int col = 0; col < myNumbers[row].length; col++) {
+    System.out.println("myNumbers[" + row + "][" + col + "] = " + myNumbers[row][col]);
+  }
+}
+```
+### Java的for-each循环
+由于Java的大多数逻辑语句和cpp别无二致,因此全都略过,但值得一提的是下面这个语法:
+```java
+String[] cars = {"Volvo", "BMW", "Ford", "Mazda"};
+
+for (String car : cars) {
+  System.out.println(car);
+}
+```
+这被称为for-each循环,于04年的Java5.0引入,而cpp直到c++11才正式引入:
+```cpp
+std::vector<std::string> cars = {"Volvo", "BMW", "Ford", "Mazda"};
+
+for (const std::string& car : cars) {
+    std::cout << car << std::endl;
+}
+```
+## OOP
+### 修饰符
+先概览一下Java中的常用修饰符,之后会逐渐根据代码理解的
+#### 类修饰符 (Class Modifiers)
+
+在 Java 中，类修饰符决定了类的访问权限、继承特性以及实例化规则。
+
+| 修饰符        | 描述                                                   | 适用范围       |
+| :------------ | :----------------------------------------------------- | :------------- |
+| **public**    | 最宽泛的访问级别。该类对所有类可见。                   | 顶级类、内部类 |
+| **protected** | 对同一包内的类及所有子类可见。                         | **仅内部类**   |
+| **default**   | (不写关键字) 仅对同一包内的类可见。                    | 顶级类、内部类 |
+| **private**   | 仅对定义它的外部类可见。                               | **仅内部类**   |
+| **abstract**  | 抽象类。不能被实例化，必须由子类继承并实现其抽象方法。 | 顶级类、内部类 |
+| **final**     | 最终类。不能被继承（例如 `java.lang.String`）。        | 顶级类、内部类 |
+| **static**    | 静态内部类。不需要依赖外部类实例即可创建。             | **仅内部类**   |
+| **sealed**    | 密封类（Java 17+）。限制哪些类可以继承它。             | 顶级类         |
+
+
+#### 方法修饰符 (Method Modifiers)
+
+方法修饰符控制方法的访问权限、执行逻辑、以及子类覆盖规则。
+
+
+
+##### 访问控制修饰符
+* **public**: 方法对所有类可见。
+* **protected**: 方法对同一包内的类及所有子类可见。
+* **default**: (不写关键字) 仅对同一包内的类可见。
+* **private**: 仅在当前类内部可见。
+
+##### 非访问控制修饰符
+* **static**: 静态方法。属于类而非实例，通过类名直接调用，不能访问非静态成员。
+* **final**: 最终方法。子类可以继承但不能覆盖（Override）此方法。
+* **abstract**: 抽象方法。没有方法体，必须由非抽象子类实现。
+
+
+### static修饰符详解
+首先我们需要知道一件事:尽管Java强制要求所有方法都写在类中,但是有一些方法我们并不想让它与某个类的实例有任何关系,也就是说,我们想要像cpp定义**全局函数**那样,直接在类内方法中调用该函数,而不需要带上类访问符`.`,那么就可以用`static`关键字来修饰某个方法:
+```java
+public class Main {
+  static void myMethod() {
+    System.out.println("Hello World!");
+  }
+
+  public static void main(String[] args) {
+    myMethod();
+  }
+}
+
+// Outputs "Hello World!"
+```
+- 这里我们直接调用了`myMethod`方法而不需要通过this指针或者类访问符来操作它
+
+总结一下就是说,Java的static方法属于这个类,类外访问时通过`类名.方法`调用,类内访问可以直呼其名,而非static方法属于类实例,需要先实例化一个类后再通过实例调用.
+
+### 创建类实例
+Java创建类实例的方法有很多,但最常用的还是通过new操作符:
+```java
+public class Main {
+  int x = 5;
+
+  public static void main(String[] args) {
+    Main myObj = new Main();
+    System.out.println(myObj.x);
+  }
+}
+```
+由于Java的垃圾回收机制(很后面会提到),我们不用像在cpp中一样,new一个对象后就要使用`delete`操作符删除它,还是很便利的.
+### 构造函数
+与Java有new没有delete同理,Java有构造函数但没有析构函数,构造函数的写法与cpp的写法相同:与类同名
+
+```Java
+public class Main {
+  int x;
+
+  public Main(int y) {
+    x = y;
+  }
+
+  public static void main(String[] args) {
+    Main myObj = new Main(5);
+    System.out.println(myObj.x);
+  }
+}
+
+// Outputs 5
+```
+
+#### this引用符
+由于Java不再显式使用指针,但又需要像cpp一样用某个符号代指类实例,否则无法通过类内方法访问私有属性.
+
+因此,Java引入了this引用符,**用来指向当前的类实例**:
+```java
+public class Main {
+  int x;  // Class variable x
+
+  // Constructor with one parameter x
+  public Main(int x) {
+    this.x = x; // refers to the class variable x
+  }
+
+  public static void main(String[] args) {
+    // Create an object of Main and pass the value 5 to the constructor
+    Main myObj = new Main(5);
+    System.out.println("Value of x = " + myObj.x);
+  }
+}
+```
+
+- 这与Python中的self有异曲同工之处,但不同的是self需要**显示声明**,而Java的this与cpp的this一样都是**隐式存在**的
+#### 构造函数的重载
+```java
+public class Main {
+  int modelYear;
+  String modelName;
+
+  // Constructor with one parameter
+  public Main(String modelName) {
+    // Call the two-parameter constructor to reuse code and set a default year    
+    this(2020, modelName);
+  }
+
+  // Constructor with two parameters
+  public Main(int modelYear, String modelName) {
+    // Use 'this' to assign values to the class variables
+    this.modelYear = modelYear;
+    this.modelName = modelName;
+  }
+
+  // Method to print car information
+  public void printInfo() {
+    System.out.println(modelYear + " " + modelName);
+  }
+
+  public static void main(String[] args) {
+    // Create a car with only model name (uses default year)
+    Main car1 = new Main("Corvette");
+
+    // Create a car with both model year and name
+    Main car2 = new Main(1969, "Mustang");
+
+    car1.printInfo();
+    car2.printInfo();
+  }
+}
+```
+通过构造函数的重载可以实现类的不同初始化数值
+
+**非常值得注意**
+>上述代码的`this(2020, modelName)`并非是简单的语法糖,它指向的是完整版本的构造函数,从而实现代码的复用,换句话说,如果只写这一句而不写完整构造函数就会报错.
+
+- 这么来看的话,它与cpp中的初始化列表完全不同
+```cpp
+class Main {
+public:
+    int modelYear;
+    string modelName;
+
+    // 使用初始化列表：变量(值)
+    Main(string name) : modelYear(2020), modelName(name) {
+    }
+}
+```
+### 继承与多态
+由于cpp中的继承符号`:`过于简单和抽象,因此Java将继承符号改为了继承关键字`extends`:
+```java
+class Vehicle {
+  protected String brand = "Ford";        // Vehicle attribute
+  public void honk() {                    // Vehicle method
+    System.out.println("Tuut, tuut!");
+  }
+}
+
+class Car extends Vehicle {
+  private String modelName = "Mustang";    // Car attribute
+  public static void main(String[] args) {
+
+    // Create a myCar object
+    Car myCar = new Car();
+
+    // Call the honk() method (from the Vehicle class) on the myCar object
+    myCar.honk();
+
+    // Display the value of the brand attribute (from the Vehicle class) and the value of the modelName from the Car class
+    System.out.println(myCar.brand + " " + myCar.modelName);
+  }
+}
+```
+#### final修饰符详解
+Java将cpp中的常量修饰符`const`改成了`final`,这可不是脱裤子放屁,而是因为Java中的final还可以限制某些类不可被继承:
+```java
+final class Vehicle {
+  ...
+}
+
+class Car extends Vehicle {
+  ...
+}
+// Main.java:9: error: cannot inherit from final Vehicle
+// class Main extends Vehicle {
+//                   ^
+// 1 error)
+```
+将类也看做常量的想法确实挺奇妙的,但一般来说根本用不到吧.
+#### 多态
+Java中的方法默认是可以被重载的,这比起cpp要便利很多,同样,被final修饰的方法只能被继承但不能被重载:
+```java
+class Animal {
+  public void animalSound() {
+    System.out.println("The animal makes a sound");
+  }
+}
+
+class Pig extends Animal {
+  public void animalSound() {
+    System.out.println("The pig says: wee wee");
+  }
+}
+
+class Dog extends Animal {
+  public void animalSound() {
+    System.out.println("The dog says: bow wow");
+  }
+}
+```
+#### super引用符
+Java设计了super引用符来指向父类:
+```java
+class Animal {
+  public void animalSound() {
+    System.out.println("The animal makes a sound");
+  }
+}
+
+class Dog extends Animal {
+  public void animalSound() {
+    super.animalSound(); // Call the parent method
+    System.out.println("The dog says: bow wow");
+  }
+}
+
+public class Main {
+  public static void main(String[] args) {
+    Dog myDog = new Dog();
+    myDog.animalSound();
+  }
+}
+```
+当然,super更强大的地方在于能够调用父类的构造函数:
+```java
+class Animal {
+  Animal() {
+    System.out.println("Animal is created");
+  }
+}
+
+class Dog extends Animal {
+  Dog() {
+    super(); // Call parent constructor
+    System.out.println("Dog is created");
+  }
+}
+
+public class Main {
+  public static void main(String[] args) {
+    Dog myDog = new Dog();
+  }
+}
+// Animal is created
+// Dog is created
+```
+这其实很好理解,把super换成父类的类名即可看懂了.
+
+### 抽象与接口
+Java将Cpp中的虚函数与重载机制进一步发扬光大,发明了**抽象方法和接口**,简单来说的话,抽象类内的抽象方法没有函数内容,而且必须被子类重载实现;而接口就是抽象类的简写版,里面的所有函数和属性默认都要被重载实现.
+**抽象类和抽象方法**
+```java
+// Abstract class
+abstract class Animal {
+  // Abstract method (does not have a body)
+  public abstract void animalSound();
+  // Regular method
+  public void sleep() {
+    System.out.println("Zzz");
+  }
+}
+
+// Subclass (inherit from Animal)
+class Pig extends Animal {
+  public void animalSound() {
+    // The body of animalSound() is provided here
+    System.out.println("The pig says: wee wee");
+  }
+}
+
+class Main {
+  public static void main(String[] args) {
+    Pig myPig = new Pig(); // Create a Pig object
+    myPig.animalSound();
+    myPig.sleep();
+  }
+}
+```
+为了区分抽象类和接口,Java特定设置了接口的继承关键字`implements`,从而与`extends`区分开来:
+```java
+// Interface
+interface Animal {
+  public void animalSound(); // interface method (does not have a body)
+  public void sleep(); // interface method (does not have a body)
+}
+
+// Pig "implements" the Animal interface
+class Pig implements Animal {
+  public void animalSound() {
+    // The body of animalSound() is provided here
+    System.out.println("The pig says: wee wee");
+  }
+  public void sleep() {
+    // The body of sleep() is provided here
+    System.out.println("Zzz");
+  }
+}
+
+class Main {
+  public static void main(String[] args) {
+    Pig myPig = new Pig();  // Create a Pig object
+    myPig.animalSound();
+    myPig.sleep();
+  }
+}
+```
+至于为什么Java要单独设置`implements`关键字,是因为它确实与`extends`有些许不同,`implements`后可以跟多个接口,而`extends`后只可以跟一个父类.
+- 为什么这么设计?那是设计者的问题了
+```java
+interface FirstInterface {
+  public void myMethod(); // interface method
+}
+
+interface SecondInterface {
+  public void myOtherMethod(); // interface method
+}
+
+class DemoClass implements FirstInterface, SecondInterface {
+  public void myMethod() {
+    System.out.println("Some text..");
+  }
+  public void myOtherMethod() {
+    System.out.println("Some other text...");
+  }
+}
+
+class Main {
+  public static void main(String[] args) {
+    DemoClass myObj = new DemoClass();
+    myObj.myMethod();
+    myObj.myOtherMethod();
+  }
+}
+```
+## Java编译与构建
+学习完OOP后,我们很自然的会将不同功能的类拆分到不同java文件中,那么接下来就来看看Java是如何编译和构建不同文件的
+
+
+## Java高级特性
+
+## Java文件读写
+## Java I/O
+## Java数据结构
+
+
+## JVM
+
 # Java构建工具
 与Cpp有Make,ninja,CMake类似,Java也有自己的构建工具,早期的构建工具为Ant,目前由Maven和Gradle两款工具统治,它俩也同时承担了包管理器的责任.
 ## Maven

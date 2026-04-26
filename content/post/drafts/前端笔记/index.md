@@ -6,7 +6,7 @@ image:
 ---
 # 前端概览
 - [wiki](https://en.wikipedia.org/wiki/Front_end_and_back_end)
-前端与后端是一对概念,前端用于指代用户交互层,后端用于指代数据处理层
+>前端与后端是一对概念,前端用于指代用户交互层,后端用于指代数据处理层
 ## 前端语言历史
 这里仅仅是简单的AI总结,后面会针对特定的语言重新梳理历史
 #### 1. 静态网页与基础确立期 (1990 - 1994)
@@ -84,9 +84,88 @@ Web 2.0 时代开启，网页从“文档”转变为“应用”。
     * **2014年10月**：**HTML5** 正式成为 W3C 推荐标准。
     * **2019年5月**：W3C 与 WHATWG 达成协议，HTML 与 DOM 标准的发布权交由 WHATWG。
     * **现状**：HTML 采取“Living Standard”（活标准）模式，由 WHATWG 持续更新。
-      * 换句话说就是不再用版本号来标识了,将会一直定格在HTML5.
+      * 换句话说就是不再用版本号来标识了,很长一段时间会一直定格在HTML5.
 
-## HTML语法
+## 基础语法
+- [参考教程](https://www.w3schools.com/html/html_intro.asp)
+### 学习html的前提
+首先,我们需要知道诸如`<p><p/>`这样的独特标签语法的来源: **SGML(Standard Generalized Markup Language)**,它诞生于1986年,使用`<`和`>`定义标签,通过重叠的标签来展示层次化的内容.
+
+由于SGML的语法过于繁琐,XML与HTML均对其进行了简化和处理,但保留了**标签语法**.
+
+其次,我们时常可以看到两种html文件格式: `.html`与`.htm`,显然这个`htm`是简化版本,但它为什么会存在呢?
+>由于早期Windows的文件系统均采用“8.3 格式”。即：文件名最长 8 个字符，扩展名最长 3 个字符,所以无法表示html,为了兼容Windows系统,不得不将`html`后缀变成`htm`.
+>但现在就没有这个问题了,所以都统一用html后缀了.
+
+- `yaml`与`yml`也是同样的道理.
+
+最后,特别要注意的是,html里的标签是**大小写不敏感**的,官方推荐**全都小写**.
+
+
+### 概览
+一个简化的html文档如下所示:
+```html
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<title>Page Title</title>
+</head>
+
+<body>
+<h1>My First Heading</h1>
+<p>My first paragraph.</p>
+</body>
+
+</html>
+```
+我做了相应的缩进以让层次划分更加明显:
+
+1. 首行的`<!DOCTYPE html>`声明: 历史遗留语法,供浏览器识别这个文档为html类型
+2. 整个网页内容由`<html><html/>`包裹,尽管大家都知道这是html文档了,但还是需要用html标签来声明.
+3. 整个网页内容分成两部分: **head与body**,head部分包括了网页的各种属性,供搜索引擎和浏览器识别;body部分包括了整个网页的内容,决定了渲染的用户界面
+
+### 段落与链接的表示
+**标题**
+```html
+<h1>This is heading 1</h1>
+<h2>This is heading 2</h2>
+<h3>This is heading 3</h3>
+```
+- h对应的英文全称为Heading
+
+**段落**
+```html
+<p>This is a paragraph.</p>
+<p>This is another paragraph.</p>
+```
+- p对应的英文全称为paragraph
+
+**链接**
+```html
+<a href="https://www.w3schools.com">This is a link</a>
+```
+- href: Hypertext Reference,意为跳转链接
+
+>**a标签的详细说明**
+a对应的全称为anchor(锚点),指代互联网海洋中相互勾连的节点,你可以从一个锚点跳转到另一个锚点.
+
+**图像链接**
+```html
+<img src="w3schools.jpg" alt="W3Schools.com" width="104" height="142">
+```
+这是我们目前为止看到的第一个不需要闭合的标签,因为我们无法用文本来指代图像.
+
+- **src**: source,图片路径,可以是文件路径也可以是网页路径
+- **alt**: **Alternate Text**,备用文本,以防图片无法正常显示时出现的占用文字,同时可以帮助盲人和爬虫理解.
+- 宽高比通常由css设置,没必要在html中指定
+
+
+### 一些常用的属性
+```html
+<p style="color:red;">This is a red paragraph.</p>
+```
 
 # CSS
 >[wiki](https://en.wikipedia.org/wiki/CSS)

@@ -31,3 +31,17 @@
 .article-content img:hover {
   filter: brightness(1);
 }
+// 代码部分凸显
+.highlight {
+  border: 1px solid rgba(0, 0, 0, 0.1); /* 增加浅色边框 */
+  border-radius: 8px; /* 圆角平滑化 */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); /* 增加微弱阴影提升层级 */
+  margin: 1.5rem 0; /* 增加上下间距隔离正文 */
+  overflow: hidden; /* 确保内部元素不溢出 */
+}
+
+/* 暗黑模式适配 */
+[data-scheme="dark"] .highlight {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
