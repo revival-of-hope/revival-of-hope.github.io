@@ -1,7 +1,6 @@
 ---
 title: java笔记
-draft: true
-tags: 
+draft: truetags: 
     - java
     - 后端
 image:
