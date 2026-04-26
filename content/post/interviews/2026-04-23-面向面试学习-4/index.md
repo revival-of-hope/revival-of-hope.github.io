@@ -3,8 +3,7 @@ title:  面向面试学习(四)-野榜和薪资调查
 tags:
   - 调研
   - 职场
-categories:
-  - 动态更新
+
 date: 2026-04-23 11:00:00
 image: 82924488_p0-Happy 8th Anniversary.webp
 

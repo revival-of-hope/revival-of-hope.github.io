@@ -4,8 +4,7 @@ tags:
   - cpp
 date: 2026-04-23 08:00:00
 image: 45243652_p0-楽園の素敵な巫女.webp
-categories:
-  - 动态更新
+
 ---
 
 # cpp学习

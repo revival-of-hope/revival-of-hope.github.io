@@ -2,8 +2,7 @@
 title: 理财笔记
 tags:
   - 理财
-categories:
-  - 动态更新
+
 date: 2026-02-25 08:00:00
 image: 96433029_p0-誰もいないうちに.webp
 ---

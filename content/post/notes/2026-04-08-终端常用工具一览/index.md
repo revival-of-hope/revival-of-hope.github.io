@@ -1,8 +1,7 @@
 ---
 title: 脚本与工具笔记
 tags:
-categories:
-  - 动态更新
+
 date: 2026-04-08 08:00:00
 image: 95539505_p0-無題.webp
 ---

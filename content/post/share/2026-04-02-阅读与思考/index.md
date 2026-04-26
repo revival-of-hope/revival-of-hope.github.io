@@ -1,7 +1,6 @@
 ---
 title: 阅读与思考
-categories:
-  - 动态更新
+
 date: 2026-04-02 17:32:10
 tags:
   -
