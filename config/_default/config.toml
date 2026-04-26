@@ -19,3 +19,7 @@ disqusShortname = "aitianpai"
 [pagination]
     pagerSize = 8
 
+# google analytics
+[services]
+  [services.googleAnalytics]
+    ID = "G-J0CZ5BV4V7"

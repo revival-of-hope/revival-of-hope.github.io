@@ -1,6 +1,7 @@
 ---
 title: java笔记
-draft: truetags: 
+draft: true
+tags: 
     - java
     - 后端
 image:
@@ -108,7 +109,17 @@ String myText = "Hello";
 ```
 值得注意的是唯独String这个变量类型是大写的,因为它是一个类,如前面所说,Java中的类名都需要大写,所以这里就大写了.
 
-
+Java  10(2018年发布)引入了类似于cpp中auto的变量类型`var`:
+```java
+var x = 5;  // x is an int
+System.out.println(x);
+```
+与auto一样,var不允许只声明不赋值:
+```java
+var x; // Error
+var x = 5;  // OK
+```
+### 
 # Java构建工具
 与Cpp有Make,ninja,CMake类似,Java也有自己的构建工具,早期的构建工具为Ant,目前由Maven和Gradle两款工具统治,它俩也同时承担了包管理器的责任.
 ## Maven

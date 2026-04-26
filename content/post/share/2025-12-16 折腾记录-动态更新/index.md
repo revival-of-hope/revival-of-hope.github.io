@@ -503,6 +503,35 @@ menu:
 
 这就是效果了:
 ![alt text](PixPin_2026-04-24_21-36-51.webp)
+## 配置Google Analytics
+
+### 1. 获取 Measurement ID
+1. 登录 [Google Analytics 控制台](https://analytics.google.com/)。
+2. 进入 **管理 (Admin)** -> **数据流 (Data Streams)**。
+3. 选择你的网站数据流，找到右侧以 **G-** 开头的 **衡量 ID (Measurement ID)**。
+
+### 2. 修改配置文件
+在 Hugo Stack 项目根目录下，根据你的配置文件格式进行修改：
+
+#### 若使用 `hugo.yaml` 或 `config.yaml`：
+```yaml
+services:
+  googleAnalytics:
+    ID: G-XXXXXXXXXX  # 替换为你的 G- 开头的 ID
+```
+
+#### 若使用 `hugo.toml` 或 `config.toml`：
+```toml
+[services]
+  [services.googleAnalytics]
+    ID = "G-XXXXXXXXXX"
+```
+
+### 验证生效
+1. 运行 `hugo` 命令生成静态文件。
+2. 检查生成的 `index.html` 的 `<head>` 部分，确认包含如下特征的代码：
+   `https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX`
+3. 访问你的线上网站，在 Google Analytics 的 **实时 (Real-time)** 报告中查看是否有活跃用户。
 # 折腾环境问题
 
 ## vscode powershell终端打字缺字漏字
