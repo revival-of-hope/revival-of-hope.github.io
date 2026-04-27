@@ -86,9 +86,9 @@ Web 2.0 时代开启，网页从“文档”转变为“应用”。
     * **现状**：HTML 采取“Living Standard”（活标准）模式，由 WHATWG 持续更新。
       * 换句话说就是不再用版本号来标识了,很长一段时间会一直定格在HTML5.
 
-## 基础语法
+
 - [参考教程](https://www.w3schools.com/html/html_intro.asp)
-### 学习html的前提
+## 学习html的前提
 首先,我们需要知道诸如`<p><p/>`这样的独特标签语法的来源: **SGML(Standard Generalized Markup Language)**,它诞生于1986年,使用`<`和`>`定义标签,通过重叠的标签来展示层次化的内容.
 
 由于SGML的语法过于繁琐,XML与HTML均对其进行了简化和处理,但保留了**标签语法**.
@@ -99,10 +99,10 @@ Web 2.0 时代开启，网页从“文档”转变为“应用”。
 
 - `yaml`与`yml`也是同样的道理.
 
-最后,特别要注意的是,html里的标签是**大小写不敏感**的,官方推荐**全都小写**.
+最后,特别要注意的是,html里的标签是**大小写不敏感**的,官方推荐**全都小写**;同时,标签的属性都推荐用**双引号**括起来
 
 
-### 概览
+## 概览
 一个简化的html文档如下所示:
 ```html
 <!DOCTYPE html>
@@ -126,7 +126,7 @@ Web 2.0 时代开启，网页从“文档”转变为“应用”。
 2. 整个网页内容由`<html><html/>`包裹,尽管大家都知道这是html文档了,但还是需要用html标签来声明.
 3. 整个网页内容分成两部分: **head与body**,head部分包括了网页的各种属性,供搜索引擎和浏览器识别;body部分包括了整个网页的内容,决定了渲染的用户界面
 
-### 段落与链接的表示
+## 段落与链接的表示
 **标题**
 ```html
 <h1>This is heading 1</h1>
@@ -135,6 +135,7 @@ Web 2.0 时代开启，网页从“文档”转变为“应用”。
 ```
 - h对应的英文全称为Heading
 
+
 **段落**
 ```html
 <p>This is a paragraph.</p>
@@ -142,7 +143,9 @@ Web 2.0 时代开启，网页从“文档”转变为“应用”。
 ```
 - p对应的英文全称为paragraph
 
-**链接**
+需要注意的是,p标签会自动过滤多余的空格和换行,根据窗口大小自动渲染文本:
+![alt text](PixPin_2026-04-26_23-38-28.webp)
+**超文本链接**
 ```html
 <a href="https://www.w3schools.com">This is a link</a>
 ```
@@ -160,16 +163,65 @@ a对应的全称为anchor(锚点),指代互联网海洋中相互勾连的节点,
 - **src**: source,图片路径,可以是文件路径也可以是网页路径
 - **alt**: **Alternate Text**,备用文本,以防图片无法正常显示时出现的占用文字,同时可以帮助盲人和爬虫理解.
 - 宽高比通常由css设置,没必要在html中指定
+**head中的链接:link**
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Page Title</title>
+  <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+</head>
+<body>
+<!-- omitted -->
+</body>
+</html>
+```
+head中可以定义标签栏的内容和图标:
+- title: 标签栏展示的标题
+- link: 图标的链接,与常用的a链接区分开来
+- rel: **Relationship**,定义当前文档与被链接资源之间的关系,告诉浏览器这个文件是一个图标
+- type: `Multipurpose Internet Mail Extensions Type`,告知浏览器这个文件的具体格式
 
-
-### 一些常用的属性
+## 一些常用的属性
+### style
 ```html
 <p style="color:red;">This is a red paragraph.</p>
 ```
+- 一般都通过css来操纵样式,没必要用这个属性
+
+### lang
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<body>
+...
+</body>
+</html>
+```
+帮助搜索引擎和爬虫了解该文章所用的语言,我们平常浏览页面时弹出的是否翻译此页面,就是根据这个属性来判断,当前页面语言和浏览器默认语言是否相同的.
+
+## 中断符
+### hr
+`<hr>`表示界面的中断,会在文本中间划一道分割线.通常用它来分割内容:
+![alt text](PixPin_2026-04-26_23-41-12.webp)
+- hr: Horizontal Rule,水平分割线
+### br
+`<br>`表示换行,在文本中强制插入一个换行符,但不会开启新的段落:
+![alt text](PixPin_2026-04-26_23-44-10.webp)
+
+- br: Line Break,换行
+## 表格/列表
+
+
+## 
+## 总结
+常用的html元素就这些了,但我们一直没有深入探讨html元素的原生style修饰,那是因为在html中指明样式太麻烦了,所以在html诞生不久之后,又一个划时代的标记语言产生了: CSS
 
 # CSS
 >[wiki](https://en.wikipedia.org/wiki/CSS)
 **Cascading Style Sheets** (CSS) is a style sheet language used for specifying the presentation and styling of a document written in a markup language, such as **HTML or XML**.
+
+- **css是因为html中的style写法很麻烦才发明出来的**
 ## CSS历史
 ### 单体版本阶段 (1994 - 2011)
 此阶段 CSS 作为一个整体规范进行线性迭代。

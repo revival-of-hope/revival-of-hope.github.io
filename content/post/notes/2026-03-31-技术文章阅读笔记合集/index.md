@@ -133,7 +133,7 @@ function getRating(driver) {
 12. 系统调用与API
 13. 运行库的实现
 
-可以很明显的看出来,这本书主要涉及的是C语言程序经过编译与链接后装载为可执行文件的过程.
+可以很明显的看出来,这本书主要涉及的是C语言程序经过编译与链接后装载的过程.
 ## 编译和链接
 ### 程序运行的过程
 当我们使用GCC编译Hello World程序时,只需要这样写:
@@ -529,12 +529,63 @@ e_ident成员的前四个字节`7f 45 4c 46`中,第一个字节对应的是ASCII
 ### C++相关的链接问题(待补充)
 ## Windows PE/COFF
 >之所以叫PE/COFF,是因为windows32位的可执行文件格式PE与ELF一样,都是从古老的COFF格式发展来的.换句话说,**PE(Portable Executable)**是COFF的一种扩展,结构上大致相同,与ELF格式也基本相同,都采用了**段的格式**
-- 但windows64位中,对原本的PE格式做了一点修改,叫做PE32+,它没有增加新的字段,只是把原来的32位字段变成了64位,因此我们也可以把它看作是一般的PE文件.
+- windows64位中,对原本的PE格式做了一点修改,叫做PE32+,它没有增加新的字段,只是把原来的32位字段变成了64位,因此我们也可以把它看作是一般的PE文件.
 
-- 尽管原文都是一直把Windows可执行文件格式叫做PE/COFF的,但我后面都直接叫**PE**了,这样更好理解一点
+总的来说的话,在Windows中目标文件为COFF格式,为`.obj`后缀;可执行文件/动态链接库为PE格式,为`.exe`/`dll`后缀
+
 ### COFF文件结构
-与ELF文件相同,COFF格式
+**COFF 目标文件格式 (COFF Object File Format)** 的常见结构如下：
+1.  **Image Header** (`IMAGE_FILE_HEADER`)
+2.  **Section Table** (`IMAGE_SECTION_HEADER[]`)
+3.  **.text**（代码节）
+4.  **.data**（数据节）
+5.  **.drectve**（指示节）
+6.  **.debug$S**（调试符号节）
+7.  **other sections**（其他节）
+8.  **Symbol Table**（符号表）
 
+- 与ELF文件格式确实很像
+
+前两个部分是COFF文件的文件头,分别是描述文件总体结构和属性的映像头和描述各段属性的段表
+
+- **映像**(image): PE文件在装载时会被直接映射到进程的虚拟空间中,是进程虚拟空间的映像.
+### PE文件结构
+**PE 文件格式 (PE File Format)** 的常见结构如下：
+
+1.  **Image DOS Header** (`IMAGE_DOS_HEADER`)
+2.  **Image DOS Stub**
+3.  **PE File Header** (`IMAGE_NT_HEADERS`)
+    * **Image Header** (`IMAGE_FILE_HEADER`)
+    * **Image Optional Header** (`IMAGE_OPTIONAL_HEADER32`)
+4.  **Section Table** (`IMAGE_SECTION_HEADER[]`)
+5.  **.text**
+6.  **.data**
+7.  **.drectve**
+8.  **.debug$S**
+9.  **other sections**
+10. **Symbol Table**
+
+第一段和第二段中DOS部分的来历:
+
+>在Windows发展的早期,古老的DOS系统还十分盛行,而此时的Windows甚至不能脱离DOS环境独立运行,所以为Windows1编写的程序必须加入这两个DOS段来兼容DOS系统.
+为了兼容古老的程序,直到现在的Windows可执行文件都包含了这两个段
+
+#### Image DOS Header详解
+“IMAGE_DOS_HEADER”结构也被定义在 WinNT.h 里面，该结构的大多数成员我们都不关心，唯一值得关心的是“e_lfanew”成员，这个成员表明了 PE 文件头（IMAGE_NT_HEADERS）在 PE 文件中的偏移，我们需要使用这个值来定位 PE 文件头。
+
+这个成员在 DOS 的“MZ”文件格式中的值永远为 0，所以当 Windows 开始执行一个后缀名为“.exe”的文件时，它会判断“e_lfanew”成员是否为 0。如果为 0，则该“.exe”文件是一个 DOS“MZ”可执行文件，Windows 会启动 DOS 子系统来执行它；如果不为 0，那么它就是一个 Windows 的 PE 可执行文件，“e_lfanew”的值表示“IMAGE_NT_HEADERS”在文件中的偏移。
+#### Image DOS Stub详解
+当 PE 可执行映像在 DOS 下被加载的时候，DOS 系统检测该文件，发现最开始两个字节是“MZ”，于是认为它是一个“MZ”可执行文件。然后 DOS 系统就将 PE 文件当作正常的“MZ”文件开始执行。
+
+DOS 系统会读取 **“e_cs”** 和 **“e_ip”** 这两个成员的值，以跳转到程序的入口地址。然而 PE 文件中，“e_cs”和“e_ip”这两个成员并不指向程序真正的入口地址，而是指向文件中的 **“DOS Stub”**。
+
+**“DOS Stub”** 是一段可以在 DOS 下运行的一小段代码，这段代码的唯一作用是向终端输出一行字：
+> **“This program cannot be run in DOS”**
+
+然后退出程序，表示该程序不能在 DOS 下运行。所以我们如果在 DOS 系统下运行 Windows 的程序就可以看到上面这句话，这是因为 PE 文件结构兼容 DOS “MZ” 可执行文件结构的缘故。
+## 可执行文件的装载
+>可执行文件只有**装载**到内存以后才能被 CPU 执行。早期的程序装载十分简陋，装载的基本过程就是把程序从外部存储器中读取到内存中的某个位置。随着硬件 MMU 的诞生，多进程、多用户、虚拟存储的操作系统出现以后，可执行文件的装载过程变得非常复杂。
+### 进程虚拟地址空间
 # [Transformers快速入门](https://transformers.run/c1/nlp/)
 标题很具有迷惑性,事实上,这篇文章的前面几章深入浅出的讲述了大语言模型(LLM)的前世今生,让人受益匪浅
 ## 自然语言处理
@@ -960,6 +1011,7 @@ SELECT tweets.*, users.*
 >随着时间的推移，关系数据库和文档数据库似乎变得越来越相似，这是一件好事：数据模型相互补充，如果一个数据库能够处理类似文档的数据，并能够对其执行关系查询，那么应用程序就可以使用最符合其需求的功能组合。
 
 - (26/4/7): 我发现这本书我现在看太早了,很难有切实的收获,还是等几年再来探索吧
+
 # [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice)
 比官方文档要简洁清晰的多
 # 入门部分
@@ -2633,5 +2685,39 @@ expose:
 ```
 ## docker中装载操作系统
 
+
+# RESTful Web APIs
+## 补充: 什么是RESTful Web API
+>非常令人震惊的是,这本书并没有谈到这一名词的具体概念和历史背景...因此需要在这里做一点补充
+
+- [非常优秀的中文博客解析](https://www.cnblogs.com/lrzr/p/7296439.html)
+
+只看上面的文章就够了,我再加上一点历史背景解析
+### 历史背景
+- 根据<< RESTful Web APIs Patterns and Practices Cookbook >>总结
+
+在www(万维网)的概念于1993年左右开始盛行时,并没有一个合适的规范来约束用户端和服务器之间的通信.
+
+于是,web技术大牛**Roy T. Fielding**在1998年的微软演讲提出了Representational State Transfer(REST)的初步构想,并在两年后的论文(“Architectural Styles and the Design of Network-based Software Architectures”)中完整的介绍了REST,总结一下大致意思就是:
+
+>REST provides a set of architectural constraints that, when applied as a whole, emphasizes **scalability of component interactions**, **generality of interfaces**, **independent deployment of components**, and **intermediary components** to reduce interaction latency, enforce security, and encapsulate legacy systems.
+
+看不懂没关系,我们只需要知道Rest的主要准则如下:
+
+| 约束名称                          | 核心要求                                                     | 违背后的后果                                                 |
+| :-------------------------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| **客户机-服务器 (Client-Server)** | 前后端分离，职责解耦。                                       | 无法独立演进，扩展性受阻。                                   |
+| **无状态 (Stateless)**            | 每个请求必须包含处理所需的全部信息，服务器不保存会话上下文。 | 导致服务器无法水平扩展，容错性降低。                         |
+| **可缓存 (Cacheable)**            | 响应必须定义自身是否可缓存。                                 | 增加网络延迟，浪费带宽和服务器资源。                         |
+| **统一接口 (Uniform Interface)**  | 包含资源标识、通过表述操纵资源、自描述消息、**HATEOAS**。    | **最常被忽视的一项**。不满足此项的通常只是“带 HTTP 的 RPC”。 |
+| **分层系统 (Layered System)**     | 客户端无法感知直接连接的是服务器还是中间件（代理、缓存）。   | 破坏安全性与负载均衡的透明度。                               |
+| **按需代码 (Code on Demand)**     | *（可选）* 允许服务器向客户端发送可执行代码（如 JS）。       | 增加客户端复杂度和安全风险。                                 |
+
+
+如果你的Web架构设计和API请求符合这些原则,则可以被称为Restful Web和Restful Web API.(rest-ful,意思大致为rest风格)
+
+
 # Understanding The Linux Kernel(深入理解Linux内核)
-# Attention Is All You Need
+
+
+

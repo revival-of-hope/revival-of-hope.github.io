@@ -1,8 +1,8 @@
 ---
 title: 从零开始的反向代理和本机网络
-draft: true
+
 tags: 计算机网络
-image:
+image: 57793944_p0-浴衣とお面.webp
 ---
 # 本机网络
 很多时候我们都对docker或者VPN的一些网络问题一筹莫展,即便将报错贴给AI来回问个几十次也未必能解决问题,想要真正解决这些问题需要深入理解本机网络.
@@ -303,7 +303,7 @@ COPY --from=build-stage /app/frontend/dist/ /usr/share/nginx/html
 
 * **2020年：规模化增长与品牌重塑**
     * 9月，项目背后的支持公司 Containous 正式更名为 **Traefik Labs**。
-## 基本用法(待补充)
+## 基本用法(等真正要用的时候我会再来补充...)
 
 # Caddy
 ## 简短介绍
@@ -318,4 +318,4 @@ COPY --from=build-stage /app/frontend/dist/ /usr/share/nginx/html
 目前的热度比Traefik还要高.
 **拓展阅读**
 - [放弃traefik专用caddy](https://www.cnblogs.com/deali/p/18828815)
-## 基本用法
+## 基本用法(等真正要用的时候我会再来补充...)
