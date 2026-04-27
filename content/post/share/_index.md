@@ -1,11 +1,11 @@
 ---
 title: "Share"
-description: "动态更新的share记录"
+description: "动态更新的分享记录"
 image: 59665299_p0-FGO沖田総司.webp
 
 menu:
     main:
-        name: "Share"
+        name: "分享"
         weight: 100        
             
 ---

@@ -2715,9 +2715,14 @@ expose:
 
 
 如果你的Web架构设计和API请求符合这些原则,则可以被称为Restful Web和Restful Web API.(rest-ful,意思大致为rest风格)
-
+# Deep Learning from Scratch
+- [pdf链接](https://github.com/qiaohaoforever/DeepLearningFromScratch/blob/master/%E3%80%8A%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%EF%BC%9A%E5%9F%BA%E4%BA%8EPython%E7%9A%84%E7%90%86%E8%AE%BA%E4%B8%8E%E5%AE%9E%E7%8E%B0%E3%80%8B%E9%AB%98%E6%B8%85%E4%B8%AD%E6%96%87%E7%89%88.pdf)
+如前所说,阅读<< Transformers快速入门 >>的前提是要搞懂神经网络是什么,于是我辗转找到了这本享有盛名的书,希望能够彻底理解神经网络的概念
+## 
 # On Java 8
 - [中文翻译版链接](https://zyb0408.github.io/gitbooks/onjava8/)
+
+
 # Understanding The Linux Kernel(深入理解Linux内核)
 
 
