@@ -1,12 +1,12 @@
 ---
-title: 数据库笔记
+title: 数据库教材笔记
 tags:
   - [数据库,后端]
 date: 2026-03-14 08:00:00
 image: 38431299_p0-式さん.webp
 ---
 
-- 课程用教材:<< Database System Concepts >>
+- 教材:<< Database System Concepts >>
   - 这本书讲的还是比较全面的,但废话也很多,部分地方讲的不够深
 
 

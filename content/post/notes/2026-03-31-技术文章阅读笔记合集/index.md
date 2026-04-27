@@ -2693,7 +2693,7 @@ expose:
 - [非常优秀的中文博客解析](https://www.cnblogs.com/lrzr/p/7296439.html)
 
 只看上面的文章就够了,我再加上一点历史背景解析
-### 历史背景
+### 历史背景 
 - 根据<< RESTful Web APIs Patterns and Practices Cookbook >>总结
 
 在www(万维网)的概念于1993年左右开始盛行时,并没有一个合适的规范来约束用户端和服务器之间的通信.
@@ -2716,7 +2716,8 @@ expose:
 
 如果你的Web架构设计和API请求符合这些原则,则可以被称为Restful Web和Restful Web API.(rest-ful,意思大致为rest风格)
 
-
+# On Java 8
+- [中文翻译版链接](https://zyb0408.github.io/gitbooks/onjava8/)
 # Understanding The Linux Kernel(深入理解Linux内核)
 
 
