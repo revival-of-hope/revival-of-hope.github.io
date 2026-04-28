@@ -1,7 +1,7 @@
 ---
-title: java笔记
+title: Java笔记
 tags: 
-    - java
+    - Java
 image: 55474959_p0-式さん.webp
 date: 2026-04-26 08:00:00
 ---
@@ -10,48 +10,106 @@ date: 2026-04-26 08:00:00
 - [wiki](https://en.wikipedia.org/wiki/Java_(programming_language))
 
 之所以把Java历史摆在最前面,是因为我们需要知道Java的生态为何如此混乱.
+
+## 整体历史
 * **1991年06月：项目启动**
-    James Gosling、Mike Sheridan 与 Patrick Naughton 发起 Java 语言项目，最初命名为 **Oak**，随后曾更名为 **Green**，最终定名为 **Java**。
+  * James Gosling、Mike Sheridan 与 Patrick Naughton 发起 Java 语言项目，最初命名为 **Oak**，随后曾更名为 **Green**，最终定名为 **Java**。
+* **1995年05月：初次亮相**
+  * Sun Microsystems 在 SunWorld 大会上正式发布 Java 语言及其浏览器插件 HotJava，其口号“Write Once, Run Anywhere”直击跨平台痛点。
 * **1996年：正式发布**
-    Sun Microsystems 发布 **Java 1.0** 实现。该版本确立了“一次编写，到处运行”（WORA）的核心理念，并因其安全特性和浏览器对 Java Applet 的支持迅速普及。
+  * Sun Microsystems 发布 **Java 1.0** 实现。该版本确立了核心理念，并因其安全特性和浏览器对 Java Applet 的支持迅速普及。
 * **1997年：标准化博弈**
-    Sun 曾尝试通过 ISO/IEC JTC 1 和 Ecma International 推动 Java 标准化，但随后撤出，转而通过 **Java Community Process (JCP)** 维持事实上的标准控制。
+  * Sun 曾尝试通过 ISO/IEC JTC 1 和 Ecma International 推动 Java 标准化，但随后撤出，转而通过 **Java Community Process (JCP)** 维持控制。
 * **1998年12月：架构分化**
-    **Java 2 (J2SE 1.2)** 发布。Java 体系被正式划分为三个方向：面向企业级的 **J2EE**、面向桌面的 **J2SE** 以及面向移动设备的 **J2ME**。
+  * **Java 2 (J2SE 1.2)** 发布。Java 体系被正式划分为三个方向：面向企业级的 **J2EE**、面向桌面的 **J2SE** 以及面向移动设备的 **J2ME**。
+* **2004年09月：泛型与元数据**
+  * **J2SE 5.0** 发布。引入泛型、注解、自动装箱、可变参数及枚举，这是 Java 语法层面的一次重大演进。
 * **2006年：更名与开源启动**
-    出于市场营销考虑，Sun 将版本重新命名为 **Java EE**、**Java SE** 和 **Java ME**。同年 11 月，Sun 开始基于 **GPL-2.0** 协议发布 JVM 开源软件。
+  * 出于市场营销考虑，Sun 将版本重新命名为 **Java EE**、**Java SE** 和 **Java ME**。同年 11 月，Sun 开始基于 **GPL-2.0** 协议发布 JVM 开源软件。
 * **2007年：完成开源**
-    除了极少数不持有版权的代码外，Sun 完成了 JVM 核心代码的开源分发。
+  * 除了极少数不持有版权的代码外，Sun 完成了 JVM 核心代码的开源分发，OpenJDK 社区开始形成。
 * **2009年-2010年：所有权更迭**
-    **Oracle 收购 Sun Microsystems**。随后不久，Oracle 就 Android SDK 中使用 Java 的问题对 Google 发起诉讼。
+  * **Oracle 收购 Sun Microsystems**。随后不久，Oracle 就 Android SDK 中使用 Java 的问题对 Google 发起长期法律诉讼。
 * **2010年04月：核心人物离职**
-    Java 之父 James Gosling 从 Oracle 辞职。
-* **2016年01月：淘汰过时技术**
-    Oracle 宣布从 JDK 9 开始，Java 运行时环境将停止支持浏览器插件。
+  * Java 之父 James Gosling 从 Oracle 辞职。
+* **2011年07月：Oracle 时代首个大版本**
+  * **Java SE 7** 发布。引入 try-with-resources、动态语言支持（invokedynamic）以及 Fork/Join 框架。
+* **2014年03月：函数式编程**
+  * **Java SE 8** 发布。引入 Lambda 表达式、Stream API 和 Optional 类，标志着 Java 向函数式编程风格转型。
+* **2017年09月：模块化革命**
+  * **Java SE 9** 发布。历经多次推迟的 Project Jigsaw（模块化系统）正式落地，同时 Oracle 宣布改为每六个月发布一个新版本。
+* **2018年09月：付费策略调整**
+  * **Java 11 (LTS)** 发布。Oracle 调整了 JDK 的授权协议，商用版开始收费，推动了 OpenJDK 发行版的多元化（如 Amazon Corretto, Alibaba Dragonwell）。
+* **2021年09月：LTS 周期加速**
+  * **Java 17 (LTS)** 发布。Oracle 将长期支持版本的发布周期从三年缩短为两年。
+
+
+
+## 版本历史
+>我们经常说Java 8,Java 21,但实际上指的是JDK 8,JDK 21,也就是说,是Oracle发布的JDK版本决定了对应版本的Java语法.
+
+### 起源时代（1995–1999）
+
+- **1995年5月** · Java语言正式发布
+- **1996年1月** · **JDK 1.0**（代号Oak）——首个正式开发工具包，包含基础类库、Applet支持和图形用户界面功能。
+- **1997年2月** · **JDK 1.1**——引入内部类（Inner Class）、JavaBeans、JDBC（数据库连接）、RMI（远程方法调用）和反射API。
+- **1998年12月** · **JDK 1.2（Java 2）**——平台更名为Java 2，拆分为标准版J2SE、企业版J2EE和微型版J2ME三大平台；引入Swing图形组件、集合框架、JIT编译器。
+
+### 成熟时代（2000–2010）
+
+- **2000年5月** · **JDK 1.3**——增强AWT和Swing用户界面，优化底层类库。
+- **2002年2月** · **JDK 1.4（LTS）**——引入NIO（New I/O）、断言（assert）、内置XML解析器（SAX/DOM）、Java管理扩展（JMX）。
+- **2004年9月** · **JDK 5.0（Java SE 5）**——一次里程碑式升级：引入泛型、枚举类型、自动装箱/拆箱、注解、增强for循环和并发编程API（Java.util.concurrent）。版本号从1.x跃升至5.0。
+- **2006年12月** · **JDK 6（Java SE 6）**——引入JDBC 4.0、Java监视与管理控制台（JConsole）、动态语言支持与性能提升。
+
+### 现代转型时代（2011–2017）
+
+- **2011年7月** · **JDK 7（Java SE 7）**——引入**G1垃圾回收器**、**NIO.2新文件系统API**、**InvokeDynamic指令**（支持动态类型语言）；Project Coin带来一系列语言简化特性：字符串switch、try-with-resources自动资源管理、“钻石”泛型推断、多异常捕获等。
+- **2014年3月** · **JDK 8（LTS，历史性版本）**——被誉为Java史上最具革命性的版本：引入**Lambda表达式、方法引用、函数式接口、Stream API、Optional类、新日期时间API（Java.time）**、Nashorn JavaScript引擎、接口默认方法和静态方法；JVM用Metaspace替代永久代。
+
+### 加速迭代时代（2017–2020）
+
+
+- **2017年9月** · **JDK 9**——引入**模块化系统（Project Jigsaw/JPMS）**、**G1成为默认垃圾收集器**、HTTP/2客户端API（孵化）、JShell交互式编程工具、私有接口方法、响应式流API。
+- **2018年3月** · **JDK 10**——引入**局部变量类型推断（`var`关键字）**、G1支持并行全GC以降低停顿时间。
+- **2018年9月** · **JDK 11（LTS）**——标准化**HTTP Client API**（原孵化API转正）、引入**ZGC低延迟垃圾回收器（实验性）**、Epsilon空操作垃圾回收器、Flight Recorder飞行记录仪、直接在命令行运行单文件源码程序功能。
+- **2019年3月** · **JDK 12**——引入**Switch表达式（预览）**、G1垃圾回收器改进。
+- **2019年9月** · **JDK 13**——引入**文本块（预览）**，多行字符串处理更便捷。
+- **2020年3月** · **JDK 14**——引入**Records数据类（预览）**、Pattern Matching for instanceof（预览）、**NullPointerException增强信息**。
+- **2020年9月** · **JDK 15**——引入**密封类（sealed classes，预览）**、文本块正式转正、空指针异常信息改进、ZGC正式转正。
+- **2021年3月** · **JDK 16**——Records正式转正、Pattern Matching for instanceof正式转正、Vector API（孵化）。
+
+### 2021至今
+
+- **2021年9月** · **JDK 17（LTS，第三个长期支持版本）**——**密封类正式转正、`switch`模式匹配（预览）**、改进伪随机数生成器（统一API）、macOS Metal渲染管线。
+- **2022年3月** · **JDK 18**——默认UTF-8编码、简易Web服务器、外部函数与内存API（第二轮孵化）、向量API（第三轮孵化）。
+- **2022年9月** · **JDK 19**——**虚拟线程（预览）**、Record模式（预览）、结构化并发（孵化）。
+- **2023年3月** · **JDK 20**——虚拟线程、作用域值、Record模式、结构化并发等持续预览迭代。
+
 
 
 # 环境配置
 ## 编译器下载
 与Cpp运行需要MSVC等编译器,python运行需要python虚拟环境一样,Java运行需要的是JDK(Java Development Kit).
 如前面所说,尽管Java版权归Oracle公司所有,但也有开源的社区版本和基于开源版本制作的第三方JDK,性能上的差别非常小.
-为了省事,我们直接上[微软官网](https://www.oracle.com/java/technologies/downloads/#java21)下载JDK21即可,这样可以**跳过烦人的环境变量配置环节**.
+为了省事,我们直接上[微软官网](https://www.oracle.com/Java/technologies/downloads/#Java21)下载JDK21即可,这样可以**跳过烦人的环境变量配置环节**.
 - 至于为什么不选最新的25版本是因为体积更大也没必要.
 
 ## 配置环境变量(可跳过)
 与cpp类似,如果不配置编译器的环境变量的话,系统是无法识别你的命令的:
 ```bash
-java --version
-java : 无法将“java”项识别为 cmdlet、函数、脚本文件或可运行程序的名称。请检查名称的拼写，如果包括路径，请确保路径正确
+Java --version
+Java : 无法将“Java”项识别为 cmdlet、函数、脚本文件或可运行程序的名称。请检查名称的拼写，如果包括路径，请确保路径正确
 ，然后再试一次。
 所在位置 行:1 字符: 1
-+ java --version
++ Java --version
 + ~~~~
-    + CategoryInfo          : ObjectNotFound: (java:String) [], CommandNotFoundException
+    + CategoryInfo          : ObjectNotFound: (Java:String) [], CommandNotFoundException
     + FullyQualifiedErrorId : CommandNotFoundException
 ```
 但是,如果你用的是微软的OpenJDK,就可以在安装的时候勾选配置环境变量直接跳过这一步:
 ```bash
-java --version
+Java --version
 openjdk 21.0.10 2026-01-20 LTS
 OpenJDK Runtime Environment Microsoft-13106404 (build 21.0.10+7-LTS)
 OpenJDK 64-Bit Server VM Microsoft-13106404 (build 21.0.10+7-LTS, mixed mode, sharing)
@@ -61,32 +119,32 @@ OpenJDK 64-Bit Server VM Microsoft-13106404 (build 21.0.10+7-LTS, mixed mode, sh
 
 
 ## VScode配置Java环境
-当你第一次创建`.java`文件时,VScode会自动为你推荐所需的扩展并配置好环境,所以无需额外操作.
+当你第一次创建`.Java`文件时,VScode会自动为你推荐所需的扩展并配置好环境,所以无需额外操作.
 
 # Java基础学习
-- [W3schools](https://www.w3schools.com/java/)
+- [W3schools](https://www.w3schools.com/Java/)
   - 不要看廖雪峰教程...写的并不是很好,而且很枯燥,搞不懂为什么流量这么大.
 - 建议先学好cpp后再学Java,本部分经常会拿cpp来跟Java做比较
 ## 基础语法
 ### 学习前的要点
-我们首先需要知道JAVA的面向对象特性:
+我们首先需要知道Java的面向对象特性:
 1. 所有函数和变量都写在类里面,因此函数都变成了`方法`,变量都变成了`属性`
 2. 如果源文件中包含public类,则文件名必须与该类名完全一致
 3. 所有的类名都需要大写,仅是一种规范,但最好大写.
 
 例如:
-```java
+```Java
 public class Main {
   public static void main(String[] args) {
     System.out.println("Hello World");
   }
 }
 ```
-包含了这个代码的文件必须叫做Main.java,区分大小写.
+包含了这个代码的文件必须叫做Main.Java,区分大小写.
 
 ### 主函数
 上述代码中的main函数是Java程序的入口,其作用与c/cpp中的main函数别无二致:
-```java
+```Java
 public static void main(String[] args) {
     System.out.println("Hello World");
   }
@@ -94,10 +152,10 @@ public static void main(String[] args) {
 如果你不觉得main函数里的`String[] args`参数很奇怪的话,那我就觉得你很奇怪了.
 
 >这个参数作为命令行交互的接收器,尽管你未必会显式用到这个参数,但是必须要写上.
-尽管从Java21开始允许不写这个参数了,但是很多企业内部的数据库交互用的依然是Java8...所以还是写上比较好
-- 很难想象这么一个简单的修改需要经过将近三十年的考量...Java生态的陈旧性可见一斑
+尽管从Java21开始允许不写这个参数了,但是很多企业内部的数据库交互用的依然是Java8,所以还是写上比较好.
+
 ### 变量类型
-```java
+```Java
 // 常用变量类型
 int myNum = 5;
 float myFloatNum = 5.99f;
@@ -109,18 +167,18 @@ String myText = "Hello";
 值得注意的是唯独String这个变量类型是大写的,因为它是一个类,如前面所说,Java中的类名都需要大写,所以这里就大写了.
 
 Java  10(2018年发布)引入了类似于cpp中auto的变量类型`var`:
-```java
+```Java
 var x = 5;  // x is an int
 System.out.println(x);
 ```
 与auto一样,var不允许只声明不赋值:
-```java
+```Java
 var x; // Error
 var x = 5;  // OK
 ```
 ### Java数组
 由于cpp反直觉的类似`int a[10]`这样的语法,所以Java将声明时的`[]`优化到了变量名前面,变成了这样:
-```java
+```Java
 String[] cars = {"Volvo", "BMW", "Ford", "Mazda"};
 System.out.println(cars[0]);
 // Outputs Volvo
@@ -129,7 +187,7 @@ System.out.println(cars[0]);
 
 #### 二维数组
 自然,如果是二维数组,就要写两个[]了:
-```java
+```Java
 int[][] myNumbers = { {1, 4, 2}, {3, 6, 8, 5, 2} };
 
 for (int row = 0; row < myNumbers.length; row++) {
@@ -140,7 +198,7 @@ for (int row = 0; row < myNumbers.length; row++) {
 ```
 ### Java的for-each循环
 由于Java的大多数逻辑语句和cpp别无二致,因此全都略过,但值得一提的是下面这个语法:
-```java
+```Java
 String[] cars = {"Volvo", "BMW", "Ford", "Mazda"};
 
 for (String car : cars) {
@@ -169,7 +227,7 @@ for (const std::string& car : cars) {
 | **default**   | (不写关键字) 仅对同一包内的类可见。                    | 顶级类、内部类 |
 | **private**   | 仅对定义它的外部类可见。                               | **仅内部类**   |
 | **abstract**  | 抽象类。不能被实例化，必须由子类继承并实现其抽象方法。 | 顶级类、内部类 |
-| **final**     | 最终类。不能被继承（例如 `java.lang.String`）。        | 顶级类、内部类 |
+| **final**     | 最终类。不能被继承（例如 `Java.lang.String`）。        | 顶级类、内部类 |
 | **static**    | 静态内部类。不需要依赖外部类实例即可创建。             | **仅内部类**   |
 | **sealed**    | 密封类（Java 17+）。限制哪些类可以继承它。             | 顶级类         |
 
@@ -194,7 +252,7 @@ for (const std::string& car : cars) {
 
 ### static修饰符详解
 首先我们需要知道一件事:尽管Java强制要求所有方法都写在类中,但是有一些方法我们并不想让它与某个类的实例有任何关系,也就是说,我们想要像cpp定义**全局函数**那样,直接在类内方法中调用该函数,而不需要带上类访问符`.`,那么就可以用`static`关键字来修饰某个方法:
-```java
+```Java
 public class Main {
   static void myMethod() {
     System.out.println("Hello World!");
@@ -213,7 +271,7 @@ public class Main {
 
 ### 创建类实例
 Java创建类实例的方法有很多,但最常用的还是通过new操作符:
-```java
+```Java
 public class Main {
   int x = 5;
 
@@ -248,7 +306,7 @@ public class Main {
 由于Java不再显式使用指针,但又需要像cpp一样用某个符号代指类实例,否则无法通过类内方法访问私有属性.
 
 因此,Java引入了this引用符,**用来指向当前的类实例**:
-```java
+```Java
 public class Main {
   int x;  // Class variable x
 
@@ -267,7 +325,7 @@ public class Main {
 
 - 这与Python中的self有异曲同工之处,但不同的是self需要**显示声明**,而Java的this与cpp的this一样都是**隐式存在**的
 #### 构造函数的重载
-```java
+```Java
 public class Main {
   int modelYear;
   String modelName;
@@ -321,7 +379,7 @@ public:
 ```
 ### 继承与多态
 由于cpp中的继承符号`:`过于简单和抽象,因此Java将继承符号改为了继承关键字`extends`:
-```java
+```Java
 class Vehicle {
   protected String brand = "Ford";        // Vehicle attribute
   public void honk() {                    // Vehicle method
@@ -346,7 +404,7 @@ class Car extends Vehicle {
 ```
 #### final修饰符详解
 Java将cpp中的常量修饰符`const`改成了`final`,这可不是脱裤子放屁,而是因为Java中的final还可以限制某些类不可被继承:
-```java
+```Java
 final class Vehicle {
   ...
 }
@@ -354,7 +412,7 @@ final class Vehicle {
 class Car extends Vehicle {
   ...
 }
-// Main.java:9: error: cannot inherit from final Vehicle
+// Main.Java:9: error: cannot inherit from final Vehicle
 // class Main extends Vehicle {
 //                   ^
 // 1 error)
@@ -362,7 +420,7 @@ class Car extends Vehicle {
 将类也看做常量的想法确实挺奇妙的,但一般来说根本用不到吧.
 #### 多态
 Java中的方法默认是可以被重载的,这比起cpp要便利很多,同样,被final修饰的方法只能被继承但不能被重载:
-```java
+```Java
 class Animal {
   public void animalSound() {
     System.out.println("The animal makes a sound");
@@ -383,7 +441,7 @@ class Dog extends Animal {
 ```
 #### super引用符
 Java设计了super引用符来指向父类:
-```java
+```Java
 class Animal {
   public void animalSound() {
     System.out.println("The animal makes a sound");
@@ -405,7 +463,7 @@ public class Main {
 }
 ```
 当然,super更强大的地方在于能够调用父类的构造函数:
-```java
+```Java
 class Animal {
   Animal() {
     System.out.println("Animal is created");
@@ -432,7 +490,7 @@ public class Main {
 ### 抽象与接口
 Java将Cpp中的虚函数与重载机制进一步发扬光大,发明了**抽象方法和接口**,简单来说的话,抽象类内的抽象方法没有函数内容,而且必须被子类重载实现;而接口就是抽象类的简写版,里面的所有函数和属性默认都要被重载实现.
 **抽象类和抽象方法**
-```java
+```Java
 // Abstract class
 abstract class Animal {
   // Abstract method (does not have a body)
@@ -460,7 +518,7 @@ class Main {
 }
 ```
 为了区分抽象类和接口,Java特定设置了接口的继承关键字`implements`,从而与`extends`区分开来:
-```java
+```Java
 // Interface
 interface Animal {
   public void animalSound(); // interface method (does not have a body)
@@ -489,7 +547,7 @@ class Main {
 ```
 至于为什么Java要单独设置`implements`关键字,是因为它确实与`extends`有些许不同,`implements`后可以跟多个接口,而`extends`后只可以跟一个父类.
 - 为什么这么设计?那是设计者的问题了
-```java
+```Java
 interface FirstInterface {
   public void myMethod(); // interface method
 }
@@ -531,8 +589,8 @@ class Main {
 | char                | Character     |
 
 由于Java内置的数据结构如`ArrayList`只能存储对象,所以我们需要将数据类型包装成一个数据类来处理:
-```java
-import java.util.ArrayList;
+```Java
+import Java.util.ArrayList;
 
 public class Main {
   public static void main(String[] args) {
@@ -550,7 +608,7 @@ public class Main {
 ### Java 泛型(generic)
 
 **将不同类型的数据统一处理**
-```java
+```Java
 class Box<T> {
   T value; // T is a placeholder for any data type
 
@@ -578,7 +636,7 @@ public class Main {
 }
 ```
 **处理不同的数据输入**
-```java
+```Java
 public class Main {
   // Generic method: works with any type T
   public static <T> void printArray(T[] array) {
@@ -614,7 +672,7 @@ public class Main {
 - 尽管有点用吧,但依然是累赘设计...
 ### Java多线程
 Java中有两种方法可以创建进程:
-```java
+```Java
 // 1.继承Thread系统类
 public class Main extends Thread {
   public void run() {
@@ -629,55 +687,21 @@ public class Main implements Runnable {
 }
 ```
 真正要详细了解多线程需要在后面的Java线程池中学习
-### Java Lambda函数
-**基本格式**
-```java
-(parameters) -> { body }
-```
-1.  **`(parameters)`**：类似于方法的参数列表。如果没有参数，直接写 `()`；如果只有一个参数且类型可推导，可以省略圆括号。
-2.  **`->`**：Lambda 运算符，固定写法，代表“传递”或“应用”。
-3.  **`{ body }`**：函数体。如果逻辑只有一行代码，可以省略花括号和 `return` 关键字。
-
-```java
-import java.util.ArrayList;
-import java.util.function.Consumer;
-
-public class Main {
-  public static void main(String[] args) {
-    ArrayList<Integer> numbers = new ArrayList<Integer>();
-    numbers.add(5);
-    numbers.add(9);
-    numbers.add(8);
-    numbers.add(1);
-    
-    Consumer<Integer> method = (n) -> { System.out.println(n); };
-    numbers.forEach(method);
-  }
-}
-```
-如果你详细看上述代码的话,你会看到一个神奇的地方,
-method类竟然和一个匿名函数用等号连接起来了:
-
-```java
-Consumer<Integer> method = (n) -> { ... };
-```
-
-这个特性就引出了Java的函数式接口特性,该特性由Java 8引入,属于比较高级的特性,故放在后面讲
 
 ## Java系统库
 **随便看看即可,用上的时候再去详细了解**
 ### Java文件读写
-The **File** class from the **java.io** package, allows us to work with files:
-```java
-import java.io.File;  // Import the File class
+The **File** class from the **Java.io** package, allows us to work with files:
+```Java
+import Java.io.File;  // Import the File class
 
 File myObj = new File("filename.txt"); // Specify the filename
 ```
 
 #### 创建文件
-```java
-import java.io.File;       // Import the File class
-import java.io.IOException; // Import IOException to handle errors
+```Java
+import Java.io.File;       // Import the File class
+import Java.io.IOException; // Import IOException to handle errors
 
 public class CreateFile {
   public static void main(String[] args) {
@@ -696,9 +720,9 @@ public class CreateFile {
 }
 ```
 #### 写入文件 
-```java
-import java.io.FileWriter;   // Import the FileWriter class
-import java.io.IOException;  // Import the IOException class
+```Java
+import Java.io.FileWriter;   // Import the FileWriter class
+import Java.io.IOException;  // Import the IOException class
 
 public class WriteToFile {
   public static void main(String[] args) {
@@ -715,10 +739,10 @@ public class WriteToFile {
 }
 ```
 #### 读取文件
-```java
-import java.io.File;                  // Import the File class
-import java.io.FileNotFoundException; // Import this class to handle errors
-import java.util.Scanner;             // Import the Scanner class to read text files
+```Java
+import Java.io.File;                  // Import the File class
+import Java.io.FileNotFoundException; // Import this class to handle errors
+import Java.util.Scanner;             // Import the Scanner class to read text files
 
 public class ReadFile {
   public static void main(String[] args) {
@@ -740,10 +764,10 @@ public class ReadFile {
 
 ### Java I/O
 #### 读缓冲区
-```java
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+```Java
+import Java.io.BufferedReader;
+import Java.io.FileReader;
+import Java.io.IOException;
 
 public class Main {
   public static void main(String[] args) {
@@ -759,10 +783,10 @@ public class Main {
 }
 ```
 #### 写缓冲区
-```java
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
+```Java
+import Java.io.BufferedWriter;
+import Java.io.FileWriter;
+import Java.io.IOException;
 
 public class Main {
   public static void main(String[] args) {
@@ -778,7 +802,7 @@ public class Main {
 }
 ```
 ### Java数据结构
-最常用的数据结构都被包装到java.util包中了:
+最常用的数据结构都被包装到Java.util包中了:
 - ArrayList
 - HashSet
 - HashMap
@@ -796,14 +820,55 @@ public class Main {
 | *TreeMap*     | `std::map`           | 红黑树   | 自动排序 |
 
 # Java进阶学习
+
 ## Java编译与构建
-学习完OOP后,我们很自然的会将不同功能的类拆分到不同java文件中,那么接下来就来看看Java是如何编译和构建不同文件的
+学习完OOP后,我们很自然的会将不同功能的类拆分到不同Java文件中,那么接下来就来看看Java是如何编译和构建不同文件的
 
 
 ## JVM
+- [讲的很好的JDK,JRE,JVM概念剖析](https://www.wdbyte.com/java/jdk-jre-jvm/)
+>JDK（Java Development Kit）、JRE（Java Runtime Environment）、JVM （Java Virtual Machine）是 Java 开发中的三个重要概念，JDK 包含了 JRE 和开发工具，JRE 包含了 JVM 和类库，JVM 是 Java 程序的运行环境。
+
 
 ## Java8新特性
+### Java Lambda函数
+Lambda函数也被称为**匿名函数**,特点是使用时不会出现函数名.
+**基本格式**
+```Java
+(parameters) -> { body }
+```
+1.  **`(parameters)`**：类似于方法的参数列表。如果没有参数，直接写 `()`；如果只有一个参数且类型可推导，可以省略圆括号。
+2.  **`->`**：Lambda 运算符，固定写法，代表“传递”或“应用”。
+3.  **`{ body }`**：函数体。如果逻辑只有一行代码，可以省略花括号和 `return` 关键字。
+
+```Java
+import Java.util.ArrayList;
+import Java.util.function.Consumer;
+
+public class Main {
+  public static void main(String[] args) {
+    ArrayList<Integer> numbers = new ArrayList<Integer>();
+    numbers.add(5);
+    numbers.add(9);
+    numbers.add(8);
+    numbers.add(1);
+    
+    Consumer<Integer> method = (n) -> { System.out.println(n); };
+    numbers.forEach(method);
+  }
+}
+```
+如果你详细看上述代码的话,你会看到一个神奇的地方,
+method类竟然和一个匿名函数用等号连接起来了:
+
+```Java
+Consumer<Integer> method = (n) -> { ... };
+```
+
+这就引出了Java的函数式接口语法.
+
 ### 函数式接口
+
 # Java构建工具
 与Cpp有Make,ninja,CMake类似,Java也有自己的构建工具,早期的构建工具为Ant,目前由Maven和Gradle两款工具统治,它俩也同时承担了包管理器的责任.
 ## Maven

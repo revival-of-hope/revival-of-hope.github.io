@@ -1,5 +1,5 @@
 ---
-title: 从零开始的前端
+title: 前端笔记
 draft: true
 tags:
 image:
@@ -102,7 +102,7 @@ Web 2.0 时代开启，网页从“文档”转变为“应用”。
 最后,特别要注意的是,html里的标签是**大小写不敏感**的,官方推荐**全都小写**;同时,标签的属性都推荐用**双引号**括起来
 
 
-## 概览
+## 主体架构
 一个简化的html文档如下所示:
 ```html
 <!DOCTYPE html>
@@ -210,9 +210,68 @@ head中可以定义标签栏的内容和图标:
 ![alt text](PixPin_2026-04-26_23-44-10.webp)
 
 - br: Line Break,换行
-## 表格/列表
+## 排版元素表示
+主要涉及: 表格/列表/容器/按钮
+### 表格
+![alt text](PixPin_2026-04-28_15-44-56.webp)
+在table标签中`tr`意思是**table row**,`td`意思是**table data**,`td`意思是`table head`,都很好理解
+### 列表
+看首字母即可知道这几个元素的意思:
+
+- ul: **unordered list**
+- ol: **ordered list**
+- dl: **description list**
+- li: **list item**
+- dt: **description term**(不用description item的原因可能是怕与div标签搞混)
+- dd: **description details**
+
+**分点列表(没有序号)**
+
+```html
+<ul>
+  <li>Coffee</li>
+  <li>Tea</li>
+  <li>Milk</li>
+</ul>
+```
+![alt text](PixPin_2026-04-28_15-58-13.webp)
+
+**数字列表**
+
+```html
+<ol>
+  <li>Coffee</li>
+  <li>Tea</li>
+  <li>Milk</li>
+</ol>
+```
+![alt text](PixPin_2026-04-28_15-59-29.webp)
+
+**加入描述的列表**
+
+```html
+<dl>
+  <dt>Coffee</dt>
+  <dd>- black hot drink</dd>
+  <dt>Milk</dt>
+  <dd>- white cold drink</dd>
+</dl>
+```
+
+![alt text](PixPin_2026-04-28_16-00-12.webp)
+#### 嵌套列表
+![alt text](PixPin_2026-04-28_16-03-20.webp)
+### 容器(div)
+>The <div> element is by default a **block element**, meaning that **it takes all available width**, and comes with line breaks before and after.
+
+![alt text](PixPin_2026-04-28_16-05-30.webp)
+
+之所以div叫做容器,因为它可以装载html元素成一个单独的分块,方便被css和js处理并渲染:
+
+![alt text](PixPin_2026-04-28_16-07-00.webp)
 
 
+## 表单
 ## 
 ## 总结
 常用的html元素就这些了,但我们一直没有深入探讨html元素的原生style修饰,那是因为在html中指明样式太麻烦了,所以在html诞生不久之后,又一个划时代的标记语言产生了: CSS
