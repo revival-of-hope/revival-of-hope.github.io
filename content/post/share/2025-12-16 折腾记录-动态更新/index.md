@@ -3,17 +3,18 @@ title: 折腾记录
 date: 2025-12-16 08:00:00
 tags:
 image: 86800864_p0-no title.webp
-categories: 
-  - 动态更新
+
 ---
 
 # 折腾博客
 ## hexo管理
 ### hexo图片管理困难,帖子多了很难阅读
-解决方法:
-config_yml里修改
+解决方法就是在config_yml里修改:
+
 `new_post_name: :year-:month-:day-:title.md`
-同时,听从大佬建议,将所有图片改成webp格式,效果立竿见影
+
+同时,听从大佬建议,将所有图片改成webp格式,效果立竿见影:
+
 ![](tmpDAFA.png)
 
 ### 还是图片问题,每次复制images子文件夹路径太麻烦

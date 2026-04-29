@@ -121,7 +121,7 @@ OpenJDK 64-Bit Server VM Microsoft-13106404 (build 21.0.10+7-LTS, mixed mode, sh
 ## VScode配置Java环境
 当你第一次创建`.Java`文件时,VScode会自动为你推荐所需的扩展并配置好环境,所以无需额外操作.
 
-# Java基础学习
+# Java语法学习
 - [W3schools](https://www.w3schools.com/Java/)
   - 不要看廖雪峰教程...写的并不是很好,而且很枯燥,搞不懂为什么流量这么大.
 - 建议先学好cpp后再学Java,本部分经常会拿cpp来跟Java做比较
@@ -183,7 +183,24 @@ String[] cars = {"Volvo", "BMW", "Ford", "Mazda"};
 System.out.println(cars[0]);
 // Outputs Volvo
 ```
-- 尽管其他特性没什么改变,但看上去顺眼多了,毕竟我们都说`int 数组a`,而不会说`int a数组`
+- 看上去顺眼多了,毕竟我们都说`int 数组a`,而不会说`int a数组`.
+#### 数组的声明与构造
+**数组声明**
+```java
+int[] arr; // 正确
+int[5] arr; // 错误：声明阶段不分配空间
+arr = new int[5] // 在声明之后补充数组空间大小的分配
+```
+**数组构造**
+```java
+// 第一种写法
+int[] arr ={1,2,3};
+// 第二种写法
+int[] arr;
+arr = new int[]{1,2,3};
+// 第三种写法
+int[] arr = new int[]{1,2,3};
+```
 
 #### 二维数组
 自然,如果是二维数组,就要写两个[]了:
@@ -231,12 +248,54 @@ for (const std::string& car : cars) {
 | **static**    | 静态内部类。不需要依赖外部类实例即可创建。             | **仅内部类**   |
 | **sealed**    | 密封类（Java 17+）。限制哪些类可以继承它。             | 顶级类         |
 
+- 外部类: 直接定义在.java文件中的类
+- 内部类: 定义在外部类内部的类
 
+对于外部类来说,类既不能是 private 的（这样除了该类自身，任何类都不能访问它），也不能是 protected 的。所以对于类的访问权限只有两种选择：包访问权限或者 public。为了防止类被外界访问，可以将所有的构造器声明为 private，这样只有你自己能创建对象（在类的 static 成员中）：
+
+```java
+// hiding/Lunch.java
+// Demonstrates class access specifiers. Make a class
+// effectively private with private constructors:
+
+class Soup1 {
+    private Soup1() {}
+
+    public static Soup1 makeSoup() { // [1]
+        return new Soup1();
+    }
+}
+
+class Soup2 {
+    private Soup2() {}
+
+    private static Soup2 ps1 = new Soup2(); // [2]
+
+    public static Soup2 access() {
+        return ps1;
+    }
+
+    public void f() {}
+}
+// Only one public class allowed per file:
+public class Lunch {
+    void testPrivate() {
+        // Can't do this! Private constructor:
+        //- Soup1 soup = new Soup1();
+    }
+
+    void testStatic() {
+        Soup1 soup = Soup1.makeSoup();
+    }
+
+    void testSingleton() {
+        Soup2.access().f();
+    }
+}
+```
 #### 方法修饰符 (Method Modifiers)
 
 方法修饰符控制方法的访问权限、执行逻辑、以及子类覆盖规则。
-
-
 
 ##### 访问控制修饰符
 * **public**: 方法对所有类可见。
@@ -573,121 +632,6 @@ class Main {
   }
 }
 ```
-
-## Java高级特性
-说是高级,其实都很简单,都怪营销号和垃圾博客把Java渲染的多么复杂高深,比起Cpp来说,Java简直不能再简单了.
-### Wrapper Classes(封装类)
-| Primitive Data Type | Wrapper Class |
-| :------------------ | :------------ |
-| byte                | Byte          |
-| short               | Short         |
-| int                 | Integer       |
-| long                | Long          |
-| float               | Float         |
-| double              | Double        |
-| boolean             | Boolean       |
-| char                | Character     |
-
-由于Java内置的数据结构如`ArrayList`只能存储对象,所以我们需要将数据类型包装成一个数据类来处理:
-```Java
-import Java.util.ArrayList;
-
-public class Main {
-  public static void main(String[] args) {
-    ArrayList<String> cars = new ArrayList<String>();
-    cars.add("Volvo");
-    cars.add("BMW");
-    cars.add("Ford");
-    cars.add("Mazda");
-    System.out.println(cars);
-  }
-}
-```
-- 自然,这种脱裤子放屁的事情在Java中还有很多...
-![alt text](PixPin_2026-04-27_12-38-33.webp)
-### Java 泛型(generic)
-
-**将不同类型的数据统一处理**
-```Java
-class Box<T> {
-  T value; // T is a placeholder for any data type
-
-  void set(T value) {
-    this.value = value;
-  }
-
-  T get() {
-    return value;
-  }
-}
-
-public class Main {
-  public static void main(String[] args) {
-    // Create a Box to hold a String
-    Box<String> stringBox = new Box<>();
-    stringBox.set("Hello");
-    System.out.println("Value: " + stringBox.get());
-
-    // Create a Box to hold an Integer
-    Box<Integer> intBox = new Box<>();
-    intBox.set(50);
-    System.out.println("Value: " + intBox.get());
-  }
-}
-```
-**处理不同的数据输入**
-```Java
-public class Main {
-  // Generic method: works with any type T
-  public static <T> void printArray(T[] array) {
-    for (T item : array) {
-      System.out.println(item);
-    }
-  }
-
-  public static void main(String[] args) {
-    // Array of Strings
-    String[] names = {"Jenny", "Liam"};
-
-    // Array of Integers
-    Integer[] numbers = {1, 2, 3};
-
-    // Call the generic method with both arrays
-    printArray(names);
-    printArray(numbers);
-  }
-}
-```
-### Java Annotations(Java注解)
->Annotations are **special notes** you add to your Java code. They start with the `@` symbol.
-
-
-注解并不会改变程序的运行方式,但是会为编译器和构建工具提供额外的信息,这与Python中的语法糖完全不同.
-
-最常用的注解有三个:
-1. `@Override`: Indicates that a method overrides a method in a superclass
-2. `@Deprecated`: Marks a method or class as outdated or discouraged from use
-3. `@SuppressWarnings`: Tells the compiler to ignore certain warnings
-
-- 尽管有点用吧,但依然是累赘设计...
-### Java多线程
-Java中有两种方法可以创建进程:
-```Java
-// 1.继承Thread系统类
-public class Main extends Thread {
-  public void run() {
-    System.out.println("This code is running in a thread");
-  }
-}
-// 2.实现Runnable接口,更推荐
-public class Main implements Runnable {
-  public void run() {
-    System.out.println("This code is running in a thread");
-  }
-}
-```
-真正要详细了解多线程需要在后面的Java线程池中学习
-
 ## Java系统库
 **随便看看即可,用上的时候再去详细了解**
 ### Java文件读写
@@ -818,56 +762,168 @@ public class Main {
 | **HashMap**   | `std::unordered_map` | 哈希表   | 无序     |
 | *TreeSet*     | `std::set`           | 红黑树   | 自动排序 |
 | *TreeMap*     | `std::map`           | 红黑树   | 自动排序 |
+## Java包管理
+- 根据On Java 8整理
+### 导入外部包
+>例如，标准 Java 发布中有一个工具库，它被组织在 java.util 命名空间下。java.util 中含有一个类，叫做 ArrayList。使用 ArrayList 的一种方式是用其全名 java.util.ArrayList。
+```java
+public class FullQualification {
+    public static void main(String[] args) {
+        java.util.ArrayList list = new java.util.ArrayList();
+    }
+}
+```
 
-# Java进阶学习
+>这种方式使得程序冗长乏味，因此你可以换一种方式，使用 import 关键字。如果需要导入某个类，就需要在 import 语句中声明：
 
-## Java编译与构建
-学习完OOP后,我们很自然的会将不同功能的类拆分到不同Java文件中,那么接下来就来看看Java是如何编译和构建不同文件的
+```java
+import java.util.ArrayList;
+
+public class SingleImport {
+    public static void main(String[] args) {
+        ArrayList list = new ArrayList();
+    }
+}
+```
+
+如果想要使用java.util包中的所有类,则使用以下导入方法:
+
+```java
+import java.util.*
+```
+### 自制工具包
+自制包时需要用到`package`关键字,必须在文件的第一个非注释行声明,且按照惯例,包名一律小写.
+
+例如,我们想要让某个java文件能够被其他文件访问,我们可以根据文件目录对应的写成这样:
+```java
+// hiding/mypackage/MyClass.java
+package hiding.mypackage;
+
+public class MyClass {
+    // ...
+}
+```
+
+## Java高级特性
+说是高级,其实都很简单,都怪营销号和垃圾博客把Java渲染的多么复杂高深,比起Cpp来说,Java简直不能再简单了.
+### Wrapper Classes(封装类)
+| Primitive Data Type | Wrapper Class |
+| :------------------ | :------------ |
+| byte                | Byte          |
+| short               | Short         |
+| int                 | Integer       |
+| long                | Long          |
+| float               | Float         |
+| double              | Double        |
+| boolean             | Boolean       |
+| char                | Character     |
+
+由于Java内置的数据结构如`ArrayList`只能存储对象,所以我们需要将数据类型包装成一个数据类来处理:
+```Java
+import Java.util.ArrayList;
+
+public class Main {
+  public static void main(String[] args) {
+    ArrayList<String> cars = new ArrayList<String>();
+    cars.add("Volvo");
+    cars.add("BMW");
+    cars.add("Ford");
+    cars.add("Mazda");
+    System.out.println(cars);
+  }
+}
+```
+- 自然,这种脱裤子放屁的事情在Java中还有很多...
+![alt text](PixPin_2026-04-27_12-38-33.webp)
+### Java 泛型(generic)
+
+**将不同类型的数据统一处理**
+```Java
+class Box<T> {
+  T value; // T is a placeholder for any data type
+
+  void set(T value) {
+    this.value = value;
+  }
+
+  T get() {
+    return value;
+  }
+}
+
+public class Main {
+  public static void main(String[] args) {
+    // Create a Box to hold a String
+    Box<String> stringBox = new Box<>();
+    stringBox.set("Hello");
+    System.out.println("Value: " + stringBox.get());
+
+    // Create a Box to hold an Integer
+    Box<Integer> intBox = new Box<>();
+    intBox.set(50);
+    System.out.println("Value: " + intBox.get());
+  }
+}
+```
+**处理不同的数据输入**
+```Java
+public class Main {
+  // Generic method: works with any type T
+  public static <T> void printArray(T[] array) {
+    for (T item : array) {
+      System.out.println(item);
+    }
+  }
+
+  public static void main(String[] args) {
+    // Array of Strings
+    String[] names = {"Jenny", "Liam"};
+
+    // Array of Integers
+    Integer[] numbers = {1, 2, 3};
+
+    // Call the generic method with both arrays
+    printArray(names);
+    printArray(numbers);
+  }
+}
+```
+### Java Annotations(Java注解)
+>Annotations are **special notes** you add to your Java code. They start with the `@` symbol.
 
 
-## JVM
+注解并不会改变程序的运行方式,但是会为编译器和构建工具提供额外的信息,这与Python中的语法糖完全不同.
+
+最常用的注解有三个:
+1. `@Override`: Indicates that a method overrides a method in a superclass
+2. `@Deprecated`: Marks a method or class as outdated or discouraged from use
+3. `@SuppressWarnings`: Tells the compiler to ignore certain warnings
+
+- 尽管有点用吧,但依然是累赘设计...
+### Java多线程
+Java中有两种方法可以创建进程:
+```Java
+// 1.继承Thread系统类
+public class Main extends Thread {
+  public void run() {
+    System.out.println("This code is running in a thread");
+  }
+}
+// 2.实现Runnable接口,更推荐
+public class Main implements Runnable {
+  public void run() {
+    System.out.println("This code is running in a thread");
+  }
+}
+```
+真正要详细了解多线程需要在后面的Java线程池中学习
+
+
+# JVM
 - [讲的很好的JDK,JRE,JVM概念剖析](https://www.wdbyte.com/java/jdk-jre-jvm/)
 >JDK（Java Development Kit）、JRE（Java Runtime Environment）、JVM （Java Virtual Machine）是 Java 开发中的三个重要概念，JDK 包含了 JRE 和开发工具，JRE 包含了 JVM 和类库，JVM 是 Java 程序的运行环境。
 
 
-## Java8新特性
-### Java Lambda函数
-Lambda函数也被称为**匿名函数**,特点是使用时不会出现函数名.
-**基本格式**
-```Java
-(parameters) -> { body }
-```
-1.  **`(parameters)`**：类似于方法的参数列表。如果没有参数，直接写 `()`；如果只有一个参数且类型可推导，可以省略圆括号。
-2.  **`->`**：Lambda 运算符，固定写法，代表“传递”或“应用”。
-3.  **`{ body }`**：函数体。如果逻辑只有一行代码，可以省略花括号和 `return` 关键字。
-
-```Java
-import Java.util.ArrayList;
-import Java.util.function.Consumer;
-
-public class Main {
-  public static void main(String[] args) {
-    ArrayList<Integer> numbers = new ArrayList<Integer>();
-    numbers.add(5);
-    numbers.add(9);
-    numbers.add(8);
-    numbers.add(1);
-    
-    Consumer<Integer> method = (n) -> { System.out.println(n); };
-    numbers.forEach(method);
-  }
-}
-```
-如果你详细看上述代码的话,你会看到一个神奇的地方,
-method类竟然和一个匿名函数用等号连接起来了:
-
-```Java
-Consumer<Integer> method = (n) -> { ... };
-```
-
-这就引出了Java的函数式接口语法.
-
-### 函数式接口
 
 # Java构建工具
 与Cpp有Make,ninja,CMake类似,Java也有自己的构建工具,早期的构建工具为Ant,目前由Maven和Gradle两款工具统治,它俩也同时承担了包管理器的责任.

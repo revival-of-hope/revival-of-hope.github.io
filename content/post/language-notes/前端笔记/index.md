@@ -6,57 +6,12 @@ image:
 ---
 # 前端概览
 - [wiki](https://en.wikipedia.org/wiki/Front_end_and_back_end)
+
 >前端与后端是一对概念,前端用于指代用户交互层,后端用于指代数据处理层
-## 前端语言历史
-这里仅仅是简单的AI总结,后面会针对特定的语言重新梳理历史
-#### 1. 静态网页与基础确立期 (1990 - 1994)
-这是 Web 从实验室走向公众的阶段，定义了网页的基本物理结构。
-* **1990年**：Tim Berners-Lee 编写了第一个网页浏览器，并定义了 **HTML** 的初始概念。
-* **1993年**：**HTML 1.0** 发布。此时仅支持简单的文本、链接和标题，没有图片支持。
-* **1994年**：Håkon Wium Lie 提出 **CSS** 草案，旨在将网页的内容（HTML）与样式（表现）分离。同年，W3C（万维网联盟）成立。
 
-#### 2. 脚本诞生与浏览器大战 (1995 - 1999)
-网页开始具备交互能力，但陷入了严重的兼容性混乱。
-* **1995年5月**：Brendan Eich 在网景公司仅用 10 天开发出 **JavaScript**（最初名 Mocha，后改名 LiveScript）。
-* **1996年11月**：微软发布 **JScript**（JS 的逆向工程版）随 IE3 捆绑。
-* **1996年12月**：**CSS 1** 成为正式推荐标准，支持字体、颜色和间距。
-* **1997年6月**：**ECMAScript 1 (ES1)** 发布，标志着 JavaScript 核心语法标准化的开始。
-* **1998年5月**：**CSS 2** 发布。引入了定位（Absolute/Relative）和层级（Z-index）概念。
-* **1999年12月**：**HTML 4.01** 发布，成为此后十年网页开发的基石。
+前端最令人遗憾的地方在于,早期的浏览器大战使得网络生态混乱不堪,不同企业之间高筑护城河,诞生了各种各样的框架和新特性,让新入门的程序员一筹莫展,不知道学什么好.
 
-#### 3. 沉寂与 XML 歧途期 (2000 - 2004)
-W3C 试图推动严苛的 XHTML，而开发者社区开始探索动态更新。
-* **2000年1月**：**XHTML 1.0** 发布，要求 HTML 必须遵循严格的 XML 语法（标签必须关闭、小写等）。
-* **2001年**：Douglas Crockford 定义了 **JSON** 格式，作为比 XML 更轻量的底层数据交换协议。
-* **2002年**：IE6 占据 90% 以上市场，前端创新陷入停滞，开发者深陷“私有属性”兼容性泥潭。
-* **2004年**：WHATWG 组织成立（由 Apple/Mozilla 成员组成），反对 XHTML 路线，开始秘密起草 HTML5。
-
-#### 4. Ajax 革命与工程化萌芽 (2005 - 2009)
-Web 2.0 时代开启，网页从“文档”转变为“应用”。
-* **2005年2月**：Jesse James Garrett 提出 **Ajax** 概念。利用 JS 异步请求数据，实现了无需刷新页面的动态交互。
-* **2006年8月**：**jQuery** 发布。它抹平了各浏览器之间的 DOM 操作差异，成为未来十年的统治级库。
-* **2009年5月**：**Node.js** 发布。JS 开始具备服务端运行能力，导致前端工程化（构建工具、NPM）的爆发。
-* **2009年12月**：**ES5** 发布。这是 JS 历史上极其稳定的版本，引入了 `strict mode` 和数组迭代方法。
-
-#### 5. 框架割据与 HTML5 爆发 (2010 - 2014)
-单页应用 (SPA) 架构确立，前端逻辑复杂度指数级上升。
-* **2010年10月**：**AngularJS (1.0)** 和 **Backbone.js** 发布。引入了 MVC 模式和双向数据绑定。
-* **2011年**：**CSS 3** 拆分为多个模块独立演进，引入了 Flexbox、圆角、阴影和动画。
-* **2012年**：微软发布 **TypeScript**。引入静态类型检查，解决了大规模 JS 项目难以维护的物理缺陷。
-* **2013年5月**：Facebook 开源 **React**。引入 **Virtual DOM** 和声明式编程，彻底改变了 UI 更新的逻辑模型。
-* **2014年2月**：尤雨溪发布 **Vue.js**。凭借极低的学习曲线和高性能机制在社区快速崛起。
-* **2014年10月**：**HTML5** 正式定稿。提供了 Canvas 绘图、离线存储、音视频原生支持等底层能力。
-
-#### 6. 现代标准与性能深耕期 (2015 - 2025)
-语言标准进入年度迭代，WebAssembly 开启性能新维度。
-* **2015年6月**：**ES6 (ES2015)** 发布。这是 JS 史上最大的语法飞跃，引入了 `class`、`arrow functions`、`Promise` 和模块化支持。
-* **2017年**：**WebAssembly (Wasm)** 核心规范发布。允许 C++/Rust 代码以接近原生的速度在浏览器运行。
-* **2019年**：**CSS Grid** 布局获得各大浏览器全面支持，二维布局问题得到终极解决。
-* **2020年 - 2023年**：**Next.js** 和 **Nuxt.js** 推动了服务端渲染 (SSR) 的回归；**Vite** 取代 Webpack 成为新一代构建工具，大幅提升开发效率。
-* **2024年 - 2025年**：**TypeScript** 成为事实上的行业标准。CSS 引入原生嵌套 (Nesting)、作用域 (Scope) 等特性，逐渐侵蚀 Sass/Less 等预处理器的领地。
-
-
-理论上来说,只用JSX和TSX就可以搭建一个现代网页了,但为了巩固基础,还是得从老三样开始学.
+不管怎样,我还是按照前端三件套到JSX,TSX的步骤来学习,从而更深入的理解前端的方方面面.
 # HTML
 **Hypertext Markup Language**(HTML)是一门用来处理网页文档内容的标记语言,通过dom(Document Object Model)将HTML中的元素映射到引擎中,从而展示出你现在看到的所有网页.
 ## HTML历史
@@ -99,7 +54,19 @@ Web 2.0 时代开启，网页从“文档”转变为“应用”。
 
 - `yaml`与`yml`也是同样的道理.
 
-最后,特别要注意的是,html里的标签是**大小写不敏感**的,官方推荐**全都小写**;同时,标签的属性都推荐用**双引号**括起来
+接着我们要知道的是,html元素内部是**不存在逗号**的,**只能通过空白**来区分两个属性或者属性的内部值,而且,属性值可以写引号但也可以不写,但如果不写引号的话,当有多个属性时就非常混乱,所以官方推荐全部加上引号,而且是双引号.
+
+```html
+<button type="submit" id="main-auth-btn" class="ui-button primary-style large-size" name="login-action" value="execute" title="点击进行登录" aria-label="登录账户" data-api-endpoint="/v1/auth" data-loading="false" disabled>立即登录</button>
+```
+
+由于下面的属性中style本质上是**css代码**,遵循css语法,故可以出现分号:
+```html
+<button class="btn btn-primary btn-large" style="color: white; background-color: blue; padding: 10px 20px;">
+  Click Me
+</button>
+```
+最后,特别要注意的是,html里的标签是**大小写不敏感**的,官方推荐**全都小写**
 
 
 ## 主体架构
@@ -122,11 +89,11 @@ Web 2.0 时代开启，网页从“文档”转变为“应用”。
 ```
 我做了相应的缩进以让层次划分更加明显:
 
-1. 首行的`<!DOCTYPE html>`声明: 历史遗留语法,供浏览器识别这个文档为html类型
+1. 首行的`<!DOCTYPE html>`声明: 历史遗留语法,供浏览器识别这个文档为html类型,无论如何都必须写,而且写在第一行.
 2. 整个网页内容由`<html><html/>`包裹,尽管大家都知道这是html文档了,但还是需要用html标签来声明.
 3. 整个网页内容分成两部分: **head与body**,head部分包括了网页的各种属性,供搜索引擎和浏览器识别;body部分包括了整个网页的内容,决定了渲染的用户界面
 
-## 段落与链接的表示
+## 文本表示
 **标题**
 ```html
 <h1>This is heading 1</h1>
@@ -145,44 +112,9 @@ Web 2.0 时代开启，网页从“文档”转变为“应用”。
 
 需要注意的是,p标签会自动过滤多余的空格和换行,根据窗口大小自动渲染文本:
 ![alt text](PixPin_2026-04-26_23-38-28.webp)
-**超文本链接**
-```html
-<a href="https://www.w3schools.com">This is a link</a>
-```
-- href: Hypertext Reference,意为跳转链接
 
->**a标签的详细说明**
-a对应的全称为anchor(锚点),指代互联网海洋中相互勾连的节点,你可以从一个锚点跳转到另一个锚点.
 
-**图像链接**
-```html
-<img src="w3schools.jpg" alt="W3Schools.com" width="104" height="142">
-```
-这是我们目前为止看到的第一个不需要闭合的标签,因为我们无法用文本来指代图像.
-
-- **src**: source,图片路径,可以是文件路径也可以是网页路径
-- **alt**: **Alternate Text**,备用文本,以防图片无法正常显示时出现的占用文字,同时可以帮助盲人和爬虫理解.
-- 宽高比通常由css设置,没必要在html中指定
-**head中的链接:link**
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>My Page Title</title>
-  <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
-</head>
-<body>
-<!-- omitted -->
-</body>
-</html>
-```
-head中可以定义标签栏的内容和图标:
-- title: 标签栏展示的标题
-- link: 图标的链接,与常用的a链接区分开来
-- rel: **Relationship**,定义当前文档与被链接资源之间的关系,告诉浏览器这个文件是一个图标
-- type: `Multipurpose Internet Mail Extensions Type`,告知浏览器这个文件的具体格式
-
-## 一些常用的属性
+## html常用属性
 ### style
 ```html
 <p style="color:red;">This is a red paragraph.</p>
@@ -199,7 +131,60 @@ head中可以定义标签栏的内容和图标:
 </html>
 ```
 帮助搜索引擎和爬虫了解该文章所用的语言,我们平常浏览页面时弹出的是否翻译此页面,就是根据这个属性来判断,当前页面语言和浏览器默认语言是否相同的.
+### class
+为css提供一个访问入口,css通过`.`前缀来绑定dom中的class属性:
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.city {
+  background-color: tomato;
+  color: white;
+  border: 2px solid black;
+  margin: 20px;
+  padding: 20px;
+}
+</style>
+</head>
+<body>
 
+<div class="city">
+  <h2>London</h2>
+  <p>London is the capital of England.</p>
+</div>
+
+<div class="city">
+  <h2>Paris</h2>
+  <p>Paris is the capital of France.</p>
+</div>
+
+<div class="city">
+  <h2>Tokyo</h2>
+  <p>Tokyo is the capital of Japan.</p>
+</div>
+
+</body>
+</html>
+```
+
+**效果**
+
+![alt text](PixPin_2026-04-28_16-16-45.webp)
+
+class有以下特点:
+
+1. **一个元素可以有多个class,一个class也可以被多个元素使用**.
+2. **后定义的class会覆盖先定义的class**
+
+### id
+显然,如果只有class的话,当两个标签的排版只有些微的不同时,我们是不希望重新写一个只有些微不同的class的,所以,html引入了**id**属性,用于额外标识标签元素,从而实现元素的精细化操控.
+
+在同一个HTML页面中,ID必须是唯一的(类似身份证号),并且可被css通过`#`前缀来绑定:
+
+![alt text](PixPin_2026-04-28_16-23-03.webp)
+
+如前所说,我们引入id属性是为了对标签进行独特的修改,那么当一个元素同时拥有 id 和 class，且两者定义了同一个属性时,**id 的样式会覆盖 class 的样式**,这与它们在代码中出现的先后顺序无关.
 ## 中断符
 ### hr
 `<hr>`表示界面的中断,会在文本中间划一道分割线.通常用它来分割内容:
@@ -270,11 +255,245 @@ head中可以定义标签栏的内容和图标:
 
 ![alt text](PixPin_2026-04-28_16-07-00.webp)
 
+### span
+该标签没有任何实质作用,仅仅是将一部分文本标记起来,方便通过设定class属性来供css和js操控:
 
-## 表单
-## 
+![alt text](PixPin_2026-04-28_16-14-35.webp)
+
+### 按钮
+```html
+<button>Click Me</button>
+```
+
+- 不太懂html制定者的标准是什么,image五个字母要变成img,button六个字母却不变成btn甚至bt...
+
+button最强大的地方在于可以通过onclick属性绑定js:
+```html
+<button onclick="alert('Hello!')">Click Me</button>
+```
+
+
+## 链接表示
+**超文本链接**
+```html
+<a href="https://www.w3schools.com">This is a link</a>
+```
+- href: Hypertext Reference,意为跳转链接
+
+>**a标签的详细说明**
+>
+>a对应的全称为anchor(锚点),指代互联网海洋中相互勾连的节点,你可以从一个锚点跳转到另一个锚点.
+
+**图像链接**
+```html
+<img src="w3schools.jpg" alt="W3Schools.com" width="104" height="142">
+```
+这是我们目前为止看到的第一个不需要闭合的标签,因为我们无法用文本来指代图像.
+
+- **src**: source,图片路径,可以是文件路径也可以是网页路径
+- **alt**: **Alternate Text**,备用文本,以防图片无法正常显示时出现的占用文字,同时可以帮助盲人和爬虫理解.
+- 宽高比通常由css设置,没必要在html中指定
+
+
+
+
+## 嵌入文本文件/音视频
+### iframe
+>**iframe**用于在html内部展示另一个html文件或者其他文本文件.
+
+- iframe: **inline frame**,行内框架
+**基本结构**
+```html
+<iframe src="url" title="description"></iframe>
+```
+
+![alt text](PixPin_2026-04-29_14-22-25.webp)
+
+#### 流媒体展示
+由于可以直接展示html网页,自然也就可以展示流媒体(B站,Youtube)中的音视频:
+```html
+<iframe 
+    src="//player.bilibili.com/player.html?bvid=BV1yVQFBNEPn&page=1&high_quality=1&danmaku=0" 
+    allow="autoplay; fullscreen; encrypted-media" 
+    allowfullscreen="true" 
+    width="100%" 
+    height="500" 
+    frameborder="0">
+</iframe>
+```
+
+<iframe 
+    src="//player.bilibili.com/player.html?bvid=BV1yVQFBNEPn&page=1&high_quality=1&danmaku=0" 
+    allow="autoplay; fullscreen; encrypted-media" 
+    allowfullscreen="true" 
+    width="100%" 
+    height="500" 
+    frameborder="0">
+</iframe>
+
+
+### video
+video的用法与image别无二致
+```html
+<video 
+    src="https://www.w3schools.com/html/mov_bbb.mp4" 
+    controls 
+    width="640">
+    您的浏览器不支持 video 标签。
+</video>
+```
+
+<video 
+    src="https://www.w3schools.com/html/mov_bbb.mp4" 
+    controls 
+    width="640">
+    您的浏览器不支持 video 标签。
+</video>
+
+### audio
+用法别无二致:
+
+```html
+<audio controls>
+  <source src="horse.ogg" type="audio/ogg">
+  <source src="horse.mp3" type="audio/mpeg">
+Your browser does not support the audio element.
+</audio>
+```
+值得注意的是,我们这里使用了source内部标签而没有将src作为父标签`audio`的属性,source标签用于为浏览器提供多样的选择,自上而下扫描第一个可用的源.
+## 表单(form)
+>早期不使用js的时候我们只能通过html中的表单(form)元素来提交用户输入,所以还是有必要了解的.
+## Head部分的标签
+### 概览
+| Tag        | Description                                                           |
+| :--------- | :-------------------------------------------------------------------- |
+| `<head>`   | Defines information about the document                                |
+| `<title>`  | Defines the title of a document                                       |
+| `<base>`   | Defines a default address or a default target for all links on a page |
+| `<link>`   | Defines the relationship between a document and an external resource  |
+| `<meta>`   | Defines metadata about an HTML document                               |
+| `<script>` | Defines a client-side script                                          |
+| `<style>`  | Defines style information for a document                              |
+
+下面开始逐个解释这些标签:
+
+### **title**
+功能:
+1. defines a title in the browser toolbar
+2. provides a title for the page when it is added to favorites
+3. displays a title **for the page in search engine-results**
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>A Meaningful Page Title</title>
+</head>
+<body>
+
+The content of the document......
+
+</body>
+</html>
+```
+
+### **style**
+功能:
+
+- 写入内嵌css
+
+```html
+<style>
+  body {background-color: powderblue;}
+  h1 {color: red;}
+  p {color: blue;}
+</style>
+```
+
+### **link**
+功能:
+
+1. 引入外部静态文件
+
+说明:
+
+1. rel: relationship,点名这个文件的格式和功能
+2. type: 对于图像等格式众多的文件,需要额外说明它的具体格式
+
+引入外部css文件
+```html
+<link rel="stylesheet" href="mystyle.css">
+```
+引入标题栏的图标:
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Page Title</title>
+  <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+</head>
+<body>
+<!-- omitted -->
+</body>
+</html>
+```
+
+### **meta**
+
+功能:
+
+1. pecify the character set, page description, keywords, author of the document, and viewport settings.
+2. 不会展示在页面上,仅供浏览器/搜索引擎识别和处理
+
+Define the character set used:
+
+```html
+<meta charset="UTF-8">
+```
+
+Define keywords for search engines:
+
+```html
+<meta name="keywords" content="HTML, CSS, JavaScript">
+```
+
+Define a description of your web page:
+
+```html
+<meta name="description" content="Free Web tutorials">
+```
+
+Define the author of a page:
+
+```html
+<meta name="author" content="John Doe">
+```
+
+Refresh document every 30 seconds:
+
+```html
+<meta http-equiv="refresh" content="30">
+```
+
+Setting the viewport to make your website look good on all devices:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+```
+
+### script
+由于html的某些设计问题,js代码没有像css一样用link进行导入,而是单独引入了一个标签script:
+
+```html
+<script>
+function myFunction() {
+  document.getElementById("demo").innerHTML = "Hello JavaScript!";
+}
+</script>
+```
+## body部分的其他标签
 ## 总结
-常用的html元素就这些了,但我们一直没有深入探讨html元素的原生style修饰,那是因为在html中指明样式太麻烦了,所以在html诞生不久之后,又一个划时代的标记语言产生了: CSS
+常用的html元素就这些了,但我们一直没有深入探讨html元素的原生style修饰,那是因为在html中指明样式太麻烦了,所以在html诞生不久之后,又一个划时代的标记语言: CSS,产生了.
 
 # CSS
 >[wiki](https://en.wikipedia.org/wiki/CSS)
