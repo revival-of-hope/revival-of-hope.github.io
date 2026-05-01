@@ -1,7 +1,7 @@
 ---
 title: 主要互联网组织调研
 date: 2026-04-02 17:32:10
-tags: 调研
+tags: [调研]
 image: 60095408_p0-Autumn.jpg
 ---
 # W3C
