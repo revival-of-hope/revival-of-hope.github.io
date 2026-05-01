@@ -892,14 +892,14 @@ public class Main {
 >Annotations are **special notes** you add to your Java code. They start with the `@` symbol.
 
 
-注解并不会改变程序的运行方式,但是会为编译器和构建工具提供额外的信息,这与Python中的语法糖完全不同.
+注解并不会改变程序的运行方式,但是会为编译器和构建工具提供额外的信息,这与Python中的`@`语法糖完全不同.
 
 最常用的注解有三个:
 1. `@Override`: Indicates that a method overrides a method in a superclass
 2. `@Deprecated`: Marks a method or class as outdated or discouraged from use
 3. `@SuppressWarnings`: Tells the compiler to ignore certain warnings
 
-- 尽管有点用吧,但依然是累赘设计...
+- 尽管看着是累赘设计,不过在Java测试中,Java注解将会真正发挥强大的作用
 ### Java多线程
 Java中有两种方法可以创建进程:
 ```Java
@@ -919,14 +919,41 @@ public class Main implements Runnable {
 真正要详细了解多线程需要在后面的Java线程池中学习
 
 
-# JVM
-- [讲的很好的JDK,JRE,JVM概念剖析](https://www.wdbyte.com/java/jdk-jre-jvm/)
->JDK（Java Development Kit）、JRE（Java Runtime Environment）、JVM （Java Virtual Machine）是 Java 开发中的三个重要概念，JDK 包含了 JRE 和开发工具，JRE 包含了 JVM 和类库，JVM 是 Java 程序的运行环境。
+# Java构建与打包
+
+## JDK详解
+- [参考博文](https://www.wdbyte.com/java/jdk-jre-jvm/)
+
+JDK（Java Development Kit）、JRE（Java Runtime Environment）、JVM （Java Virtual Machine）是 Java 开发中的三个重要概念，**JDK 包含了 JRE 和开发工具，JRE 包含了 JVM 和类库，JVM 是 Java 程序的运行环境**。
+
+![alt text](PixPin_2026-05-01_16-49-36.webp)
+
+这张图说的很清楚了:
+1. JDK除了包含JRE以外,还有javac,javadoc,jar等开发工具
+2. JRE除了包含JVM外,还包含有各类Java系统库,如`java.util`,`java.io`库等.
+   1. 如果自己不需要开发Java项目,只用JRE就足够运行已经被javac编译器编译出的class文件.
+3. JVM负责执行class文件,从而运行java程序,在需要时由JRE帮助导入系统库和第三方库.
+
+>这样看来,底层根本就不存在所谓的java到c/cpp的转换,就算JVM是用cpp写的,但实际上来说根本不需要将java转换成cpp,而是让JVM逐个执行class文件即可.所以java比起cpp慢的主要原因在于多了一个从.java文件到.class文件的转换构建,而cpp程序编译得到的可执行文件由于更贴近底层,程序改动后的即时编译构建不需要做很大的改动即可运行,所以速度更快.
+## JVM详解
+>我们总说Java"一次编写,处处运行",靠的就是JVM实现的.要想更好的理解这句话,可以这么说,不同操作系统使用的JVM不同,但是我们可以编写同一份java代码,无需像Cpp那样需要适配不同的平台来编写不同的代码.
+
+## Class文件详解
+- [参考博客](https://www.cnblogs.com/zsql/p/12907120.html)
+
+class文件是java文件被javac等编译器编译后得到的平台无关的**中间文件**,其地位类似于cpp/c中的目标文件(尽管cpp中的目标文件是平台相关的).
+
+一张非常简洁明了的示意图如下:
+![alt text](PixPin_2026-05-01_16-30-53.webp)
 
 
+## Java打包
+我们时常能够看到java项目中的.jar(Java Archive)文件
 
+# Java测试
+由于JUnit在Java的测试库中占据了绝对主流,所以
 # Java构建工具
-与Cpp有Make,ninja,CMake类似,Java也有自己的构建工具,早期的构建工具为Ant,目前由Maven和Gradle两款工具统治,它俩也同时承担了包管理器的责任.
+与Cpp有Make,ninja,CMake类似,Java也有自己的构建工具,早期的构建工具为Ant,目前由Maven和Gradle两款工具统治,它俩也同时承担了包管理器的责任,功能基本等价于Python中的uv.
 ## Maven
 ### Maven历史
 #### 1. 概念起源与孵化 (2002 - 2003)
@@ -944,8 +971,41 @@ public class Main implements Runnable {
     * **解耦与兼容**：在保持与 2.x 项目兼容的同时，重构了核心项目构建器。
     * **性能提升**：引入**并行构建**特性，能够利用多核 CPU 处理大型多模块项目。
     * **非 XML 尝试**：开始支持非 XML 的项目定义文件（如 Ruby、YAML、Groovy），解耦了内存表示与文件格式。
+### 安装方法
+[官网](https://maven.apache.org/install.html)下载压缩包后解压,将解压路径的bin目录添加到环境变量:
+![alt text](PixPin_2026-05-01_12-50-48.webp)
+
+命令行输入`mvn -v`,成功:
+![alt text](PixPin_2026-05-01_12-51-05.webp)
 
 ### 使用方法
+#### 命令行使用
+- 官网甚至没有新手教程,只有参考(reference)...
+- [菜鸟教程](https://www.runoob.com/maven/maven-intro.html)
+
+打开powershell在当前目录创建一个maven初始项目:
+```bash
+mvn archetype:generate '-DgroupId=com.example' '-DartifactId=my-first-app' '-DarchetypeArtifactId=maven-archetype-quickstart' '-DinteractiveMode=false'
+```
+
+初始结构长这样:
+
+![alt text](PixPin_2026-05-01_16-21-14.webp)
+
+输入`mvn compile`,构建后增加了target文件夹和其中的一些文件:
+
+![alt text](PixPin_2026-05-01_16-22-10.webp)
+
+输入`mvn test`,增加了测试结果文件:
+
+![alt text](PixPin_2026-05-01_16-23-45.webp)
+
+输入`mvn package`,将项目打包成了jar:
+
+![alt text](PixPin_2026-05-01_16-26-33.webp)
+
+为了运行这个jar
+#### pom.xml
 ## Gradle
 ### Gradle历史
 #### 1. 概念孵化与 Groovy 基因 (2007 - 2008)
@@ -966,5 +1026,18 @@ public class Main implements Runnable {
 * **2021年4月 (Version 7.0)**：引入 **Version Catalogs**（版本目录），实现了多项目之间依赖版本的集中管理，正式统一了大型项目的依赖规范。
 * **2023年2月 (Version 8.0)**：针对配置阶段进行了深度优化，支持 **Configuration Cache**，使得复杂项目的构建配置速度提升数倍。
 * **2025年7月 (Version 9.0)**：最新里程碑版本。进一步强化了云端构建能力和对现代 JDK 特性的深度适配，确立了其在高复杂度、高性能要求构建场景下的统治地位。
+### 安装方法
+[官网](https://docs.gradle.org/current/userguide/installation.html#installation)下载二进制版本,解压后将bin目录添加到环境变量,命令行输入`gradle -v`,成功:
 
+![alt text](PixPin_2026-05-01_12-57-34.webp)
+
+- 不要下载完整(complete)版,下了也可以,但没必要.
+
+
+### 使用方法
+- [官网教程](https://docs.gradle.org/current/userguide/part1_gradle_init.html#part1_begin)
+
+
+# spring
+# spring boot
 # 使用Docker开发Java
