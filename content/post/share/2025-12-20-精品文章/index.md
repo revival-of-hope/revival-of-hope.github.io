@@ -11,13 +11,16 @@ image: 36042993_p0-千本桜 夜ニ紛レ.webp
 ## [fastapi+react前后端基础教学](https://testdriven.io/blog/fastapi-react/)
 ## [zip算法](https://www.cnblogs.com/esingchan/p/3958962.html)
 ## [react框架比较](https://segmentfault.com/a/1190000044372738)
+## [sqlite背后的故事](https://liyafu.com/2022-07-31-sqlite-untold-story/)
+## [手写识别算法](https://jackschaedler.github.io/handwriting-recognition/)
+## [python的问题](https://www.dongwm.com/post/be-a-gopher/)
 # 职场文章-秋招与实习
 
 ## [校招流程](https://www.zackwu.com/posts/2020-10-05-an-incomplete-guide-to-campus-recruitment-interviews/)
 ## [还是校招](https://blog.cugxuan.cn/2021/01/06/Campus/guide-capmus-v2/)
 ## [微软实习](https://ddadaal.me/articles/2019-spring-ms-intern-interview-experiences)
 
-
+## [18年的前端实习春招](https://kingofsolo.github.io/2018/05/03/2018%E6%98%A5%E6%8B%9B%E6%80%BB%E7%BB%93/)
 
 # 阅历文章
 ## [科大非全日制](https://blog.csdn.net/u010882234/article/details/104115871)
@@ -39,7 +42,7 @@ image: 36042993_p0-千本桜 夜ニ紛レ.webp
 
 ## [日本游记](https://nekonull.me/archive/2310-jp-travel/)
 
-## [python的问题](https://www.dongwm.com/post/be-a-gopher/)
+
 
 ## [My solopreneur story: zero to $45K/mo in 2 years](https://news.tonydinh.com/p/my-solopreneur-story-zero-to-45kmo)
 

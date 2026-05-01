@@ -66,10 +66,12 @@ Python在目前是最值得学的语言,没有之一,它依靠简单好用的语
 
 ## 函数
 ### 返回值
-关于函数的返回值有以下特性:
+关于python函数的返回值有以下特性:
 1. Python原生支持多个返回值,既不需要像cpp那样用数组指针来迂回处理,也不需要像JS那样用数组解构处理.
-2. 
+
+
 ### 参数
+
 ## OOP
 >如果用 C++ 术语来描述的话，类成员（包括数据成员）通常为 public,所有成员函数都为 virtual
 ### 创建类实例
@@ -457,7 +459,7 @@ if __name__ == "__main__":
 
 
 # Python类型注释
-类型注释在PEP484中引入,也就是2015年的Python3.5,从而在很大程度上解决了Python动态类型带来的混乱.
+类型注释在PEP484也就是2015年的Python3.5中引入,从而在很大程度上解决了Python动态类型带来的混乱.
 ## 简单的类型注释
 如下方代码所示,类型注释有两种格式:
 1. `变量名: 类型`: 用于提示参数的类型
@@ -938,7 +940,8 @@ app = FastAPI(
 )
 ```
 也就是说,我们启动了后端中的关键部分,从而实现对后端的整体调用,测试整个应用的运行是否正常.
-# Python格式检查
+# Python格式检查与数据规范
+就算测试通过了,我们的代码仍然可能是混乱的和不好维护的,通过ruff库我们可以保证程序不出现冗余的代码和意义不明的变量.通过Pydantic库我们可以保证程序运行时不会出现意外的错误.
 ## ruff
 ### 是什么,怎么用
 ruff是用rust编写的Python格式检查库,可以迅速将py文件规范化,速度比一版的格式检查库都要快很多.
@@ -961,6 +964,8 @@ ruff check --fix            # Lint files in the current directory and fix any fi
 ruff check --watch          # Lint files in the current directory and re-lint on change.
 ruff check path/to/code/    # Lint files in `path/to/code`.
 ```
+## Pydantic
+
 
 # Python读取文件
 本部分所用的weekly_hiring_comments.json示例的结构如下:
@@ -1275,9 +1280,7 @@ with open(out_dir / "硕士及以上.json", "w", encoding="utf-8") as f:
 
 ```
 
-
-
-## dotenv库: 读取.env文件
+## dotenv库: 简单读取.env文件
 对于密码,API密钥这些文件,用json文件存取不够方便也不够安全,因此我们有了.env文件,样式如下:
 ```toml
 # github token
@@ -1292,13 +1295,18 @@ load_dotenv()
 TOKEN = os.getenv("token")
 ```
 `load_dotenv()`函数会递归寻找.env文件并返回内容供os库读取,从而避免了写路径的麻烦.
-## 
+## pydantic_settins库: 优雅处理.env文件
+显然,上述的简单方法一点都不美观,而且会有以下问题:
+1. 如果所请求的环境变量不存在如何处理?
+2. 如果环境变量的格式错误怎么办?
+
+因此,我们需要使用pydantic_settings库来用现代的类封装方式处理.env文件.
 # Python爬虫
 和机器学习一样,我第一次学习Python爬虫是没有任何成果的,一开始是听说有这么个东西,就去zlib上随便下了本参考书,由于参考书是十年前的,因此使用了很多老掉牙的库和奇奇怪怪的语法,再加上当时水平有限,根本无法复现,于是就浅尝辄止了.
 
 但现在,我想要试着用爬虫找到合适的招聘数据用来为以后的暑期实习和秋招服务,所以又把这门技术捡起来从零开始学了.
 
-- 参考文章: 菜鸟教程以及官方文档
+- 参考文章: 官方文档以及菜鸟教程
 ## 爬虫概念
 >[wiki](https://en.wikipedia.org/wiki/Web_crawler)
 Web crawler, sometimes called a spider or spiderbot and often shortened to crawler, is an Internet bot that systematically browses the World Wide Web and that is typically operated by **search engines** for the purpose of Web indexing (web spidering)
@@ -1342,7 +1350,7 @@ r = requests.delete('https://httpbin.org/delete')
 r = requests.head('https://httpbin.org/get')
 r = requests.options('https://httpbin.org/get')
 ```
-自然,当我们使用爬虫时,只需要使用get请求就足够了
+自然,当我们使用爬虫时,只需要使用get请求就足够了,因为一般来说你不需要去更新或者删除网页上的资源,而是获取网页资源.
 
 ### 给get请求带上参数
 >If you were constructing the URL by hand, this data would be given as key/value pairs in the URL after a question mark, e.g. `httpbin.org/get?key=val`. Requests allows you to provide these arguments as a dictionary of strings, using the params keyword argument.
@@ -1626,7 +1634,7 @@ git clone https://git.launchpad.net/beautifulsoup
 - 而且还能看到**dammit.py**这么一个神奇的名字
 
 ## 小结
-结合requests(,bs4)和支持读写文件的库,我们现在基本可以爬取所有的静态网页资源,并在处理后进行存储了.
+结合requests,bs4和文件处理库,我们现在基本可以爬取所有的静态网页资源,并在处理后进行存储了.
 ## Selenium学习
 
 - [官方教程](https://www.selenium.dev/zh-cn/documentation/webdriver/getting_started/)
@@ -2199,8 +2207,14 @@ class Spider(object_ref):
 看了源码就可以知道,start,parse两个方法并不会自动调用,换句话说,使用scrapy命令行的时候,其内部是通过调用了这两个方法来进行爬取的.
 
 
+# Python数据库框架
+## SQLAlchemy
+## SQLModel库
+
 # Python网络通信
 >尽管大家都说Python无法很好的处理高并发,但在绝大多数网络通信环境下,它都比其他语言好用的多
+
+
 ## 前置概念: WSGI与ASGI
 - [ASGI doc](https://asgi.readthedocs.io/en/latest/specs/main.html#overview)
 - [wiki](https://en.wikipedia.org/wiki/Web_Server_Gateway_Interface)
@@ -2309,8 +2323,15 @@ server {
 ASGI的全称为**Asynchronous Server Gateway Interface**,在WSGI的基础上加入了对异步的支持.ASGI协议的最新版本为3.0,于2019年修订.
 #### 为什么要引入ASGI
 >The WSGI specification has worked well since it was introduced, and allowed for great flexibility in Python framework and web server choice. However, **its design is irrevocably tied to the HTTP-style request/response cycle**, and more and more protocols that do not follow this pattern are becoming a standard part of web programming (most notably, WebSocket).
-# Python文件处理
-# Python数据处理
-## Numpy库
 
+### 总结
+至于为什么要谈及这两个规范,是因为接下来我们要谈到的两个库: flask和fastapi,分别遵循了WSGI规范和ASGI规范,从而对这两个库会有更好的初步理解.
+
+## Flask
+## Starlette
+## Uvicorn
+## Fastapi
+
+# Python科学计算
+## Numpy库
 ## Matplotlib库

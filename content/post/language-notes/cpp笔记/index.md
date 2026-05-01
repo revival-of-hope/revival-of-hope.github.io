@@ -540,7 +540,7 @@ printf("Data: Name=%s, Age=%d\n", name, age);
 ```
 
 ## 进阶特性
-### cpp的内存分配与执行过程
+### cpp的编译与装载
 #### 误区剖析
 - [来源](https://whatbeg.com/2019/04/16/cppmemory.html)
 通常一个由 C/C++ 编译的程序占用的内存分为以下 5 个部分:
