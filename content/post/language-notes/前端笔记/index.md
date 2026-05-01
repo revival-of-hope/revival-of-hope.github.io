@@ -3,6 +3,7 @@ title: 前端笔记
 date: 2026-04-30T09:56:06+08:00
 tags: 前端
 image: 60155475_p0-ゆき.webp
+math: true
 ---
 # 前端概览
 - [W3schools](https://www.w3schools.com/css/css_intro.asp)
@@ -686,11 +687,139 @@ p {
 ```
 ### 选择器
 #### 标签元素的修饰
-
+该方法通常用于全局样式的处理,例如下面的代码会将所有的p标签变红:
+```css
+p {
+  text-align: center;
+  color: red;
+}
+```
 #### id和class属性的修饰
-
+id选择器只会处理单个标签:
+```css
+#para1 {
+  text-align: center;
+  color: red;
+}
+```
+而class选择器处理一类标签:
+```css
+/* In this example all HTML elements with class="center" will be red and center-aligned:  */
+.center {
+  text-align: center;
+  color: red;
+}
+```
 #### 多个元素的选择
-## 
+通配符`*`会影响**html中的所有元素**:
+```css
+* {
+  text-align: center;
+  color: blue;
+}
+```
+
+而有时候如果多个元素的处理方法相同的话:
+```css
+h1 {
+  text-align: center;
+  color: red;
+}
+
+h2 {
+  text-align: center;
+  color: red;
+}
+
+p {
+  text-align: center;
+  color: red;
+}
+```
+显然这么写太麻烦了,我们可以合并一下变成下面这样:
+```css
+h1, h2, p {
+  text-align: center;
+  color: red;
+}
+```
+### 层叠的css
+之所以CSS叫做**Cascading Style Sheets**,是因为当一个html中含有多个css时,它按照以下顺序解读:
+1. Inline style (inside an HTML element)
+2. External and internal style sheets (in the head section)
+   1. 后定义的样式表属性会覆盖先定义的样式表中的相同属性
+3. Browser default
+## CSS调色
+### 颜色属性名
+**color**,调整标签中文本的颜色:
+```html
+<h1 style="color:Tomato;">Hello World</h1>
+<p style="color:DodgerBlue;">Lorem ipsum...</p>
+<p style="color:MediumSeaGreen;">Ut wisi enim...</p>
+```
+
+**border**,调整标签的边框颜色:
+![alt text](PixPin_2026-05-01_22-40-11.webp)
+
+**background-color**,调整标签背景颜色:
+
+```html
+<h1 style="background-color:rgb(255, 99, 71);">...</h1>
+<h1 style="background-color:#ff6347;">...</h1>
+<h1 style="background-color:hsl(9, 100%, 64%);">...</h1>
+
+<h1 style="background-color:rgba(255, 99, 71, 0.5);">...</h1>
+<h1 style="background-color:hsla(9, 100%, 64%, 0.5);">...</h1>
+```
+
+效果:
+![alt text](PixPin_2026-05-01_23-07-42.webp)
+
+
+### 调色方法
+#### 通过颜色名调色
+```html
+<h1 style="color:Tomato;">Hello World</h1>
+<p style="color:DodgerBlue;">Lorem ipsum...</p>
+<p style="color:MediumSeaGreen;">Ut wisi enim...</p>
+```
+![alt text](PixPin_2026-05-01_21-58-26.webp)
+#### 通过RGB调色
+**RGB**: red,green,blue,通过调整三原色的数值(取值为0-255),我们可以展示所有的颜色.
+```html
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>Specify colors using RGB values</h1>
+
+<h2 style="background-color:rgb(255, 0, 0);">rgb(255, 0, 0)</h2>
+<h2 style="background-color:rgb(0, 0, 255);">rgb(0, 0, 255)</h2>
+<h2 style="background-color:rgb(60, 179, 113);">rgb(60, 179, 113)</h2>
+<h2 style="background-color:rgb(238, 130, 238);">rgb(238, 130, 238)</h2>
+<h2 style="background-color:rgb(255, 165, 0);">rgb(255, 165, 0)</h2>
+<h2 style="background-color:rgb(106, 90, 205);">rgb(106, 90, 205)</h2>
+
+</body>
+</html>
+```
+**效果**
+![alt text](PixPin_2026-05-01_23-13-42.webp)
+
+**RGBA**: red,green,blue,alpha,其中,alpha用于调整背景颜色的**不透明度**,取值为0-1.
+
+![alt text](PixPin_2026-05-01_23-24-22.webp)
+
+RGBA本质上是线性插值运算:
+
+$$C_o = \alpha C_f + (1 - \alpha) C_b$$
+其中：
+*   $C_o$：输出颜色（Output）
+*   $C_f$：前景颜色（Foreground）
+*   $C_b$：背景颜色（Background）
+*   $\alpha$：[0, 1] 之间的取值
+
+
 # JavaScript
 - [wiki](https://en.wikipedia.org/wiki/JavaScript)
 
