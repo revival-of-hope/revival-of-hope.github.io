@@ -820,7 +820,135 @@ $$C_o = \alpha C_f + (1 - \alpha) C_b$$
 *   $C_b$：背景颜色（Background）
 *   $\alpha$：[0, 1] 之间的取值
 
+#### 通过HEX调色
+HEX: **hexadecimal**,用十六进制来表示之前的RGB,那么每种原色就需要两位数字,相当于`#rrggbb`:
+![alt text](PixPin_2026-05-02_13-00-52.webp)
 
+由于个位数上的差别不会对颜色有多大的影响,故我们可以使用三位数的缩写:
+```css
+body {
+  background-color: #fc9; /* same as #ffcc99 */
+}
+
+h1 {
+  color: #f0f; /* same as #ff00ff */
+}
+
+p {
+  color: #b58; /* same as #bb5588 */
+}
+```
+#### 通过HSL调色
+hsl,**(hue, saturation, lightness)**:
+
+- Hue is **a degree on the color wheel** (from 0 to 360):
+  - 0 (or 360) is red
+  - 120 is green
+  - 240 is blue
+- Saturation is a percentage value: 0% means a shade of gray, and 100% is the full color.
+  - 灰度层,相当于调整颜色的鲜艳度
+- Lightness is also a percentage; 0% is black, 50% is neither light or dark, 100% is white.
+  - 亮度层,相当于调整颜色的打光度
+
+![alt text](PixPin_2026-05-02_13-06-02.webp)
+## CSS调整背景
+### 调整背景颜色
+**background-color**可以对所有的html元素生效:
+
+```css
+h1 {
+  background-color: green;
+}
+
+div {
+  background-color: lightblue;
+}
+
+p {
+  background-color: yellow;
+}
+```
+
+还可以在background-color的基础上调整背景颜色的透明度:
+```css
+div {
+  background-color: green;
+  opacity: 0.3;
+}
+```
+
+![alt text](PixPin_2026-05-03_10-06-49.webp)
+
+### 设置背景图像
+
+我们需要通过url参数来定位图像
+```css
+body {
+  background-image: url("paper.gif");
+}
+/* 这里的引号不是必须的,但可以提升兼容性 */
+```
+
+By default, the image is repeated so it covers the entire element:
+![alt text](PixPin_2026-05-03_10-10-43.webp)
+
+因此,我们需要对图像的默认重复做出调整,比如调整为只在水平方向/垂直方向重复,或者调整为不重复:
+```css
+body {
+  background-image: url("gradient_bg.png");
+  background-repeat: repeat-x;
+}
+```
+
+```css
+body {
+  background-image: url("img_tree.png");
+  background-repeat: no-repeat;
+}
+```
+![alt text](PixPin_2026-05-03_10-13-10.webp)
+
+我们还可以设置图像的位置:
+```css
+body {
+  background-image: url("img_tree.png");
+  background-repeat: no-repeat;
+  background-position: right top;
+}
+```
+![alt text](PixPin_2026-05-03_10-14-16.webp)
+
+还可以让图像随着页面一起滚动:
+```css
+body {
+  background-image: url("img_tree.png");
+  background-repeat: no-repeat;
+  background-position: right top;
+  background-attachment: fixed;
+}
+```
+
+四个参数一个个写太麻烦了,所以我们可以全都合并到background参数里面:
+```css
+body {
+  background: #ffffff url("img_tree.png") no-repeat right top;
+}
+```
+
+The `background` property is a shorthand property for the following properties:
+
+*   **background-color**
+*   **background-image**
+*   **background-position**
+*   **background-size**
+*   **background-repeat**
+*   **background-attachment**
+*   **background-origin**
+*   **background-clip**
+
+If some of the property values are missing, they will be set to their initial (default) values.
+## CSS调整边界/页边距/空白
+###
 # JavaScript
 - [wiki](https://en.wikipedia.org/wiki/JavaScript)
 
