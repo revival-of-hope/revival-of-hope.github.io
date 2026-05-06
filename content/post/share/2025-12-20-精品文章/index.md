@@ -23,6 +23,7 @@ image: 36042993_p0-千本桜 夜ニ紛レ.webp
 ## [18年的前端实习春招](https://kingofsolo.github.io/2018/05/03/2018%E6%98%A5%E6%8B%9B%E6%80%BB%E7%BB%93/)
 
 # 阅历文章
+## [放弃保研前往字节工作](https://www.minmuslin.cn/essay/2025-05-07)
 ## [科大非全日制](https://blog.csdn.net/u010882234/article/details/104115871)
 ## [研究生复盘](https://gaocegege.com/Blog/%E9%9A%8F%E7%AC%94/master)
 ## [在职老程序员考非全211硕士](https://blog.csdn.net/zhangyunfeixyz/article/details/104546027)
