@@ -68,6 +68,63 @@ Python在目前是最值得学的语言,没有之一,它依靠简单好用的语
 ### 返回值
 Python原生支持多个返回值,既不需要像cpp那样用数组指针来迂回处理,也不需要像JS那样用数组解构处理.
 ### 参数
+#### 函数调用
+我们在调用函数时可以通过两种方式:
+1. Positional argument: 使用`key = value`的语法
+2. Keyword argument: 只使用值而不使用关键字名字
+
+具体代码如下:
+```py
+# keyword
+def my_function(animal, name):
+  print("I have a", animal)
+  print("My", animal + "'s name is", name)
+
+my_function(animal = "dog", name = "Buddy")
+
+# positional
+def my_function(animal, name):
+  print("I have a", animal)
+  print("My", animal + "'s name is", name)
+
+my_function("dog", "Buddy")
+```
+
+当然,还可以混着用,但Positional argument必须放在后面:
+
+```py
+def my_function(animal, name, age):
+  print("I have a", age, "year old", animal, "named", name)
+
+my_function("dog", name = "Buddy", age = 5)
+```
+
+有时候,我们不希望其他代码的维护者使用Positional argument方式调用函数,就可以在函数参数的末端加上`,/`:
+```py
+def my_function(name, /):
+  print("Hello", name)
+
+my_function(name = "Emil") 
+# 报错
+```
+
+但更多的时候,我们希望代码的维护者只用Positional argument而不是Keyword argument,从而让代码更好阅读,就可以在参数的最前面加上`*,`:
+```py
+def my_function(*, name):
+  print("Hello", name)
+
+my_function("Emil")
+# 报错
+```
+
+一个更为眼花缭乱的例子如下:
+```py
+def my_function(a, b, /, *, c, d):
+  return a + b + c + d
+
+result = my_function(5, 10, c = 15, d = 20)
+print(result)
+```
 #### 接收任意数量的参数
 如果你不知道你的函数会接收多少个参数,你可以在参数名前加上一个*号,那么我们就可以在函数内部通过下标来访问所需的变量:
 ```py
@@ -76,6 +133,90 @@ def my_function(*kids):
 
 my_function("Emil", "Tobias", "Linus")
 ```
+
+出于习惯,我们都将这种可接收多个参数的参数写成`*args`,对应`arguments`:
+```py
+def my_function(*args):
+  print("Type:", type(args))
+  print("First argument:", args[0])
+  print("Second argument:", args[1])
+  print("All arguments:", args)
+
+my_function("Emil", "Tobias", "Linus")
+# Type: <class 'tuple'>
+# First argument: Emil
+# Second argument: Tobias
+# All arguments: ('Emil', 'Tobias', 'Linus')
+```
+- 根据上述代码的输出可以看到,`*args`实际上就是元组.
+
+如果你还希望调用者就算使用了多个参数,也需要一个个指明参数名的话,就可以加上两个`*`号:
+```py
+def my_function(**kid):
+  print("His last name is " + kid["lname"])
+
+my_function(fname = "Tobias", lname = "Refsnes")
+```
+
+出于习惯,我们将这类参数写成`**kwargs`,对应`keyword arguments`:
+
+```py
+def my_function(username, **details):
+  print("Username:", username)
+  print("Additional details:")
+  for key, value in details.items():
+    print(" ", key + ":", value)
+
+my_function("emil123", age = 25, city = "Oslo", hobby = "coding")
+```
+
+自然,`**kwargs`能够接收多个`key=value`的参数,那么它就是字典了:
+
+```py
+def my_function(**myvar):
+  print("Type:", type(myvar))
+  print("Name:", myvar["name"])
+  print("Age:", myvar["age"])
+  print("All data:", myvar)
+
+my_function(name = "Tobias", age = 30, city = "Bergen")
+
+# Type: <class 'dict'>
+# Name: Tobias
+# Age: 30
+# All data: {'name': 'Tobias', 'age': 30, 'city': 'Bergen'}
+```
+
+混着用也可以:
+```py
+def my_function(title, *args, **kwargs):
+  print("Title:", title)
+  print("Positional arguments:", args)
+  print("Keyword arguments:", kwargs)
+
+my_function("User Info", "Emil", "Tobias", age = 25, city = "Oslo")
+```
+#### 参数解包
+python的设计者仿佛觉得`*`这个符号太好看还是怎么着,在函数调用的时候也引入了`*`和`**`.
+
+`*`用于解包列表:
+```py
+def my_function(a, b, c):
+  return a + b + c
+
+numbers = [1, 2, 3]
+result = my_function(*numbers) # Same as: my_function(1, 2, 3)
+print(result)
+```
+`**`用于解包字典:
+```py
+def my_function(fname, lname):
+  print("Hello", fname, lname)
+
+person = {"fname": "Emil", "lname": "Refsnes"}
+my_function(**person) # Same as: my_function(fname="Emil", lname="Refsnes")
+```
+### 迭代器
 ## OOP
 >如果用 C++ 术语来描述的话，类成员（包括数据成员）通常为 public,所有成员函数都为 virtual
 ### 创建类实例
