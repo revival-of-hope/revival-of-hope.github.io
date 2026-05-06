@@ -2214,6 +2214,318 @@ expose:
  - "8000"
 ```
 ## docker中装载操作系统
+# RESTful Web APIs
+一本比较优秀的书,如果你不知道如何写API请求,不知道前后端如何通信,不知道如何规范API格式,就可以来看这本书.
+
+- 这本书的作者之一就是著名爬虫库bs4的开创者,还是有一定分量的
+- [zlib中文版链接,可惜没有书签](https://zh.z-library.sk/book/eOWLGdNBRb/restful-web-apis%E4%B8%AD%E6%96%87%E7%89%88.html)
+
+
+## 补充: 什么是RESTful Web API
+>非常令人震惊的是,这本书并没有详细谈这一名词的具体概念和历史背景...因此需要在这里做一点补充
+
+- [非常优秀的中文博客解析](https://www.cnblogs.com/lrzr/p/7296439.html)
+
+只看上面的文章就够了,我再加上一点历史背景解析
+### 历史背景 
+- 根据<< RESTful Web APIs Patterns and Practices Cookbook >>总结
+
+在www(万维网)的概念于1993年左右开始盛行时,并没有一个合适的规范来约束用户端和服务器之间的通信.
+
+于是,web技术大牛**Roy T. Fielding**在1998年的微软演讲提出了Representational State Transfer(REST)的初步构想,并在两年后的论文(“Architectural Styles and the Design of Network-based Software Architectures”)中完整的介绍了REST,总结一下大致意思就是:
+
+>REST provides a set of architectural constraints that, when applied as a whole, emphasizes **scalability of component interactions**, **generality of interfaces**, **independent deployment of components**, and **intermediary components** to reduce interaction latency, enforce security, and encapsulate legacy systems.
+
+看不懂没关系,我们只需要知道Rest的主要准则如下:
+
+| 约束名称                          | 核心要求                                                     | 违背后的后果                                                 |
+| :-------------------------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| **客户机-服务器 (Client-Server)** | 前后端分离，职责解耦。                                       | 无法独立演进，扩展性受阻。                                   |
+| **无状态 (Stateless)**            | 每个请求必须包含处理所需的全部信息，服务器不保存会话上下文。 | 导致服务器无法水平扩展，容错性降低。                         |
+| **可缓存 (Cacheable)**            | 响应必须定义自身是否可缓存。                                 | 增加网络延迟，浪费带宽和服务器资源。                         |
+| **统一接口 (Uniform Interface)**  | 包含资源标识、通过表述操纵资源、自描述消息、**HATEOAS**。    | **最常被忽视的一项**。不满足此项的通常只是“带 HTTP 的 RPC”。 |
+| **分层系统 (Layered System)**     | 客户端无法感知直接连接的是服务器还是中间件（代理、缓存）。   | 破坏安全性与负载均衡的透明度。                               |
+| **按需代码 (Code on Demand)**     | *（可选）* 允许服务器向客户端发送可执行代码（如 JS）。       | 增加客户端复杂度和安全风险。                                 |
+
+
+如果你的Web架构设计和API请求符合这些原则,则可以被称为Restful Web和Restful Web API.(rest-ful,意思大致为rest风格)
+## ch1: Surfing the Web
+- 非常详尽的介绍了**点击URL过程中**客户端与服务器之间的交互
+
+在REST中我们将**你所停留的页面**等窗口信息称为**应用状态**(application state),当你上网的时候,客户端从一个应用状态切换到另一个应用状态.
+
+同样,服务器端根据客户端的状态转换(发送GET/POST等HTTP请求)来响应对应的**表述**(representation),并将改变的信息保存在服务器端.
+
+>为什么要在你可以搭建一个每个人都可以使用的网站的时候，开发一种只有计算机专业人员才能理解的工具呢？所有成功的后 Web 协议（post-Web protocols）都是在做一些 Web 做不了的事情：P2P 协议比如 BitTorrent，实时协议比如 SSH。对于大部分的目的，HTTP 已经足够使用了。
+
+## ch2: 一个简单的API
+### HTTP响应
+每个由服务器发出的HTTP响应可分成三个部分:
+1. 状态码(status code): 简要说明了请求目前的进展
+2. 消息体(entity body): 采用某种数据格式写成的文档,可以被客户端理解和提取
+3. 响应头(response head): 夹在状态码和消息体之间,描述消息体性质和服务器状态
+   1. `Content-Type`: 最重要的报头,告诉HTTP客户端如何理解消息体,最常见的内容类型有`text/html`和`image/webp`等
+
+### 令人头疼的API
+遗憾的是,大多数企业或者网站都使用的是自定义的json格式,导致不同网站之间的api完全不能兼容,至今为止,api格式仍然没有一个统一的标准,但`JSON:API `有可能成为一个实际标准来挽回这个糟糕的局面.
+## ch3: Resources and Representations
+### 前置概念
+- resource(资源): 一个URL链接对应的事物
+- representation(表述): 包含资源(resource)相关信息的文档
+
+那么HTTP的常用方法可以这样定义:
+- GET: 获取资源的某个表述
+- DELETE: 销毁一个资源
+- POST: 基于给定的表述,在当前资源的下一级创建新的资源
+- PUT: 用给定的表述替换资源的当前状态
+- HEAD: 获取服务器发送过来的报头信息
+- OPTIONS: 获取该URL所能响应的HTTP方法列表
+- PATCH: 根据提供的表述修改资源的部分状态,但若有些资源未在表述中提及,则保持不变.  
+  - 相当于一个强化版的PUT
+### HTTP请求概览
+```json
+// 请求方法,请求路径,使用的HTTP协议版本
+
+POST /orders HTTP/1.1
+
+// 请求报头
+
+// 目标服务器域名
+Host: api.example.com
+// 请求体的格式
+Content-Type: application/vnd.collection+json
+// 希望收到的返回体格式
+Accept: application/vnd.collection+json
+
+// 请求体
+
+{
+  "template": {
+    "data": [
+      {
+        "name": "full-name",
+        "value": "John Doe"
+      },
+      {
+        "name": "email",
+        "value": "jdoe@example.com"
+      },
+      {
+        "name": "order-id",
+        "value": "98765"
+      }
+    ]
+  }
+}
+```
+这是使用了HTTP POST方法的请求,尽管看上去很复杂,但不同的请求方法对应的请求格式也不一样,比如GET请求就可以没有任何HTTP报头和请求体.
+### HTTP GET
+HTTP规范中表示: GET请求是为了获取网页内容而作的请求,主观上没有改变服务器资源状态的意图.也就是说,当我们得到了一个URL但没有更多信息可供参考时,我们一般都会发送GET请求,而不会产生任何负面作用.
+
+- 所以GET请求是幂等的,即多次请求和一次请求返回的结果相同
+### HTTP DELETE
+当客户端想要一个资源消失的时候,它可以发送一个DELETE请求,可能会收到以下状态码:
+
+1. 204: `No Content`,删除成功,我没有其他关于这个资源的表述了
+2. 200: `OK`,删除成功,这里是关于它的一条消息
+3. 202: `Accepted`,我等下就删除它
+
+- 同样,DELETE请求是幂等的,因为你不可能反复删除同一个资源
+
+
+### HTTP POST
+HTTP规范中对POST的功能定义如下:
+1. 对现有资源的注解
+2. 发布新消息
+3. 提交表单等用户输入
+4. 向数据库追加数据
+
+POST方法**既不安全也不幂等**,因为它没有指定要生成的资源对应的URL,服务器就只能创建一个新的URL来存放新的数据,如果发送了多个POST请求,服务器也会生成多个新的URL.
+
+```json
+POST /api/ HTTP/1.1
+Content-Type: application/vnd.collection+json
+{
+"template" : {
+"data" : [
+{"name" : "text", "value" : "testing"}
+]
+}
+}
+```
+
+### HTTP PUT
+由于PUT指定了唯一的用于替换的表述信息和对应的URL,因此发送多次PUT请求的结果和发送一次的结果相同,也就是说PUT是**幂等的**.
+
+```json
+PUT /api/q1w2e HTTP/1.1
+Content-Type: application/vnd.collection+json
+
+{
+  "template" : {
+    "data" : [
+      {"name" : "text", "value" : "tasting"}
+    ]
+  }
+}
+```
+### HTTP PATCH
+PATCH与POST一样是非幂等的,因为它同样不会指定存放资源的URL路径,而是直接发送一个**只有部分信息被修改**的表述(representation),并让服务器根据这个表述来做出对应的更改,**它可能会产生新的数据**.
+
+### HTTP HEAD
+对HEAD最好的理解就是轻量级版本的GET,服务器应该和处理GET方法一样处理HEAD方法,但只需要发送状态码和报头,不需要发送消息体.
+
+- 由于服务器发送该消息还是要经历一个完整的RTT(往返时间),只是不用发送报文而已,所以用处不是很大
+
+### HTTP OPTIONS
+获取该URL支持的所有请求方法,很少会被用到.
+```txt
+OPTIONS /api/a1s2d3 HTTP/1.1
+Host: www.youtypeitwepostit.com
+200 OK
+Allow: GET PUT DELETE HEAD OPTIONS
+```
+
+## ch4: Hypermedia(超媒体)
+- **hypermedia(超媒体)**: 超文本(hypertext)的对应概念,是对HTML链接,表单,图像等事物的通称,可以实现用户交互
+
+超媒体有以下作用:
+1. 引导请求,引导用户点击链接跳转到其他URL
+2. 对响应做出承诺,比如在html中展示外部图像
+
+## ch11: HTTP for APIs
+- 第五章到第十章的内容都过于古老陈旧了,故直接跳过
+
+我们可以将www(万维网)分成三层技术栈,自上而下分别是:
+1. Hypermedia: 下一步要做什么
+2. HTTP: 如何与这些资源通信
+3. URL: 资源在哪里
+
+这一章主要围绕HTTP协议展开
+### HTTP/1.1(RFC 2616)
+#### 响应码
+HTTP1.1定义了41个响应码,按照百位数字可以进行分类:
+- 1xx: Informational
+  - 仅在HTTP客户端与服务器之间进行协商时使用
+- 2xx: Successful
+  - 客户端要求的状态转换已经发生
+- 3xx: Redirection
+  - 客户端要求的状态转换没有发生,但如果客户端愿意发起一个稍有不同的HTTP请求,服务器就会完成对应的行为
+- 4xx: Client Error
+  - 由于HTTP请求的问题,客户端要求的状态转换没有发生,该请求可能有缺陷,不和逻辑或者无法被服务器接收
+- 5xx: Server Error
+  - 由于服务器的问题,客户端要求的状态转换没有发生.
+
+
+
+#### 报头
+HTTP1.1定义了47种HTTP请求和响应报头
+#### 表述(representation)选择
+当服务器为一个资源提供了多种可用的表述时,客户端想要获取特定的表述时(如选择中文版本,选择XML文本,选择详细版本),可以通过内容协商来实现
+#### 内容协商
+- 内容协商(content negotiation): 客户端使用特定的HTTP请求报头来告诉服务器它想要哪些表述.
+
+HTTP1.1定义了5个与之相关的请求报头,统称为**Accept-*报头**.最重要的两个报头是Accept和Accept_Language.
+
+如果服务器因为某个Accept限制而不能处理某个请求,它可以发送响应码406(Not Acceptable)
+### HTTP优化
+HTTP1.1定义了一些优化方案用于帮助服务器拦截一些可能没有意义的请求,降低一般请求的开销.
+1. 缓存(Caching): 服务器通过**Cache-Control**报头让客户端调整缓存
+2. 条件GET(Conditional GET): 
+   1. **Last-Modified**报头告诉客户端该资源状态上次改变的时间,若该资源状态没有变化,服务器会在客户端再次访问时发送状态码304(Not Modified),并且不再附带实体消息体
+   2. **ETag**报头包含一些随机字符串,只要对应的表述发生了变化,该字符串就会改变,与Last-Modified的作用基本相同,但不需要关注具体的更改日期,可以节省带宽,更为可靠
+3. **压缩**,通过**Accept-Encoding**和**Content-Encoding**来设置服务器和客户端能够接受和发送的文档压缩格式,可以大量节省带宽
+
+### API认证
+API认证有两个步骤:
+1. 用户设置自己的证书(如创建网站的账号或者将现有的账号绑定到此次会话中)
+2. 用户每次发送API请求时自动提交用户证书
+
+>之所以每次请求都要提交证书,是因为HTTP的无状态约束要求服务器不保留客户端的任何信息.
+
+接下来会介绍3种常见的认证技术:
+1. Basic认证
+2. OAuth1.0
+3. OAuth2.0
+
+这三种技术都通过WWW-Authenticate和Authorization报头来进行证书确认,一个完整的流程如下:
+```json
+// 客户端发送请求
+
+GET / HTTP/1.1
+Host: api.example.com
+
+// 由于未经认证,服务器会进行拦截,返回以下状态码
+
+401 Unauthorized HTTP/1.1
+WWW-Authenticate: Basic realm="My API"
+
+// 客户端通过注册获得了证书,再次发送请求
+
+GET / HTTP/1.1
+Host: api.example.com
+Authorization: Basic YWxpY2U6cGFzc3dvcmQ=
+
+// 这次服务器会正常返回信息了
+```
+#### Basic认证
+Basic认证是一种简单的用户名/密码方法.用户通过附属网站或者电子邮件注册一个账户,获得自己的用户名和密码,并加入Authorization请求报头来申请访问服务器,服务器则会正常返回信息:
+```json
+GET / HTTP/1.1
+Host: api.example.com
+Authorization: Basic YWxpY2U6cGFzc3dvcmQ=
+
+HTTP/1.1 200 OK
+Content-Type: application/xhtml+xml
+...
+```
+
+这种方法确实很简单,但不够安全可靠
+#### OAuth 1.0
+OAuth(short for **open authorization**)中,用户针对每个客户端都单独提供一套独特的证书,如果它决定不再使用某个客户端,则会撤销该客户端的证书,而其他客户端不受任何影响.
+
+例如,当用户未被授权时,服务器会返回以下响应:
+```json
+HTTP/1.1 401 Unauthorized
+WWW-Authorization: OAuth realm="My API"
+```
+
+很多时候我们都是通过OAuth进行第三方授权的(如Google登录,QQ登录,微信登录),这类请求的本质如下:
+1. 用户点击当前网页`www.fun.cn`里面的第三方注册/登录按钮
+2. 客户端发送该请求到该网页所在服务器,服务器向用户的浏览器发送了一个HTTP重定向响应,让用户前往第三方网站(如Google弹窗).
+3. 用户同意是否使用第三方网站的令牌证书来授权当前网站.
+4. 用户做出决定后,浏览器重定向回网站`www.fun.cn`
+5. 如果用户选择不同意,则网站不会得到任何信息,若选择同意,则该网站被允许通过第三方网站的api获得第三方网站的用户证书,样式如下:
+
+```json
+GET / HTTP/1.1
+Host: api.example.net
+Authorization: OAuth realm="Example API",
+oauth_consumer_key="rQLd1PciL0sc3wZ",
+oauth_signature_method="HMAC-SHA1",
+oauth_timestamp="1363723000",
+oauth_nonce="JFI8Bq",
+oauth_signature="4HBjJvupgIYbeEy4kEOLS%Ydn6qyV%UY"
+```
+##### 缺点
+当用户的所有活动都发生在浏览器中的时候,Oauth1.0就足够了.但当用户使用的是桌面或者手机应用时,就需要弹出一个浏览器窗口来进行认证,这显然有点突兀了(尽管很多APP/桌面端使用这一方式来进行认证).
+
+#### 补充: OAuth 2.0
+- [阮一峰教程](https://www.ruanyifeng.com/blog/2019/04/oauth_design.html)
+- OAuth2.0是为了解决1.0版本的缺陷而推出的,但这本书并没有深入谈及它的原理和应用
+
+>简单说，OAuth 就是一种授权机制。数据的所有者告诉系统，同意授权第三方应用进入系统，获取这些数据。系统从而产生一个短期的进入令牌（token），用来代替密码，供第三方应用使用。
+
+令牌（token）与密码（password）的作用是一样的，都可以进入系统，但是有三点差异。
+
+（1）令牌是短期的，到期会自动失效，用户自己无法修改。密码一般长期有效，用户不修改，就不会发生变化。
+
+（2）令牌可以被数据所有者撤销，会立即失效。以上例而言，屋主可以随时取消快递员的令牌。密码一般不允许被他人撤销。
+
+（3）令牌有权限范围（scope），比如只能进小区的二号门。对于网络服务来说，只读令牌就比读写令牌更安全。密码一般是完整权限。
+## 总结
+本书涉及了很多种古老或者新颖(*本书出版于2013年,HTTP2.0都尚未制定完成*)的通信文本框架,从一个比较高的维度讲述了一个符合Rest规范的通信框架应该是怎么样的.实战代码相对较少,理念比较多,但读完还算有一点收获,对于前后端的通信规范理解的更深入了.
+- 对于有一定基础的人来说,最有价值的也许是附录A和附录B.
 
 # 程序员自我修养
 - 讲的很深,可惜的是逻辑比较混乱,如果能再版后重构一下就真的是神书了
@@ -2810,7 +3122,7 @@ VMA(虚拟内存区域)除了用来映射要执行的代码段/数据段等`sect
 
 在Linux中,ELF动态链接文件被称为**动态共享对象**(DSO,Dynamic Shared Objects),文件扩展名为`.so`;在Windows中,动态链接文件被称为**动态链接库**(Dynamical Linking Library),文件扩展名为`.dll`.
 
->由于动态链接需要在程序每次装载时都要重新进行链接,会导致程序的一些性能损失,**经过优化之后的性能损失大约在5%以下**,影响并不大,这样看来还是很值得的.
+>由于动态链接在程序每次装载时都要重新进行链接,会导致程序的一些性能损失,**经过优化之后的性能损失大约在5%以下**,影响并不大,这样看来还是很值得的.
 
 ### 地址无关代码
 在动态链接的情况下,由于共享文件是一个个装载的,我们无法确定后来的文件会不会占用先前的文件的虚拟地址,如果通过硬编码的形式来一一指定文件的虚拟地址,那么就极易出现错误和混淆.因此,我们有两种可能的方法来解决这个问题:
@@ -2825,7 +3137,7 @@ VMA(虚拟内存区域)除了用来映射要执行的代码段/数据段等`sect
 
 该方法并不适合解决上述问题,由于装载时重定位后还需要按照可执行文件的地址对指令修改,**那么同一个共享文件的指令部分是无法被多个进程共享的.**比如说可执行文件A的物理地址是100,那么指令就要修改成`jmp 100`,但如果可执行文件B的物理地址是500的话,修改后的共享文件就无法识别了.
 #### 地址无关代码
-地址无关代码(PIC,Position-independent Code),基本想法是将共享文件中需要修改的指令部分分离出来,和数据部分放在一起,这样共享文件的指令部分就可以保持不变,而数据部分可以在每个进程中拥有一个副本.
+**地址无关代码(PIC,Position-independent Code)**,基本想法是将共享文件中需要修改的指令部分分离出来,和数据部分放在一起,这样共享文件的指令部分就可以保持不变,而数据部分可以在每个进程中拥有一个副本.
 
 我们先分析一下代码中各种类型的地址引用方式,从而确定哪些指令部分需要重定位:
 
@@ -2835,194 +3147,65 @@ VMA(虚拟内存区域)除了用来映射要执行的代码段/数据段等`sect
 由于被调用的函数与调用者位于同一个文件中,相对位置是固定的,所以不需要重定位.
 ##### 类型二: 模块内部数据访问
 由于文件被分页之后的相对位置是固定的,数据部分和指令部分往往是在相邻的页中,因此我们可以通过相对寻址来访问内部数据,通常也不需要重定位.
-##### 类型三
+##### 类型三: 模块间数据访问
+不同模块间的访问地址需要到装载时才能确定,为了保证代码是地址无关的,我们需要建立一个指向这些外部全局变量的指针数组,也被称为**全局偏移表**(Global Offset Table),当代码需要引用外部全局变量时,可以根据GOT来查找并间接引用该变量.
+
+详细过程如下:
+
+1. 动态链接器在装载时会查找每个变量所在的地址来填充GOT,将其存放在数据段
+2. 需要访问外部变量时,程序根据GOT查找到该变量的目标地址
+
+![alt text](image-1.png)
+##### 类型四: 模块间调用和跳转
+显然,我们可以把函数的地址也放入GOT中实现简单的调用和跳转,但ELF采用了一种更加复杂和精巧的方法,会在之后涉及.
+
 
 ### 延迟绑定
+**延迟绑定(Lazy Binding)**的基本思想是,**只有当函数第一次被用到时才进行绑定**(符号查找,重定位等),如果没有用到则不进行绑定,这样就可以大幅加快程序的启动速度.
+- 具体原理非常无聊,就不展开了
+
 
 ### Linux中的动态链接
+在可执行文件被映射到虚拟空间后,操作系统会启动**动态链接器**(Dynamic Linker)来进行动态链接,在Linux中动态链接器就是`ld.so`文件,可以看得到它本身也是一个共享对象.
+
+Linux在加载完ld后,会进入ld的入口地址开始执行初始化和动态链接操作.
+
 ### 实际的动态链接
+动态链接的步骤可以分为以下三步:
+1. 启动动态链接器
+2. 加载所有需要的共享对象(.so或者.dll文件)
+3. 重定位和初始化
+#### 启动动态链接器
+其他共享文件的重定位可以依靠动态链接器来执行,但动态链接器本身是不可以依靠其他文件的,也就是说它不可以用到**其他库**,也不可以在启动的时候用到**全局变量和静态变量**.这被称为**自举(Bootstrap)**.
+
+- 在某些情况下,动态链接器启动的时候也不可以调用函数,可想而知动态链接器代码的编写有多么困难
+#### 装载共享对象
+根据可执行文件依赖的所有共享对象进行递归导入,一般来说采用广度优先算法,即bfs.
+#### 重定位和初始化
+重新遍历可执行文件和所有共享对象的重定位表,修正需要再次重定位的地址
 ## Windows中的动态链接
-# RESTful Web APIs
-一本比较优秀的书,如果你不知道如何写API请求,不知道前后端如何通信,不知道如何规范API格式,就可以来看这本书.
+### DLL简介
+Windows中的DLL文件与EXE文件均是PE格式的二进制文件,稍微不同的地方在于PE文件头中有符号位表明该文件是EXE还是DLL,同时DLL文件的扩展名未必是`.dll`,还可以是`.ocx`和`.cpl`.
 
-- 这本书的作者之一就是著名爬虫库bs4的开创者,还是有一定分量的
-- [zlib中文版链接,可惜没有书签](https://zh.z-library.sk/book/eOWLGdNBRb/restful-web-apis%E4%B8%AD%E6%96%87%E7%89%88.html)
-
-
-## 补充: 什么是RESTful Web API
->非常令人震惊的是,这本书并没有详细谈这一名词的具体概念和历史背景...因此需要在这里做一点补充
-
-- [非常优秀的中文博客解析](https://www.cnblogs.com/lrzr/p/7296439.html)
-
-只看上面的文章就够了,我再加上一点历史背景解析
-### 历史背景 
-- 根据<< RESTful Web APIs Patterns and Practices Cookbook >>总结
-
-在www(万维网)的概念于1993年左右开始盛行时,并没有一个合适的规范来约束用户端和服务器之间的通信.
-
-于是,web技术大牛**Roy T. Fielding**在1998年的微软演讲提出了Representational State Transfer(REST)的初步构想,并在两年后的论文(“Architectural Styles and the Design of Network-based Software Architectures”)中完整的介绍了REST,总结一下大致意思就是:
-
->REST provides a set of architectural constraints that, when applied as a whole, emphasizes **scalability of component interactions**, **generality of interfaces**, **independent deployment of components**, and **intermediary components** to reduce interaction latency, enforce security, and encapsulate legacy systems.
-
-看不懂没关系,我们只需要知道Rest的主要准则如下:
-
-| 约束名称                          | 核心要求                                                     | 违背后的后果                                                 |
-| :-------------------------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
-| **客户机-服务器 (Client-Server)** | 前后端分离，职责解耦。                                       | 无法独立演进，扩展性受阻。                                   |
-| **无状态 (Stateless)**            | 每个请求必须包含处理所需的全部信息，服务器不保存会话上下文。 | 导致服务器无法水平扩展，容错性降低。                         |
-| **可缓存 (Cacheable)**            | 响应必须定义自身是否可缓存。                                 | 增加网络延迟，浪费带宽和服务器资源。                         |
-| **统一接口 (Uniform Interface)**  | 包含资源标识、通过表述操纵资源、自描述消息、**HATEOAS**。    | **最常被忽视的一项**。不满足此项的通常只是“带 HTTP 的 RPC”。 |
-| **分层系统 (Layered System)**     | 客户端无法感知直接连接的是服务器还是中间件（代理、缓存）。   | 破坏安全性与负载均衡的透明度。                               |
-| **按需代码 (Code on Demand)**     | *（可选）* 允许服务器向客户端发送可执行代码（如 JS）。       | 增加客户端复杂度和安全风险。                                 |
-
-
-如果你的Web架构设计和API请求符合这些原则,则可以被称为Restful Web和Restful Web API.(rest-ful,意思大致为rest风格)
-## ch1: Surfing the Web
-- 非常详尽的介绍了**点击URL过程中**客户端与服务器之间的交互
-
-在REST中我们将**你所停留的页面**等窗口信息称为**应用状态**(application state),当你上网的时候,客户端从一个应用状态切换到另一个应用状态.
-
-同样,服务器端根据客户端的状态转换(发送GET/POST等HTTP请求)来响应对应的**表述**(representation),并将改变的信息保存在服务器端.
-
->为什么要在你可以搭建一个每个人都可以使用的网站的时候，开发一种只有计算机专业人员才能理解的工具呢？所有成功的后 Web 协议（post-Web protocols）都是在做一些 Web 做不了的事情：P2P 协议比如 BitTorrent，实时协议比如 SSH。对于大部分的目的，HTTP 已经足够使用了。
-
-## ch2: 一个简单的API
-### HTTP响应
-每个由服务器发出的HTTP响应可分成三个部分:
-1. 状态码(status code): 简要说明了请求目前的进展
-2. 消息体(entity body): 采用某种数据格式写成的文档,可以被客户端理解和提取
-3. 响应头(response head): 夹在状态码和消息体之间,描述消息体性质和服务器状态
-   1. `Content-Type`: 最重要的报头,告诉HTTP客户端如何理解消息体,最常见的内容类型有`text/html`和`image/webp`等
-
-### 令人头疼的API
-遗憾的是,大多数企业或者网站都使用的是自定义的json格式,导致不同网站之间的api完全不能兼容,至今为止,api格式仍然没有一个统一的标准,但`JSON:API `有可能成为一个实际标准来挽回这个糟糕的局面.
-## ch3: Resources and Representations
-### 前置概念
-- resource(资源): 一个URL链接对应的事物
-- representation(表述): 包含资源(resource)相关信息的文档
-
-那么HTTP的常用方法可以这样定义:
-- GET: 获取资源的某个表述
-- DELETE: 销毁一个资源
-- POST: 基于给定的表述,在当前资源的下一级创建新的资源
-- PUT: 用给定的表述替换资源的当前状态
-- HEAD: 获取服务器发送过来的报头信息
-- OPTIONS: 获取该URL所能响应的HTTP方法列表
-- PATCH: 根据提供的表述修改资源的部分状态,但若有些资源未在表述中提及,则保持不变.  
-  - 相当于一个强化版的PUT
-### HTTP请求概览
-```json
-// 请求方法,请求路径,使用的HTTP协议版本
-
-POST /orders HTTP/1.1
-
-// 请求报头
-
-// 目标服务器域名
-Host: api.example.com
-// 请求体的格式
-Content-Type: application/vnd.collection+json
-// 希望收到的返回体格式
-Accept: application/vnd.collection+json
-
-// 请求体
-
-{
-  "template": {
-    "data": [
-      {
-        "name": "full-name",
-        "value": "John Doe"
-      },
-      {
-        "name": "email",
-        "value": "jdoe@example.com"
-      },
-      {
-        "name": "order-id",
-        "value": "98765"
-      }
-    ]
-  }
-}
+ELF中默认所有的全局符号(全局函数和变量)都可以被导出,但在DLL中默认所有符号都不导出,我们需要显式告诉编译器我们需要导出某个符号.一种方法是在符号名字前加上`__declspec`关键字修饰,但也可以通过CMake进行自动添加.
+### 符号导出导入表
+#### 导出表
+当一个PE需要将一些函数或者变量提供给其他PE使用时,我们称之为**符号导出**.在PE中,所有需要导出的符号都集中存放在了文件头的**导出表***中,它的结构如下:
+```c
+typedef struct _IMAGE_EXPORT_DIRECTORY {
+    DWORD   Characteristics;
+    DWORD   TimeDateStamp;
+    WORD    MajorVersion;
+    WORD    MinorVersion;
+    DWORD   Name;
+    DWORD   Base;
+    DWORD   NumberOfFunctions;
+    DWORD   NumberOfNames;
+    DWORD   AddressOfFunctions;     // RVA from base of image
+    DWORD   AddressOfNames;         // RVA from base of image
+    DWORD   AddressOfNameOrdinals;  // RVA from base of image
+} IMAGE_EXPORT_DIRECTORY;
 ```
-这是使用了HTTP POST方法的请求,尽管看上去很复杂,但不同的请求方法对应的请求格式也不一样,比如GET请求就可以没有任何HTTP报头和请求体.
-### HTTP GET
-HTTP规范中表示: GET请求是为了获取网页内容而作的请求,主观上没有改变服务器资源状态的意图.也就是说,当我们得到了一个URL但没有更多信息可供参考时,我们一般都会发送GET请求,而不会产生任何负面作用.
-
-- 所以GET请求是幂等的,即多次请求和一次请求返回的结果相同
-### HTTP DELETE
-当客户端想要一个资源消失的时候,它可以发送一个DELETE请求,可能会收到以下状态码:
-
-1. 204: `No Content`,删除成功,我没有其他关于这个资源的表述了
-2. 200: `OK`,删除成功,这里是关于它的一条消息
-3. 202: `Accepted`,我等下就删除它
-
-- 同样,DELETE请求是幂等的,因为你不可能反复删除同一个资源
-
-
-### HTTP POST
-HTTP规范中对POST的功能定义如下:
-1. 对现有资源的注解
-2. 发布新消息
-3. 提交表单等用户输入
-4. 向数据库追加数据
-
-POST方法**既不安全也不幂等**,因为它没有指定要生成的资源对应的URL,服务器就只能创建一个新的URL来存放新的数据,如果发送了多个POST请求,服务器也会生成多个新的URL.
-
-```json
-POST /api/ HTTP/1.1
-Content-Type: application/vnd.collection+json
-{
-"template" : {
-"data" : [
-{"name" : "text", "value" : "testing"}
-]
-}
-}
-```
-
-### HTTP PUT
-由于PUT指定了唯一的用于替换的表述信息和对应的URL,因此发送多次PUT请求的结果和发送一次的结果相同,也就是说PUT是**幂等的**.
-
-```json
-PUT /api/q1w2e HTTP/1.1
-Content-Type: application/vnd.collection+json
-
-{
-  "template" : {
-    "data" : [
-      {"name" : "text", "value" : "tasting"}
-    ]
-  }
-}
-```
-### HTTP PATCH
-PATCH与POST一样是非幂等的,因为它同样不会指定存放资源的URL路径,而是直接发送一个**只有部分信息被修改**的表述(representation),并让服务器根据这个表述来做出对应的更改,**它可能会产生新的数据**.
-
-### HTTP HEAD
-对HEAD最好的理解就是轻量级版本的GET,服务器应该和处理GET方法一样处理HEAD方法,但只需要发送状态码和报头,不需要发送消息体.
-
-- 由于服务器发送该消息还是要经历一个完整的RTT(往返时间),只是不用发送报文而已,所以用处不是很大
-
-### HTTP OPTIONS
-获取该URL支持的所有请求方法,很少会被用到.
-```txt
-OPTIONS /api/a1s2d3 HTTP/1.1
-Host: www.youtypeitwepostit.com
-200 OK
-Allow: GET PUT DELETE HEAD OPTIONS
-```
-
-## ch4: Hypermedia(超媒体)
-- **hypermedia(超媒体)**: 超文本(hypertext)的对应概念,是对HTML链接,表单,图像等事物的通称,可以实现用户交互
-
-超媒体有以下作用:
-1. 引导请求,引导用户点击链接跳转到其他URL
-2. 对响应做出承诺,比如在html中展示外部图像
-
-## ch11: HTTP for APIs
-- 第五章到第十章的内容都过于古老陈旧了,故直接跳过
 
 # Deep Learning from Scratch
 - [pdf链接](https://github.com/qiaohaoforever/DeepLearningFromScratch/blob/master/%E3%80%8A%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%EF%BC%9A%E5%9F%BA%E4%BA%8EPython%E7%9A%84%E7%90%86%E8%AE%BA%E4%B8%8E%E5%AE%9E%E7%8E%B0%E3%80%8B%E9%AB%98%E6%B8%85%E4%B8%AD%E6%96%87%E7%89%88.pdf)
@@ -3132,6 +3315,8 @@ $$\boldsymbol{W}^{(1)} = \begin{pmatrix} w_{11}^{(1)} & w_{21}^{(1)} & w_{31}^{(
 ### 输出层的处理
 对于输出层,我们单独把它的激活函数用`σ()`来表示,用于重点标明它的特殊性.因为根据不同的应用场景我们需要采用不同的输出层激活函数,而中间层的激活函数通常是不用变的.一般来说,**回归问题用恒等函数,分类问题用softmax函数.**
 
+- 在学习过程中和实际部署时,我们可以随时替换输出层,从而实现不同的任务目标.
+
 恒等函数很好理解,将所有输入原样输出,不做任何处理,重点需要理解的是softmax函数
 #### softmax函数
 其公式如下:
@@ -3160,7 +3345,7 @@ $$= \frac{\exp(a_k + C')}{\sum_{i=1}^{n} \exp(a_i + C')}$$
 
 机器学习中,我们将数据分成**训练数据和测试数据**两部分,才可以正确评价模型的**泛化能力**(即处理新数据的能力),并确保不出现**过拟合**(over fitting),训练数据也被称为**监督数据**.
 ### 损失函数(loss function)
-神经网络以某个指标为线索寻找最优的权重参数,该指标被称为损失函数,一般使用均方误差和交叉熵误差来计算.
+神经网络以某个指标为线索寻找最优的权重参数,该指标被称为**损失函数**,一般使用均方误差和交叉熵误差来计算.
 
 我们通常将正确解的参数表示为1,其他解的参数表示为0,这被称为 **one-hot 表示**,例如:
 ```py
@@ -3194,12 +3379,136 @@ $$E = -\frac{1}{N} \sum_{n} \sum_{k} t_{nk} \log y_{nk}$$
 
 当数据过多时,直接选取所有数据计算总和是不太合理的,比如说有60000个数据,我们从中随机选取100个,再用这100个数据来学习,这被称为**mini-batch学习**.
 ### 梯度法
+>这里需要注意的是，梯度表示的是各点处的函数值减小最多的方向。因此，
+无法保证梯度所指的方向就是函数的最小值或者真正应该前进的方向。实际
+上，在复杂的函数中，梯度指示的方向基本上都不是函数值最小处。
+#### 梯度法的定义
+- **梯度法**: 不断沿着梯度方向前进,逐渐减小函数值.
+  - 该方法经常被用在神经网络的学习中.
 
+数学表示如下:
+
+$$
+\begin{aligned}
+x_0 &= x_0 - \eta \frac{\partial f}{\partial x_0} \\
+x_1 &= x_1 - \eta \frac{\partial f}{\partial x_1}
+\end{aligned}
+$$
+
+式子中的η表示更新量,在神经网络中被称为**学习率**(learning rate),决定了在一次学习中应该学习多少,以及在多大程度上更新参数.
+
+学习率需要通过试验得到一个合理的值,如果学习率过大,则容易错过最优解;学习率过小的话,更新幅度会很小,需要经过更久的循环运算.
+
+#### 在神经网络中运用梯度法
+对于一个形状为2X3的权重W的神经网络,损失函数用L表示,那么梯度可以表示成L对W中各个参数的偏导数:
+
+$$
+\begin{aligned}
+\boldsymbol{W} &= \begin{pmatrix} w_{11} & w_{12} & w_{13} \\ w_{21} & w_{22} & w_{23} \end{pmatrix} \\
+\frac{\partial L}{\partial \boldsymbol{W}} &= \begin{pmatrix} \frac{\partial L}{\partial w_{11}} & \frac{\partial L}{\partial w_{12}} & \frac{\partial L}{\partial w_{13}} \\ \frac{\partial L}{\partial w_{21}} & \frac{\partial L}{\partial w_{22}} & \frac{\partial L}{\partial w_{23}} \end{pmatrix}
+\end{aligned}
+$$
+## 误差反向传播法
+- 我们可以通过数学公式和计算图两种方式来理解反向传播
+
+在看前面的文章时我就想到了,单纯的梯度下降法只能够处理一层参数,再加上输出层的`σ()`函数,怎么说也只可以实现一个简单的2层神经网络.但实际上的神经网络都是成千上万层的,那这些参数又是如何调试的呢?这就用到了**反向传播**
+
+### 计算图
+#### 计算图的引入
+![alt text](PixPin_2026-05-05_15-50-09.webp)
+上图即为计算图: 通过节点和箭头表示计算过程,节点用⚪表示,⚪中是计算的内容,计算的中间结果写在箭头上方.
+
+我们可以只把运算符写在⚪中,将具体的变量数提出来放在外面:
+![alt text](PixPin_2026-05-05_15-52-14.webp)
+
+
+一个更为复杂的问题求解,但还是很好理解:
+![alt text](PixPin_2026-05-05_15-52-42.webp)
+
+### 链式法则与反向传播
+反向传播的通俗理解:
+
+>将对损失函数的贡献度通过输出层一步步回传至输入层,计算出各层的权重参数对该次训练结果误差的贡献,并让权重参数针对自身的贡献进行大小上的调整.
+
+- 具体原理则是通过导数的乘积和加减实现.
+
+
+**加法原样传递参数**
+![alt text](PixPin_2026-05-06_13-02-09.webp)
+**乘法交叉传递导数**
+![alt text](PixPin_2026-05-06_13-03-39.webp)
+### 实战
+```py
+import numpy as np
+
+
+# 1. 激活函数：将线性结果压缩到 (0,1) 之间，模拟神经元激发
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+
+# 2. 激活函数的导数：用于反向传播中计算梯度
+# Sigmoid导数公式：f'(x) = f(x) * (1 - f(x))
+def sigmoid_derivative(x):
+    return x * (1 - x)
+
+
+# --- 初始化数据 ---
+# 输入数据 (4个样本, 3个特征)
+X = np.array([[0, 0, 1], [0, 1, 1], [1, 0, 1], [1, 1, 1]])
+
+# 期望输出 (4个样本, 1个目标)
+y = np.array([[0, 1, 1, 0]]).T
+
+# 随机初始化权重（层与层之间的连接强度）
+# 3个输入 -> 4个隐藏神经元 -> 1个输出
+weights0 = 2 * np.random.random((3, 4)) - 1
+weights1 = 2 * np.random.random((4, 1)) - 1
+
+# --- 训练过程 ---
+for i in range(10000):
+    # 【前向传播 - Forward Propagation】
+    # 逻辑：信息从输入层流向输出层
+    layer0 = X
+    layer1 = sigmoid(np.dot(layer0, weights0))  # 隐藏层输出
+    layer2 = sigmoid(np.dot(layer1, weights1))  # 最终预测输出
+
+    # 【计算误差 - Error Calculation】
+    # 逻辑：预测值离目标值差了多少
+    # 这里简单的使用了结果相减代替了损失函数,如果使用损失函数的话还需要对其进行求导得到误差
+    layer2_error = y - layer2
+
+    if (i % 2000) == 0:
+        print(f"Error after {i} iterations: {np.mean(np.abs(layer2_error))}")
+
+    # 【反向传播 - Backpropagation】
+    # 核心：利用链式法则，将误差从后往前分配给每个参数
+
+    # A. 计算输出层的“贡献度”（梯度）
+    # 误差 * 当前输出的斜率 = 该层神经元对总误差的“责任”
+    layer2_delta = layer2_error * sigmoid_derivative(layer2)
+
+    # B. 计算隐藏层的“贡献度”
+    # 逻辑：隐藏层对误差的责任 = 输出层责任 * 连接两层的权重
+    # 这步体现了“误差回传”：权重越高，分担的责任越大
+    layer1_error = layer2_delta.dot(weights1.T)
+    layer1_delta = layer1_error * sigmoid_derivative(layer1)
+
+    # 【权重更新 - Weight Update】
+    # 逻辑：根据责任（Delta）微调权重，减小下次误差
+    # 梯度下降：新权重 = 旧权重 + 输入 * 责任
+    weights1 += layer1.T.dot(layer2_delta)
+    weights0 += layer0.T.dot(layer1_delta)
+
+print("\nTraining Final Result:")
+print(layer2)
+```
+## 优化神经网络的学习
 # 深入理解Java虚拟机
 如果要理解Java为什么能够"一次编写,处处运行",就需要来看这本书
 ## ch1: 走进Java
 - 这一章很值得看,深入探讨了JDK的历史
-# On Java 8
+# On Java 8(待补充)
 - [中文翻译版链接](https://zyb0408.github.io/gitbooks/onjava8/)
 讲的还算详细和有体系,但由于我已经了解过其中的大多数内容了,所以就只摘抄一些比较难懂和重要的部分,很多我这辈子都未必能用到的零碎知识点就直接跳过了.
 ## Java的垃圾回收
