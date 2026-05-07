@@ -1906,6 +1906,7 @@ where semester = 'Spring' and year = 2017);
 
 # Database Design Using the E-R Model
 数据库的设计并不简单,所以我们需要一些好用的模型来组织数据库,比如这章涉及的E-R模型.
+
 - 忽然发现前面的笔记中废话太多了,像我的小测复习这样精炼就已经可以了,能够轻松的获取所需的信息
 ## The Entity-Relationship Model
 - entity: a “thing” or “object” in the real world that is distinguishable from all other objects.
@@ -2142,6 +2143,43 @@ Two types of spatial data are particularly important:
 2. Geometric data:  include spatial information about how objects— such as buildings, cars, or aircraft— are constructed
 
 游戏建模,谷歌地图都属于空间数据这一范畴
+# 第二次小测复习(5/7)
+- 这次小测考6,7,8章,第六章和第七章是重点,第八章真不知道考什么,不过上次阴了我一手,这次还是得老老实实看书.
+
+对比一下中英文版本,所有标题都有对应,那就直接看中文版了,而第8章只有英文版可以看了:
+
+![alt text](PixPin_2026-05-07_15-12-08.webp)
+
+## ch6: E-R模型引入
+
+### 概念
+- entity(实体): 对应关系表中的某一项,可以通过特定的标签与其他实体区分开来
+- entity set(实体集): 对应关系表,是实体的一个集合,例如所有教师,所有学生.
+- relationship(联系): 两个或者多个实体间的关联
+- relationship set(联系集): 相同类型联系的集合
+#### 映射基数
+- 映射基数: 一个实体通过一个联系集关联的另一些实体的数量.
+
+对于实体集A和B之间的二元联系集R来说,映射基数有四种情况:
+
+1. 一对一
+2. 一对多: A中的一个实体可以与B中任意数量的实体相关联
+3. 多对一: A中的一个实体至多与B中的一个实体关联,但B中的一个实体可以与A中任意数量的实体相关联.
+4. 多对多
+
+这里的`一对多`和`多对一`如果不好理解的话,可以把`对`看成一个动作指向动词.比如说`一对多`中,A的一个实体**对应了**B中的多个实体.
+
+![alt text](PixPin_2026-05-07_15-52-57.webp)
+### E-R图
+**实体集**用矩形来表示:
+![alt text](PixPin_2026-05-07_15-29-05.webp)
+
+**联系集**用菱形来表示:
+![alt text](PixPin_2026-05-07_15-42-03.webp)
+
+**映射基数**用有向线段和无向线段来区分,有向线段表示从另一边**只能触及箭头指向方的一个实体**,无向线段表示从另一边指向这一方**没有任何指向限制**:
+
+![alt text](PixPin_2026-05-07_15-55-34.webp)
 # Application Development(过)
 # Big Data
 当数据的数量和种类多到一定程度时,传统的关系型数据库就无能为力了,需要采用更为复杂的数据结构来处理.

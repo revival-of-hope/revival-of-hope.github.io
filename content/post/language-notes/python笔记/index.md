@@ -216,7 +216,113 @@ def my_function(fname, lname):
 person = {"fname": "Emil", "lname": "Refsnes"}
 my_function(**person) # Same as: my_function(fname="Emil", lname="Refsnes")
 ```
-### 迭代器
+### 生成器(Generator)
+>Generators are functions that can **pause** and **resume** their execution.
+
+When a generator function is called, it returns a generator object, which is an **iterator**(迭代器).
+
+>The code inside the function is not executed yet, it is only compiled. The function only executes when you iterate over the generator.
+
+- 上述文字的大致意思就是: 生成器不是一次返回所有值的,它的真正返回值是一个迭代器,只会在你遍历它的时候才会开始真正执行,.
+
+生成器函数使用`yield`关键字来代替`return`,体现出"产生"的效果:
+```py
+def my_generator():
+  yield 1
+  yield 2
+  yield 3
+
+for value in my_generator():
+  print(value)
+# 1
+# 2
+# 3
+```
+迭代器是有记忆力的,明白自己这次遍历到了哪一步:
+```py
+def count_up_to(n):
+  count = 1
+  while count <= n:
+    yield count
+    count += 1
+
+for num in count_up_to(5):
+  print(num)
+
+# 1
+# 2
+# 3
+# 4
+# 5
+```
+
+除了使用`for in`遍历外,还可以调用生成器专用的`next()`系统函数进行迭代:
+```py
+def simple_gen():
+  yield "Emil"
+  yield "Tobias"
+  yield "Linus"
+
+gen = simple_gen()
+print(next(gen))
+print(next(gen))
+print(next(gen))
+
+# Emil
+# Tobias
+# Linus
+```
+- 如果生成器的yield个数不够迭代了,则会报错.
+
+#### 总结与实战
+如此看来,生成器本身是同步的(按顺序执行的),只不过会在`yield`关键字处停止,直到你遍历它时才会一次执行一个yield,直到执行完毕.
+
+那么,我们之所以要用yield,显然是为了**节省内存**,如果我们需要获取大量数据,不使用生成器的话就需要单独创建一个数组或者字典,把数据全部存进去,很有可能会导致**内存溢出**.
+
+但如果使用yield的话,我们可以一次执行一步,慢慢将数据写入文件中,从而避免了内存溢出的问题.
+
+下面是一个实战的爬虫代码,可以很好的看出yield的优点:
+```py
+import requests
+import time
+
+def fetch_data_generator(base_url, total_pages):
+    """
+    数据抓取生成器：负责分页逻辑与请求执行
+    """
+    for page in range(1, total_pages + 1):
+        params = {'page': page, 'size': 10}
+        try:
+            # 模拟网络请求
+            response = requests.get(base_url, params=params, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            
+            # 物理机制：执行到此处暂停，将数据交给外层消费
+            # 外部处理完前，生成器不占据下一页的请求资源和内存
+            yield data.get('items', [])
+            
+            # 简单的频率控制
+            time.sleep(1)
+        except Exception as e:
+            print(f"Error fetching page {page}: {e}")
+            break
+
+# 使用场景：
+if __name__ == "__main__":
+    target_url = "https://api.example.com/posts"
+    
+    # 物理执行过程：
+    # 1. 调用生成器函数，不执行函数体，返回一个生成器对象
+    crawler = fetch_data_generator(target_url, 100)
+    
+    # 2. 外部循环触发 .next()，生成器开始运行
+    for page_items in crawler:
+        for item in page_items:
+            # 实时处理数据（如存入数据库）
+            print(f"Processing: {item.get('title')}")
+```
+
 ## OOP
 >如果用 C++ 术语来描述的话，类成员（包括数据成员）通常为 public,所有成员函数都为 virtual
 ### 创建类实例
@@ -257,6 +363,140 @@ class Dog:
 
 ### super()详解
 同样,Python需要用一个
+## Python关键字与内置函数
+
+### with
+### range函数
+### is和is not
+### yield
+- 前面的生成器部分已经提过了
+### try finally catch throw
+### async与await
+- 于2015年的Python3.5引入
+
+
+### assert
+- [官方文档](https://docs.Python.org/3/reference/simple_stmts.html)
+- [菜鸟教程](https://www.runoob.com/Python3/Python3-assert.html)
+**基础用法**
+```py
+assert expression
+# 等价于下述代码:
+if __debug__:
+    if not expression:
+        raise AssertionError
+```
+**报错后输出提示**
+```py
+import sys
+assert ('linux' in sys.platform), "该代码只能在 Linux 下执行"
+```
+## Python常用语法糖
+- [官方文档](https://docs.Python.org/3/library/functions.html#classmethod)
+### @classmethod
+>Transform a method into a class method.
+
+字面意思,将某个方法实例化到这个类中,从而可以直接调用,不需要使用self来指向实例,也不需要进行类的实例化.
+但仍然需要填入参数cls(自然可以叫别的名字,cls只是一个习惯上的写法),用来指向这个类
+- 因为这个类还没完成,就不能用类名.var/method来调用类内变量和函数,故需要通过cls来指向该类.
+```py
+class A(object):
+    bar = 1
+    def func1(self):  
+        print ('foo') 
+    @classmethod
+    def func2(cls):
+        print ('func2')
+        print (cls.bar)
+        cls().func1()   # 调用 foo 方法
+ 
+A.func2()               # 不需要实例化
+```
+### @property
+>Return a **property attribute**.
+
+
+A property object has **getter, setter, and deleter** methods usable as decorators that create a copy of the property with the corresponding accessor function set to the decorated function. This is best explained with an example:
+```py
+class C:
+    def __init__(self):
+        self._x = None
+
+    @property
+    def x(self):
+        """I'm the 'x' property."""
+        return self._x
+
+    @x.setter
+    def x(self, value):
+        self._x = value
+
+    @x.deleter
+    def x(self):
+        del self._x
+```
+
+```py
+class Parrot:
+    def __init__(self):
+        self._voltage = 100000
+
+    @property
+    def voltage(self):
+        """Get the current voltage."""
+        return self._voltage
+```
+- The @property decorator **turns the voltage() method into a “getter” for a read-only attribute with the same name**, and it sets the docstring for voltage to “Get the current voltage.”
+
+如果还是看不懂的话,就把property看成是一个将方法转换成类内只读属性的语法糖(可以少写一对括号,并且不可修改),但可以通过setter和deleter来修改.
+### @dataclass
+- [官方文档](https://docs.Python.org/zh-cn/3/library/dataclasses.html)
+- [参考教程](https://www.cnblogs.com/wang_yb/p/18077397)
+#### 是什么,怎么用
+一般来说,我们定义类时需要这么写来初始化:
+```py
+class CoinTrans:
+    def __init__(
+        self,
+        id: str,
+        symbol: str,
+        price: float,
+        is_success: bool,
+        addrs: list,
+    ) -> None:
+        self.id = id
+        self.symbol = symbol
+        self.price = price
+        self.addrs = addrs
+        self.is_success = is_success
+
+if __name__ == "__main__":
+    coin_trans = CoinTrans("id01", "BTC/USDT", "71000", True, ["0x1111", "0x2222"])
+    print(coin_trans)
+# <__main__.CoinTrans object at 0x0000022A891FADD0>
+```
+自然,Python打印类的时候默认是打印类的内存地址的,这需要我们去单独实现一个打印函数返回类中的各种信息.
+
+但如果使用dataclass装饰器的话,可以这样写:
+
+```py
+from dataclasses import dataclass
+
+@dataclass
+class CoinTrans:
+    id: str
+    symbol: str
+    price: float
+    is_success: bool
+    addrs: list
+
+if __name__ == "__main__":
+    coin_trans = CoinTrans("id01", "BTC/USDT", "71000", True, ["0x1111", "0x2222"])
+    print(coin_trans)
+# CoinTrans(id='id01', symbol='BTC/USDT', price='71000', is_success=True, addrs=['0x1111', '0x2222'])
+```
+不需要写`__init__`,也不需要写打印函数,就可以直接实现上述的效果.
+
 # 包管理器: uv
 uv将虚拟环境和包管理两个功能集成在了一起,从而彻底解决了Python的环境问题.
 ## 管理Python版本
@@ -466,141 +706,10 @@ CUDA status: True
 CUDA version: 13.0
 ```
 
-# Python进阶
-
-## Python关键字与内置函数
-
-### with
-### is和is not
-### yield
-### try finally catch throw
-### async与await
-- 于2015年的Python3.5引入
 
 
-### assert
-- [官方文档](https://docs.Python.org/3/reference/simple_stmts.html)
-- [菜鸟教程](https://www.runoob.com/Python3/Python3-assert.html)
-**基础用法**
-```py
-assert expression
-# 等价于下述代码:
-if __debug__:
-    if not expression:
-        raise AssertionError
-```
-**报错后输出提示**
-```py
-import sys
-assert ('linux' in sys.platform), "该代码只能在 Linux 下执行"
-```
-## Python常用语法糖
-- [官方文档](https://docs.Python.org/3/library/functions.html#classmethod)
-### @classmethod
->Transform a method into a class method.
-
-字面意思,将某个方法实例化到这个类中,从而可以直接调用,不需要使用self来指向实例,也不需要进行类的实例化.
-但仍然需要填入参数cls(自然可以叫别的名字,cls只是一个习惯上的写法),用来指向这个类
-- 因为这个类还没完成,就不能用类名.var/method来调用类内变量和函数,故需要通过cls来指向该类.
-```py
-class A(object):
-    bar = 1
-    def func1(self):  
-        print ('foo') 
-    @classmethod
-    def func2(cls):
-        print ('func2')
-        print (cls.bar)
-        cls().func1()   # 调用 foo 方法
- 
-A.func2()               # 不需要实例化
-```
-### @property
->Return a **property attribute**.
-
-
-A property object has **getter, setter, and deleter** methods usable as decorators that create a copy of the property with the corresponding accessor function set to the decorated function. This is best explained with an example:
-```py
-class C:
-    def __init__(self):
-        self._x = None
-
-    @property
-    def x(self):
-        """I'm the 'x' property."""
-        return self._x
-
-    @x.setter
-    def x(self, value):
-        self._x = value
-
-    @x.deleter
-    def x(self):
-        del self._x
-```
-
-```py
-class Parrot:
-    def __init__(self):
-        self._voltage = 100000
-
-    @property
-    def voltage(self):
-        """Get the current voltage."""
-        return self._voltage
-```
-- The @property decorator **turns the voltage() method into a “getter” for a read-only attribute with the same name**, and it sets the docstring for voltage to “Get the current voltage.”
-
-如果还是看不懂的话,就把property看成是一个将方法转换成类内只读属性的语法糖(可以少写一对括号,并且不可修改),但可以通过setter和deleter来修改.
-### @dataclass
-- [官方文档](https://docs.Python.org/zh-cn/3/library/dataclasses.html)
-- [参考教程](https://www.cnblogs.com/wang_yb/p/18077397)
-#### 是什么,怎么用
-一般来说,我们定义类时需要这么写来初始化:
-```py
-class CoinTrans:
-    def __init__(
-        self,
-        id: str,
-        symbol: str,
-        price: float,
-        is_success: bool,
-        addrs: list,
-    ) -> None:
-        self.id = id
-        self.symbol = symbol
-        self.price = price
-        self.addrs = addrs
-        self.is_success = is_success
-
-if __name__ == "__main__":
-    coin_trans = CoinTrans("id01", "BTC/USDT", "71000", True, ["0x1111", "0x2222"])
-    print(coin_trans)
-# <__main__.CoinTrans object at 0x0000022A891FADD0>
-```
-自然,Python打印类的时候默认是打印类的内存地址的,这需要我们去单独实现一个打印函数返回类中的各种信息.
-
-但如果使用dataclass装饰器的话,可以这样写:
-
-```py
-from dataclasses import dataclass
-
-@dataclass
-class CoinTrans:
-    id: str
-    symbol: str
-    price: float
-    is_success: bool
-    addrs: list
-
-if __name__ == "__main__":
-    coin_trans = CoinTrans("id01", "BTC/USDT", "71000", True, ["0x1111", "0x2222"])
-    print(coin_trans)
-# CoinTrans(id='id01', symbol='BTC/USDT', price='71000', is_success=True, addrs=['0x1111', '0x2222'])
-```
-不需要写`__init__`,也不需要写打印函数,就可以直接实现上述的效果.
-# Python编译与源码剖析
-**参考书籍:(Python源码剖析:深度探索动态语言核心技术),本书围绕的是06年的Python2.5.0**
+# Python编译
+- python是如何编译的?Cpython是什么?pyc文件又是什么?这几个问题会在这一章得到解决
 
 
 # Python类型注释
@@ -2354,7 +2463,7 @@ class Spider(object_ref):
 
 # Python数据库框架
 ## SQLAlchemy
-## SQLModel库
+## SQLModel
 
 # Python网络通信
 >尽管大家都说Python无法很好的处理高并发,但在绝大多数网络通信环境下,它都比其他语言好用的多
@@ -2479,4 +2588,8 @@ ASGI的全称为**Asynchronous Server Gateway Interface**,在WSGI的基础上加
 
 # Python科学计算
 ## Numpy库
+- [官方文档](https://numpy.org/doc/stable/user/absolute_beginners.html)
+
+### 
+
 ## Matplotlib库
