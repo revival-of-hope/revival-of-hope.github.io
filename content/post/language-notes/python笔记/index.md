@@ -325,11 +325,10 @@ if __name__ == "__main__":
 
 ## OOP
 >如果用 C++ 术语来描述的话，类成员（包括数据成员）通常为 public,所有成员函数都为 virtual
-### 创建类实例
-### 构造函数
-### 继承与多态
+
+
 ### self详解
-由于Python没有指针,自然也没有this指针,但又需要像cpp一样,提供一个**直接访问类实例的入口**,所以Python引入了关键字self.
+由于Python没有指针,自然也没有this指针,但又需要像cpp一样,提供一个**访问当前类实例的入口**,所以Python引入了关键字self.
 
 >事实上,上述的说法是不严谨的:
 >>方法的第一个参数常常被命名为 self。 这也不过就是一个约定: **self 这一名称在 Python 中绝对没有特殊含义**。 但是要注意，不遵循此约定会使得你的代码对其他 Python 程序员来说缺乏可读性，而且也可以想像一个 类浏览器 程序的编写可能会依赖于这样的约定。
@@ -361,12 +360,192 @@ class Dog:
 ['roll over', 'play dead']
 ```
 
-### super()详解
-同样,Python需要用一个
+### 类属性
+在python中,所有写在函数之外的变量都被视为该类所具有的属性,被所有实例和子类共享:
+```py
+class Person:
+  species = "Human" # Class property
+
+  def __init__(self, name):
+    self.name = name # Instance property
+
+p1 = Person("Emil")
+p2 = Person("Tobias")
+
+print(p1.name)
+print(p2.name)
+print(p1.species)
+print(p2.species)
+print(Person.species)
+```
+
+### 继承与多态
+Python的继承比起Cpp来更为简单,写一个括号就行了:
+```py
+class Student(Person):
+  pass
+```
+#### 多态代码示例
+```py
+class Vehicle:
+  def __init__(self, brand, model):
+    self.brand = brand
+    self.model = model
+
+  def move(self):
+    print("Move!")
+
+class Car(Vehicle):
+  pass
+
+class Boat(Vehicle):
+  def move(self):
+    print("Sail!")
+
+class Plane(Vehicle):
+  def move(self):
+    print("Fly!")
+
+car1 = Car("Ford", "Mustang")       #Create a Car object
+boat1 = Boat("Ibiza", "Touring 20") #Create a Boat object
+plane1 = Plane("Boeing", "747")     #Create a Plane object
+
+for x in (car1, boat1, plane1):
+  print(x.brand)
+  print(x.model)
+  x.move()
+```
+如前所说,python的所有方法默认是可以重载的,所以很好书写和理解.
+#### 使用父类的构造函数
+有时候我们会希望子类的初始化方式与父类略有不同,Python的做法比较粗暴,再写一个构造函数的话会直接覆盖父类的构造函数,而不像Java/Cpp那样会逐个从最顶层的父类开始执行构造函数.
+
+- 也就是说,python不支持在一个类中写多个构造函数,那么也就无法直接保留父类的构造函数了.
+
+为了保留父类的构造函数,我们可以这么写:
+```py
+class Student(Person):
+  def __init__(self, fname, lname):
+    Person.__init__(self, fname, lname)
+```
+#### super关键字
+当然,写父类名字还是太麻烦了,而且多重继承的时候会出现一些意想不到的[问题](https://www.reddit.com/r/learnpython/comments/ndyce5/a_question_about_super_and_multiple_inheritance/?tl=zh-hans),所以Python引入了关键字`super()`,用来指向最终被调用的父类:
+```py
+class A:
+    def __init__(self, a, **kwargs):
+        print(a)
+
+class B(A):
+    def __init__(self, b, **kwargs):
+        super().__init__(**kwargs)
+        print(b)
+
+class C(A):
+    def __init__(self, c, **kwargs):
+        super().__init__(**kwargs)
+        print(c)
+
+class D(B, C):
+    def __init__(self, d, **kwargs):
+        super().__init__(**kwargs)
+        print(d)
+
+D(a='a', b='b', c='c', d='d')
+
+# 输出结果
+# a
+# c
+# b
+# d
+```
+- `**kwargs`用于传递各种各样没在当前函数中用到的参数,如果去掉的话很容易出错.因此在python的大型项目中,你几乎能够在每个子类中看见它,很多时候你自己根本看不明白哪些参数被用到了,而哪些参数没被用到.
+
+每个`super()`都会指向自己继承的父类,通过不断的向上寻找,直到找到最终被调用的父类和构造函数,至于具体的调用链我看没必要去理解,太容易绕晕了.
+
+当然,`super()`除了调用构造函数之外,还可以调用父类的方法和属性,但一般在工程中很少这么做,而是选择拆分出一个新函数后再将父类函数和新函数组合在一起,以免过于混乱.
+### 类封装(Encapsulation)
+Python没有类似Cpp/Java的访问控制符,只能通过下划线前缀来对属性做一定的约束:
+1. `_`单下划线: 标记该属性为**protected**,只能被自身和子类调用.
+   - 本身不具有任何约束,从外部通过`obj._name`调用该属性也**不会报错**
+2. `__`双下划线: 标记该属性为私有类,只供内部函数使用.
+   - Python解释器会在内部对其进行重命名,比如Person类中的`__name`会变成`_Person__name`,所以你直接访问`person.__name`会**报错**,但是访问`person._Person__name`就**不会有问题**.
+
+- 换句话说,在python中,你坚持要访问私有属性的话也可以,只不过没有必要罢了.
+
+方法也是同理:
+```py
+class Calculator:
+  def __init__(self):
+    self.result = 0
+
+  def __validate(self, num):
+    if not isinstance(num, (int, float)):
+      return False
+    return True
+
+  def add(self, num):
+    if self.__validate(num):
+      self.result += num
+    else:
+      print("Invalid number")
+
+calc = Calculator()
+calc.add(10)
+calc.add(5)
+print(calc.result)
+# calc.__validate(5) # This would cause an error
+```
+### 内部类
+Python和Java一样支持内部类,只有在你确认这个类不需要开放给其他类的时候才用得上:
+```py
+class Car:
+  def __init__(self, brand, model):
+    self.brand = brand
+    self.model = model
+    self.engine = self.Engine()
+
+  class Engine:
+    def __init__(self):
+      self.status = "Off"
+
+    def start(self):
+      self.status = "Running"
+      print("Engine started")
+
+    def stop(self):
+      self.status = "Off"
+      print("Engine stopped")
+
+  def drive(self):
+    if self.engine.status == "Running":
+      print(f"Driving the {self.brand} {self.model}")
+    else:
+      print("Start the engine first!")
+
+car = Car("Toyota", "Corolla")
+car.drive()
+car.engine.start()
+car.drive()
+```
+
 ## Python关键字与内置函数
 
 ### with
-### range函数
+### range
+The range() function can be called with 1, 2, or 3 arguments, using this syntax:
+
+- range的返回值本质上是一个不可变的有序数组,是前闭后开的.
+```py
+range(start, stop, step)
+```
+
+只用一个参数的话默认指明终点(stop),起点为0:
+```py
+x = range(10)
+```
+用两个参数的话默认步长(step)为1:
+```py
+x = range(3, 10)
+```
 ### is和is not
 ### yield
 - 前面的生成器部分已经提过了

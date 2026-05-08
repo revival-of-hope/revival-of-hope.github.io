@@ -13,6 +13,9 @@ image: 92260989_p0-秘密の願い事.webp
 - FYI: 是 "For Your Information" 的缩写，意为**“供你知晓”**
 - PoC: "Proof of Concept",为了证明某个技术方案在物理上是可行的，先写一个简陋的 Demo。
 - CI: Continuous integration,持续集成,也就是随时运行,随时与主分支合并
+- w.r.t: **with respect to**,关于,相对于,常用于技术文献中:
+  - "If the function is differentiable w.r.t. its parameters..."
+  - “如果该函数关于其参数是可微的（可求导的）……”
 
 # 日语词汇
 

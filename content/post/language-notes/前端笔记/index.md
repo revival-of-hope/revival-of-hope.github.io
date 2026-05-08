@@ -1209,6 +1209,24 @@ const result2 = count ?? 10; // 结果为 0，因为 0 不是 null 或 undefined
 ```
 
 如此一来,即便我们对于某个变量的值赋为0和空字符串,也可以正常运作,而不是在使用`||`的时候被替换成默认值.
+#### 反引号
+js中的单双引号都不支持跨行字符串,也不支持变量嵌入,而反引号可以做到上述两点,并在JSX和TSX中发挥出非常大的威力:
+
+```js
+function sum(a, b) {
+  return a + b;
+}
+
+alert(`1 + 2 = ${sum(1, 2)}.`); // 1 + 2 = 3.
+
+let guestList = `Guests:
+ * John
+ * Pete
+ * Mary
+`;
+
+alert(guestList); // 客人清单，多行
+```
 ### 函数
 #### 函数的创建
 有三种语法可以创建函数:
@@ -1296,6 +1314,7 @@ ask(
 );
 ```
 
+
 ### OOP
 #### 创建对象
 有两种方法来创建对象:
@@ -1371,8 +1390,283 @@ user.sayHi(); // John
 ```
 
 #### 构造函数
-尽管
+前面的对象都是使用{}构造符直接进行构造的,要想使用new关键字进行构造,我们需要先写一个**构造函数**:
+```js
+function User(name) {
+  this.name = name;
+  this.isAdmin = false;
+}
+
+let user = new User("Jack");
+
+alert(user.name); // Jack
+alert(user.isAdmin); // false
+```
+
+可以看到构造函数使用this引用符指向了某个对象,只在对象初始化的时候才会真正实现.
+
+除此之外,构造函数有两个特点:
+1. 首字母大写
+2. 只能由new操作符执行
+
+##### 向构造函数中加入方法
+```js
+function User(name) {
+  this.name = name;
+
+  this.sayHi = function() {
+    alert( "My name is: " + this.name );
+  };
+}
+
+let john = new User("John");
+
+john.sayHi(); // My name is: John
+
+/*
+john = {
+   name: "John",
+   sayHi: function() { ... }
+}
+*/
+```
+### 解构赋值
+- 这个语法会被经常用在React中,所以需要特别关注
+
+**解构赋值**: 将对象或者数组拆开,将其中的元素复制给一个或多个变量,而不修改原先的对象或数组.
+
+- 有时候我们可以对任何可迭代对象使用解构赋值:
+
+```js
+let [a, b, c] = "abc"; // ["a", "b", "c"]
+let [one, two, three] = new Set([1, 2, 3]);
+```
+#### 数组解构
+一个简单的解构如下:
+
+```js
+let [firstName, surname] = "John Smith".split(' ');
+alert(firstName); // John
+alert(surname);  // Smith
+```
+
+但如果数组比左边的列表长,那么其余的数组将被忽略,这点与python还是有所不同的:
+```js
+let [name1, name2] = ["Julius", "Caesar", "Consul", "of the Roman Republic"];
+
+alert(name1); // Julius
+alert(name2); // Caesar
+// 其余数组项未被分配到任何地方
+```
+
+如果你想一个不漏地接收,可以在最后一个变量名前加上`...`:
+```js
+let [name1, name2, ...rest] = ["Julius", "Caesar", "Consul", "of the Roman Republic"];
+
+// rest 是包含从第三项开始的其余数组项的数组
+alert(rest[0]); // Consul
+alert(rest[1]); // of the Roman Republic
+alert(rest.length); // 2
+```
+
+如果数组比左边的列表短,缺少对应值的变量都会被赋值undefined:
+```js
+let [firstName, surname] = [];
+
+alert(firstName); // undefined
+alert(surname); // undefined
+```
+如果想要给没有对应值的变量赋给默认值,可以用`=`提供,这在JSX中特别常见:
+```js
+// 默认值
+let [name = "Guest", surname = "Anonymous"] = ["Julius"];
+
+alert(name);    // Julius（来自数组的值）
+alert(surname); // Anonymous（默认值被使用了）
+```
+#### 对象解构
+很多时候我们需要将对象中的各个键值对拆分出来,这时候就可以使用对象解构:
+```js
+let options = {
+  title: "Menu",
+  width: 100,
+  height: 200
+};
+
+let {title, width, height} = options;
+// 均与对象中的键名字对应
+
+alert(title);  // Menu
+alert(width);  // 100
+alert(height); // 200
+```
+但键的顺序并不重要:
+```js
+// 改变 let {...} 中元素的顺序也是等价的
+let {height, width, title} = { title: "Menu", height: 200, width: 100 }
+```
+
+如果我们想自己给键起个新名字,可以这样写:
+```js
+let options = {
+  title: "Menu",
+  width: 100,
+  height: 200
+};
+
+// { sourceProperty: targetVariable }
+let {width: w, height: h, title} = options;
+
+// width -> w
+// height -> h
+// title -> title
+
+alert(title);  // Menu
+alert(w);      // 100
+alert(h);      // 200
+```
+
+同样,对于可能缺失的值,我们使用`=`赋予默认值:
+```js
+let options = {
+  title: "Menu"
+};
+
+let {width = 100, height = 200, title} = options;
+
+alert(title);  // Menu
+alert(width);  // 100
+alert(height); // 200
+```
+与数组解构一样,多余的变量会被忽略:
+```js
+let options = {
+  title: "Menu",
+  width: 100,
+  height: 200
+};
+
+// 仅提取 title 作为变量
+let { title } = options;
+
+alert(title); // Menu
+```
+
+一个复杂的例子如下:
+```js
+let options = {
+  size: {
+    width: 100,
+    height: 200
+  },
+  items: ["Cake", "Donut"],
+  extra: true
+};
+
+// 为了清晰起见，解构赋值语句被写成多行的形式
+let {
+  size: { // 把 size 赋值到这里
+    width,
+    height
+  },
+  items: [item1, item2], // 把 items 赋值到这里
+  title = "Menu" // 在对象中不存在（使用默认值）
+} = options;
+
+alert(title);  // Menu
+alert(width);  // 100
+alert(height); // 200
+alert(item1);  // Cake
+alert(item2);  // Donut
+```
+#### 真实应用
+很多时候我们会写出这种难看的函数:
+```js
+function showMenu(title = "Untitled", width = 200, height = 100, items = []) {
+  // ...
+}
+```
+但更为实际的方法是将这些参数通通装入对象中,再在函数参数中解构:
+```js
+// 我们传递一个对象给函数
+let options = {
+  title: "My menu",
+  items: ["Item1", "Item2"]
+};
+
+// ……然后函数马上把对象解构成变量
+function showMenu({title = "Untitled", width = 200, height = 100, items = []}) {
+  // title, items – 提取于 options，
+  // width, height – 使用默认值
+  alert( `${title} ${width} ${height}` ); // My Menu 200 100
+  alert( items ); // Item1, Item2
+}
+
+showMenu(options);
+```
+
+要想使用函数的默认参数,我们必须传入一个空对象才可以:
+```js
+showMenu({}); // 不错，所有值都取默认值
+
+showMenu(); // 这样会导致错误
+```
+因此我们可以在函数里就写明默认值为空对象:
+```js
+function showMenu({ title = "Menu", width = 100, height = 200 } = {}) {
+  alert( `${title} ${width} ${height}` );
+}
+
+showMenu(); // Menu 100 200
+```
+#### 对象展开
+- 由于对象展开与解构赋值干的事情差不多,所以就放在这里了.
+
+如前所说,我们有时候会使用`...`来接收多余或者多出的变量:
+```js
+function showName(firstName, lastName, ...titles) {
+  alert( firstName + ' ' + lastName ); // Julius Caesar
+
+  // 剩余的参数被放入 titles 数组中
+  // i.e. titles = ["Consul", "Imperator"]
+  alert( titles[0] ); // Consul
+  alert( titles[1] ); // Imperator
+  alert( titles.length ); // 2
+}
+
+showName("Julius", "Caesar", "Consul", "Imperator");
+```
+
+但是js开发者显然很喜欢这个`...`,在**对象展开**的时候也要用它来干活,这被称为**Spread语法**:
+```js
+let arr = [3, 5, 1];
+
+alert( Math.max(...arr) ); // 5（spread 语法把数组转换为参数列表）
+```
+
+一个更为复杂的应用如下:
+```js
+let obj = { a: 1, b: 2, c: 3 };
+
+let objCopy = { ...obj }; // 将对象 spread 到参数列表中
+                          // 然后将结果返回到一个新对象
+
+// 两个对象中的内容相同吗？
+alert(JSON.stringify(obj) === JSON.stringify(objCopy)); // true
+
+// 两个对象相等吗？
+alert(obj === objCopy); // false (not same reference)
+
+// 修改我们初始的对象不会修改副本：
+obj.d = 4;
+alert(JSON.stringify(obj)); // {"a":1,"b":2,"c":3,"d":4}
+alert(JSON.stringify(objCopy)); // {"a":1,"b":2,"c":3}
+```
+
+显然,对象展开与解构赋值干的活儿差不多,但是对象展开没必要知道对象内部有什么,而解构赋值是必须要一个个重新赋值或者确认的.因此,当我们仅仅是要跨越函数传递参数时,一般都使用**对象展开**,直到最后的执行函数才使用解构赋值.
 ### 模块
+### 迭代器,生成器与异步调用
+
 # 浏览器引擎介绍
 >三件套是如何被渲染的?我们常说的浏览器内核是什么?运行时又是什么?这几个问题是这一章节的核心要点.
 

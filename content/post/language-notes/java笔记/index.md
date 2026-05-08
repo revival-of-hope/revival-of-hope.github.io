@@ -918,11 +918,29 @@ public class Main implements Runnable {
 ```
 真正要详细了解多线程需要在后面的Java线程池中学习
 
-### Java反射
+### Java反射(待补充)
+#### 前言
+我一直都十分怀疑中文互联网对于Java反射指定有什么奇怪的共识,所有讲Java反射的教程一上来就会抛给你一段类似这样的代码:
 
+```java
+Class clz = Class.forName("com.chenshuyi.reflect.Apple");
+Method method = clz.getMethod("setPrice", int.class);
+Constructor constructor = clz.getConstructor();
+Object object = constructor.newInstance();
+method.invoke(object, 4);
+```
+
+- 当一个兴致冲冲的小白想要了解Java反射是什么的时候,立刻就被劝退了...
+
+不管怎样,我打算从更底层更初级的角度来学习反射.
+#### 反射是什么
+
+#### 反射用到了哪些库
+
+#### 实战
 # Java构建与打包
 
-## JDK详解
+## JDK
 - [参考博文](https://www.wdbyte.com/java/jdk-jre-jvm/)
 
 JDK（Java Development Kit）、JRE（Java Runtime Environment）、JVM （Java Virtual Machine）是 Java 开发中的三个重要概念，**JDK 包含了 JRE 和开发工具，JRE 包含了 JVM 和类库，JVM 是 Java 程序的运行环境**。
@@ -936,10 +954,11 @@ JDK（Java Development Kit）、JRE（Java Runtime Environment）、JVM （Java 
 3. JVM负责执行class文件,从而运行java程序,在需要时由JRE帮助导入系统库和第三方库.
 
 >这样看来,底层根本就不存在所谓的java到c/cpp的转换,就算JVM是用cpp写的,但实际上来说根本不需要将java转换成cpp,而是让JVM逐个执行class文件即可.所以java比起cpp慢的主要原因在于多了一个从.java文件到.class文件的转换构建,而cpp程序编译得到的可执行文件由于更贴近底层,程序改动后的即时编译构建不需要做很大的改动即可运行,所以速度更快.
-## JVM详解
+## JVM
 >我们总说Java"一次编写,处处运行",靠的就是JVM实现的.要想更好的理解这句话,可以这么说,不同操作系统使用的JVM不同,但是我们可以编写同一份java代码,无需像Cpp那样需要适配不同的平台来编写不同的代码.
 
-## Class文件详解
+推荐阅读: 深入理解Java虚拟机
+## Class文件
 - [参考博客](https://www.cnblogs.com/zsql/p/12907120.html)
 
 class文件是java文件被javac等编译器编译后得到的平台无关的**中间文件**,其地位类似于cpp/c中的目标文件(尽管cpp中的目标文件是平台相关的).
