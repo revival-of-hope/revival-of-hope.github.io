@@ -1315,7 +1315,7 @@ ask(
 ```
 
 
-### OOP
+### 对象
 #### 创建对象
 有两种方法来创建对象:
 ```js
@@ -1664,6 +1664,71 @@ alert(JSON.stringify(objCopy)); // {"a":1,"b":2,"c":3}
 ```
 
 显然,对象展开与解构赋值干的活儿差不多,但是对象展开没必要知道对象内部有什么,而解构赋值是必须要一个个重新赋值或者确认的.因此,当我们仅仅是要跨越函数传递参数时,一般都使用**对象展开**,直到最后的执行函数才使用解构赋值.
+### OOP
+js直到ES6才引入了class,大致的结构和python中的类没有区别.
+
+#### 构造函数
+class中的构造函数是`constructor`:
+```js
+class User {
+
+  constructor(name) {
+    this.name = name;
+  }
+
+  sayHi() {
+    alert(this.name);
+  }
+
+}
+
+// 用法：
+let user = new User("John");
+user.sayHi();
+```
+#### 继承与多态
+js中的继承和java中一样使用关键字`extends`:
+```js
+class Rabbit extends Animal {
+  hide() {
+    alert(`${this.name} hides!`);
+  }
+}
+```
+与python中一样,JavaScript的所有方法都是默认可被重载的,在子类中重写方法会覆盖父类的方法,但可以通过super指向父类,调用父类的方法:
+```js
+class Rabbit extends Animal {
+  stop() {
+    // ……现在这个将会被用作 rabbit.stop()
+    // 而不是来自于 class Animal 的 stop()
+  }
+}
+```
+与java一样,js可以用super关键字来指向父类:
+```js
+class Rabbit extends Animal {
+  hide() {
+    alert(`${this.name} hides!`);
+  }
+
+  stop() {
+    super.stop(); // 调用父类的 stop
+    this.hide(); // 然后 hide
+  }
+}
+```
+#### static关键字
+尽管没有引入其他的修饰符,但js引入了static关键字,用于修饰静态方法和静态属性:
+```js
+class User {
+  static staticMethod() {
+    alert(this === User);
+  }
+}
+
+User.staticMethod(); // true
+```
+### 异常处理
 ### 模块
 ### 迭代器,生成器与异步调用
 

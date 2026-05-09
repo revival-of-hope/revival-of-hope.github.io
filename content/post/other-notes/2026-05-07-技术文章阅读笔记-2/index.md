@@ -10,11 +10,91 @@ math: true
 - (5/7): 本来想着把笔记全部写一起的,但太多了翻起来确实不方便,就先再开一栏,日后如果有好方法解决再说
 # ADAM论文
 - 这篇2015年的论文提出了一种新的神经网络学习方法:ADAM,是两年后推出的Transformer模型的核心算法,还是很有必要了解的
-
+- 第一次读论文,也不知道怎么读,总不至于全部复制过来再逐个翻译吧,想了想还是读完全文后做一点要点总结算了.
 ![alt text](PixPin_2026-05-08_17-07-53.webp)
 ## 引入
+>在机器学习中,常见的优化算法都属于一阶方法**first-order methods**,即只使用目标函数(例如损失函数)的一阶导数(例如梯度)来更新参数.其中,随机梯度下降法**stochastic gradient descent (SGD)**是最著名也是非常有效的学习方法.
+
+本文提出的Adam算法同样也是一个随机最优化(**stochastic optimization**)的一阶算法,它的名字来源于`adaptive moment estimation`.
+
+该算法借鉴了两个优秀算法的长处:
+1. AdaGrad,于2011年提出,可以很好地处理稀疏梯度(即梯度向量中绝大多数元素为0的情况)
+2. RMSProp,于2012年提出,能够很好地处理小批量训练?(on-line)和非平稳环境(not-stationary).
+## 算法实现
+### 伪代码
+$$\begin{array}{l}
+\hline \mathbf{Algorithm\ 1:} \text{ Adam, our proposed algorithm for stochastic optimization. See section 2 for details,} \\
+\text{and for a slightly more efficient (but less clear) order of computation. } g_{t}^{2} \text{ indicates the elementwise} \\
+\text{square } g_{t} \odot g_{t} \text{. Good default settings for the tested machine learning problems are } \alpha=0.001, \\
+\beta_{1}=0.9, \beta_{2}=0.999 \text{ and } \epsilon=10^{-8} \text{. All operations on vectors are element-wise. With } \beta_{1}^{t} \text{ and } \beta_{2}^{t} \\
+\text{we denote } \beta_{1} \text{ and } \beta_{2} \text{ to the power } t . \\
+\hline \mathbf{Require:} \alpha: \text{Stepsize} \\
+\mathbf{Require:} \beta_{1}, \beta_{2} \in[0,1): \text{Exponential decay rates for the moment estimates} \\
+\mathbf{Require:} f(\theta): \text{Stochastic objective function with parameters } \theta \\
+\mathbf{Require:} \theta_{0}: \text{Initial parameter vector} \\
+\quad m_{0} \leftarrow 0 \text{ (Initialize } 1^{\text {st }} \text{ moment vector)} \\
+\quad v_{0} \leftarrow 0 \text{ (Initialize } 2^{\text {nd }} \text{ moment vector)} \\
+\quad t \leftarrow 0 \text{ (Initialize timestep)} \\
+\quad \mathbf{while} \ \theta_{t} \text{ not converged } \mathbf{do} \\
+\quad\quad t \leftarrow t+1 \\
+\quad\quad g_{t} \leftarrow \nabla_{\theta} f_{t}\left(\theta_{t-1}\right) \text{ (Get gradients w.r.t. stochastic objective at timestep } t) \\
+\quad\quad m_{t} \leftarrow \beta_{1} \cdot m_{t-1}+\left(1-\beta_{1}\right) \cdot g_{t} \text{ (Update biased first moment estimate)} \\
+\quad\quad v_{t} \leftarrow \beta_{2} \cdot v_{t-1}+\left(1-\beta_{2}\right) \cdot g_{t}^{2} \text{ (Update biased second raw moment estimate)} \\
+\quad\quad \widehat{m}_{t} \leftarrow m_{t} /\left(1-\beta_{1}^{t}\right) \text{ (Compute bias-corrected first moment estimate)} \\
+\quad\quad \widehat{v}_{t} \leftarrow v_{t} /\left(1-\beta_{2}^{t}\right) \text{ (Compute bias-corrected second raw moment estimate)} \\
+\quad\quad \theta_{t} \leftarrow \theta_{t-1}-\alpha \cdot \widehat{m}_{t} /\left(\sqrt{\widehat{v}_{t}}+\epsilon\right) \text{ (Update parameters)} \\
+\quad \mathbf{end\ while} \\
+\quad \mathbf{return} \ \theta_{t} \text{ (Resulting parameters)} \\
+\hline
+\end{array}$$
+
+有几个专业名词不太好懂:
+1. first moment: 一阶矩,即梯度的期望(均值)
+2. second raw moment: 二阶原始矩,不对数据减去均值直接求平方期望,若减去均值在求平方期望,则称为中心矩(即方差)
+3. `exponential decay rates`: 指数衰减率,衰减率越大参数更新越慢,之所以叫指数是因为某一时刻的值是先前所有历史值的加权和:
+   - $$V_t = (1-\beta)(g_t + \beta g_{t-1} + \beta^2 g_{t-2} + \beta^3 g_{t-3} + \dots)$$
 
 
+- 大概这种论文都有一个伪代码来简单的解释自己算法的整个流程吧,乍一看有点懵,实际上确实比看文字更好懂一点
+### 具体原理
+>The stochasticity might come from the evaluation at random subsamples (minibatches)
+of datapoints, or arise from inherent function noise.
+
+- 之所以说这个算法是随机的,是因为它的数据可能是一个随机的小批量抽取,或者说数据本身存在噪音
+
+> However, these moving averages are
+initialized as (vectors of) 0’s, leading to moment estimates that are biased towards zero, especially
+during the initial timesteps, and especially when the decay rates are small (i.e. the βs are close to 1).
+
+- 由于m和v的初始值被置为0,所以在函数刚起步的时候,特别是当衰减率也很低(β接近1)时,会导致矩估计(均值)偏向0,导致学习失败.
+
+>因此,我们需要用一点技巧来克服这个问题,这会在下一章被解决.
+
+- 看了一个小时,明天再来,看论文确实很累
+## 
+## 相关工作
+
+## 4个实验
+选取的实验都是非常经典的模型,而不是像某些垃圾论文一样用一些奇怪的数据集在奇怪的模型上训练.
+### LOGISTICR EGRESSION
+### MULTI-LAYER NEURAL NETWORKS
+### CONVOLUTIONAL NEURAL NETWORKS
+### BIAS-CORRECTION TERM
+## 结论
+- 有个扩展的AdaMax算法被我忽略掉了
+
+>The method combines the advantages of
+two recently popular optimization methods: the ability of AdaGrad to deal with sparse gradients,
+and the ability of RMSProp to deal with non-stationary objectives. 
+>
+>The method is straightforward
+to implement and requires little memory. 
+
+>The experiments confirm the analysis on the rate of convergence in **convex problems**.
+>
+>Overall, we found Adam to be **robust and well-suited to a wide range of non-convex optimization problems** in the field machine learning.
+
+第一篇论文看下来的感受还是挺好的,既没有什么宏大叙事,也没有多少弯弯绕绕,很清楚的把一个算法的前前后后都讲清楚了,非常推荐阅读.
 # 深入理解Java虚拟机
 如果要理解Java为什么能够"一次编写,处处运行",就需要来看这本书
 ## ch1: 走进Java
@@ -142,7 +222,46 @@ f, err := os.Open(infile)
 f, err := os.Create(outfile) // compile error: no new variables
 ```
 ### 指针
+# HTTP权威指南
+- 这本书于2002年出版,所以大多数概念可以直接跳过
 
+本书分成以下五个部分:
+- 第一部分 HTTP：Web 的基础
+- 第二部分 HTTP 结构
+- 第三部分 识别、认证与安全
+- 第四部分 实体、编码和国际化
+- 第五部分 内容发布与分发
+
+## ch2: URL
+一个URL由以下部分组成,其中方案(如`http:`,`ftp:`),主机(域名或者ip地址)和路径是必须的,其他的是可选项:
+
+| 组件 | 描述                                                                                                                                                                          | 默认值         |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 方案 | 访问服务器以获取资源时要使用哪种协议                                                                                                                                          | 无             |
+| 用户 | 某些方案访问资源时需要的用户名                                                                                                                                                | 匿名           |
+| 密码 | 用户名后面可能包含的密码，中间由冒号 (:) 分隔                                                                                                                                 | <E-mail 地址 > |
+| 主机 | 资源宿主服务器的主机名或点分 IP 地址                                                                                                                                          | 无             |
+| 端口 | 资源宿主服务器正在监听的端口号。很多方案都有默认端口号（HTTP 的默认端口号为 80）                                                                                              | 每个方案特有   |
+| 路径 | 服务器上资源的本地名，由一个斜杠 (/) 将其与前面的 URL 组件分隔开来。路径组件的语法是与服务器和方案有关的（本章稍后会讲到 URL 路径可以分为若干段，每段都可以有其特有的组件。） | 无             |
+| 参数 | 某些方案会用这个组件来指定输入参数。参数为名 / 值对。URL 中可以包含多个参数字段，它们相互之间以及与路径的其余部分之间用分号 (;) 分隔                                          | 无             |
+| 查询 | 某些方案会用这个组件传递参数以激活应用程序（比如数据库、公告板、搜索引擎以及其他因特网网关）。查询组件的内容没有通用格式。用字符 “?” 将其与 URL 的其余部分分隔开来            | 无             |
+| 片段 | 一小片或一部分资源的名字。引用对象时，不会将 frag 字段传送给服务器；这个字段是在客户端内部使用的。通过字符 “#” 将其与 URL 的其余部分分隔开来                                  | 无             |
+
+### 端口
+我们平常使用http和https时都省略了端口,比如说`https://github.com/`实际上是`https://github.com/:443`,但浏览器会自动帮我们处理,如图所示:
+![alt text](PixPin_2026-05-08_21-26-18.webp)
+
+- 事实上访问`https://github.com/:443`也可以实现一样的效果,如果这么考量的话,我们看到`localhost:3000`等URL的时候就不会太迷糊
+### 查询字符串
+诸如下方这样的以`?`打头的查询参数非常常见,一般来说会用于搜索窗口上.
+```text
+http://www.joes-hardware.com/inventory-check.cgi?item=12731
+```
+### 片段
+有时候我们会遇到以`#`打头的字符串,它表示该文档或者资源的一个片段,可以理解成某一章节或者某个特定图片:
+```text
+http://www.joes-hardware.com/tools.html#drills
+```
 # Python工匠
 - 正式学习python已经很久了,我至今都没有好好的看一本python工程方面的技术书,现在就来拜读一下这本在豆瓣上有9.1的高分,由技术大牛朱雷编写的著作.
 ## 
