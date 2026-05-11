@@ -107,15 +107,38 @@ to implement and requires little memory.
 >Overall, we found Adam to be **robust and well-suited to a wide range of non-convex optimization problems** in the field machine learning.
 
 第一篇论文看下来的感受还是挺好的,既没有什么宏大叙事,也没有多少弯弯绕绕,很清楚的把一个算法的前前后后都讲清楚了,非常推荐阅读.
-# Attention Is All You Need
+#
+# Attention Is All You Need(待补充)
 ![alt text](PixPin_2026-05-10_20-31-11.webp)
 - 划时代的论文,划时代的杰作,划时代的人才
+- transformer是基于大量前人的研究工作实现的,需要预先懂得很多知识后再来看比较好.
+## 引言和背景介绍
+- 相比ADMA论文,这一篇的摘要不够清晰,引入也很啰嗦...
 
+>To the best of our knowledge, however, the Transformer is the first transduction model relying
+entirely on self-attention to compute representations of its input and output without using sequence-
+aligned RNNs or convolution. 
 
+原来编码器-解码器模型在几年前的论文中就提出来了,注意力机制也不是这篇论文的原创,但是Transformer将先前的论文成果结合在一起,提出**完全依靠自注意力机制来计算输入输出结果,而不使用循环神经网络或者卷积**,从而解决了长距离信息丢失的问题.
+## 模型架构
+> At each step the model is auto-regressive
+[10], consuming the previously generated symbols as additional input when generating the next.
+
+![alt text](PixPin_2026-05-11_13-07-49.webp)
+
+### 编码器和解码器架构
+**编码器(Encoder)**由6个完全相同的层并行组成,每个层都有两个子层:
+1. 多头子注意力层,后面会详细解释
+2. **position-wise fully connected feed-forward network**(前馈全连接层)
+
+在每个子层后,都有一个正规化层
+## 
 # LLaMA: Open and Efficient Foundation Language Models
 ![alt text](PixPin_2026-05-10_20-30-42.webp)
 
 # HTTP权威指南
+不推荐阅读.
+
 - 这本书于2002年出版,所以大多数概念可以直接跳过
 
 本书分成以下五个部分:
@@ -155,12 +178,71 @@ http://www.joes-hardware.com/inventory-check.cgi?item=12731
 ```text
 http://www.joes-hardware.com/tools.html#drills
 ```
+## ch6: 代理
+### 代理与网关的对比
+代理连接的是多个使用相同协议的应用程序,而网关连接多个使用不同协议的断点,更像是协议转换器.
+![alt text](PixPin_2026-05-11_10-23-03.webp)
+
+## ch8: 网关
+网关进行协议间的转换,如"ftp转http","https转http"
+
+![alt text](PixPin_2026-05-11_17-30-35.webp)
+
 
 # Build a Large Language Model 
-# Python工匠(待补充)
+# Python工匠
 - 正式学习python已经很久了,我至今都没有好好的看一本python工程方面的技术书,现在就来拜读一下这本在豆瓣上有9.1的高分,由技术大牛朱雷编写的著作.
-## 
+## 引言
+>好代码就像好文章，语言精练、层次分明，让人读了还想读；而烂代码则像糊成一团的意大利面条，处处充斥着相似的逻辑，模块间的关系错综复杂，多看一眼都令人觉得眼睛会受伤。
 
+>这些领域内的经典图书虽好，却有个问题：它们大多是针对 Java 这类静态类型语言所写的，
+而 Python 这门动态类型的脚本语言又和 Java 大不一样。这些书里的许多理念和例子，假如直接套用在 Python 里，效果不尽如人意。
+
+>如果你也像我一样，曾被烂代码所困，终日寻求写好 Python 程序的方法，那么我郑重地将本
+书推荐给你。这是我多年的经验汇集，相信会给你一些启发。
+
+- 本书内容以进阶知识为主。书里虽有少量基础知识讲解，但并不全面，描述得也并不详尽。正因如此，假如你从未有过任何编程经验，我并不建议你通过本书来入门 Python。
+  - 少数承认自己书中前置的python基础知识没什么作用的作者
+## 变量与注释
+```py
+# 去掉 s 两边的空格，再处理
+value = process(s.strip())
+```
+上述的代码编写太烂了,所以我们可以优化成这样:
+```py
+# 用户输入可能会有空格，使用 strip() 去掉空格
+username = extract_username(input_string.strip())
+```
+
+- 好的变量和注释并非为计算机而写，而是为每个阅读代码的人而写（当然也包括你自己）
+
+
+```py
+def resize_image(image, size):
+"""将图片缩放到指定尺寸，并返回新的图片。
+该函数将使用 Pilot 模块读取文件对象，然后调用 .resize() 方法将其缩放到指定尺寸。
+但由于 Pilot 模块自身限制，这个函数不能很好地处理过大的文件，当文件大小超过 5MB 时，
+resize() 方法的性能就会因为内存分配问题急剧下降，详见 Pilot 模块的Issue #007。因此，
+对于超过 5MB 的图片文件，请使用 resize_big_image() 替代，后者基于 Pillow 模块开发，
+很好地解决了内存分配问题，确保性能更好了。
+:param image: 图片文件对象
+:param size: 包含宽高的元组：（width, height）
+:return: 新图片对象
+"""
+```
+过于详细的注释也没有必要,可以稍微精简一下:
+```py
+def resize_image(image, size):
+"""将图片缩放到指定尺寸，并返回新的图片。
+注意：当文件超过 5MB 时，请使用 resize_big_image()
+:param image: 图片文件对象
+:param size: 包含宽高的元组：（width, height）
+:return: 新图片对象
+"""
+```
+
+>如果遵守“先写注释，后写代码”的习惯，我们就能完全避免上面的问题。要养成这个习惯其实很简单：在写出一句有说服力的接口注释前，别写任何函数代码。
+## 数值与字符串
 # 深入理解Java虚拟机
 如果要理解Java为什么能够"一次编写,处处运行",就需要来看这本书
 ## ch1: 走进Java
@@ -169,7 +251,7 @@ http://www.joes-hardware.com/tools.html#drills
 
 
 
-# Go语言圣经(待补充)
+# Go语言圣经
 - [中文版网站](https://golang-china.github.io/gopl-zh/preface-zh.html)
 - (5/7): 看多了Java总觉得有些烦躁,就想着先学习一下Go来看看它的神奇之处
 
@@ -288,6 +370,21 @@ f, err := os.Open(infile)
 f, err := os.Create(outfile) // compile error: no new variables
 ```
 ### 指针
+由于Go的底层不是如Java,Python一样的引用传值,而是和Cpp,Rust一样的值拷贝,所以有必要引入指针,**来避免大规模的复制拷贝**.
+
+- 任何类型指针的零值都是**nil**,对应于cpp中的nullptr.
+
+```go
+var p = f()
+
+func f() *int {
+    v := 1
+    return &v
+}
+```
+
+
+
 # On Java 8(待补充)
 - [中文翻译版链接](https://zyb0408.github.io/gitbooks/onjava8/)
 讲的还算详细和有体系,但由于我已经了解过其中的大多数内容了,所以就只摘抄一些比较难懂和重要的部分,很多我这辈子都未必能用到的零碎知识点就直接跳过了.

@@ -1729,9 +1729,236 @@ class User {
 User.staticMethod(); // true
 ```
 ### 异常处理
-### 模块
-### 迭代器,生成器与异步调用
+```js
+try {
+  lalala; // error, variable is not defined!
+} catch (err) {
+  alert(err.name); // ReferenceError
+  alert(err.message); // lalala is not defined
+  alert(err.stack); // ReferenceError: lalala is not defined at (...call stack)
 
+  // 也可以将一个 error 作为整体显示出来
+  // error 信息被转换为像 "name: message" 这样的字符串
+  alert(err); // ReferenceError: lalala is not defined
+}
+```
+- js中的异常简单处理时,不需要专门用一个异常类指明,还是比较方便的
+
+当然,js中也有专门的异常类:
+```js
+let error = new Error(message);
+// 或
+let error = new SyntaxError(message);
+let error = new ReferenceError(message);
+// ...
+```
+使用异常类可以让程序更加清晰,更好调试:
+```js
+let json = '{ "age": 30 }'; // 不完整的数据
+
+try {
+
+  let user = JSON.parse(json); // <-- 没有 error
+
+  if (!user.name) {
+    throw new SyntaxError("数据不全：没有 name"); // (*)
+  }
+
+  alert( user.name );
+
+} catch(err) {
+  alert( "JSON Error: " + err.message ); // JSON Error: 数据不全：没有 name
+}
+```
+同样,js中也有一个收尾的finally关键字:
+```js
+try {
+  alert( 'try' );
+  if (confirm('Make an error?')) BAD_CODE();
+} catch (err) {
+  alert( 'catch' );
+} finally {
+  alert( 'finally' );
+}
+```
+
+
+### Promise与异步
+- 同样于ES6引入,属于一个比较高级的语法
+
+**标准语法如下:**
+```js
+let promise = new Promise(function(resolve, reject) {
+  // executor（生产者代码，“歌手”）
+});
+```
+#### 生产者详解
+executor(**生产者**)内部执行代码后,如果成功,则调用resolve函数执行;如果失败,则调用reject函数执行.
+
+实例化的Promise对象promise有以下两个属性:
+1. state: 初始值是"pending",在resolve被调用时变成"fulfilled";在reject被调用时变成"rejected".
+2. result: 初始值是undefined,在resolve被调用时得到executor的返回值,在reject被调用时得到executor产生的error.
+
+![alt text](PixPin_2026-05-11_13-46-45.webp)
+
+#### 消费者详解
+promise实例具有三个**消费者**方法:
+1. then
+2. catch
+3. finally
+
+then方法内可以有两个函数,分别在生产者执行成功时调用它的**返回值**和失败时调用抛出的**错误**:
+```js
+promise.then(
+  function(result) { /* handle a successful result */ },
+  function(error) { /* handle an error */ }
+);
+```
+
+但是有时候我们希望将异常处理和代码执行区分开来,就可以将`function(error)`部分提出来放在catch方法里:
+```js
+downloadFile("https://example.com/logo.png")
+  .then((response) => {
+    console.log("✅ 成功：", response.msg);
+  })
+  .catch((err) => {
+    console.error("❌ 失败：", err.message);
+  })
+```
+
+有时候我们希望执行一点收尾工作,就可以使用`finally`方法:
+```js
+downloadFile("https://example.com/logo.png")
+  .then((response) => {
+    console.log("✅ 成功：", response.msg);
+  })
+  .catch((err) => {
+    console.error("❌ 失败：", err.message);
+  })
+  .finally(() => {
+    console.log("🏁 进度条结束（无论成功失败均隐藏）");
+  });
+```
+
+一个完整的实战代码如下:
+```js
+// 1. 生产者：封装下载逻辑
+function downloadFile(url) {
+  return new Promise((resolve, reject) => {
+    console.log("正在从 " + url + " 下载文件...");
+
+    // 模拟真实的资源加载（例如图片加载）
+    const image = new Image();
+    
+    // 成功时的回调函数
+    image.onload = () => {
+      resolve({ status: 200, msg: "文件已成功载入" });
+    };
+
+    // 失败时的回调函数
+    image.onerror = () => {
+      reject(new Error("文件地址无效或网络异常"));
+    };
+
+    // 触发下载
+    image.src = url;
+  });
+}
+
+// 2. 消费者：根据下载结果更新界面
+downloadFile("https://example.com/logo.png")
+  .then((response) => {
+    console.log("✅ 成功：", response.msg);
+  })
+  .catch((err) => {
+    console.error("❌ 失败：", err.message);
+  })
+  .finally(() => {
+    console.log("🏁 进度条结束（无论成功失败均隐藏）");
+  });
+```
+#### Promise链
+鉴于前端有时候需要对某个异步操作进行反复处理,所以js引入了promise链语法: 将一个then方法写在一个then方法之后时,前一个then方法的返回值会自动包装成Promise实例,供下一个then方法使用,置于具体原理就没必要去了解了,可以看成是一个高阶语法糖.
+
+```js
+new Promise(function(resolve, reject) {
+
+  setTimeout(() => resolve(1), 1000); // (*)
+
+}).then(function(result) { // (**)
+
+  alert(result); // 1
+  return result * 2;
+
+}).then(function(result) { // (***)
+
+  alert(result); // 2
+  return result * 2;
+
+}).then(function(result) {
+
+  alert(result); // 4
+  return result * 2;
+
+});
+```
+- 本质上来说,这减少了函数的层层缩进,不同阶段的处理都使用同样的缩进,更符合阅读习惯.
+
+
+**实战代码**
+```js
+function loadJson(url) {
+  return fetch(url)
+    .then(response => response.json());
+}
+
+function loadGithubUser(name) {
+  return loadJson(`https://api.github.com/users/${name}`);
+}
+
+function showAvatar(githubUser) {
+  return new Promise(function(resolve, reject) {
+    let img = document.createElement('img');
+    img.src = githubUser.avatar_url;
+    img.className = "promise-avatar-example";
+    document.body.append(img);
+
+    setTimeout(() => {
+      img.remove();
+      resolve(githubUser);
+    }, 3000);
+  });
+}
+
+// 使用它们：
+loadJson('/article/promise-chaining/user.json')
+  .then(user => loadGithubUser(user.name))
+  .then(showAvatar)
+  .then(githubUser => alert(`Finished showing ${githubUser.name}`));
+  // ...
+```
+
+#### Promise.all
+promise除了then,catch方法,还有all方法可以使用,它的本质是: **并行执行多个promise,等待所有promise执行完后再进行处理**,示例代码如下:
+```js
+Promise.all([
+  new Promise(resolve => setTimeout(() => resolve(1), 3000)), // 1
+  new Promise(resolve => setTimeout(() => resolve(2), 2000)), // 2
+  new Promise(resolve => setTimeout(() => resolve(3), 1000))  // 3
+]).then(alert); // 1,2,3 当上面这些 promise 准备好时：每个 promise 都贡献了数组中的一个元素
+```
+- 这个示例代码并不那么容易好懂,可以看到then方法中的那个alert函数并没有任何参数,却依旧可以打印出三个promise函数的返回值,原因如下: **当你直接把一个函数名传递给then方法时,引擎会自动将上一步的结果作为参数传递给该函数**.
+  - 显然,js最令后端开发者难受的地方就是这些莫名其妙的简写了.
+
+#### async/await
+鉴于promise过于复杂和难懂,所以js使用关键字`async`和`await`来实现接近相同的功能,事实上在可能的情况下,我们都使用这两个关键字,而非promise调用.
+
+- 以fastapi模板项目为例:
+- >![alt text](PixPin_2026-05-11_14-45-32.webp)
+- ![alt text](PixPin_2026-05-11_14-46-55.webp)
+
+
+### 模块
 # 浏览器引擎介绍
 >三件套是如何被渲染的?我们常说的浏览器内核是什么?运行时又是什么?这几个问题是这一章节的核心要点.
 

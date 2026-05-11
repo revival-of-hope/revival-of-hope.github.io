@@ -6,3 +6,9 @@ image:
 math: 
 draft: true
 ---
+
+# Go语法
+- [w3schools](https://www.w3schools.com/go/go_getting_started.php)
+
+## 基础语法
+### 

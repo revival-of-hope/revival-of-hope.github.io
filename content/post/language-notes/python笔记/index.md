@@ -530,6 +530,54 @@ car.drive()
 ## Python关键字与内置函数
 
 ### with
+- [官方文档](https://docs.python.org/zh-cn/3.12/reference/compound_stmts.html#index-16)
+
+with是一个非常好用的语法糖,将文件读写等容易出问题的操作封装成一个非常简单的语法:
+```py
+with EXPRESSION as TARGET:
+    SUITE
+```
+上述代码等价于:
+```py
+manager = (EXPRESSION)
+enter = type(manager).__enter__
+exit = type(manager).__exit__
+value = enter(manager)
+hit_except = False
+
+try:
+    TARGET = value
+    SUITE
+except:
+    hit_except = True
+    if not exit(manager, *sys.exc_info()):
+        raise
+finally:
+    if not hit_except:
+        exit(manager, None, None, None)
+```
+
+**实战代码**
+```py
+import json
+
+# 1. 生产者：准备一个名为 'config.json' 的文件
+# 2. 消费者：使用 with 语句读取并解析
+try:
+    with open('config.json', 'r', encoding='utf-8') as f:
+        # json.load() 直接将文件对象转换为 Python 字典或列表
+        data = json.load(f)
+    
+    # 此时文件已自动关闭，可以直接操作变量 data
+    print(data)
+    print(type(data)) 
+
+except FileNotFoundError:
+    print("错误：未找到 json 文件")
+except json.JSONDecodeError:
+    print("错误：文件内容不是有效的 JSON 格式")
+```
+
 ### range
 The range() function can be called with 1, 2, or 3 arguments, using this syntax:
 
@@ -546,12 +594,140 @@ x = range(10)
 ```py
 x = range(3, 10)
 ```
+### in和not in
+- [菜鸟教程](https://www.runoob.com/python/python-operators.html)
+
+| 运算符     | 描述                                                            | 实例                                              |
+| ---------- | --------------------------------------------------------------- | ------------------------------------------------- |
+| **in**     | 如果在指定的序列中找到值返回 **True**，否则返回 **False**。     | `x in y`：如果 x 在 y 序列中，则返回 True。       |
+| **not in** | 如果在指定的序列中没有找到值返回 **True**，否则返回 **False**。 | `x not in y`：如果 x 不在 y 序列中，则返回 True。 |
+
+```py
+a = 10
+list = [1, 2, 3, 4, 5 ];
+ 
+if ( a in list ):
+   print "1 - 变量 a 在给定的列表中 list 中"
+else:
+   print "1 - 变量 a 不在给定的列表中 list 中"
+ 
+# 修改变量 a 的值
+a = 2
+if ( a in list ):
+   print "3 - 变量 a 在给定的列表中 list 中"
+else:
+   print "3 - 变量 a 不在给定的列表中 list 中"
+```
 ### is和is not
+| 运算符     | 描述                                 | 实例                                                                       |
+| ---------- | ------------------------------------ | -------------------------------------------------------------------------- |
+| **is**     | 判断两个标识符是否引用自同一个对象。 | `x is y`：类似 `id(x) == id(y)`，若引用同一对象则返回 **True**。           |
+| **is not** | 判断两个标识符是否引用自不同对象。   | `x is not y`：类似 `id(x) != id(y)`，若引用的不是同一对象则返回 **True**。 |
+
+```py
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+ 
+a = 20
+b = 20
+ 
+if ( a is b ):
+   print "1 - a 和 b 有相同的标识"
+else:
+   print "1 - a 和 b 没有相同的标识"
+ 
+if ( a is not b ):
+   print "2 - a 和 b 没有相同的标识"
+else:
+   print "2 - a 和 b 有相同的标识"
+ 
+# 修改变量 b 的值
+b = 30
+if ( a is b ):
+   print "3 - a 和 b 有相同的标识"
+else:
+   print "3 - a 和 b 没有相同的标识"
+ 
+if ( a is not b ):
+   print "4 - a 和 b 没有相同的标识"
+else:
+   print "4 - a 和 b 有相同的标识"
+
+# 输出结果
+# 1 - a 和 b 有相同的标识
+# 2 - a 和 b 有相同的标识
+# 3 - a 和 b 没有相同的标识
+# 4 - a 和 b 没有相同的标识
+```
 ### yield
 - 前面的生成器部分已经提过了
-### try finally catch throw
+### 异常处理
+一个基本的代码如下:
+```py
+print(sys.exception())
+# None
+try:
+    raise TypeError
+except:
+    print(repr(sys.exception()))
+    try:
+         raise ValueError
+    except:
+        print(repr(sys.exception()))
+    print(repr(sys.exception()))
+
+# TypeError()
+# ValueError()
+# TypeError()
+# print(sys.exception())
+# None
+```
+
+**实战代码**
+```py
+import json
+
+def read_config(file_path):
+    try:
+        # 1. try: 放置可能报错的代码
+        print(f"正在尝试打开文件: {file_path}")
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+    except FileNotFoundError as e:
+        # 2. except: 捕获特定错误并处理
+        print(f"错误：找不到文件。详情: {e}")
+        data = {}
+
+    except json.JSONDecodeError:
+        # 可以捕获多个不同的异常
+        print("错误：JSON 格式不正确")
+        data = {}
+
+    except Exception as e:
+        # 兜底：捕获所有其他未预料到的异常
+        print(f"发生了未知错误: {e}")
+        data = {}
+
+    else:
+        # 3. else: 如果 try 块没有发生任何异常，则执行此处
+        # 适用于那些只有在成功获取资源后才执行的逻辑
+        print("文件读取成功，未发生异常")
+
+    finally:
+        # 4. finally: 无论是否发生异常，都一定会执行
+        # 通常用于关闭数据库连接、释放锁或记录日志
+        print("操作尝试结束，正在清理环境...")
+        
+    return data
+
+# 实战调用
+config = read_config('settings.json')
+```
 ### async与await
-- 于2015年的Python3.5引入
+于2015年的Python3.5引入,用于执行异步任务,最常见的应用场景就是网络通信和爬虫
+
+- [fastapi教程](https://fastapi.tiangolo.com/zh/async/)
 
 
 ### assert
@@ -887,7 +1063,7 @@ CUDA version: 13.0
 
 
 
-# Python编译
+# Python编译(待补充)
 - python是如何编译的?Cpython是什么?pyc文件又是什么?这几个问题会在这一章得到解决
 
 
@@ -947,6 +1123,50 @@ new_vector = scale(2.0, [1.0, -4.2, 5.4])
 显然,如果你全用Any的话也可以通过类型检查,但这样就没有意义了.
 
 
+### Annotated: 给类型添加额外的注释说明
+- [官方文档](https://docs.python.org/zh-cn/3/library/typing.html)
+  - 讲的不像人话
+- [stackoverflow](https://stackoverflow.com/questions/71898644/how-to-use-typing-annotated)
+
+>Annotated in python allows developers to declare the type of a reference and **provide additional information related to it**.
+
+- 毕竟Annotation本身就是**注释**的意思
+```py
+# 简单的注释说明
+name: Annotated[str, "first letter is capital"]
+
+# 框架的语法糖说明
+def read_items(q: Annotated[str, Query(max_length=50)])
+```
+### Optional,Union及其简易写法
+>Union[X, Y] 等价于 X | Y ，意味着满足 X 或 Y 之一,而 Optional[X] 等价于 X | None
+
+- 还是很好理解的.
+## annotated-types库
+- [官网](https://pypi.org/project/annotated-types/)
+
+
+鉴于Annotated本身提供的注释功能比较乏善,这个第三方库部分解决了这个问题,引入了一些比较实用的功能,这里只简单介绍四个注释函数: Gt,Ge,Lt,Le.
+
+- **Gt(x)** - value must be "Greater Than" x - equivalent to exclusive minimum
+- **Ge(x)** - value must be "Greater than or Equal" to x - equivalent to inclusive minimum
+- **Lt(x)** - value must be "Less Than" x - equivalent to exclusive maximum
+- **Le(x)** - value must be "Less than or Equal" to x - equivalent to inclusive maximum
+
+**示例代码**
+```py
+from typing import Annotated
+from annotated_types import Gt, Len, Predicate
+
+class MyClass:
+    age: Annotated[int, Gt(18)]                         # Valid: 19, 20, ...
+                                                        # Invalid: 17, 18, "19", 19.0, ...
+    factors: list[Annotated[int, Predicate(is_prime)]]  # Valid: 2, 3, 5, 7, 11, ...
+                                                        # Invalid: 4, 8, -2, 5.0, "prime", ...
+
+    my_list: Annotated[list[int], Len(0, 10)]           # Valid: [], [10, 20, 30, 40, 50]
+                                                        # Invalid: (1, 2), ["abc"], [0] * 20
+```
 
 # Python测试
 ## 如何写测试
@@ -1398,7 +1618,111 @@ ruff check --watch          # Lint files in the current directory and re-lint on
 ruff check path/to/code/    # Lint files in `path/to/code`.
 ```
 ## Pydantic
+### 概览
+#### 一段入门代码
+```py
+from datetime import datetime
+from typing import Tuple
 
+from pydantic import BaseModel
+
+
+class Delivery(BaseModel):
+    timestamp: datetime
+    dimensions: Tuple[int, int]
+
+
+m = Delivery(timestamp='2020-01-02T03:04:05Z', dimensions=['10', '20'])
+print(repr(m.timestamp))
+#> datetime.datetime(2020, 1, 2, 3, 4, 5, tzinfo=TzInfo(UTC))
+print(m.dimensions)
+#> (10, 20)
+```
+
+>“为什么 Pydantic 是这样命名的？”
+“Pydantic”这个名字是“Py”和“pedantic”的混合词。“Py”部分表示该库与 Python 相关，而“pedantic”指的是该库在数据验证和类型强制方面的细致方法。
+综合这些元素，“Pydantic”描述了我们的 Python 库，它提供了注重细节、严格的数据验证。
+
+#### 一段更为复杂的代码
+继承BaseModel的初始化方法后,我们不再需要手动写一个巨长无比的`__init__`函数了:
+```py
+from datetime import datetime
+
+from pydantic import BaseModel, PositiveInt
+
+
+class User(BaseModel):
+    id: int  
+    name: str = 'John Doe'  
+    signup_ts: datetime | None  
+    tastes: dict[str, PositiveInt]  
+
+
+external_data = {
+    'id': 123,
+    'signup_ts': '2019-06-01 12:22',  
+    'tastes': {
+        'wine': 9,
+        b'cheese': 7,  
+        'cabbage': '1',  
+    },
+}
+
+user = User(**external_data)  
+
+print(user.id)  
+#> 123
+print(user.model_dump())  
+"""
+{
+    'id': 123,
+    'name': 'John Doe',
+    'signup_ts': datetime.datetime(2019, 6, 1, 12, 22),
+    'tastes': {'wine': 9, 'cheese': 7, 'cabbage': 1},
+}
+"""
+```
+
+当你的初始化字典有问题时,pydantic会提供详细的报错说明:
+```py
+# continuing the above example...
+
+from pydantic import ValidationError
+
+
+class User(BaseModel):
+    id: int
+    name: str = 'John Doe'
+    signup_ts: datetime | None
+    tastes: dict[str, PositiveInt]
+
+
+external_data = {'id': 'not an int', 'tastes': {}}  
+
+try:
+    User(**external_data)  
+except ValidationError as e:
+    print(e.errors())
+    """
+    [
+        {
+            'type': 'int_parsing',
+            'loc': ('id',),
+            'msg': 'Input should be a valid integer, unable to parse string as an integer',
+            'input': 'not an int',
+            'url': 'https://pydantic.com.cn/errors/validation_errors#int_parsing',
+        },
+        {
+            'type': 'missing',
+            'loc': ('signup_ts',),
+            'msg': 'Field required',
+            'input': {'id': 'not an int', 'tastes': {}},
+            'url': 'https://pydantic.com.cn/errors/validation_errors#missing',
+        },
+    ]
+    """
+```
+### 模型
 
 # Python读取文件
 本部分所用的weekly_hiring_comments.json示例的结构如下:
@@ -1733,7 +2057,8 @@ TOKEN = os.getenv("token")
 1. 如果所请求的环境变量不存在如何处理?
 2. 如果环境变量的格式错误怎么办?
 
-因此,我们需要使用pydantic_settings库来用现代的类封装方式处理.env文件.
+因此,我们需要使用pydantic_settings库来用现代的类封装方式处理.env文件,在前面已经讲了,就不再做说明了.
+
 # Python爬虫
 和机器学习一样,我第一次学习Python爬虫是没有任何成果的,一开始是听说有这么个东西,就去zlib上随便下了本参考书,由于参考书是十年前的,因此使用了很多老掉牙的库和奇奇怪怪的语法,再加上当时水平有限,根本无法复现,于是就浅尝辄止了.
 
