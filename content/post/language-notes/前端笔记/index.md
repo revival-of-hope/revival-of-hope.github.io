@@ -1957,15 +1957,322 @@ Promise.all([
 - >![alt text](PixPin_2026-05-11_14-45-32.webp)
 - ![alt text](PixPin_2026-05-11_14-46-55.webp)
 
+##### 详细用法
+```js
+async function f() {
+  return 1;
+}
+
+f().then(alert); // 1
+```
+上述代码与下面的代码作用相同:
+```js
+function f() {
+  return Promise.resolve(1);
+}
+
+f().then(alert);
+```
+
+换句话说,async会自动将函数的返回值包装成Promise实例.
+
+而await则是对promise.then的包装:
+```js
+async function f() {
+
+  let promise = new Promise((resolve, reject) => {
+    setTimeout(() => resolve("done!"), 1000)
+  });
+
+  let result = await promise; // 等待，直到 promise resolve (*)
+
+  alert(result); // "done!"
+}
+
+f();
+```
+
+
+上面的说明还不是很清晰,让我们看看**实战代码**:
+```js
+function getOrderData() {
+  return fetch('/api/user')
+    .then(response => response.json())
+    .then(user => fetch(`/api/orders?userId=${user.id}`))
+    .then(response => response.json())
+    .then(orders => fetch(`/api/order/${orders[0].id}`))
+    .then(response => response.json())
+    .catch(error => console.error("请求失败:", error));
+}
+
+getOrderData().then(detail => console.log(detail));
+```
+上面这个丑陋的函数可以改写成这样:
+```js
+async function getOrderData() {
+  try {
+    const userRes = await fetch('/api/user');
+    const user = await userRes.json();
+
+    const ordersRes = await fetch(`/api/orders?userId=${user.id}`);
+    const orders = await ordersRes.json();
+
+    const detailRes = await fetch(`/api/order/${orders[0].id}`);
+    const detail = await detailRes.json();
+
+    return detail;
+  } catch (error) {
+    console.error("请求失败:", error);
+  }
+}
+
+getOrderData().then(detail => console.log(detail));
+```
+
+- 这样看起来就舒服多了.
+
+#### 总结
+如果对js中的异步还不是很清晰的话,可以看一下这个示例代码:
+```js
+async function test() {
+  console.log("A"); 
+  await fetch('/api/user'); // 暂停在这里，释放主线程
+  console.log("B"); // 等数据回来后再执行
+}
+
+console.log("C");
+test();
+console.log("D");
+
+// 实际输出顺序：
+// C
+// A (进入函数执行到 await 之前)
+// D (遇到 await，函数挂起，主线程继续执行函数外部的代码)
+// ... 过了很久 ...
+// B (请求完成，微任务触发)
+```
+异步就是,**挂起需要等待数据传来的函数,优先执行其他的函数.**
 
 ### 模块
-# 浏览器引擎介绍
->三件套是如何被渲染的?我们常说的浏览器内核是什么?运行时又是什么?这几个问题是这一章节的核心要点.
+>一个模块（module）就是一个文件。一个脚本就是一个模块。就这么简单。
+
+模块可以相互加载，并可以使用特殊的指令 export 和 import 来交换功能，从另一个模块调用一个模块的函数：
+- export 关键字标记了可以从当前模块外部访问的变量和函数。
+- import 关键字允许从其他模块导入功能。
+
+**一个简单的例子**
+```js
+// 📁 sayHi.js
+export function sayHi(user) {
+  alert(`Hello, ${user}!`);
+}
+
+// 📁 main.js
+import { sayHi } from './sayHi.js';
+
+alert(sayHi); // function...
+sayHi('John'); // Hello, John!
+```
+#### 导出与导入
+我们可以通过在声明之前放置 export 来标记任意声明为导出，无论声明的是变量，函数还是类都可以。
+```js
+// 导出数组
+export let months = ['Jan', 'Feb', 'Mar','Apr', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// 导出 const 声明的变量
+export const MODULES_BECAME_STANDARD_YEAR = 2015;
+
+// 导出类
+export class User {
+  constructor(name) {
+    this.name = name;
+  }
+}
+```
+
+通常，我们把要导入的东西列在花括号 import {...} 中，就像这样：
+```js
+// 📁 main.js
+import {sayHi, sayBye} from './say.js';
+
+sayHi('John'); // Hello, John!
+sayBye('John'); // Bye, John!
+
+// 或者一并导入
+// 📁 main.js
+import * as say from './say.js';
+
+say.sayHi('John');
+say.sayBye('John');
+```
+
+鉴于js使用{}来区分导入变量,所以就不像python一样将别名写在最后面,而是直接跟在变量名后面:
+```js
+// 📁 main.js
+import {sayHi as hi, sayBye as bye} from './say.js';
+
+hi('John'); // Hello, John!
+bye('John'); // Bye, John!
+```
+#### 默认导出
+每个文件都可以指定一个默认导出的元素(变量/函数/类),在其他文件中导入时不需要用花括号包裹:
+```js
+// 📁 user.js
+export default class User { // 只需要添加 "default" 即可
+  constructor(name) {
+    this.name = name;
+  }
+}
+
+// 📁 main.js
+import User from './user.js'; // 不需要花括号 {User}，只需要写成 User 即可
+
+new User('John');
+```
+
+- 看上去作用不大,但它将在jsx和tsx中发挥强大的能量.
+
+### fetch函数
+- 鉴于该函数的应用广泛性,所以有必要专门了解它
+
+**基本语法**
+```js
+let promise = fetch(url, [options])
+```
+- url —— 要访问的 URL。
+- options —— 可选参数：method，header 等.若不写参数则默认使用GET请求
+
+可以看到fetch函数返回的就是一个promise对象,原生就支持异步调用.
+
+该函数的执行有两个阶段:
+1. 解析响应头(response header)
+2. 解析响应体(response body)
+
+返回的promise对象有以下常用的方法或者属性:
+- **status** —— HTTP 状态码，例如 200。
+- **ok** —— 布尔值，如果 HTTP 状态码为 200-299，则为 true。
+- **text()** —— 读取 response，并以文本形式返回 response。
+- **json()** —— 将 response 解析为 JSON 格式。
+- **blob()** —— 以 Blob（具有类型的二进制数据）形式返回 response，
+
+如果我们通过await来调用的话,可以这么写:
+```js
+let response = await fetch(url);
+
+if (response.ok) { // 如果 HTTP 状态码为 200-299
+  // 获取 response body（此方法会在下面解释）
+  let json = await response.json();
+} else {
+  alert("HTTP-Error: " + response.status);
+}
+```
+- fetch首先会返回状态码,但这个时候响应体可能还在传输中,所以需要再使用一次await来获取.
+
+一个更典型的写法是这样的:
+```js
+let response = await fetch(url, options); // 解析 response header
+let result = await response.json(); // 将 body 读取为 json
+```
+response可能尚未完全加载完毕,所以需要再用一次await确保获取完整内容.
+
+#### 加入请求头
+```js
+let response = fetch(protectedUrl, {
+  headers: {
+    Authentication: 'secret'
+  }
+});
+```
+- 可以看到除了url之外的参数都用`{}`包裹起来了.
+
+#### 使用其他方法进行请求
+```js
+let user = {
+  name: 'John',
+  surname: 'Smith'
+};
+
+let response = await fetch('/article/fetch/post/user', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json;charset=utf-8'
+  },
+  body: JSON.stringify(user)
+});
+
+let result = await response.json();
+alert(result.message);
+```
+#### 一个完整的fetch请求
+```js
+let promise = fetch(url, {
+  method: "GET", // POST，PUT，DELETE，等。
+  headers: {
+    // 内容类型 header 值通常是自动设置的
+    // 取决于 request body
+    "Content-Type": "text/plain;charset=UTF-8"
+  },
+  body: undefined // string，FormData，Blob，BufferSource，或 URLSearchParams
+  referrer: "about:client", // 或 "" 以不发送 Referer header，
+  // 或者是当前源的 url
+  referrerPolicy: "no-referrer-when-downgrade", // no-referrer，origin，same-origin...
+  mode: "cors", // same-origin，no-cors
+  credentials: "same-origin", // omit，include
+  cache: "default", // no-store，reload，no-cache，force-cache，或 only-if-cached
+  redirect: "follow", // manual，error
+  integrity: "", // 一个 hash，像 "sha256-abcdef1234567890"
+  keepalive: false, // true
+  signal: undefined, // AbortController 来中止请求
+  window: window // null
+});
+```
+
+## 总结
+尽管ES6之后的js终于变得像是一门正式语言了,但是如果我们每次写网页都需要写一个个html文档,再通过script标签嵌入js代码的话,是很难做到模块化开发的,大量的代码杂糅在一起,十分难看又很难维护.
+
+因此,又一门出色的语言:JSX诞生了,它将模块式开发引入了js,解决了上述的开发难题.
 
 # JavaScript XML
 
-# Typescript
+## 概览
+- [jsx的简单历史介绍](https://www.greatfrontend.com/zh-CN/react-interview-playbook/react-landscape-history)
+- [官方文档](https://react.dev/learn)
 
+JSX于2013年正式发布,由Facebook的工程师们发明,在诞生初期遭受了不少质疑,但在几年后迅速席卷了整个前端开发界.
+
+- 尽管JSX起初是只用在React框架中的,但由于Babel等转译器的支持,大多数框架都可以使用JSX来编写了.
+- 为了更好地学习JSX,最好直接看React的官方文档
+
+如果熟练掌握了ES6语法和html语法的话,看JSX会觉得相当轻松:
+```jsx
+function MyButton() {
+  return (
+    <button>
+      I'm a button
+    </button>
+  );
+}
+
+export default function MyApp() {
+  return (
+    <div>
+      <h1>Welcome to my app</h1>
+      <MyButton />
+    </div>
+  );
+}
+```
+
+**效果图**:
+![alt text](PixPin_2026-05-12_12-53-57.webp)
+
+可以看到,JSX将html标签作为js函数的返回值,并通过类似`<MyButton />`的语法来将函数编程组件.
+
+更值得注意的是,只用这样的代码就生成了一个html页面,原因在于,`export default`修饰的函数是了JSX转译器的目标处理对象,也就是说,JSX用**默认导出函数**来渲染页面.
+## 基础语法
+### 前置概念
+# Typescript
 # TypeScript XML
 
+# Node.js学习
 # Tailwind学习

@@ -1618,6 +1618,8 @@ ruff check --watch          # Lint files in the current directory and re-lint on
 ruff check path/to/code/    # Lint files in `path/to/code`.
 ```
 ## Pydantic
+- [中文官网](https://pydantic.com.cn/)
+  - 内容很杂很多,只看必要的部分即可
 ### 概览
 #### 一段入门代码
 ```py
@@ -1722,7 +1724,362 @@ except ValidationError as e:
     ]
     """
 ```
-### 模型
+### Basemodel
+#### model_dump方法
+类似于对字典,列表进行解包,`model_dump`可以对BaseModel的类实例进行解包,这一方法在fastapi项目中非常常见:
+```py
+from pydantic import BaseModel, Field
+from typing import List, Optional
+from datetime import datetime
+
+class SubModel(BaseModel):
+    id: int
+    name: str
+
+class MainModel(BaseModel):
+    title: str
+    timestamp: datetime = Field(default_factory=datetime.now)
+    tags: List[str]
+    optional_field: Optional[str] = None
+    sub_item: SubModel
+
+# 1. 实例化模型
+data = {
+    "title": "Pydantic Guide",
+    "tags": ["python", "pydantic"],
+    "sub_item": {"id": 1, "name": "Deep Dive"}
+}
+model = MainModel(**data)
+
+# 2. 基础导出：转换为 Python dict
+standard_dump = model.model_dump()
+
+# 3. 常用过滤参数说明
+filtered_dump = model.model_dump(
+    # 仅导出显式赋值过的字段，忽略默认值
+    exclude_unset=True,
+    # 排除指定的字段
+    exclude={'timestamp'},
+    # 仅包含指定的字段
+    include={'title', 'sub_item'},
+    # 导出时排除值为 None 的字段
+    exclude_none=True,
+    # 递归导出时，将子模型也处理为字典（默认即为 True）
+    by_alias=False 
+)
+
+# 4. 结果展示
+print("Standard Dump:", standard_dump)
+print("Filtered Dump:", filtered_dump)
+```
+#### 错误处理
+>无论Pydantic 在验证数据时发现多少个错误，都会引发一个类型为 ValidationError 的单个异常，而 ValidationError 将包含有关所有错误及其发生方式的信息。
+
+```py
+from typing import List
+
+from pydantic import BaseModel, ValidationError
+
+
+class Model(BaseModel):
+    list_of_ints: List[int]
+    a_float: float
+
+
+data = dict(
+    list_of_ints=['1', 2, 'bad'],
+    a_float='not a float',
+)
+
+try:
+    Model(**data)
+except ValidationError as e:
+    print(e)
+    """
+    2 validation errors for Model
+    list_of_ints.2
+      Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='bad', input_type=str]
+    a_float
+      Input should be a valid number, unable to parse string as a number [type=float_parsing, input_value='not a float', input_type=str]
+    """
+```
+### Field函数
+Field函数最简单的写法就是单纯赋予默认值:
+```py
+from pydantic import BaseModel, Field
+class User(BaseModel):
+    name: str = Field(default='John Doe')
+```
+但上述代码与下面的代码没有任何区别:
+```py
+from pydantic import BaseModel
+class User(BaseModel):
+    name: str = 'John Doe'
+```
+
+但Field可以有很多高阶用法:
+
+1. **说明该项为必填项,设置别名**
+```py
+from pydantic import BaseModel, Field
+
+
+class User(BaseModel):
+    name: str = Field(..., alias='username')
+
+
+user = User(username='johndoe')  # (1)!
+print(user)
+#> name='johndoe'
+print(user.model_dump(by_alias=True))  # (2)!
+#> {'username': 'johndoe'}
+```
+- by_alias: 用于将变量名转换成别名
+
+2. **数值约束**
+   1. gt - 大于
+   2. lt - 小于
+   3. ge - 大于或等于
+   4. le - 小于或等于
+   5. multiple_of - 给定数字的倍数
+   6. allow_inf_nan - 允许 'inf' 、 '-inf' 、 'nan' 值
+```py
+from pydantic import BaseModel, Field
+
+
+class Foo(BaseModel):
+    positive: int = Field(gt=0)
+    non_negative: int = Field(ge=0)
+    negative: int = Field(lt=0)
+    non_positive: int = Field(le=0)
+    even: int = Field(multiple_of=2)
+    love_for_pydantic: float = Field(allow_inf_nan=True)
+```
+
+3. **约束字符串**
+   1. min_length ：字符串的最小长度
+   2. max_length ：字符串的最大长度
+   3. pattern ：字符串必须匹配的正则表达式
+```py
+from pydantic import BaseModel, Field
+
+
+class Foo(BaseModel):
+    short: str = Field(min_length=3)
+    long: str = Field(max_length=10)
+    regex: str = Field(pattern=r'^\d*$')  # (1)!
+
+
+foo = Foo(short='foo', long='foobarbaz', regex='123')
+print(foo)
+#> short='foo' long='foobarbaz' regex='123'
+```
+
+4. **验证默认值**: 默认情况下不会验证这个属性的默认值是否符合类型注释约束,但我们可以通过**validate_default**字段来实现.
+```py
+from pydantic import BaseModel, Field, ValidationError
+
+
+class User(BaseModel):
+    age: int = Field(default='twelve', validate_default=True)
+
+
+try:
+    user = User()
+except ValidationError as e:
+    print(e)
+    """
+    1 validation error for User
+    age
+      Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='twelve', input_type=str]
+    """
+```
+
+5. **防止初始数据被覆写**: 设置`frozen=True`即可
+```py
+from pydantic import BaseModel, Field, ValidationError
+
+
+class User(BaseModel):
+    name: str = Field(frozen=True)
+    age: int
+
+
+user = User(name='John', age=42)
+
+try:
+    user.name = 'Jane'  # (1)!
+except ValidationError as e:
+    print(e)
+    """
+    1 validation error for User
+    name
+      Field is frozen [type=frozen_field, input_value='Jane', input_type=str]
+    """
+```
+
+6. **标记某字段被弃用**:使用deprecated字段
+```py
+from typing_extensions import Annotated
+
+from pydantic import BaseModel, Field
+
+
+class Model(BaseModel):
+    deprecated_field: Annotated[int, Field(deprecated='This is deprecated')]
+
+
+print(Model.model_json_schema()['properties']['deprecated_field'])
+#> {'deprecated': True, 'title': 'Deprecated Field', 'type': 'integer'}
+```
+#### computed_field装饰器
+- 鉴于原文档不像人话,所以让AI补充了一下
+##### 核心概念：让“方法”表现得像“字段”
+
+在标准 Pydantic 模型中，只有定义了类型注解的变量（如 `name: str`）才会被包含在 `model_dump()`（序列化后的字典）中。普通的 `@property` 虽然可以访问，但序列化时会被忽略。
+
+`@computed_field` 的作用就是**强制将一个属性（Property）的结果包含在序列化输出中**。
+
+
+##### 1. 解决“字段派生”问题
+
+假设你有一个长方形模型，你有长和宽，但你也希望在导出数据时直接包含“面积”。
+
+```python
+from pydantic import BaseModel, computed_field
+
+class Rectangle(BaseModel):
+    width: float
+    height: float
+
+    @computed_field
+    @property
+    def area(self) -> float:
+        return self.width * self.height
+
+rect = Rectangle(width=10, height=5)
+print(rect.model_dump())
+# 输出包含 rect: {'width': 10.0, 'height': 5.0, 'area': 50.0}
+
+```
+
+如果没有 `@computed_field`，输出里只有 `width` 和 `height`。
+
+
+##### 2. 解决“昂贵计算”的缓存问题
+
+有些数据计算非常耗时（例如复杂的数学运算或模型推理）。通过结合 `@cached_property`，你可以确保：
+
+1. **只计算一次**：结果会被缓存。
+2. **自动序列化**：结果会被包含在导出的 JSON/字典中。
+
+```python
+from functools import cached_property
+from pydantic import BaseModel, computed_field
+
+class ComplexModel(BaseModel):
+    raw_data: list[int]
+
+    @computed_field
+    @cached_property
+    def processed_result(self) -> int:
+        print("开始耗时计算...")
+        return sum(self.raw_data) * 42  # 假设这是耗时操作
+
+model = ComplexModel(raw_data=[1, 2, 3])
+# 第一次访问或 model_dump() 时执行计算并缓存
+print(model.model_dump()) 
+
+```
+### 验证函数
+>当你初始化一个数据类时，可以借助 @model_validator 修饰符 mode 参数，在验证之前或之后执行代码。
+```py
+from typing import Any, Dict
+
+from typing_extensions import Self
+
+from pydantic import model_validator
+from pydantic.dataclasses import dataclass
+
+
+@dataclass
+class Birth:
+    year: int
+    month: int
+    day: int
+
+
+@dataclass
+class User:
+    birth: Birth
+
+    @model_validator(mode='before')
+    @classmethod
+    def pre_root(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        print(f'First: {values}')
+        """
+        First: ArgsKwargs((), {'birth': {'year': 1995, 'month': 3, 'day': 2}})
+        """
+        return values
+
+    @model_validator(mode='after')
+    def post_root(self) -> Self:
+        print(f'Third: {self}')
+        #> Third: User(birth=Birth(year=1995, month=3, day=2))
+        return self
+
+    def __post_init__(self):
+        print(f'Second: {self.birth}')
+        #> Second: Birth(year=1995, month=3, day=2)
+
+
+user = User(**{'birth': {'year': 1995, 'month': 3, 'day': 2}})
+```
+### 基础配置
+
+我们可以在继承`BaseModel`类的时候指定一些额外的限制:
+```py
+from pydantic import BaseModel, ValidationError
+
+
+class Model(BaseModel, extra='forbid'):  
+    a: str
+
+
+try:
+    Model(a='spam', b='oh no')
+except ValidationError as e:
+    print(e)
+    """
+    1 validation error for Model
+    b
+      Extra inputs are not permitted [type=extra_forbidden, input_value='oh no', input_type=str]
+    """
+```
+
+但这样既不够美观,也不能将配置通过继承传递给其他子类,因此,我们可以通过model_config属性来控制整个BaseModel实例:
+```py
+from pydantic import BaseModel, ConfigDict, ValidationError
+
+
+class Model(BaseModel):
+    model_config = ConfigDict(str_max_length=10)
+
+    v: str
+
+
+try:
+    m = Model(v='x' * 20)
+except ValidationError as e:
+    print(e)
+    """
+    1 validation error for Model
+    v
+      String should have at most 10 characters [type=string_too_long, input_value='xxxxxxxxxxxxxxxxxxxx', input_type=str]
+    """
+```
+
+- model_config最强大的地方是在`pydantic_settings`库中,而不是这里,在下一章会做详细介绍
 
 # Python读取文件
 本部分所用的weekly_hiring_comments.json示例的结构如下:
@@ -2053,12 +2410,122 @@ TOKEN = os.getenv("token")
 ```
 `load_dotenv()`函数会递归寻找.env文件并返回内容供os库读取,从而避免了写路径的麻烦.
 ## pydantic_settins库: 优雅处理.env文件
+- [官方文档](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/)
+
 显然,上述的简单方法一点都不美观,而且会有以下问题:
 1. 如果所请求的环境变量不存在如何处理?
 2. 如果环境变量的格式错误怎么办?
 
-因此,我们需要使用pydantic_settings库来用现代的类封装方式处理.env文件,在前面已经讲了,就不再做说明了.
+因此,我们需要使用pydantic_settings库来用现代的类封装方式处理.env文件,但鉴于前面的pydantic库和pydantic_settings的基本功能没有任何区别,所以贴一个实战代码就可以快速了解了.
 
+### 一个非常长的实战代码
+- `Basesettings`: 对应了pydantic中的`BaseModel`,没有太多特殊的地方
+- `SettingsConfigDict`: 对应了pydantic中的`ConfigDict`,只不过里面可以填写针对环境文件的各类要求.
+- `# type: ignore[prop-decorator]`: 该注释针对mypy等类型检查库,防止报错
+- 
+```py
+from pydantic import (
+    AnyUrl,
+    BeforeValidator,
+    EmailStr,
+    HttpUrl,
+    PostgresDsn,
+    computed_field,
+    model_validator,
+)
+from pydantic_settings import BaseSettings, SettingsConfigDict
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        # Use top level .env file (one level above ./backend/)
+        env_file="../.env",
+        env_ignore_empty=True,
+        extra="ignore",
+    )
+    API_V1_STR: str = "/api/v1"
+    SECRET_KEY: str = secrets.token_urlsafe(32)
+    # 60 minutes * 24 hours * 8 days = 8 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+    FRONTEND_HOST: str = "http://localhost:5173"
+    ENVIRONMENT: Literal["local", "staging", "production"] = "local"
+
+    BACKEND_CORS_ORIGINS: Annotated[
+        list[AnyUrl] | str, BeforeValidator(parse_cors)
+    ] = []
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def all_cors_origins(self) -> list[str]:
+        return [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS] + [
+            self.FRONTEND_HOST
+        ]
+
+    PROJECT_NAME: str
+    SENTRY_DSN: HttpUrl | None = None
+    POSTGRES_SERVER: str
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str = ""
+    POSTGRES_DB: str = ""
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+        return PostgresDsn.build(
+            scheme="postgresql+psycopg",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD,
+            host=self.POSTGRES_SERVER,
+            port=self.POSTGRES_PORT,
+            path=self.POSTGRES_DB,
+        )
+
+    SMTP_TLS: bool = True
+    SMTP_SSL: bool = False
+    SMTP_PORT: int = 587
+    SMTP_HOST: str | None = None
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    EMAILS_FROM_EMAIL: EmailStr | None = None
+    EMAILS_FROM_NAME: str | None = None
+
+    @model_validator(mode="after")
+    def _set_default_emails_from(self) -> Self:
+        if not self.EMAILS_FROM_NAME:
+            self.EMAILS_FROM_NAME = self.PROJECT_NAME
+        return self
+
+    EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def emails_enabled(self) -> bool:
+        return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
+
+    EMAIL_TEST_USER: EmailStr = "test@example.com"
+    FIRST_SUPERUSER: EmailStr
+    FIRST_SUPERUSER_PASSWORD: str
+
+    def _check_default_secret(self, var_name: str, value: str | None) -> None:
+        if value == "changethis":
+            message = (
+                f'The value of {var_name} is "changethis", '
+                "for security, please change it, at least for deployments."
+            )
+            if self.ENVIRONMENT == "local":
+                warnings.warn(message, stacklevel=1)
+            else:
+                raise ValueError(message)
+
+    @model_validator(mode="after")
+    def _enforce_non_default_secrets(self) -> Self:
+        self._check_default_secret("SECRET_KEY", self.SECRET_KEY)
+        self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
+        self._check_default_secret(
+            "FIRST_SUPERUSER_PASSWORD", self.FIRST_SUPERUSER_PASSWORD
+        )
+
+        return self
+```
 # Python爬虫
 和机器学习一样,我第一次学习Python爬虫是没有任何成果的,一开始是听说有这么个东西,就去zlib上随便下了本参考书,由于参考书是十年前的,因此使用了很多老掉牙的库和奇奇怪怪的语法,再加上当时水平有限,根本无法复现,于是就浅尝辄止了.
 
