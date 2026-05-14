@@ -62,13 +62,14 @@ http://www.joes-hardware.com/tools.html#drills
 ![alt text](PixPin_2026-05-11_17-30-35.webp)
 ## 总结
 由于内容太老,讲的也不深入,所以收获很少.
-
-# ADAM: A METHOD FOR STOCHASTIC OPTIMIZATION
+# 机器学习论文合集
+- 大致按照年份排序,有一个先后关系
+## ADAM: A METHOD FOR STOCHASTIC OPTIMIZATION
 ![alt text](PixPin_2026-05-08_17-07-53.webp)
 - 这篇2015年的论文提出了一种新的神经网络学习方法:ADAM,是两年后推出的Transformer模型的核心算法,还是很有必要了解的
 - 第一次读论文,也不知道怎么读,总不至于全部复制过来再逐个翻译吧,想了想还是读完全文后做一点要点总结算了.
 
-## 引入
+### 引入
 >在机器学习中,常见的优化算法都属于一阶方法**first-order methods**,即只使用目标函数(例如损失函数)的一阶导数(例如梯度)来更新参数.其中,随机梯度下降法**stochastic gradient descent (SGD)**是最著名也是非常有效的学习方法.
 
 本文提出的Adam算法同样也是一个随机最优化(**stochastic optimization**)的一阶算法,它的名字来源于`adaptive moment estimation`.
@@ -76,7 +77,7 @@ http://www.joes-hardware.com/tools.html#drills
 该算法借鉴了两个优秀算法的长处:
 1. AdaGrad,于2011年提出,可以很好地处理稀疏梯度(即梯度向量中绝大多数元素为0的情况)
 2. RMSProp,于2012年提出,能够很好地处理小批量训练?(on-line)和非平稳环境(not-stationary).
-## 算法实现
+### 算法实现
 ### 伪代码
 $$\begin{array}{l}
 \hline \mathbf{Algorithm\ 1:} \text{ Adam, our proposed algorithm for stochastic optimization. See section 2 for details,} \\
@@ -127,26 +128,26 @@ during the initial timesteps, and especially when the decay rates are small (i.e
 >因此,我们需要用一点技巧来克服这个问题,这会在下一章被解决.
 
 - 看了一个小时,明天再来,看论文确实很累
-## 误差修正
+### 误差修正
 ![alt text](PixPin_2026-05-10_20-09-14.webp)
 通过一个简单的等比数列求和,我们发现某一时刻的梯度被缩小到了真实值的$(1 - \beta_2^t)$ 倍,所以在伪代码中我们会在计算出两个参数后对其进行误差修正.
 
-## 4个实验
+### 4个实验
 选取的实验都是非常经典的模型,而不是像某些垃圾论文一样用一些奇怪的数据集在奇怪的模型上训练.
 
 - training cost: 指的就是损失函数值
-### LOGISTICR EGRESSION
+#### LOGISTICR EGRESSION
 ![alt text](PixPin_2026-05-10_20-19-56.webp)
-### MULTI-LAYER NEURAL NETWORKS
+#### MULTI-LAYER NEURAL NETWORKS
 
 ![alt text](PixPin_2026-05-10_20-22-13.webp)
-### CONVOLUTIONAL NEURAL NETWORKS
+#### CONVOLUTIONAL NEURAL NETWORKS
 ![alt text](PixPin_2026-05-10_20-25-26.webp)
-### BIAS-CORRECTION TERM
+#### BIAS-CORRECTION TERM
 ![alt text](PixPin_2026-05-10_20-25-51.webp)
 
 基本都是全方位打压以前的反向传播算法
-## 结论
+### 结论
 - 有个扩展的AdaMax算法被我忽略掉了
 - 附录也被我省略了,数学不好的人是看不得这种东西的
   - ![alt text](PixPin_2026-05-10_20-28-55.webp)
@@ -162,12 +163,12 @@ to implement and requires little memory.
 >Overall, we found Adam to be **robust and well-suited to a wide range of non-convex optimization problems** in the field machine learning.
 
 第一篇论文看下来的感受还是挺好的,既没有什么宏大叙事,也没有多少弯弯绕绕,很清楚的把一个算法的前前后后都讲清楚了,非常推荐阅读.
-# 
-# Attention Is All You Need(待补充)
+
+## Attention Is All You Need(待补充)
 ![alt text](PixPin_2026-05-10_20-31-11.webp)
 - 划时代的论文,划时代的杰作,划时代的人才
 - transformer是基于大量前人的研究工作实现的,需要预先懂得很多知识后再来看比较好.
-## 引言和背景介绍
+### 引言和背景介绍
 - 相比ADMA论文,这一篇的摘要不够清晰,引入也很啰嗦...
 
 >To the best of our knowledge, however, the Transformer is the first transduction model relying
@@ -175,27 +176,147 @@ entirely on self-attention to compute representations of its input and output wi
 aligned RNNs or convolution. 
 
 原来编码器-解码器模型在几年前的论文中就提出来了,注意力机制也不是这篇论文的原创,但是Transformer将先前的论文成果结合在一起,提出**完全依靠自注意力机制来计算输入输出结果,而不使用循环神经网络或者卷积**,从而解决了长距离信息丢失的问题.
-## 模型架构
+### 模型架构
 > At each step the model is auto-regressive
 [10], consuming the previously generated symbols as additional input when generating the next.
 
 ![alt text](PixPin_2026-05-11_13-07-49.webp)
 
-### 编码器和解码器架构
+#### 编码器和解码器架构
 **编码器(Encoder)**由6个完全相同的层并行组成,每个层都有两个子层:
 1. 多头子注意力层,后面会详细解释
 2. **position-wise fully connected feed-forward network**(前馈全连接层)
 
 在每个子层后,都有一个正规化层
-## 
-# LLaMA: Open and Efficient Foundation Language Models
+### 
+## Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks
+- 在Agent构建中被广泛应用的RAG概念就是这篇2021年的论文提出的
+![alt text](PixPin_2026-05-13_17-49-29.webp)
+
+### 摘要
+>由于预训练的模型针对特定的语料时的表现较差,研究人员引入了**retrieval-augmented generation**模型,它使用了预训练的seq2seq模型(于2014年提出的编码器-解码器模型)和未被模型学习过的Wikipedia语料,这种模型比单独的预训练模型和专门针对Wikipedia语料训练的模型效果还要好.
+
+### 引入
+>由于预训练好的模型不能轻易的扩展或者修改参数,所以有研究者提出了将预训练模型和外部语料结合在一起的混合模型架构,如REALM和ORQA模型,而RAG架构就是在这些研究的基础上提出来的.
+
+>We build RAG models where the parametric memory is a pre-trained seq2seq transformer, and the
+non-parametric memory is a dense vector index of Wikipedia, accessed with a pre-trained neural retriever.
+
+### 原理
+- RAG的具体原理确实比较复杂,怪不得这么缺这方面的人才.
+- 这部分的原文不太像人话,就算是论文也请你写的正常一点吧...
+- 更别提整篇论文只有一张说明图,和一两张实验图表,你好意思去上顶刊,去评优秀论文吗😀
+```md
+
+## RAG 核心模型架构
+
+RAG（Retrieval-Augmented Generation）模型结合了**参数化记忆**（Generator）与**非参数化记忆**（Retriever）。其核心逻辑是利用输入序列 $x$ 检索文档 $z$，并将 $z$ 作为生成目标序列 $y$ 的额外上下文。
+
+模型包含两个组件：
+
+1. **检索器 $p_\eta(z|x)$**：给定查询 $x$，返回文本段落的分布（通常取 Top-K）。
+2. **生成器 $p_\theta(y_i|x, z, y_{1:i-1})$**：基于原始输入 $x$、检索到的文档 $z$ 以及已生成的 $i-1$ 个token，生成当前token $y_i$。
+
+
+## 处理潜在变量 $z$ 的两种方式
+
+为了实现端到端训练，文档 $z$ 被视为**潜在变量（Latent Variable）**。根据对 $z$ 边缘化（Marginalize）方式的不同，分为两种模型：
+
+### 1. RAG-Sequence 模型
+
+该模型假设生成整个序列时使用的是**同一篇文档**。它将 $z$ 视为单个潜在变量，通过对 Top-K 文档的概率进行求和来计算 $p(y|x)$：
+
+$$p_{\text{RAG-Sequence}}(y|x) \approx \sum_{z \in \text{top-k}(p(\cdot|x))} p_\eta(z|x) p_\theta(y|x, z) = \sum_{z \in \text{top-k}(p(\cdot|x))} p_\eta(z|x) \prod_i^N p_\theta(y_i|x, z, y_{1:i-1})$$
+
+### 2. RAG-Token 模型
+
+该模型允许在生成每个token时**切换文档**。生成器可以从多个文档中挑选内容来组织答案：
+
+$$p_{\text{RAG-Token}}(y|x) \approx \prod_i^N \sum_{z \in \text{top-k}(p(\cdot|x))} p_\eta(z|x) p_\theta(y_i|x, z, y_{1:i-1})$$
+
+
+## 关键组件实现
+
+### 检索器：DPR (Dense Passage Retriever)
+
+检索概率基于双编码器（Bi-encoder）架构：
+
+
+$$p_\eta(z|x) \propto \exp(d(z)^\top q(x))$$
+
+* $d(z) = \text{BERT}_d(z)$：文档编码。
+* $q(x) = \text{BERT}_q(x)$：查询编码。
+检索过程通过 **MIPS（最大内积搜索）** 在线性时间内完成。
+
+### 生成器：BART
+
+使用预训练的 **BART-large**（seq2seq Transformer）。处理时直接将输入 $x$ 与检索内容 $z$ 进行拼接。
+
+## 训练与解码
+
+### 训练 (Training)
+
+* **目标函数**：最小化负边际对数似然 $\sum_j -\log p(y_j|x_j)$。
+* **更新策略**：为了降低计算成本，不更新文档编码器 $\text{BERT}_d$ 和索引，仅微调查询编码器 $\text{BERT}_q$ 和生成器 $\theta$。
+
+### 解码 (Decoding)
+
+* **RAG-Token**：可以视为标准的自回归模型，直接使用标准**束搜索（Beam Search）**。
+* 转移概率：$p'_\theta(y_i|x, y_{1:i-1}) = \sum_{z \in \text{top-k}(p(\cdot|x))} p_\eta(z|x) p_\theta(y_i|x, z, y_{1:i-1})$。
+
+
+* **RAG-Sequence**：由于似然函数无法分解为单token概率，需针对每个文档 $z$ 分别运行束搜索，得到候选集 $Y$。
+* **Thorough Decoding**：对不在某些文档束中的候选序列进行额外的正向传播计算，补全概率后求和。
+* **Fast Decoding**：假设未在某文档束中出现的序列概率为 0，直接在现有候选集中求和，提高效率。
+```
+
+![alt text](PixPin_2026-05-13_18-42-20.webp)
+- 这种东西没人看了不迷糊吧,真搞算法的话还是很难的
+
+大致意思是,我们可以用两种方法实现RAG,一个是一口气生成完整答案的,一个是逐token参考文档生成答案的,第二种方案中,预训练模型在每生成一个token时会参考前文和多个文档语料,选择最优的文档语料来生成.
+
+具体的原理如下:
+
+我们将本地文档切分成短片段,存储在向量数据库中,当用户提问时,我们把用户输入向量和文档向量组合拼接起来,再喂给模型让它输出.
+
+问题来了,我们输入的本地文档可能非常庞大,超过了模型的上下文限制,不可能也直接输入进去.我们需要**通过检索器进行快速的筛选**,找到与用户提问最符合的几个文档向量后再进行拼接.
+
+检索器的实现原理还比较简单:
+
+$p_{\eta}(z|x) \propto \exp(d(z)^\top q(x))$
+$d(z) = \text{BERT}_d(z)$
+$q(x) = \text{BERT}_q(x)$
+
+**1. 向量化（Bi-Encoder 架构）**
+检索器使用了两个独立的 BERT 模型：
+
+* **查询编码器 $q(x)$**：把你的提问（Query）转换成一串数字（特征向量）。
+* **文档编码器 $d(z)$**：把海量的背景资料（Documents）也转换成相同维度的数字串。
+
+
+**2. 相似度计算（内积运算）**
+公式中的 $d(z)^\top q(x)$ 代表两个向量的**点积**。通俗来说：
+
+* 如果提问和某个文档在语义上越接近，它们生成的数字串在空间中的方向就越一致。
+* 方向越一致，点积的数值（得分）就越高。
+* $\exp$ 函数的作用是拉大分值差距，让得分高的文档脱颖而出。
+
+**3. 极速筛选（MIPS 问题）**
+面对数以亿计的文档，逐一计算点积太慢。该模型将问题转化为**最大内积搜索（MIPS）**, 通过建立特殊的“索引”结构，就能在接近线性的时间内锁定最匹配的前 $k$ 个文档。
+
+至于MIPS怎么实现的?不好意思原文没怎么提😅
+
+
+
+
+## LLaMA: Open and Efficient Foundation Language Models
 ![alt text](PixPin_2026-05-10_20-30-42.webp)
 
 
 # Understanding The Linux Kernel(深入理解Linux内核)
 - 鉴于操作系统课的教材太宽泛和啰嗦了,所以就找了这本书来先了解操作系统的实际结构,之后再回去看应该是事半功倍的.
-- 再加上直接看Linux源码还是非常要命的
-
+  - 再加上直接看Linux源码还是非常要命的
+  - 翻译版的质量很烂,凑合看吧
 ## 绪论
 本书描述的是Linux2.6.11版的内核,而现在的Linux内核版本号都到7.1了,甚至还有不少代码是由rust写的:
 
@@ -225,60 +346,78 @@ Unix的每个进程都有一个当前的工作目录,我们通过相对路径或
 - `.`和`..`分别标识当前工作目录和父目录.
 
 ## 内存寻址
-# 
-# Python工匠
-- 正式学习python已经很久了,我至今都没有好好的看一本python工程方面的技术书,现在就来拜读一下这本在豆瓣上有9.1的高分,由技术大牛朱雷编写的著作.
-## 引言
->好代码就像好文章，语言精练、层次分明，让人读了还想读；而烂代码则像糊成一团的意大利面条，处处充斥着相似的逻辑，模块间的关系错综复杂，多看一眼都令人觉得眼睛会受伤。
+### 地址
+80x86微处理器架构下,存在以下三种地址:
+1. 逻辑地址(logical address): 由一个段和偏移量组成,指定一个操作数或者一条指令的地址.
+2. 虚拟地址(也称线性地址): 将指令映射到虚拟空间时的地址,在32位Linux系统中可寻址的空间为4GB
+3. 物理地址: 虚拟地址实际映射的内存地址
 
->这些领域内的经典图书虽好，却有个问题：它们大多是针对 Java 这类静态类型语言所写的，
-而 Python 这门动态类型的脚本语言又和 Java 大不一样。这些书里的许多理念和例子，假如直接套用在 Python 里，效果不尽如人意。
+#### 逻辑地址
+具体来说,一个逻辑地址实际上是由16位长的段选择符和32位长的偏移量组成的.
 
->如果你也像我一样，曾被烂代码所困，终日寻求写好 Python 程序的方法，那么我郑重地将本
-书推荐给你。这是我多年的经验汇集，相信会给你一些启发。
+处理器中提供了6个段寄存器用来存放**段选择符**:
+1. cs: 代码段寄存器
+   - 含有一个两位的字段,用于指明CPU的当前级别,0级为最高优先级,3级为最低优先级,Linux只用0和3级,称为内核态与用户态.
+2. ss: 栈段寄存器
+3. ds: 数据段寄存器
+4. es,fs,gs: 通用型寄存器,可以指向任意的数据段.
 
-- 本书内容以进阶知识为主。书里虽有少量基础知识讲解，但并不全面，描述得也并不详尽。正因如此，假如你从未有过任何编程经验，我并不建议你通过本书来入门 Python。
-  - 少数承认自己书中前置的python基础知识没什么作用的作者
-## 变量与注释
-```py
-# 去掉 s 两边的空格，再处理
-value = process(s.strip())
-```
-上述的代码编写太烂了,所以我们可以优化成这样:
-```py
-# 用户输入可能会有空格，使用 strip() 去掉空格
-username = extract_username(input_string.strip())
-```
+### Cache
+由于从内存(DRAM)中读取指令还是太慢了,我们设计了cache(高速缓存),它基于局部性原理设计: 最近最常用的相邻地址在将来又被用到的可能性极大.
 
-- 好的变量和注释并非为计算机而写，而是为每个阅读代码的人而写（当然也包括你自己）
+80x86体系引入了一个叫做行(**line**)的单位,它由几十个连续的字节组成.cache就由多个行组成.
 
+>Cache 单元位于分页单元与主内存之间。它由硬件 Cache 存储器（Hardware Cache Memory）和 Cache 控制器（Cache Controller）组成。Cache 存储器负责存放内存数据行。Cache 控制器则维护一个入口数组,每个入口对应的是Cache 存储器中的一行.
 
-```py
-def resize_image(image, size):
-"""将图片缩放到指定尺寸，并返回新的图片。
-该函数将使用 Pilot 模块读取文件对象，然后调用 .resize() 方法将其缩放到指定尺寸。
-但由于 Pilot 模块自身限制，这个函数不能很好地处理过大的文件，当文件大小超过 5MB 时，
-resize() 方法的性能就会因为内存分配问题急剧下降，详见 Pilot 模块的Issue #007。因此，
-对于超过 5MB 的图片文件，请使用 resize_big_image() 替代，后者基于 Pillow 模块开发，
-很好地解决了内存分配问题，确保性能更好了。
-:param image: 图片文件对象
-:param size: 包含宽高的元组：（width, height）
-:return: 新图片对象
-"""
-```
-过于详细的注释也没有必要,可以稍微精简一下:
-```py
-def resize_image(image, size):
-"""将图片缩放到指定尺寸，并返回新的图片。
-注意：当文件超过 5MB 时，请使用 resize_big_image()
-:param image: 图片文件对象
-:param size: 包含宽高的元组：（width, height）
-:return: 新图片对象
-"""
-```
+>Each entry includes a tag and
+a few flags that describe the status of the cache line. The tag consists of some bits
+that allow the cache controller to recognize the memory location currently mapped
+by the line. The bits of the **memory’s physical address** are usually split into **three groups**: the most significant ones correspond to the tag, the middle ones to the cache controller subset index, and the least significant ones to the offset within the line.
 
->如果遵守“先写注释，后写代码”的习惯，我们就能完全避免上面的问题。要养成这个习惯其实很简单：在写出一句有说服力的接口注释前，别写任何函数代码。
-## 数值与字符串
+>When accessing a RAM memory cell, the CPU extracts the subset index from the
+physical address and compares the tags of all lines in the subset with the high-order
+bits of the physical address. If a line with the same tag as the high-order bits of the
+address is found, the CPU has a **cache hit**; otherwise, it has a **cache miss**.
+
+- 也就是说缓存是否命中只需比对缓存控制器中的标签是否与RAM中的高位物理地址对应即可,还是很快的.
+
+## 进程
+- **进程**: 程序执行时的一个实例,进程之间有共享的程序代码,但每个进程都有独立的数据存储空间
+- **线程**: 一个进程可以由一个或者多个线程组成
+- **轻量级进程**: 轻量级进程间可以共享资源,一个轻量级进程对应一个线程.
+
+### 进程描述符
+进程描述符(process descriptor)存放了一个进程所有信息的结构体,它的主要结构如下:
+![alt text](image-1.png)
+
+#### 进程的状态
+进程可能处于以下状态中,状态之间是互斥的:
+1. 可运行状态: 进程要么正在执行,要么准备执行
+2. 中断状态: 进程被挂起,等待所需的信号或者资源,由进程主动执行.
+3. 不可中断的等待状态: 进程被挂起,无法被信号唤醒,直到某个必要进程执行完毕
+   - 例如Windows突然死机,用户无法执行任何操作
+4. 暂停状态: 进程接收到信号后被强制暂停运行,进程是被动暂停的,这也是与2的不同点所在.
+5. 跟踪状态: 当一个进程被另一个进程（通常是调试器如 GDB）监控时，它会进入 TASK_TRACED 状态。此时，被跟踪进程的执行权被完全移交给跟踪者。
+6. 僵尸状态: 进程执行完毕后,父进程尚未开始处理关于该子进程的终止信息
+7. 复活状态: 父进程开始处理子进程的终止信息
+
+#### 进程的标识
+类Unix操作系统中都有一个叫做进程标识符(**process ID**,PID)的数来标识进程,它同样位于进程描述符中.
+
+- 同一个进程的多个线程使用相同的PID
+
+#### 进程的组织
+Linux使用双向链表来存储进程队列,并根据PID的不同将不同类型的PID分成了4个hash表:
+![alt text](PixPin_2026-05-14_09-32-43.webp)
+
+当需要分配新进程时,会根据进程的PID字段进行hash映射到对应的空间中.
+
+运行和等待状态的进程是最重要的,Linux内核为这两种进程设定了专门的队列用于调度进程.
+- 运行队列: 将可运行状态的进程用链表组织在一起
+- 等待队列: 将等待状态的进程用链表组织在一起
+
+### 进程切换
+
 # 微服务设计
 - 久闻微服务大名,终于见上一面
 
@@ -298,7 +437,18 @@ def resize_image(image, size):
 3. 由于各个服务的部署是独立的,在出问题时可以专精于出错的特定服务,容易定位和筛查
 
 ## 演化式架构师
-# Go语言圣经
+架构师并不是建筑师,互联网行业也不是建筑行业,鉴于软件开发的多变性,我们需要灵活调整软件的架构.
+
+>架构师应该专注在大方向上,在有限的情况下才会参与到具体的细节实现上.
+
+## 部署
+- 持续集成(Continuous Integration): 将新提交的代码与原代码进行集成,从而让所有人保持同步
+- 持续交付(Continuous Delivery): 检查每次提交是否达到了部署到生产环境的要求
+
+## 安全
+# GAME ENGINE ARCHITECTURE
+
+# Go语言圣经(待补充)
 - [中文版网站](https://golang-china.github.io/gopl-zh/preface-zh.html)
 - (5/7): 看多了Java总觉得有些烦躁,就想着先学习一下Go来看看它的神奇之处
 
@@ -669,5 +819,4 @@ SELECT tweets.*, users.*
 - (26/4/7): 我发现这本书我现在看太早了,很难有切实的收获,还是等几年再来探索吧
 
 # The Garbage Collection Handbook
-# Understanding The Linux Kernel(深入理解Linux内核)
 

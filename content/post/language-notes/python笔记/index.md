@@ -1992,7 +1992,7 @@ print(model.model_dump())
 
 ```
 ### 验证函数
->当你初始化一个数据类时，可以借助 @model_validator 修饰符 mode 参数，在验证之前或之后执行代码。
+>当你初始化一个数据类时，可以借助`@model_validator`修饰符和mode参数，在验证之前或之后执行该函数。
 ```py
 from typing import Any, Dict
 
@@ -2035,6 +2035,7 @@ class User:
 
 user = User(**{'birth': {'year': 1995, 'month': 3, 'day': 2}})
 ```
+- 如果mode的值为`after`的话,必须要返回`self`,供pydantic处理,如果mode的值为`before`的话,需要返回初始化用的数据.
 ### 基础配置
 
 我们可以在继承`BaseModel`类的时候指定一些额外的限制:
@@ -2409,7 +2410,7 @@ load_dotenv()
 TOKEN = os.getenv("token")
 ```
 `load_dotenv()`函数会递归寻找.env文件并返回内容供os库读取,从而避免了写路径的麻烦.
-## pydantic_settins库: 优雅处理.env文件
+## pydantic_settings库: 优雅处理.env文件
 - [官方文档](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/)
 
 显然,上述的简单方法一点都不美观,而且会有以下问题:
@@ -3433,10 +3434,11 @@ class Spider(object_ref):
 
 
 # Python数据库框架
+## sqlite3
 ## SQLAlchemy
 ## SQLModel
 
-# Python网络通信
+# Python网络框架
 >尽管大家都说Python无法很好的处理高并发,但在绝大多数网络通信环境下,它都比其他语言好用的多
 
 
@@ -3553,9 +3555,157 @@ ASGI的全称为**Asynchronous Server Gateway Interface**,在WSGI的基础上加
 至于为什么要谈及这两个规范,是因为接下来我们要谈到的两个库: flask和fastapi,分别遵循了WSGI规范和ASGI规范,从而对这两个库会有更好的初步理解.
 
 ## Flask
-## Starlette
+- [官方中文文档](https://flask.palletsprojects.com/zh-cn/stable/quickstart/)
+### 概览
+flask是一个轻量的wsgi网络框架,于2004年推出,鉴于语法简单,扩展容易,被广泛用在早期的python通信项目中.
+
+**一个最小的flask程序**
+```py
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route("/")
+def hello_world():
+    return "<p>Hello, World!</p>"
+```
+如果是用uv管理的话,将这个文件命名为`app.py`,使用`uv add flask`后运行`uv run flask run`即可访问`Hello,World`网页.
+
+1. flask框架使用类似**Flask(__name__)**的语法来初始化,帮助flask定位其他文件的位置
+2. 我们能够像写jsx一样在函数内部传入html元素,并简单的通过语法糖来实现不同路由的网页展示.
+3. 要想定制不同网页的话,加上路由就可以了:
+```py
+from flask import url_for
+
+@app.route('/')
+def index():
+    return 'index'
+
+@app.route('/login')
+def login():
+    return 'login'
+
+@app.route('/user/<username>')
+def profile(username):
+    return f'{username}\'s profile'
+```
+
+### 使用不同的http请求方法
+有两种写法,一种是通过methods属性指明,不写则默认支持GET方法:
+```py
+from flask import request
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        return do_the_login()
+    else:
+        return show_the_login_form()
+```
+另一种是直接写明,把route换成请求方法:
+```py
+@app.get('/login')
+def login_get():
+    return show_the_login_form()
+
+@app.post('/login')
+def login_post():
+    return do_the_login()
+```
+### 总结
+鉴于flask不支持异步,所以没必要了解太深,到这种程度就可以了.
 ## Uvicorn
+- [官方文档](https://uvicorn.dev/)
+### 概览
+uvicorn可以看作是一个asgi框架的启动器,是python异步框架的底层.
+
+一个简单的代码如下:
+```py
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+
+    await send({
+        'type': 'http.response.start',
+        'status': 200,
+        'headers': [
+            (b'content-type', b'text/plain'),
+            (b'content-length', b'13'),
+        ],
+    })
+    await send({
+        'type': 'http.response.body',
+        'body': b'Hello, world!',
+    })
+```
+如果使用uv的话,命名为main.py后,运行`uv run uvicorn main:app`即可以出现这个页面:
+![alt text](PixPin_2026-05-13_14-12-28.webp)
+
+1. `scope` - A dictionary containing information about the incoming connection.
+2. `receive` - A channel on which to receive incoming messages from the server.
+3. `send` - A channel on which to send outgoing messages to the server.
+
+### 用法
+我们不太有必要深入了解uvicorn在背后做了什么,只需要知道它是一个启动器,可以直接在后端项目中启动服务器就行了.
+
+很多AI课程作业都是靠它糊弄过来的:
+```py
+import uvicorn
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+```
+
+直接写在代码中还是不够合理,每次修改端口或者域名时都要重新进入代码修改,生产环境中最好放到dockerfile中一并运行,例如:
+```dockerfile
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+```
+
+`-- workers`表示启动的服务器进程数.
+
+
+### 总结
+上面一共出现了三种uvicorn的用法,一个是定制异步项目后使用uvicorn启动服务器,一个是导入uvicorn库后用代码启动服务器,一个是使用docker命令行来用uvicorn启动服务器,我们根据需要选择要用的方法即可.
+
+## Starlette
+### 概览
+- [官方文档](https://starlette.dev/)
+
+Starlette是一个轻量的asgi框架,也是fastapi框架的基石,很多fastapi的功能都是对starlette库的封装.
+
+**官方示例**
+```py
+# main.py
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse
+from starlette.routing import Route
+
+
+async def homepage(request):
+    return JSONResponse({'hello': 'world'})
+
+
+app = Starlette(debug=True, routes=[
+    Route('/', homepage),
+])
+```
+使用uvicorn即可运行:
+```bash
+uvicorn main:app
+```
+
+一般来说有了这个框架不就挺好的吗,为什么fastapi还要重新造轮子呢,因为starlette框架没能继承flask框架的优秀语法糖语法,用起来有一定的难度,也不够清晰.因此我们没必要深入学习,直接跳进fastapi即可.
 ## Fastapi
+### 概览
+fastapi是上述这些通信框架的集大成者,它糅合了无数前人的心血,让python这种通常被视为"运行速度慢"的语言实现了质的飞跃.
+
+鉴于机器学习/Agent项目都使用python语言进行开发,该类项目的部署使用原生的python也更为合理,在未来一定会有非常广阔的应用情景.
+
+从fastapi的star数就可以看出来它有多受欢迎:
+![alt text](PixPin_2026-05-14_16-24-14.webp)
+
+大厂比如字节对于这方面的人才需求目前还很少:
+![alt text](PixPin_2026-05-14_16-33-46.webp)
+
 
 # Python科学计算
 ## Numpy库

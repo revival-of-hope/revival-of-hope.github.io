@@ -1442,7 +1442,7 @@ let [a, b, c] = "abc"; // ["a", "b", "c"]
 let [one, two, three] = new Set([1, 2, 3]);
 ```
 #### 数组解构
-一个简单的解构如下:
+一个简单的数组解构如下:
 
 ```js
 let [firstName, surname] = "John Smith".split(' ');
@@ -2237,6 +2237,8 @@ let promise = fetch(url, {
 ## 概览
 - [jsx的简单历史介绍](https://www.greatfrontend.com/zh-CN/react-interview-playbook/react-landscape-history)
 - [官方文档](https://react.dev/learn)
+  - 写的不是很好,但对于js基础扎实的人也够用了
+- [w3schools](https://www.w3schools.com/react)
 
 JSX于2013年正式发布,由Facebook的工程师们发明,在诞生初期遭受了不少质疑,但在几年后迅速席卷了整个前端开发界.
 
@@ -2268,11 +2270,770 @@ export default function MyApp() {
 
 可以看到,JSX将html标签作为js函数的返回值,并通过类似`<MyButton />`的语法来将函数编程组件.
 
-更值得注意的是,只用这样的代码就生成了一个html页面,原因在于,`export default`修饰的函数是了JSX转译器的目标处理对象,也就是说,JSX用**默认导出函数**来渲染页面.
 ## 基础语法
 ### 前置概念
+1. 如果我们只需要在函数中返回一个标签的话,直接写就行了,但如果要返回多个标签,那么就需要用空标签来包裹这些元素:
+```jsx
+return (
+    <>
+      <div className="board-row">
+        <Square value={squares[0]} onSquareClick={() => handleClick(0)} />
+        <Square value={squares[1]} onSquareClick={() => handleClick(1)} />
+        <Square value={squares[2]} onSquareClick={() => handleClick(2)} />
+      </div>
+      <div className="board-row">
+        <Square value={squares[3]} onSquareClick={() => handleClick(3)} />
+        <Square value={squares[4]} onSquareClick={() => handleClick(4)} />
+        <Square value={squares[5]} onSquareClick={() => handleClick(5)} />
+      </div>
+      <div className="board-row">
+        <Square value={squares[6]} onSquareClick={() => handleClick(6)} />
+        <Square value={squares[7]} onSquareClick={() => handleClick(7)} />
+        <Square value={squares[8]} onSquareClick={() => handleClick(8)} />
+    </>
+  );
+```
+
+2. 鉴于class在ES6中是关键字,所以jsx将html标签中的class修改成了`className`:
+```jsx
+export default function Square() {
+  return <button className="square">X</button>;
+}
+```
+3. JSX中的所有标签都需要闭合,所以像html中`<img>`这样的自闭合标签要写成`<img />`
+```jsx
+<>
+  <img
+    src="https://react.dev/images/docs/scientists/yXOvdOSs.jpg"
+    alt="Hedy Lamarr"
+    class="photo"
+   />
+  <ul>
+      <li>发明一种新式交通信号灯</li>
+      <li>排练一个电影场景</li>
+      <li>改进频谱技术</li>
+  </ul>
+</>
+```
+4. JSX使用驼峰命名法,即除了第一个单词的其他单词首字母都要大写.
+5. 如果要在标签中直接嵌入js值,就需要使用`{}`:
+```jsx
+export default function Avatar() {
+  const avatar = 'https://react.dev/images/docs/scientists/7vQD0fPs.jpg';
+  const description = 'Gregorio Y. Zara';
+  return (
+    <img
+      className="avatar"
+      src={avatar}
+      alt={description}
+    />
+  );
+}
+```
+6. 有时候我们需要使用双大括号用于传递对象,比如这种情况:
+```html
+<button class="btn btn-primary btn-large" style="color: white; background-color: blue; padding: 10px 20px;">
+  Click Me
+</button>
+```
+原生html中使用引号来包裹值,并且style内部的属性使用`;`划分,而这会在JSX中被单纯的认为是一个字符串,所以需要改成用js对象传递值,类似这样:
+```jsx
+export default function TodoList() {
+  return (
+    <ul style={{
+      backgroundColor: 'black',
+      color: 'pink'
+    }}>
+      <li>Improve the videophone</li>
+      <li>Prepare aeronautics lectures</li>
+      <li>Work on the alcohol-fuelled engine</li>
+    </ul>
+  );
+}
+```
+### props: 在组件间传递js值
+JSX既然可以在原生html标签中传递js值,自然也可以在自定义的标签(这被称为**组件**)中传递js值:
+```jsx
+import { getImageUrl } from './utils.js';
+
+function Avatar({ person, size }) {
+  return (
+    <img
+      className="avatar"
+      src={getImageUrl(person)}
+      alt={person.name}
+      width={size}
+      height={size}
+    />
+  );
+}
+
+export default function Profile() {
+  return (
+    <div>
+      <Avatar
+        size={100}
+        person={{
+          name: 'Katsuko Saruhashi',
+          imageId: 'YfeOqp2'
+        }}
+      />
+      <Avatar
+        size={80}
+        person={{
+          name: 'Aklilu Lemma',
+          imageId: 'OKS67lh'
+        }}
+      />
+      <Avatar
+        size={50}
+        person={{
+          name: 'Lin Lanying',
+          imageId: '1bX5QH6'
+        }}
+      />
+    </div>
+  );
+}
+```
+很显然,写在组件中的js参数是作为一个js对象传入Avatar函数的,并通过解构语法被分别赋值.
+
+我们甚至可以在组件间传递组件:
+```jsx
+import Avatar from './Avatar.js';
+
+function Card({ children }) {
+  return (
+    <div className="card">
+      {children}
+    </div>
+  );
+}
+
+export default function Profile() {
+  return (
+    <Card>
+      <Avatar
+        size={100}
+        person={{
+          name: 'Katsuko Saruhashi',
+          imageId: 'YfeOqp2'
+        }}
+      />
+    </Card>
+  );
+}
+```
+### main.jsx与index.html
+当我们使用各种模板创建jsx项目时,目录下通常都有这两个文件,先看看index.html:
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Full Stack FastAPI Project</title>
+    <link rel="icon" type="image/x-icon" href="/assets/images/favicon.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./src/main.jsx"></script>
+  </body>
+</html>
+```
+去掉无关信息后是这样的:
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./src/main.jsx"></script>
+  </body>
+</html>
+```
+
+它仅仅嵌入了main.jsx,其他并没有什么特殊的地方,那来看看main.jsx:
+```jsx
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.jsx'
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+      <App />
+    </StrictMode>
+  )  
+```
+- 可以看到,main.jsx通过html中的`root`标签来渲染页面,这就是jsx的工作原理.
+
+>就算将`<div>`换成`<header>`等无关紧要的标签,或者把`root`这个名字换成`candy`,都不影响jsx的渲染
+## Hook
+以use开头的函数称为**Hook**,用来保留用户状态.
+### useState
+useState是最常用的Hook,所以需要重点了解.
+
+>**State** generally refers to data or properties that need to be tracking in an application.
+
+useState accepts an initial state and returns two values:
+1. The current state.
+2. A function that updates the state.
+
+```jsx
+import { useState } from "react";
+
+function FavoriteColor() {
+  const [color, setColor] = useState("red");
+}
+```
+>useState返回的是一个二元数组,通过数组解构来获取对应值即可(数组解构可以任意命名,但习惯上我们将这对值命名为`var`和`setVar`的形式).
+
+要更新初始值,我们调用更新函数即可:
+```jsx
+import { useState } from 'react';
+import { createRoot } from 'react-dom/client';
+
+function FavoriteColor() {
+  const [color, setColor] = useState("red");
+
+  return (
+    <>
+      <h1>My favorite color is {color}!</h1>
+      <button
+        type="button"
+        onClick={() => setColor("blue")}
+      >Blue</button>
+    </>
+  )
+}
+
+createRoot(document.getElementById('root')).render(
+  <FavoriteColor />
+);
+```
+
+- setColor本质上是一个回调函数,会在触发时去更新被绑定的state.
+
+state也可以是对象:
+```jsx
+import { useState } from 'react';
+import { createRoot } from 'react-dom/client';
+
+function MyCar() {
+  const [car, setCar] = useState({
+    brand: "Ford",
+    model: "Mustang",
+    year: "1964",
+    color: "red"
+  });
+
+  return (
+    <>
+      <h1>My {car.brand}</h1>
+      <p>
+        It is a {car.color} {car.model} from {car.year}.
+      </p>
+    </>
+  )
+}
+
+createRoot(document.getElementById('root')).render(
+  <MyCar />
+);
+```
+
+
+### useEffect
+useEffect是第二常用的React Hook,用来执行一些**side effects**,包括:
+1. fetching data
+2. updating the DOM
+3. 计时
+
+>鉴于官方把useEffect的效果称为`side effects`,但它实质上并不是那种常规的**有危害的副作用**的意思,所以就保持原文算了.
+
+useEffect有两个参数,第二个参数是可选的:
+```jsx
+useEffect(<function>, <dependency>)
+```
+
+**用例**
+```jsx
+import { useState, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
+
+function Timer() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setCount((count) => count + 1);
+    }, 1000);
+  });
+
+  return <h1>I've rendered {count} times!</h1>;
+}
+
+createRoot(document.getElementById('root')).render(
+  <Timer />
+);
+```
+上述代码每过一秒便会将count+1并渲染出来,永不停息,这是因为我们没给setTimeout函数加上任何限制,一般来说我们有三种写法:
+```jsx
+useEffect(() => {
+  //Runs on every render
+});
+
+// 有时候我们希望只用useEffect进行初始化
+useEffect(() => {
+  //Runs only on the first render
+}, []);
+
+// 当界面状态改变时我们希望再次进行渲染.
+useEffect(() => {
+  //Runs on the first render
+  //And any time any dependency value changes
+}, [prop, state]);
+```
+
+下面这个代码就是一个很好的例子:
+```jsx
+import { useState, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
+
+function Counter() {
+  const [count, setCount] = useState(0);
+  const [calculation, setCalculation] = useState(0);
+
+  useEffect(() => {
+    setCalculation(() => count * 2);
+  }, [count]); // <- add the count variable here
+
+  return (
+    <>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount((c) => c + 1)}>+</button>
+      <p>Calculation: {calculation}</p>
+    </>
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  <Counter />
+);
+```
+### useContext
+useState只能写在函数中,这意味着它不能通过全局变量来在组件中共享,想要跨越文件传递值则更加困难:
+```jsx
+import { useState } from 'react';
+import { createRoot } from 'react-dom/client';
+
+function Component1() {
+  const [user, setUser] = useState("Linus");
+
+  return (
+    <>
+      <h1>{`Hello ${user}!`}</h1>
+      <Component2 user={user} />
+    </>
+  );
+}
+
+function Component2({ user }) {
+  return (
+    <>
+      <h1>Component 2</h1>
+      <Component3 user={user} />
+    </>
+  );
+}
+
+function Component3({ user }) {
+  return (
+    <>
+      <h1>Component 3</h1>
+      <h2>{`Hello ${user} again!`}</h2>
+    </>
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  <Component1 />
+);
+```
+>Even though component 2 did not need the state, it had to pass the state along so that it could reach component 3.
+
+要使用useContext,我们需要导入createContext:
+```jsx
+import { useState, createContext, useContext } from 'react';
+import { createRoot } from 'react-dom/client';
+
+const UserContext = createContext();
+```
+
+然后就可以通过Provider组件来跨越组件传值:
+```jsx
+function Component1() {
+  const [user, setUser] = useState("Linus");
+
+  return (
+    <UserContext.Provider value={user}>
+      <h1>{`Hello ${user}!`}</h1>
+      <Component2 />
+    </UserContext.Provider>
+  );
+}
+```
+要想在子组件中直接传递变量,就需要用到useContext了:
+```jsx
+function Component3() {
+  const user = useContext(UserContext);
+
+  return (
+    <>
+      <h1>Component 3</h1>
+      <h2>{`Hello ${user} again!`}</h2>
+    </>
+  );
+}
+```
+
+**完整代码如下**:
+```jsx
+import { useState, createContext, useContext } from 'react';
+import { createRoot } from 'react-dom/client';
+
+const UserContext = createContext();
+
+function Component1() {
+  const [user, setUser] = useState("Linus");
+
+  return (
+    <UserContext.Provider value={user}>
+      <h1>{`Hello ${user}!`}</h1>
+      <Component2 />
+    </UserContext.Provider>
+  );
+}
+
+function Component2() {
+  return (
+    <>
+      <h1>Component 2</h1>
+      <Component3 />
+    </>
+  );
+}
+
+function Component3() {
+  const user = useContext(UserContext);
+
+  return (
+    <>
+      <h1>Component 3</h1>
+      <h2>{`Hello ${user} again!`}</h2>
+    </>
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  <Component1 />
+);
+```
+
+>是不是很匪夷所思,组件3中的user是如何获取组件1中的变量的? 我们需要注意的是,应该以一种自顶向下的方法来使用useContext.组件1中使用了Provider组件来广播这个值到组件2中,尽管组件2本身没有使用user变量,但它调用了组件3,React会顺势将user变量通过`useContext(UserContext)`传递进组件3中.
+### useRef
+如果我们想统计useState的渲染次数的话,我们可不能再引入useState或者useEffect,因为它们执行时都会重新渲染一次页面,所以,我们需要用到useRef:
+```jsx
+import { useState, useRef, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
+
+function App() {
+  const [inputValue, setInputValue] = useState("");
+  const count = useRef(0);
+
+  useEffect(() => {
+    count.current = count.current + 1;
+  });
+
+  return (
+    <>
+      <p>Type in the input field:</p>
+      <input
+        type="text"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+      />
+      <h1>Render Count: {count.current}</h1>
+    </>
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  <App />
+);
+```
+useRef只返回一个对象变量,它只有一个current属性.
+
+在 React 中，你不能直接用 `document.getElementById`。你需要用 useRef 挂载到标签上:
+```jsx
+const inputRef = useRef(null);
+
+const handleClick = () => {
+  // 直接操作底层 DOM 元素
+  inputRef.current.focus(); 
+};
+
+return <input ref={inputRef} />;
+```
+### useCallback
+这是最后一个比较常用的Hook了,主要用来缓存回调函数,接受两个参数:
+```jsx
+useCallback(callback, dependencies)
+```
+1. callback: The function that you want to memoize.
+2. dependencies: An array of dependencies for the callback function. The memorized callback will only change if one of these dependencies has changed.
+
+```jsx
+//Without useCallback:
+import React, { useState } from 'react';
+import { createRoot } from 'react-dom/client';
+
+// Child component that receives a function prop
+const Button = React.memo(({ onClick, text }) => {
+  alert(`Child ${text} button rendered`);
+  return <button onClick={onClick}>{text}</button>;
+});
+
+// Parent component without useCallback
+function WithoutCallbackExample() {
+  const [count1, setCount1] = useState(0);
+  const [count2, setCount2] = useState(0);
+
+  // This function is recreated on every render
+  const handleClick1 = () => {
+    setCount1(count1 + 1);
+  };
+
+  const handleClick2 = () => {
+    setCount2(count2 + 1);
+  };
+
+  alert("Parent rendered");
+  return (
+    <div>
+      <h2>Without useCallback:</h2>
+      <p>Count 1: {count1}</p>
+      <p>Count 2: {count2}</p>
+      <Button onClick={handleClick1} text="Button 1" />
+      <Button onClick={handleClick2} text="Button 2" />
+    </div>
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  <WithoutCallbackExample />
+);  
+```
+上述代码没有使用useCallback函数,每次按按钮时都会重新渲染所有组件,如果改成使用useCallback,是这样的:
+```jsx
+//With useCallback:
+import React, { useState, useCallback } from 'react';
+import { createRoot } from 'react-dom/client';
+
+// Child component that receives a function prop
+const Button = React.memo(({ onClick, text }) => {
+  console.log(`${text} button rendered`);
+  return <button onClick={onClick}>{text}</button>;
+});
+
+// Parent component with useCallback
+function WithCallbackExample() {
+  const [count1, setCount1] = useState(0);
+  const [count2, setCount2] = useState(0);
+
+  // These functions are memoized and only recreated when dependencies change
+  const handleClick1 = useCallback(() => {
+    setCount1(count1 + 1);
+  }, [count1]);
+
+  const handleClick2 = useCallback(() => {
+    setCount2(count2 + 1);
+  }, [count2]);
+
+  console.log("Parent rendered");
+  return (
+    <div>
+      <h2>With useCallback:</h2>
+      <p>Count 1: {count1}</p>
+      <p>Count 2: {count2}</p>
+      <Button onClick={handleClick1} text="Button 1" />
+      <Button onClick={handleClick2} text="Button 2" />
+    </div>
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  <WithCallbackExample />
+);  
+```
+
+上述的例子还是太难看懂了,也不够直观,我们拿一个时常要用到的黑夜/白天主题切换情景作为例子,顺便复习一下前面的知识:
+```jsx
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react"
+
+export type Theme = "dark" | "light" | "system"
+
+const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
+
+export function ThemeProvider({
+  children,
+  defaultTheme = "system",
+  storageKey = "vite-ui-theme",
+  ...props
+}: ThemeProviderProps) {
+  const [theme, setTheme] = useState<Theme>(
+    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
+  )
+
+  const getResolvedTheme = useCallback((theme: Theme): "dark" | "light" => {
+    if (theme === "system") {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+    }
+    return theme
+  }, [])
+
+  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">(() =>
+    getResolvedTheme(theme),
+  )
+
+  const updateTheme = useCallback((newTheme: Theme) => {
+    const root = window.document.documentElement
+
+    root.classList.remove("light", "dark")
+
+    if (newTheme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+        .matches
+        ? "dark"
+        : "light"
+
+      root.classList.add(systemTheme)
+      return
+    }
+
+    root.classList.add(newTheme)
+  }, [])
+
+  useEffect(() => {
+    updateTheme(theme)
+    setResolvedTheme(getResolvedTheme(theme))
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+
+    const handleChange = () => {
+      if (theme === "system") {
+        updateTheme("system")
+        setResolvedTheme(getResolvedTheme("system"))
+      }
+    }
+
+    mediaQuery.addEventListener("change", handleChange)
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange)
+    }
+  }, [theme, updateTheme, getResolvedTheme])
+
+  const value = {
+    theme,
+    resolvedTheme,
+    setTheme: (theme: Theme) => {
+      localStorage.setItem(storageKey, theme)
+      setTheme(theme)
+    },
+  }
+
+  return (
+    <ThemeProviderContext.Provider {...props} value={value}>
+      {children}
+    </ThemeProviderContext.Provider>
+  )
+}
+export const useTheme = () => {
+  const context = useContext(ThemeProviderContext)
+
+  if (context === undefined)
+    throw new Error("useTheme must be used within a ThemeProvider")
+
+  return context
+}
+```
+
+我们看一看使用了useCallback部分的代码:
+```jsx
+const getResolvedTheme = useCallback((theme: Theme): "dark" | "light" => {
+    if (theme === "system") {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+    }
+    return theme
+  }, [])
+
+const updateTheme = useCallback((newTheme: Theme) => {
+    const root = window.document.documentElement
+
+    root.classList.remove("light", "dark")
+
+    if (newTheme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+        .matches
+        ? "dark"
+        : "light"
+
+      root.classList.add(systemTheme)
+      return
+    }
+
+    root.classList.add(newTheme)
+  }, [])
+```
+如果不用useCallback包裹这两个函数,那么之后每次渲染时这些函数都会重新执行一遍,对于整个页面的渲染是个很大的开销.
+
+- 这里的依赖项为空数组的作用与在useEffect中的作用一样,都是只在初始化执行一次,后续不再改变.
+
+
+## 总结
+事实上,JSX需要了解的就是Hook和组件写法了,其他的基本都属于原生JS的语法范畴.
+
+但是,用JS写项目还是不太顺手,大型JS项目的维护也无比艰难,因为JS没有**静态类型检查**,这让代码编写变得十分痛苦.
+
+所以,Typescript诞生了,带来了前端领域的又一场变革.
 # Typescript
+## 概览
+- [官方文档](https://www.typescriptlang.org/docs/handbook/intro.html)
+
+Typescript由微软在2014年发布,主要目的就是为了解决Javascript中的动态类型带来的各种疑难问题,所以引入的新特性不是很多.但也足够使用了.
+## 类型注释
+
+
+## 加强的OOP
+鉴于原生js的OOP实在是不堪入目,所以TS大大加强了OOP特性,让它成为了一个更加面向对象的语言(尽管本质上还是面向函数的).
+### 加强的类
+
+### enum(枚举)
+
+### 泛型
 # TypeScript XML
 
-# Node.js学习
+# Node.js,npm与项目环境
 # Tailwind学习

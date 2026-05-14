@@ -35,10 +35,12 @@ A domain is atomic if elements of the domain are considered to be indivisible un
   - 即数据库中所有关系,属性的处理
   - 这个概念其实很重要,会在之后多次出现.
 ## Keys
-- superkey: a set of one or more attributes that identify uniquely a tuple in the relation.
+
+
+- **superkey**: a set of one or more attributes that identify uniquely a tuple in the relation.
 > For example, the ID attribute of the relation instructor is suﬃcient to distinguish one instructor tuple from another. Thus, ID is a superkey. The name attribute of instructor, on the other hand, is not a superkey, because several instructors might have the same name.
 
-- candidate keys: superkeys for which no proper subset is a superkey.
+- **candidate keys**: superkeys for which no proper subset is a superkey.
 >It is possible that several distinct sets of attributes could serve as a candidate key.
 Suppose that a combination of name and dept name is suﬃcient to distinguish among
 members of the instructor relation. Then, both {ID} and {name, dept name} are candidate
@@ -46,10 +48,10 @@ keys. Although the attributes ID and name together can distinguish instructor tu
 their combination, {ID, name}, does not form a candidate key, since the attribute ID
 alone is a candidate key.
 
-- primary key: denote a candidate key that is chosen by the database designer as the principal means of identifying tuples within a relation
-  - 在这里,primary key可以是由多个attribute组成的tuple
+- **primary key**: denote a candidate key that is chosen by the database designer as the principal means of identifying tuples within a relation
 
->The primary key should be chosen such that its attribute values are never, or are very rarely, changed.
+>上述的三种key存在一个递进关系,superkey可以唯一标识一个元组,但允许用多余的属性,candidate key一旦删去任何一个属性都不可以唯一标识元组,primary key是从candidate key中选取的最终主键.
+
 ## Schema Diagrams
 A database schema, along with primary key and foreign-key constraints, can be depicted by schema diagrams
 
@@ -1907,7 +1909,6 @@ where semester = 'Spring' and year = 2017);
 # Database Design Using the E-R Model
 数据库的设计并不简单,所以我们需要一些好用的模型来组织数据库,比如这章涉及的E-R模型.
 
-- 忽然发现前面的笔记中废话太多了,像我的小测复习这样精炼就已经可以了,能够轻松的获取所需的信息
 ## The Entity-Relationship Model
 - entity: a “thing” or “object” in the real world that is distinguishable from all other objects.
   - 实体是一个独一无二的个体
@@ -1945,9 +1946,80 @@ If it is possible that some entities in E do not participate in relationships in
 
 ##  The Unified Modeling Language (UML)
 
-# Relational Database Design(较难,待补充)
-根据上一章的E-R图我们可以导出一组关系模式:
-![alt text](PixPin_2026-03-26_08-23-16.webp)
+# Relational Database Design
+### 前置概念
+- **关系模式(relational schema)**: 创建关系表的sql代码
+- **无损分解(lossless decomposition)**: 如果将一个关系模式分解成两个二关系模式的并集时,没有信息的丢失,那么就称这是一个无损分解
+
+如果用公式定义的话,是这样的:
+```sql
+select * 
+from(select R1 from r)
+    natural join
+    (select R2 from r)
+```
+
+- **函数依赖**(functional dependency): 如果关系表中的任意两个元组t1和t2,对于其中的某两个属性α和β,如果满足当`t1[α]=t2[α]`时,`t1[β]=t2[β]`,则说该关系表**满足函数依赖**α->β.
+- 如果所有使用了r(R)关系模式的表都满足函数依赖α->β,就称该函数依赖在r(R)上成立(hold).
+- **平凡(trivial)**: 如果某些函数依赖被所有关系都满足,则称这类函数依赖是平凡的,一个非常常见的例子是,**如果 β ⊆ α,则形如 α → β 的函数依赖是平凡的**. *这类似于离散数学中的平凡元*.
+
+- **闭包(closure)**: 从给定的关系r(R)上成立的函数依赖集合F中推导出的所有函数依赖的集合,*类似于离散数学中的闭包概念*.
+
+那么R1和R2能够构成R的无损分解的条件是,以下函数依赖中至少有一个是在R导出的闭包中:
+![alt text](PixPin_2026-05-14_12-54-25.webp)
+
+例如:
+```sql
+instructor (ID, name, dept_name, salary)
+department (dept_name, building, budget)
+```
+>请考虑这两个模式的交集，即 dept_name。我们发现，由于 dept_name → dept_name, building, budget，因此满足无损分解的规则。
+
+
+### 范式
+我们根据范式(Normal Form)来设计和更改数据库的关系表,减少数据的冗余和堆叠.
+#### 概览
+
+1. 第一范式 (1NF)：属性原子性
+
+* **核心：** 每一列都是不可分割的最小数据单元。
+* **要求：** 表中不包含集合、数组或组合属性（如“地址”不能同时包含省、市、区，必须拆分）。
+
+2. 第二范式 (2NF)：完全函数依赖
+
+* **核心：** 在满足 1NF 的基础上，消除非主属性对码的**部分函数依赖**。
+* **要求：** 如果主键由多个属性组成（复合主键），非主属性必须依赖于整个主键，而不能只依赖于其中的一部分。
+
+3. 第三范式 (3NF)：消除传递依赖
+
+* **核心：** 在满足 2NF 的基础上，消除非主属性对码的**传递函数依赖**。
+* **要求：** 属性不应通过另一个非主属性间接依赖于主键。例如，在 `instructor` 模式中，如果 `dept_name` 决定了 `building`，则 `building` 对主键 `ID` 存在传递依赖，应拆分为独立模式。
+
+4. BCNF (Boyce-Codd 范式)：主属性的约束
+
+* **核心：** 在满足 3NF 的基础上，消除**主属性**对码的部分或传递函数依赖。
+* **要求：** 对于任何非平凡函数依赖 $\alpha \rightarrow \beta$，$\alpha$ 必须是一个超码。
+* **示例：** 如图中所示，通过将原始模式分解为 `instructor (ID, name, dept_name, salary)` 和 `department (dept_name, building, budget)`，由于 `dept_name` 是其所在模式的码（即满足 $dept\_name \rightarrow building, budget$），这种分解保证了数据一致性并满足无损分解规则。
+
+
+>不太像人话,接下来详细解释.
+#### Boyce-Codd(BCNF)范式
+该范式要求对于闭包中所有形如α->β的函数依赖,至少满足下面的一项:
+1. α->β是平凡的函数依赖(即β ⊆ α)
+2. α是模式R的一个超码(即可以区分出R中的任何一个元组)
+
+>用人话来说,**当β不属于α时,需要确保α能够唯一标识这个元组,才能够保证在α相等时β也一定相等.**
+
+- 第一个条件都是凑数的,α中的所有属性取值相等时,β中的所有属性自然取值相等.
+#### 第三范式
+它的约束比BCNF范式要弱一点,对于闭包中所有形如α->β的函数依赖,至少满足下面的一项:
+1. α->β是平凡的函数依赖(即β ⊆ α)
+2. α是模式R的一个超码(即可以区分出R中的任何一个元组)
+3. β - α中的每个属性A都被包含于R的一个候选码(candidate key)中.
+
+>用人话说,就算β中有部分属性不属于α,而且α本身不能唯一标识一个元组,但是这些多余的属性能够帮助标识元组,就不会丢失信息.
+   
+### 函数依赖的计算
 # Complex Data Types
 >In this chapter, we discuss several non-atomic data types that are widely used,including **semi-structured data, object-based data, textual data, and spatial data**.
 ## Semi-structured Data
@@ -2153,19 +2225,15 @@ Two types of spatial data are particularly important:
 ![alt text](PixPin_2026-05-07_15-55-34.webp)
 
 如果实体集中的所有实体都必须参与到联系集R中,那么就称实体集在R中的参与是**全部的**,用**双线**表示,如果允许部分实体不参与,则称为**部分的**,仍然用单线表示.
-
+### 习题
 ## ch7: 关系数据库设计
-### 概念
-- **关系模式(relational schema)**: 即一组关系表
-- **无损分解(lossless decomposition)**: 如果将一个关系模式分解成两个二关系模式的并集时,没有信息的丢失,那么就称这是一个无损分解
 
-如果用公式定义的话,是这样的:
-```sql
-select * 
-from(select R1 from r)
-    natural join
-    (select R2 from r)
-```
+### 习题
+## ch8: Complex Data Types
+### 关系型数据库的面向对象特性
+### RDF和SPARQL
+### 搜索引擎
+### 习题
 # Application Development(过)
 # Big Data
 当数据的数量和种类多到一定程度时,传统的关系型数据库就无能为力了,需要采用更为复杂的数据结构来处理.

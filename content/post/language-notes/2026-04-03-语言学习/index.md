@@ -8,25 +8,34 @@ image: 92260989_p0-秘密の願い事.webp
 # 英语
 
 ## 常见英文缩写
+### 拉丁文缩写
 英文中不时能够看见拉丁文缩写,一般规则如下:
 - 如果该拉丁文单词被缩写了,就在缩写后加个点
 - 如果拉丁文单词是完整的,就不做处理
 
+
 有一个例子可以很好的说明:
 - `et al.`: (et alii),et是完整单词,但`alii`不是,所以al后面加了一个`.`
 
-- TL;DR: 是 "Too Long; Didn't Read"（太长不看）的缩写,常作为文档总结
-- FYR: 是 "For Your Reference" 的缩写,表示供你参考
-- FYI: 是 "For Your Information" 的缩写，意为**“供你知晓”**
-- PoC: "Proof of Concept",为了证明某个技术方案在物理上是可行的，先写一个简陋的 Demo。
-- CI: Continuous integration,持续集成,也就是随时运行,随时与主分支合并
-- w.r.t: **with respect to**,关于,相对于,常用于技术文献中:
+- `w.r.t`: **with respect to**,关于,相对于,常用于技术文献中:
   - "If the function is differentiable w.r.t. its parameters..."
   - “如果该函数关于其参数是可微的（可求导的）……”
 - `i.e.` : (id est),换句话说
 - `e.g.` : (exempli gratia),例如
 - `et al.`: (et alii),**以及其他人**,常作为文献中的引用说明:
   - Objectives may also have other sources of noise than data subsampling, such as dropout (Hinton et al., 2012b) regularization. 
+
+### 技术文章中的缩写
+- TL;DR: 是 "Too Long; Didn't Read"（太长不看）的缩写,常作为文档总结
+- FYR: 是 "For Your Reference" 的缩写,表示供你参考
+- FYI: 是 "For Your Information" 的缩写，意为**“供你知晓”**
+- PoC: "Proof of Concept",为了证明某个技术方案在物理上是可行的，先写一个简陋的 Demo。
+
+### 专业名词的缩写
+- CI: Continuous integration,持续集成,也就是随时运行,随时与主分支合并
+- SOA: **Service-oriented architecture**,通过服务来划分架构
+- RPC: **Remote procedure call**,隐藏通信细节,让程序像本地函数一样请求远程服务器的通信协议
+- SaaS: **Software as a Service**,最主要的特征是,**用户的数据不保存在本地,而是保存在云服务器上**,最典型的例子如钉钉,飞书等企业工具,而本地通常不会保存用户的详细数据.
 
 # 日语词汇
 

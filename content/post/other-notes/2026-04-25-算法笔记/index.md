@@ -3,7 +3,7 @@ title: "算法笔记"
 date: 2026-04-25T09:55:45+08:00
 description: 
 image: 28876767_p0-＼ ハッピーバースデイ ／.webp
-math: 
+math: true
 
 ---
 
@@ -11,7 +11,8 @@ math:
 ## 栈
 ## 队列
 ## 哈希表
-
+## 二叉树
+### 堆
 # 基础算法
 ## 复杂度分析
 
@@ -34,7 +35,8 @@ math:
 
 ## 排序
 ### 冒泡排序
-
+### 快速排序
+### 堆排序
 ## 搜索
 事实上,翻遍全网,找不到一个真正详尽的入门教程,基本都是丢给你几道算法题的解答就结束了,却从来没有真正的讲明白为什么要这样写
 ### 到底是用dfs还是bfs?(3/14)
@@ -263,134 +265,130 @@ int main()
 }
 ```
 
-### 为什么要写vis数组来标记访问路径?
-{% raw %}
-<div id="dfs-root" style="position: relative; overflow: hidden; background: #ffffff; border: 1px solid #eee; border-radius: 12px; margin: 2rem 0; padding: 1.5rem; color: #333; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-    
+### 为什么要写vis数组来标记访问路径
+
+
+<div id="dfs-root" style="background: var(--card-background, #ffffff); border: 1px solid var(--border-color, #eee); border-radius: 12px; margin: 2rem 0; padding: 1.5rem; color: var(--body-text-color, #333); font-family: -apple-system, sans-serif;">
     <style>
-        /* 针对 Butterfly 的局部隔离样式 */
-        #dfs-root button { 
-            cursor: pointer; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; 
-            margin: 4px; border: 1px solid #e2e8f0; transition: all 0.2s; background: #fff; color: #475569;
-        }
+        #dfs-root .grid-container { display: grid; grid-template-columns: repeat(3, 60px); gap: 8px; width: fit-content; margin: 20px auto; background: #f1f5f9; padding: 10px; border-radius: 8px; }
+        #dfs-root .cell { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 12px; border-radius: 4px; background: #fff; border: 1px solid #e2e8f0; font-weight: bold; color: #333; }
+        #dfs-root .v { background-color: #cbd5e1 !important; color: #64748b !important; }
+        #dfs-root .c { background-color: #3b82f6 !important; color: #fff !important; transform: scale(0.95); }
+        #dfs-root .s { outline: 3px solid #22c55e !important; outline-offset: -2px; }
+        #dfs-root .e { outline: 3px solid #ef4444 !important; outline-offset: -2px; }
+        #dfs-root button { cursor: pointer; padding: 6px 12px; margin: 4px; border-radius: 6px; border: 1px solid #ddd; background: #fff; font-size: 13px; transition: 0.2s; }
         #dfs-root button:hover { border-color: #3b82f6; color: #3b82f6; }
         #dfs-root .active-btn { background: #3b82f6 !important; color: #fff !important; border-color: #2563eb !important; }
-        
-        #dfs-root .grid-container { 
-            display: grid; grid-template-columns: repeat(3, minmax(50px, 70px)); gap: 8px; 
-            background-color: #f1f5f9; padding: 10px; border-radius: 8px; width: fit-content; margin: 20px auto;
-        }
-        #dfs-root .cell { 
-            aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; 
-            font-size: 14px; font-weight: bold; border-radius: 4px; border: 1px solid #e2e8f0;
-            background: #fff; transition: background 0.1s; 
-        }
-        #dfs-root .v { background-color: #cbd5e1; color: #64748b; } /* visited */
-        #dfs-root .c { background-color: #3b82f6; color: #fff; transform: scale(0.95); } /* current */
-        #dfs-root .s { outline: 3px solid #22c55e; outline-offset: -2px; } /* start */
-        #dfs-root .e { outline: 3px solid #ef4444; outline-offset: -2px; } /* end */
-        
-        #dfs-root .console { 
-            background: #f8fafc; padding: 12px; border-radius: 6px; font-family: 'Fira Code', monospace;
-            font-size: 13px; border-left: 4px solid #3b82f6; min-height: 50px;
-        }
+        #dfs-root .console { background: #f8fafc; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; border-left: 4px solid #3b82f6; min-height: 40px; color: #1e293b; }
     </style>
 
-    <div style="display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 10px;">
-        <button onclick="dfsApp.run('no_mark', this)">1. 无标记 (死循环)</button>
-        <button onclick="dfsApp.run('no_unmark', this)">2. 无释放 (遗漏)</button>
-        <button onclick="dfsApp.run('correct', this)">3. 标准回溯 (全空间)</button>
-    </div>
+<div style="display: flex; flex-wrap: wrap; justify-content: center;">
+    <button onclick="window.dfsApp.run('no_mark', this)">1. 无标记 (死循环)</button>
+    <button onclick="window.dfsApp.run('no_unmark', this)">2. 无释放 (遗漏)</button>
+    <button onclick="window.dfsApp.run('correct', this)">3. 标准回溯 (全空间)</button>
+</div>
 
-    <div class="grid-container" id="dfs-grid"></div>
+<div class="grid-container" id="dfs-grid"></div>
 
-    <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
-        <button id="dfs-pause" onclick="dfsApp.togglePause()">暂停</button>
-        <button id="dfs-speed" onclick="dfsApp.toggleSpeed()">速度: 常速</button>
-    </div>
+<div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
+    <button id="dfs-pause" onclick="window.dfsApp.togglePause()">暂停</button>
+    <button id="dfs-speed" onclick="window.dfsApp.toggleSpeed()">速度: 常速</button>
+</div>
 
-    <div class="console">
-        <div id="dfs-log">系统状态：准备就绪</div>
-    </div>
+<div class="console" id="dfs-log">系统状态：准备就绪</div>
 </div>
 
 <script>
-var dfsApp = {
-    N: 3, vis: [], ans: 0, steps: 0, isRunning: false, isPaused: false, delayMs: 200,
-    dx: [0, 1, 0, -1], dy: [1, 0, -1, 0],
-    
-    sleep: async function() {
-        await new Promise(r => setTimeout(r, this.delayMs));
-        while (this.isPaused) await new Promise(r => setTimeout(r, 100));
-    },
+(function() {
+    // 兼容 Pjax 重新加载
+    const initApp = () => {
+        const app = {
+            N: 3, vis: [], ans: 0, steps: 0, isRunning: false, isPaused: false, delayMs: 200,
+            dx: [0, 1, 0, -1], dy: [1, 0, -1, 0],
+            
+            sleep: async function() {
+                await new Promise(r => setTimeout(r, this.delayMs));
+                while (this.isPaused) await new Promise(r => setTimeout(r, 100));
+            },
 
-    render: function(cx, cy) {
-        const g = document.getElementById('dfs-grid');
-        g.innerHTML = '';
-        for(let i=0; i<this.N; i++) {
-            for(let j=0; j<this.N; j++) {
-                const d = document.createElement('div');
-                d.className = 'cell';
-                if (i === cx && j === cy) d.className += ' c';
-                else if (this.vis[i][j]) d.className += ' v';
-                if (i === 0 && j === 0) d.className += ' s';
-                if (i === this.N-1 && j === this.N-1) d.className += ' e';
-                d.innerText = i + ',' + j;
-                g.appendChild(d);
-            }
-        }
-        document.getElementById('dfs-log').innerText = "方案数: " + this.ans + " | 当前步数: " + this.steps;
-    },
-
-    dfs: async function(x, y, mode) {
-        if (!this.isRunning) return;
-        this.steps++;
-        if (this.steps > 150 && mode === 'no_mark') {
-            document.getElementById('dfs-log').innerText = "[崩溃] 检测到死循环，栈已溢出！";
-            throw new Error('Stop');
-        }
-        this.render(x, y);
-        await this.sleep();
-        if (x === this.N-1 && y === this.N-1) { this.ans++; return; }
-        
-        for (let i = 0; i < 4; i++) {
-            let nx = x + this.dx[i], ny = y + this.dy[i];
-            if (nx >= 0 && nx < this.N && ny >= 0 && ny < this.N) {
-                if (mode === 'no_mark' || !this.vis[nx][ny]) {
-                    if (mode !== 'no_mark') this.vis[nx][ny] = 1;
-                    try { await this.dfs(nx, ny, mode); } catch(e) { if(mode==='no_mark') return; }
-                    if (mode === 'correct') this.vis[nx][ny] = 0;
-                    if (this.isRunning) { this.render(x, y); await this.sleep(); }
+            render: function(cx, cy) {
+                const g = document.getElementById('dfs-grid');
+                if(!g) return;
+                g.innerHTML = '';
+                for(let i=0; i<this.N; i++) {
+                    for(let j=0; j<this.N; j++) {
+                        const d = document.createElement('div');
+                        d.className = 'cell';
+                        if (i === cx && j === cy) d.className += ' c';
+                        else if (this.vis[i] && this.vis[i][j]) d.className += ' v';
+                        if (i === 0 && j === 0) d.className += ' s';
+                        if (i === this.N-1 && j === this.N-1) d.className += ' e';
+                        d.innerText = i + ',' + j;
+                        g.appendChild(d);
+                    }
                 }
+                const log = document.getElementById('dfs-log');
+                if(log) log.innerText = "方案数: " + this.ans + " | 当前步数: " + this.steps;
+            },
+
+            dfs: async function(x, y, mode) {
+                if (!this.isRunning) return;
+                this.steps++;
+                if (this.steps > 120 && mode === 'no_mark') {
+                    document.getElementById('dfs-log').innerText = "[崩溃] 检测到死循环，模拟栈溢出！";
+                    throw new Error('Stop');
+                }
+                this.render(x, y);
+                await this.sleep();
+                if (x === this.N-1 && y === this.N-1) { this.ans++; return; }
+                
+                for (let i = 0; i < 4; i++) {
+                    let nx = x + this.dx[i], ny = y + this.dy[i];
+                    if (nx >= 0 && nx < this.N && ny >= 0 && ny < this.N) {
+                        const alreadyVis = this.vis[nx] && this.vis[nx][ny];
+                        if (mode === 'no_mark' || !alreadyVis) {
+                            if (mode !== 'no_mark') this.vis[nx][ny] = 1;
+                            try { await this.dfs(nx, ny, mode); } catch(e) { if(mode==='no_mark') return; }
+                            if (mode === 'correct') this.vis[nx][ny] = 0;
+                            if (this.isRunning) { this.render(x, y); await this.sleep(); }
+                        }
+                    }
+                }
+            },
+
+            run: async function(mode, btn) {
+                this.isRunning = false; this.isPaused = false;
+                document.querySelectorAll('#dfs-root button').forEach(b => b.classList.remove('active-btn'));
+                btn.classList.add('active-btn');
+                await new Promise(r => setTimeout(r, 50));
+                this.isRunning = true;
+                this.vis = Array(this.N).fill(0).map(() => Array(this.N).fill(0));
+                this.ans = 0; this.steps = 0;
+                if (mode !== 'no_mark') this.vis[0][0] = 1;
+                try { await this.dfs(0, 0, mode); } catch(e) {}
+                this.render(-1, -1);
+                this.isRunning = false;
+            },
+
+            togglePause: function() { 
+                this.isPaused = !this.isPaused; 
+                document.getElementById('dfs-pause').innerText = this.isPaused ? '继续' : '暂停'; 
+            },
+            toggleSpeed: function() {
+                const b = document.getElementById('dfs-speed');
+                if (this.delayMs === 200) { this.delayMs = 800; b.innerText = '速度: 慢速'; }
+                else { this.delayMs = 200; b.innerText = '速度: 常速'; }
             }
-        }
-    },
+        };
+        window.dfsApp = app;
+        app.render(-1, -1);
+    };
 
-    run: async function(mode, btn) {
-        this.isRunning = false; this.isPaused = false;
-        document.querySelectorAll('#dfs-root button').forEach(b => b.classList.remove('active-btn'));
-        btn.classList.add('active-btn');
-        await new Promise(r => setTimeout(r, 100));
-        this.isRunning = true;
-        this.vis = Array(this.N).fill(0).map(() => Array(this.N).fill(0));
-        this.ans = 0; this.steps = 0;
-        if (mode !== 'no_mark') this.vis[0][0] = 1;
-        await this.dfs(0, 0, mode);
-        this.render(-1, -1);
-        this.isRunning = false;
-    },
-
-    togglePause: function() { this.isPaused = !this.isPaused; document.getElementById('dfs-pause').innerText = this.isPaused ? '继续' : '暂停'; },
-    toggleSpeed: function() {
-        const b = document.getElementById('dfs-speed');
-        if (this.delayMs === 200) { this.delayMs = 800; b.innerText = '速度: 慢速'; }
-        
-        else { this.delayMs = 200; b.innerText = '速度: 常速'; }
-    }
-};
-dfsApp.render(-1, -1);
+    // 立即初始化并监听 Pjax 跳转
+    initApp();
+    document.addEventListener('pjax:success', initApp);
+})();
 </script>
-{% endraw %}
 
 ```cpp
 if (nx >= 1 && nx <= n && ny >= 1 && ny <= m && a[nx][ny] != -1 &&

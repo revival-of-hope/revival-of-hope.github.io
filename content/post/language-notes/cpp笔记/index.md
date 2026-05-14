@@ -572,7 +572,7 @@ void* __cdecl memset(
     _In_                          size_t _Size
     );
 ```
-- __cdecl,_Out_writes_bytes_all_(_Size), _In_: 这三个都是Microsoft专用的修饰用宏,由于太过底层所以不用去关注
+- `__cdecl,_Out_writes_bytes_all_(_Size), _In_`: 这三个都是Microsoft专用的修饰用宏,由于太过底层所以不用去关注
 - `void*  _Dst`: 空指针,指向对象内存区
 - `int    _Val`: 填充内容,实际上函数底层会将int强制转换为unsigned char,故只有低8位有效.而且,由于memset的内部机制是逐字节将这低8位填入目标内存区域,如果传入1,则会导致填入内容为(0x01010101),无法做到将填入对象置为1的效果,故只能传入(-1和0),从而一致归0或者一致归1.
 - `size_t _Size`: 传入单位为字节,而非直觉上以为的元素个数,这也是为什么不能直接写`memset(a,-1,n)`的原因.
@@ -582,7 +582,6 @@ void* __cdecl memset(
 
 
 #### sort()详解
-**MSVC-algorithm部分源码**
 ```cpp
 
 template <class _RanIt, class _Pr>
@@ -657,10 +656,7 @@ _CONSTEXPR20 void sort(const _RanIt _First, const _RanIt _Last) { // order [_Fir
 ```
 大致结构与平常io写的快排没有任何区别,只是专业化了一点而已
 
-### deque<T>
-为什么先讲deque再讲queue呢,是因为queue是用deque写的,这确实出乎我的意料.
-由于deque部分洋洋洒洒有1800多行,故我先讲大致结构,再深入每个文件来讲
-### queue<T>
+
 
 
 
