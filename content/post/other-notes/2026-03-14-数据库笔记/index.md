@@ -1975,7 +1975,7 @@ department (dept_name, building, budget)
 ```
 >请考虑这两个模式的交集，即 dept_name。我们发现，由于 dept_name → dept_name, building, budget，因此满足无损分解的规则。
 
-
+- **多值依赖**
 ### 范式
 我们根据范式(Normal Form)来设计和更改数据库的关系表,减少数据的冗余和堆叠.
 #### 概览
@@ -2018,8 +2018,20 @@ department (dept_name, building, budget)
 3. β - α中的每个属性A都被包含于R的一个候选码(candidate key)中.
 
 >用人话说,就算β中有部分属性不属于α,而且α本身不能唯一标识一个元组,但是这些多余的属性能够帮助标识元组,就不会丢失信息.
-   
+#### 第四范式
+#### 第一范式
+如果一个属性是不可再分的,即没有集合和字典,只是单个值,那么就说它是**原子的(atomic)**.
+
+如果一个关系R中的所有属性都是原子的,那么就说R满足第一范式(First Normal Form,1NF).
+
+- 显然这个范式基本所有关系模式都可以满足.
+
+
 ### 函数依赖的计算
+#### 前置概念
+
+### 时态函数依赖
+
 # Complex Data Types
 >In this chapter, we discuss several non-atomic data types that are widely used,including **semi-structured data, object-based data, textual data, and spatial data**.
 ## Semi-structured Data
@@ -2227,16 +2239,115 @@ Two types of spatial data are particularly important:
 如果实体集中的所有实体都必须参与到联系集R中,那么就称实体集在R中的参与是**全部的**,用**双线**表示,如果允许部分实体不参与,则称为**部分的**,仍然用单线表示.
 ### 习题
 ## ch7: 关系数据库设计
-
+- 这章的主要考点就是范式和函数依赖.
 ### 习题
 ## ch8: Complex Data Types
 ### 关系型数据库的面向对象特性
+- **构造函数**
+```sql
+create type Person
+    (ID varchar(20) primary key,
+    name varchar(20),
+    address varchar(20))
+    ref from(ID);
+create table people of Person;
+```
+上述代码中我们使用自定义的type构造了一个新的关系表,使用`of`关键字实现构造.
+
+我们还可以使用type自定义新的数据类型:
+```sql
+create type interest as table (
+topic varchar(20),
+degree of interest int
+);
+create table users (
+ID varchar(20),
+name varchar(20),
+interests interest
+);
+```
+
+- type间的**继承**
+```sql
+create type Student under Person
+(degree varchar(20)) ;
+create type Teacher under Person
+(salary integer);
+```
+括号内是继承后新增的属性
+
+- table间的**继承**
+```sql
+create table students
+(degree varchar(20))
+inherits people;
+create table teachers
+(salary integer)
+inherits people;
+```
+- 通过`inherits`关键字实现继承
 ### RDF和SPARQL
-### 搜索引擎
+- 鉴于数据库老师非常非常sb,所以有可能会考这种犄角旮旯的语法.
+
+RDF(Resource Description Framework)使用以下两种形式的三元组来标识数据:
+1. `(ID, attribute-name, value)`
+2. `(ID1, relationship-name, ID2)`
+
+![alt text](PixPin_2026-05-15_10-01-41.webp)
+三元组中的第一个属性被称为subject,第二个被称为predicate(谓词),第三个被称为object.
+
+RDF有以下特性:
+1. 只支持二元关系,无法表示多元关系
+2. 可以简单的用图像来表示
+
+**一张示意图**
+![alt text](PixPin_2026-05-15_10-09-40.webp)
+
+>For example, the question “Which city is the capital of the U.S.A.?” can be answered by looking for an edge labeled capital-of, linking an entity to the country U.S.A.
+
+由于RDF的特殊结构,使用SQL语句是无法处理的,需要用特殊的三元模式语法:
+```sql
+?cid title "Intro. to Computer Science"
+```
+上述语句会匹配所有的predicate是title,object是  “Intro. to Computer Science”的三元组,也就是说`?cid`是一个通配符,匹配所有的值.
+
+- `?cid`可以随便起名,只要用`?`打头就是通配符,叫`?dog`也可以.
+
+我们还可以将多个三元模式写在一起:
+```sql
+?cid title "Intro. to Computer Science"
+?sid course ?cid
+```
+- 同名通配符表示这两个属性得是相同的值.
+
+### 搜索引擎算法
+为了衡量搜索语句中某个关键词的分量,我们可以使用这个简单的算法:
+$$TF(d, t) = \log \left( 1 + \frac{n(d, t)}{n(d)} \right)$$
+
+- t(term): 文档中的某个关键字
+- d(document): 文档的内容
+- TF(Term Frequency): 关键字在文档中的出现频率
+- n(d,t): t在d中出现的次数
+- n(d): d中的总字数.
+
+在搜索引擎中,不常用的关键词(如slizerbetz)显然需要比常用的关键词(如the)设置更高的权重,才可以更好的获取合适的搜索结果.
+
+因此我们引入了inverse document frequency (IDF),用以下公式定义:
+
+$$IDF(t) = \frac{1}{n(t)}$$
+
+- n(t): 搜索引擎中含有该关键词t的文档总数
+
+结合上述的两个式子,我们可以计算出一个文档d与查询关键字集合Q的相关程度:
+
+$$r(d, Q) = \sum_{t \in Q} TF(d, t) * IDF(t)$$
+
+- 这被称为TF-IDF计算方法.
+
 ### 习题
 # Application Development(过)
 # Big Data
-当数据的数量和种类多到一定程度时,传统的关系型数据库就无能为力了,需要采用更为复杂的数据结构来处理.
+>当数据的数量和种类多到一定程度时,传统的关系型数据库就无能为力了,需要采用更为复杂的数据结构来处理.
 ## The MapReduce Paradigm(待补充)
 # Data Analytics(过)
 >The term **data analytics** refers broadly to the processing of data to infer patterns,
@@ -2275,9 +2386,8 @@ correlations, or models for **prediction**.
 * **限制**：若数据未与数据库同地部署，延迟高达数十至数百毫秒，因此不适合作为数据库的基础存储。
 * **应用**：常用于存储对象（Object Storage）。
 # Data Storage Structures(过)
-就算考了我也不会...
 # Indexing(索引)
-## Basic Concepts(基本概念)
+## 前置概念
 >使用索引可以在不深入查询数据库的情况下快速找到数据
 
 有两种基本的索引类型:

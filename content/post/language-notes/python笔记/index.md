@@ -3435,6 +3435,7 @@ class Spider(object_ref):
 
 # Python数据库框架
 ## sqlite3
+
 ## SQLAlchemy
 ## SQLModel
 
@@ -3640,6 +3641,8 @@ async def app(scope, receive, send):
 如果使用uv的话,命名为main.py后,运行`uv run uvicorn main:app`即可以出现这个页面:
 ![alt text](PixPin_2026-05-13_14-12-28.webp)
 
+- main表示找到main.py文件,app表示main里面的app函数,也就是说uvicorn会自动启动一个叫做app的异步函数作为服务器.
+
 1. `scope` - A dictionary containing information about the incoming connection.
 2. `receive` - A channel on which to receive incoming messages from the server.
 3. `send` - A channel on which to send outgoing messages to the server.
@@ -3706,7 +3709,142 @@ fastapi是上述这些通信框架的集大成者,它糅合了无数前人的心
 大厂比如字节对于这方面的人才需求目前还很少:
 ![alt text](PixPin_2026-05-14_16-33-46.webp)
 
+fastapi官方有一个非常优秀的[模板项目](https://github.com/fastapi/full-stack-fastapi-template),截止目前(26/5/14)已经有了43k个star,说明还是很受欢迎的,前端使用最新的react框架,后端则使用了fastapi框架进行后端服务和sqlmodel进行ORM映射,采用了docker compose进行微服务部署.速览一遍这个项目你可以很快发现fastapi的魅力和强大.
 
+当然,要看懂这个项目,你需要懂这些技术:
+![alt text](PixPin_2026-05-14_18-19-49.webp)
+
+这些技术显然不是一个小白可以轻松在短时间内掌握的,即便是Claude Code也不能架构出这么完美的代码,这种精品的前后端项目在Github上也是非常稀少的,非常推荐跟着这个项目的技术栈学习.
+
+- 鉴于fastapi的[官方教程](https://fastapi.tiangolo.com/)结构比较混乱,有很多不必要的内容,所以我对教程进行了大规模的重构,但还是推荐优先阅读官方文档而非我的二手总结.
+
+
+由于fastapi是asgi框架,那么在使用时自然要加上async/await异步修饰符,一个非常简单的代码如下:
+```py
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+async def read_item(item_id):
+    return {"item_id": item_id}
+```
+
+1. fastapi继承了flask中`app = Flask(__name__)`的写法,并进行了优化,将`__name__`除去了,看上去更顺眼了
+2. 请求沿袭了flask的写法,将请求方法和请求路由都写在语法糖里,相当直观
+3. 与flask最大的区别就是多了一个async修饰,表明这是一个异步函数.
+
+好了,接下来开始正式学习fastapi.
+### ch1: 使用fastapi进行网络请求
+#### 一个非常长的前提(如果对前端很了解的话可以直接跳过)
+为了更好的理解前后端通信的过程,我推荐自己写一个或者拿AI写一个网页,通过这个页面来访问fastapi端口,而非直接通过命令行触发默认的前端页面,可以有一个更好的学习效果.
+
+比如我拿AI生成了一个网页代码:
+```html
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>FastAPI Test</title>
+  </head>
+  <body>
+    <button onclick="testFastAPI()">访问 FastAPI 8000 端口</button>
+    <div id="output">等待请求...</div>
+
+    <script>
+      async function testFastAPI() {
+        const output = document.getElementById("output");
+        output.innerText = "请求中...";
+
+        try {
+          const response = await fetch("http://127.0.0.1:8000/");
+          const data = await response.json();
+          output.innerText = JSON.stringify(data, null, 2);
+        } catch (error) {
+          output.innerText = "错误: " + error.message;
+          console.error("无法连接到 FastAPI:", error);
+        }
+      }
+    </script>
+  </body>
+</html>
+```
+
+使用Live Server插件打开后的效果如下:
+![alt text](PixPin_2026-05-14_19-31-51.webp)
+
+然后我再写一个python代码:
+```py
+# main.py
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/")
+async def helloword() -> dict:
+    return {"data": "hello,world"}
+```
+- 如果使用`uv init`的话,将这个文件复制到main.py里就行了.
+- **uvicorn**默认在`127.0.0.1:8000`启动服务器
+
+使用`uvicorn main:app`运行这个代码后访问前端页面:
+![alt text](PixPin_2026-05-14_19-22-19.webp)
+无论你点了按钮多少次,都是访问失败,但当我们看一下服务器终端时,却没有任何问题:
+![alt text](PixPin_2026-05-14_19-22-38.webp)
+
+这是怎么回事?
+
+在前端页面敲一下f12键调出控制台,看到这个报错:
+![alt text](PixPin_2026-05-14_19-24-56.webp)
+
+原来是我们触发了浏览器的CORS安全机制,它是什么?
+##### CORS
+- [wiki](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
+
+CORS的全称为**Cross-origin resource sharing**,翻译成中文就是跨域资源共享,**它允许一个前端页面通过一个不同的域名/端口来访问服务器端口提供的页面**.
+
+而浏览器不能保证另一个端口/域名的网页是善意的,如果允许它直接访问服务器端口页面,可能造成非常恶劣的影响,因此需要跨域请求带上`Access-Control-Allow-Origin`请求头,如果请求头里的信息合规,就放行这次请求,返回正常页面.
+
+##### 跨域中间件
+鉴于一个网络服务只能占用一个端口,我们不可能将前端页面也放到后端页面的同一个端口上,为了让前端页面能够正常跨域访问后端端口,**跨域中间件**(CORSMiddleware)这一工具就派上用场了.
+
+>当你配置了 CORSMiddleware 后，每当一个请求进入 FastAPI 并准备返回时，中间件会根据你的配置自动在返回的 HTTP Header 中插入以下字段：
+
+1. `Access-Control-Allow-Origin`: 告诉浏览器哪些域（Origin）可以访问数据。如果你设为 ["*"]，它就会加上 `Access-Control-Allow-Origin: *`。
+2. `Access-Control-Allow-Methods`: 告诉浏览器允许哪些请求方法（如 GET, POST, PUT）。
+3. `Access-Control-Allow-Headers`: 告诉浏览器允许哪些自定义请求头。
+##### 回到主题
+在fastapi中配置跨域中间件非常简单,我们只需要在前面的python代码中加入以下字段即可,我们基本上也只用得到这些字段:
+```py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware  # 导入中间件
+
+app = FastAPI()
+
+# 配置 CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],      # 允许所有来源
+    allow_credentials=True,
+    allow_methods=["*"],      # 允许所有方法（GET, POST 等）
+    allow_headers=["*"],      # 允许所有请求头
+)
+
+@app.get("/")
+async def helloword() -> dict:
+    return {"data": "hello,world"}
+```
+
+由于修改了跨域策略,我们需要重启python服务器后再访问前端:
+![alt text](PixPin_2026-05-14_19-50-59.webp)
+- 非常有效!
+
+总而言之,配合前端代码我们可以更好地理解Fastapi.
+#### 路由编写
+
+#### 网络请求种类
 # Python科学计算
 ## Numpy库
 - [官方文档](https://numpy.org/doc/stable/user/absolute_beginners.html)
