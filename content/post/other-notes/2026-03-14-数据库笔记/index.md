@@ -795,7 +795,7 @@ from instructor I1, lateral (select avg(salary) as avg_salary
 from instructor I2
 where I2.dept name= I1.dept_name);
 ```
->如果你跟我一样从头看到这里的话,你会清楚的记得前面都是写类似`instructor as I1`的方式来起别名的,但是as实际上是**可选的**!尽管这里并没有提到这一点-这也是我讨厌这本教材的原因之一.
+>如果你跟我一样从头看到这里的话,你会清楚的记得前面都是写类似`instructor as I1`的方式来起别名的,但是as实际上是**可选的**!
 ### The With Clause
 >The **with** clause provides a way of deﬁning a temporary **relation** whose deﬁnition is available only to the query in which the **with** clause occurs. 
 ```sql
@@ -1947,7 +1947,12 @@ If it is possible that some entities in E do not participate in relationships in
 ##  The Unified Modeling Language (UML)
 
 # Relational Database Design
-### 前置概念
+尽管这一章都在说胡话,但是有一道真题是这样的:
+
+![alt text](PixPin_2026-05-16_11-10-09.webp)
+
+如果看不懂的话还是得老老实实学习的.
+## 前置概念
 - **关系模式(relational schema)**: 创建关系表的sql代码
 - **无损分解(lossless decomposition)**: 如果将一个关系模式分解成两个二关系模式的并集时,没有信息的丢失,那么就称这是一个无损分解
 
@@ -1959,9 +1964,9 @@ from(select R1 from r)
     (select R2 from r)
 ```
 
-- **函数依赖**(functional dependency): 如果关系表中的任意两个元组t1和t2,对于其中的某两个属性α和β,如果满足当`t1[α]=t2[α]`时,`t1[β]=t2[β]`,则说该关系表**满足函数依赖**α->β.
-- 如果所有使用了r(R)关系模式的表都满足函数依赖α->β,就称该函数依赖在r(R)上成立(hold).
-- **平凡(trivial)**: 如果某些函数依赖被所有关系都满足,则称这类函数依赖是平凡的,一个非常常见的例子是,**如果 β ⊆ α,则形如 α → β 的函数依赖是平凡的**. *这类似于离散数学中的平凡元*.
+- **函数依赖**(functional dependency): 如果关系表中的任意两个元组t1和t2,对于其中的某两个属性α和β,如果满足当`t1[α]=t2[α]`时,`t1[β]=t2[β]`,则说该关系表**满足函数依赖**`α->β`.
+- 如果所有使用了r(R)关系模式的表都满足函数依赖`α->β`,就称该函数依赖在r(R)上成立(hold).
+- **平凡(trivial)**: 如果某些函数依赖被所有关系都满足,则称这类函数依赖是平凡的,一个非常常见的例子是,**如果 β ⊆ α,则形如 α → β 的函数依赖是平凡的**. 
 
 - **闭包(closure)**: 从给定的关系r(R)上成立的函数依赖集合F中推导出的所有函数依赖的集合,*类似于离散数学中的闭包概念*.
 
@@ -1975,10 +1980,13 @@ department (dept_name, building, budget)
 ```
 >请考虑这两个模式的交集，即 dept_name。我们发现，由于 dept_name → dept_name, building, budget，因此满足无损分解的规则。
 
-- **多值依赖**
-### 范式
+- **多值依赖**: 在关系模式中，当属性集 $A$ 的值确定时，属性集 $B$ 有一组确定的值与之对应，且这组值的取值仅取决于 $A$ 而与表中其他属性 $C$ 完全无关。
+  - 更通俗的说,当B的取值与C无关时,若C有n种取值,如果A增加一个B的值,那么就需要再插入n行从而保证不会有信息丢失.
+  - 所有的函数依赖都是多值依赖.
+
+## 范式
 我们根据范式(Normal Form)来设计和更改数据库的关系表,减少数据的冗余和堆叠.
-#### 概览
+### 概览
 
 1. 第一范式 (1NF)：属性原子性
 
@@ -2003,7 +2011,7 @@ department (dept_name, building, budget)
 
 
 >不太像人话,接下来详细解释.
-#### Boyce-Codd(BCNF)范式
+### Boyce-Codd(BCNF)范式
 该范式要求对于闭包中所有形如α->β的函数依赖,至少满足下面的一项:
 1. α->β是平凡的函数依赖(即β ⊆ α)
 2. α是模式R的一个超码(即可以区分出R中的任何一个元组)
@@ -2011,15 +2019,21 @@ department (dept_name, building, budget)
 >用人话来说,**当β不属于α时,需要确保α能够唯一标识这个元组,才能够保证在α相等时β也一定相等.**
 
 - 第一个条件都是凑数的,α中的所有属性取值相等时,β中的所有属性自然取值相等.
-#### 第三范式
+### 第三范式
 它的约束比BCNF范式要弱一点,对于闭包中所有形如α->β的函数依赖,至少满足下面的一项:
 1. α->β是平凡的函数依赖(即β ⊆ α)
 2. α是模式R的一个超码(即可以区分出R中的任何一个元组)
 3. β - α中的每个属性A都被包含于R的一个候选码(candidate key)中.
 
 >用人话说,就算β中有部分属性不属于α,而且α本身不能唯一标识一个元组,但是这些多余的属性能够帮助标识元组,就不会丢失信息.
-#### 第四范式
-#### 第一范式
+### 第四范式
+4NF是在BCNF的基础上设定的,需要满足以下条件:
+1. α->β是一个平凡的多值依赖
+2. α是R的一个超码
+
+一个更为正常的说法是: 第四范式（4NF）要求关系模式在满足 BCNF 的基础上，消除所有非平凡且不以超码为前提的多值依赖，确保表中每一对独立的一对多关系都被剥离到独立的物理表中。
+
+### 第一范式
 如果一个属性是不可再分的,即没有集合和字典,只是单个值,那么就说它是**原子的(atomic)**.
 
 如果一个关系R中的所有属性都是原子的,那么就说R满足第一范式(First Normal Form,1NF).
@@ -2027,10 +2041,113 @@ department (dept_name, building, budget)
 - 显然这个范式基本所有关系模式都可以满足.
 
 
-### 函数依赖的计算
-#### 前置概念
+## 函数依赖的计算
+- 逻辑蕴含(logically imply): 如果关系r(R)上的每一个满足F的实例也满足f,那么就称R上的函数依赖f被R上的函数依赖集F所逻辑蕴含.
+- 闭包: F的闭包是被F所逻辑蕴含的所有函数依赖的集合,记作$F^+$
 
-### 时态函数依赖
+- Armstrong's axiom(阿姆斯特朗公理)用于寻找被逻辑蕴含的函数依赖:
+  * **自反律**（reflexivity rule）：若 $\alpha$ 为一个属性集且 $\beta \subseteq \alpha$，则 $\alpha \rightarrow \beta$ 成立。
+  * **增补律**（augmentation rule）：若 $\alpha \rightarrow \beta$ 成立且 $\gamma$ 为一个属性集，则 $\gamma \alpha \rightarrow \gamma \beta$ 成立。
+  * **传递律**（transitivity rule）：若 $\alpha \rightarrow \beta$ 成立且 $\beta \rightarrow \gamma$ 成立，则 $\alpha \rightarrow \gamma$ 成立。
+
+>两个集合写在一起表示**并集**
+
+我们可以加上一些附加规则让它更有用一点:
+* **合并律**（union rule）：若 $\alpha \rightarrow \beta$ 成立且 $\alpha \rightarrow \gamma$ 成立，则 $\alpha \rightarrow \beta\gamma$ 成立。
+* **分解律**（decomposition）：若 $\alpha \rightarrow \beta\gamma$ 成立，则 $\alpha \rightarrow \beta$ 成立且 $\alpha \rightarrow \gamma$ 成立。
+* **伪传递律**（pseudotransitivity rule）：若 $\alpha \rightarrow \beta$ 成立且 $\gamma\beta \rightarrow \delta$ 成立，则 $\alpha\gamma \rightarrow \delta$ 成立。
+
+伪代码计算闭包:
+
+![alt text](PixPin_2026-05-16_10-58-12.webp)
+
+- 真这么写的话是要疯的
+
+## 函数依赖分解算法(重点!)
+### BCNF分解
+#### 验证函数依赖是否符合BCNF
+使用BCNF分解前,我们需要先判断关系模式是否满足BCNF,即检查某个非平凡的依赖是否违反BCNF: **验证`α->β`中的α是否是R的一个超码**
+
+更为通俗的检查步骤如下:
+1. 如果α是β的超集,那肯定满足,不必验证,所以需要找非平凡的函数依赖
+2. 根据BCNF范式,我们需要验证α是否是R的一个超码(实际题目中我们往往找到的都是候选码)
+
+#### 一个详尽的例子
+上述的说明不太形象,但我有一个很好的例子:
+
+模式 $R = (\text{course\_id, title, dept\_name, credits, sec\_id, semester, year, building, room\_number, capacity, time\_slot\_id})$
+函数依赖集 $F$：
+
+1. $f_1: \text{course\_id} \rightarrow \text{title, dept\_name, credits}$
+2. $f_2: \text{building, room\_number} \rightarrow \text{capacity}$
+3. $f_3: \text{course\_id, sec\_id, semester, year} \rightarrow \text{building, room\_number, time\_slot\_id}$
+
+
+
+
+**候选码（Candidate Key）检查**：
+通过属性闭包计算，该模式的候选码为 $(\text{course\_id, sec\_id, semester, year})$。
+
+这个候选码是怎么计算出来的呢,我们按照以下准则判断属性是否在候选码中:
+1. L 类（仅出现在左侧）：这些属性一定包含在候选码中。
+2. R 类（仅出现在右侧）：这些属性一定不包含在候选码中。
+3. N 类（两侧均未出现）：这些属性一定包含在候选码中。
+4. LR 类（两侧均出现）：可能包含在候选码中
+
+这个准则其实很好理解: 如果某个属性可以由其他属性推出,那么它一定不在候选码中;如果一个属性不能被其他属性推出,它一定在候选码中.
+
+#### 对不符合BCNF的函数依赖进行模式分解
+如果某个函数依赖不符合BCNF,我们就需要将这个函数依赖提取出来独立成表,并将左侧属性保留在原表中,将右侧属性提取到新表中,这样产生的两个表就都满足BCNF了
+#### 一个详尽的例子
+- 接着上述的例子进行说明
+
+检查 $f_1: \text{course\_id} \rightarrow \text{title, dept\_name, credits}$。
+
+* $\text{course\_id}$ 不是 $R$ 的超码。
+* 该依赖违反 BCNF，需进行分解。
+
+**分解结果**：
+
+* $R_1 = (\text{course\_id, title, dept\_name, credits})$，候选码为 $\text{course\_id}$。满足 BCNF。
+* $R_{\text{rest1}} = (\text{course\_id, sec\_id, semester, year, building, room\_number, capacity, time\_slot\_id})$。
+
+
+在 $R_{\text{rest1}}$ 中，候选码依然是 $(\text{course\_id, sec\_id, semester, year})$。
+检查 $f_2: \text{building, room\_number} \rightarrow \text{capacity}$。
+
+* $\{\text{building, room\_number}\}$ 不是 $R_{\text{rest1}}$ 的超码。
+* 该依赖违反 BCNF，需继续分解。
+
+**分解结果**：
+
+* $R_2 = (\text{building, room\_number, capacity})$，候选码为 $(\text{building, room\_number})$。满足 BCNF。
+* $R_{\text{rest2}} = (\text{course\_id, sec\_id, semester, year, building, room\_number, time\_slot\_id})$。
+
+
+在 $R_{\text{rest2}}$ 中，剩下的函数依赖为：
+
+* $f_3: \text{course\_id, sec\_id, semester, year} \rightarrow \text{building, room\_number, time\_slot\_id}$
+此时，决定因素 $\{\text{course\_id, sec\_id, semester, year}\}$ 正是 $R_{\text{rest2}}$ 的候选码。
+* 该模式满足 BCNF。
+
+最终分解为以下三个模式，均满足 BCNF：
+
+1. **Course** $(\text{course\_id, title, dept\_name, credits})$
+2. **Room** $(\text{building, room\_number, capacity})$
+3. **Class_Section** $(\text{course\_id, sec\_id, semester, year, building, room\_number, time\_slot\_id})$
+
+#### 总结
+整体上来看是非常好理解的,只不过书上说的不太像人话而已.
+
+### 3NF分解
+原理与BCNF分解别无二致,不同的地方只有一个: 验证函数依赖是否满足3NF时,就算α不是超码,如果β中的属性都是候选码的话,也说明它满足3NF
+
+一道例题如下,不用过多讲解:
+
+![alt text](PixPin_2026-05-16_12-55-29.webp)
+
+### 4NF分解
+## 时态函数依赖
 
 # Complex Data Types
 >In this chapter, we discuss several non-atomic data types that are widely used,including **semi-structured data, object-based data, textual data, and spatial data**.
@@ -2189,7 +2306,7 @@ Two types of spatial data are particularly important:
 
 游戏建模,谷歌地图都属于空间数据这一范畴
 # 第二次小测复习(5/7)
-- 这次小测考6,7,8章,第六章和第七章是重点,第八章真不知道考什么,不过上次阴了我一手,这次还是得老老实实看书.
+- 这次小测考6,7,8章
 
 对比一下中英文版本,所有标题都有对应,那就直接看中文版了,而第8章只有英文版可以看了:
 
@@ -2343,6 +2460,21 @@ $$IDF(t) = \frac{1}{n(t)}$$
 $$r(d, Q) = \sum_{t \in Q} TF(d, t) * IDF(t)$$
 
 - 这被称为TF-IDF计算方法.
+#### PageRank算法
+
+$$P[j] = \delta / N + (1 - \delta) * \sum_{i=1}^{N} (T[i, j] * P[i])$$
+
+
+* **$P[j]$**：节点 $j$ 的 PageRank 值，代表访问者停留在该页面的概率。
+* **$N$**：网络中节点的总数。
+* **$\delta$**：**阻尼系数**（Damping Factor）。它代表用户随机跳转到网络中任意一个页面的概率。
+* **$\delta / N$**：平滑项，确保每个节点都有一个基础的最小得分，防止由于“悬挂节点”（没有出链的页面）导致概率丢失。
+* **$1 - \delta$**：用户通过点击当前页面上的链接继续浏览的概率（通常取值为 $0.85$ 左右）。
+* **$\sum_{i=1}^{N}$**：对所有指向节点 $j$ 的入链节点 $i$ 进行求和。
+* **$P[i]$**：节点 $i$ 在上一次迭代中的重要性得分。
+* **$T[i, j]$**：**转移概率矩阵**。表示从节点 $i$ 跳转到节点 $j$ 的概率。通常定义为 $1 / L(i)$，其中 $L(i)$ 是节点 $i$ 的出链总数。
+
+我看这个应该不会考
 
 ### 习题
 # Application Development(过)

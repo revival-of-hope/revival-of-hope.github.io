@@ -2270,6 +2270,7 @@ export default function MyApp() {
 
 可以看到,JSX将html标签作为js函数的返回值,并通过类似`<MyButton />`的语法来将函数编程组件.
 
+
 ## 基础语法
 ### 前置概念
 1. 如果我们只需要在函数中返回一个标签的话,直接写就行了,但如果要返回多个标签,那么就需要用空标签来包裹这些元素:
@@ -3021,19 +3022,364 @@ const updateTheme = useCallback((newTheme: Theme) => {
 # Typescript
 ## 概览
 - [官方文档](https://www.typescriptlang.org/docs/handbook/intro.html)
+  - 内容很杂很乱,只看需要的部分即可
 
 Typescript由微软在2014年发布,主要目的就是为了解决Javascript中的动态类型带来的各种疑难问题,所以引入的新特性不是很多.但也足够使用了.
-## 类型注释
+## ts编译
+鉴于typescript不是原生的js语法,无法被浏览器直接处理,需要导入typescript编译器后运行:
+```bash
+npm install -g typescript
+```
 
+比如我们现在写了一个ts文件,命名为`test.ts`,要编译它就可以在终端输入:
+```bash
+tsc test.ts
+```
+ts编译器会将`test.ts`编译成`test.js`文件,去掉其中的ts语法.
+
+如果我们的ts文件中出错了,那么编译过程就会报错,比如下列代码:
+```ts
+// This is an industrial-grade general-purpose greeter function:
+function greet(person, date) {
+  console.log(`Hello ${person}, today is ${date}!`);
+}
+ 
+greet("Brendan");
+```
+
+尽管ts代码仍然会变成js代码,但是命令行会抛出错误,告诉你哪些类型检查没通过
+## 类型注释
+ts的类型注释只有一种写法`var/func(): type`:
+```ts
+// Parameter type annotation
+function greet(name: string): any {
+  console.log("Hello, " + name.toUpperCase() + "!!");
+}
+```
+
+ts中的类型注释有以下几种:
+1. 基本类型: `string`,`number`,`boolean`
+2. 任意类型: any
+   1. 与python的Any类型一样,类型检查时会直接跳过它
+3. 未知类型: unknown
+   1. 由于any不够安全,所以TS3.0引入了该类型,它是所有类型的顶级类型.
+4. 可选属性: `?: type`,一个例子如下:
+
+```ts
+function printName(obj: { first: string; last?: string }) {
+  // ...
+}
+// Both OK
+printName({ first: "Bob" });
+printName({ first: "Alice", last: "Alisson" });
+```
+
+4. null类型: 鉴于undefined只用在变量未定义时,因此类型注释只有null即可,毕竟你传入的变量一定是已经定义好了的
+
+>当然,在ts中更多的是由用户自定义的类或者type进行类型注释.
+
+5. 至于对象这种键值对的类型,想要对键也进行类型注释的话可不能再直接写一个`:`号,那样没人看得懂的,ts的写法是这样的:
+
+```ts
+type OnlyBoolsAndHorses = {
+  [key: string]: boolean | Horse;
+};
+ 
+const conforms: OnlyBoolsAndHorses = {
+  del: true,
+  rodney: false,
+};
+```
+
+上述写法表示: 该类型中的所有新定义的键值对都要满足key是string类型,值是boolean或者Horse类型.
+
+### type关键字
+ts使用type关键字声明自定义的类型:
+```ts
+type Point = {
+  x: number;
+  y: number;
+};
+ 
+// Exactly the same as the earlier example
+function printCoord(pt: Point) {
+  console.log("The coordinate's x value is " + pt.x);
+  console.log("The coordinate's y value is " + pt.y);
+}
+ 
+printCoord({ x: 100, y: 100 });
+```
+
+### readonly修饰符
+该类修饰符禁止在使用时直接修改被修饰的变量:
+```ts
+interface Config {
+  readonly meta: { version: string };
+}
+const cfg: Config = { meta: { version: "1.0" } };
+// cfg.meta = { version: "2.0" }; // 报错：无法分配到 "meta" ，因为它是只读属性。
+cfg.meta.version = "2.0";        // 允许：内部属性未受保护。
+```
 
 ## 加强的OOP
 鉴于原生js的OOP实在是不堪入目,所以TS大大加强了OOP特性,让它成为了一个更加面向对象的语言(尽管本质上还是面向函数的).
-### 加强的类
+### 接口
+ts中的接口与Java中的接口别无二致,声明也是一样的:
+```ts
+interface Point {
+  x: number;
+  y: number;
+}
+ 
+function printCoord(pt: Point) {
+  console.log("The coordinate's x value is " + pt.x);
+  console.log("The coordinate's y value is " + pt.y);
+}
+ 
+printCoord({ x: 100, y: 100 });
+```
 
-### enum(枚举)
-
+继承写法也是一样:
+```ts
+interface Colorful {
+  color: string;
+}
+ 
+interface Circle {
+  radius: number;
+}
+ 
+interface ColorfulCircle extends Colorful, Circle {}
+ 
+const cc: ColorfulCircle = {
+  color: "red",
+  radius: 42,
+};
+```
 ### 泛型
-# TypeScript XML
+- ts项目中会大量用到泛型,所以需要重点理解.
+#### 用在类和接口中
+有时候某些变量我们希望他能够接受多种类型的值,一个直觉上的写法是这样的:
+```ts
+interface Box {
+  contents: number|string|boolean;
+}
+```
+但上面这种写法有一个问题,当我们希望这个接口作为number类型使用的时候,不应该由其他维护者传入其他的类型如string和boolean.
 
-# Node.js,npm与项目环境
-# Tailwind学习
+那么一个更加安全的写法是将这个接口拆分成三个:
+```ts
+interface NumberBox {
+  contents: number;
+}
+ 
+interface StringBox {
+  contents: string;
+}
+ 
+interface BooleanBox {
+  contents: boolean;
+}
+```
+这显然太麻烦了,而cpp的泛型思想刚好适用于这种情况,我们将cpp的泛型写法直接照搬过来就行了:
+```ts
+interface Box<Type> {
+  contents: Type;
+}
+
+let boxA: Box<string> = { contents: "hello" };
+```
+那么当这个接口被使用时,由于类型注释的限制,其他维护者也无法传入其他类型的值了.
+#### 用在函数中
+```ts
+function identity<Type>(arg: Type): Type {
+  return arg;
+}
+```
+函数中的用法实质上与用在类中没什么太大的区别.
+
+### 加强的类
+只给一个类的示例就能看懂ts中多了什么了:
+```ts
+export class CancelError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'CancelError';
+	}
+
+	public get isCancelled(): boolean {
+		return true;
+	}
+}
+```
+多出来的只有三种类型修饰符(`public`,`private`,`protected`),其他的改进很有限,也不是很有必要了解.
+
+## 总结
+我上面只给了最基础的ts语法,遗漏了很多语法,如果一看到真正的ts项目是完全应付不了的:
+```ts
+export class CancelError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'CancelError';
+	}
+
+	public get isCancelled(): boolean {
+		return true;
+	}
+}
+
+export interface OnCancel {
+	readonly isResolved: boolean;
+	readonly isRejected: boolean;
+	readonly isCancelled: boolean;
+
+	(cancelHandler: () => void): void;
+}
+
+export class CancelablePromise<T> implements Promise<T> {
+	private _isResolved: boolean;
+	private _isRejected: boolean;
+	private _isCancelled: boolean;
+	readonly cancelHandlers: (() => void)[];
+	readonly promise: Promise<T>;
+	private _resolve?: (value: T | PromiseLike<T>) => void;
+	private _reject?: (reason?: unknown) => void;
+
+	constructor(
+		executor: (
+			resolve: (value: T | PromiseLike<T>) => void,
+			reject: (reason?: unknown) => void,
+			onCancel: OnCancel
+		) => void
+	) {
+		this._isResolved = false;
+		this._isRejected = false;
+		this._isCancelled = false;
+		this.cancelHandlers = [];
+		this.promise = new Promise<T>((resolve, reject) => {
+			this._resolve = resolve;
+			this._reject = reject;
+
+			const onResolve = (value: T | PromiseLike<T>): void => {
+				if (this._isResolved || this._isRejected || this._isCancelled) {
+					return;
+				}
+				this._isResolved = true;
+				if (this._resolve) this._resolve(value);
+			};
+
+			const onReject = (reason?: unknown): void => {
+				if (this._isResolved || this._isRejected || this._isCancelled) {
+					return;
+				}
+				this._isRejected = true;
+				if (this._reject) this._reject(reason);
+			};
+
+			const onCancel = (cancelHandler: () => void): void => {
+				if (this._isResolved || this._isRejected || this._isCancelled) {
+					return;
+				}
+				this.cancelHandlers.push(cancelHandler);
+			};
+
+			Object.defineProperty(onCancel, 'isResolved', {
+				get: (): boolean => this._isResolved,
+			});
+
+			Object.defineProperty(onCancel, 'isRejected', {
+				get: (): boolean => this._isRejected,
+			});
+
+			Object.defineProperty(onCancel, 'isCancelled', {
+				get: (): boolean => this._isCancelled,
+			});
+
+			return executor(onResolve, onReject, onCancel as OnCancel);
+		});
+	}
+
+	get [Symbol.toStringTag]() {
+		return "Cancellable Promise";
+	}
+
+	public then<TResult1 = T, TResult2 = never>(
+		onFulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
+		onRejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+	): Promise<TResult1 | TResult2> {
+		return this.promise.then(onFulfilled, onRejected);
+	}
+
+	public catch<TResult = never>(
+		onRejected?: ((reason: unknown) => TResult | PromiseLike<TResult>) | null
+	): Promise<T | TResult> {
+		return this.promise.catch(onRejected);
+	}
+
+	public finally(onFinally?: (() => void) | null): Promise<T> {
+		return this.promise.finally(onFinally);
+	}
+
+	public cancel(): void {
+		if (this._isResolved || this._isRejected || this._isCancelled) {
+			return;
+		}
+		this._isCancelled = true;
+		if (this.cancelHandlers.length) {
+			try {
+				for (const cancelHandler of this.cancelHandlers) {
+					cancelHandler();
+				}
+			} catch (error) {
+				console.warn('Cancellation threw an error', error);
+				return;
+			}
+		}
+		this.cancelHandlers.length = 0;
+		if (this._reject) this._reject(new CancelError('Request aborted'));
+	}
+
+	public get isCancelled(): boolean {
+		return this._isCancelled;
+	}
+}
+```
+
+我相信任何人看到这段代码后都不会认为写前端是很简单的活儿.
+
+>好在ts生态中有各种各样的框架,有了这些框架后,我们可以尽可能少的写出这么离谱难懂的代码.
+
+不管怎样,写前端项目还是以实战为主,所以就让我们先抛开难懂的ts语法,大踏步进入当代前端语言演进的最后终点: TSX.
+
+# TypeScript XML
+## 概览和总结
+15年9月,ts1.6发布,引入了对tsx文件的解析支持,将jsx语法直接融入了ts中,从此,前端项目既实现了标准的类型检查,也能够真正的使用组件化的模式进行开发.
+
+如今的前端项目中,一般只有两种涉及js的文件,一个是ts文件,只放置符合ts语法的代码,如类/接口/类型的声明及定义;另一个是tsx文件,用于设计组件和UI.
+
+![alt text](PixPin_2026-05-16_19-30-41.webp)
+
+不管怎样,现在写前端代码终于能够和写后端一样舒服了...
+
+# nodejs介绍
+## 前置概念
+如同cpp,java等语言需要经过编译后才能执行一样,前端项目也有自己的编译器: **浏览器引擎**,它有以下功能:
+* **HTML 解析与 DOM 树构建**：将从网络接收到的 HTML 原始字节流转换为符合 W3C 标准的文档对象模型（DOM）树结构。
+* **CSS 解析与 CSSOM 树构建**：解析所有样式表（包含行内、内联、外部 CSS 文件及浏览器默认样式），构建出定义层级样式的 CSSOM 树。
+* **渲染树生成（Render Tree）**：将 DOM 树与 CSSOM 树进行物理合并，过滤掉不显示的节点（如 `display: none`），生成仅包含可见元素的渲染树。
+* **布局/排版计算（Layout/Reflow）**：从渲染树根节点开始遍历，精确计算每个可见节点在屏幕上的几何大小、相对位置和所占用的物理像素。
+* **元素绘制（Painting）**：遍历布局树和图层，将每个节点的文本、颜色、边框、背景、阴影等视觉样式转换为底层的具体绘图指令。
+* **图层栅格化与合成（Rasterization & Compositing）**：将绘图指令转换为屏幕底层的位图（Pixels），并调用 GPU 将各个图层合成一帧，最终输出到显示器上。
+* **JavaScript 引擎集成与通信**：为 JavaScript 引擎（如 V8）提供宿主环境，通过 DOM API 桥接底层 C++ 核心，实现脚本对网页结构的动态操作。
+* **事件流调度（Event Dispatching）**：监听并捕获来自操作系统的底层物理输入（如鼠标点击、屏幕触摸、键盘输入、页面滚动），并按照冒泡/捕获机制分发给网页代码。
+
+最典型的浏览器引擎就是开源的Blink引擎,chorome,egde,国产浏览器都使用它来渲染页面.
+
+js单独由js引擎编译,最常见的js引擎就是**v8引擎**.
+
+而Node.js则彻底将js引擎和浏览器引擎分离,从而让我们在不使用浏览器的情况下处理前端代码.
+## Node.js的历史
+# Tailwind
+
+# Next.js
+# Nestjs

@@ -3736,7 +3736,7 @@ async def read_item(item_id):
 3. 与flask最大的区别就是多了一个async修饰,表明这是一个异步函数.
 
 好了,接下来开始正式学习fastapi.
-### ch1: 使用fastapi进行网络请求
+### ch1: 使用fastapi响应普通的网络请求
 #### 一个非常长的前提(如果对前端很了解的话可以直接跳过)
 为了更好的理解前后端通信的过程,我推荐自己写一个或者拿AI写一个网页,通过这个页面来访问fastapi端口,而非直接通过命令行触发默认的前端页面,可以有一个更好的学习效果.
 
@@ -3843,8 +3843,353 @@ async def helloword() -> dict:
 
 总而言之,配合前端代码我们可以更好地理解Fastapi.
 #### 路由编写
+一个简单的路由写法如下:
+```py
+from fastapi import FastAPI
 
-#### 网络请求种类
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+async def read_item(item_id):
+    return {"item_id": item_id}
+```
+当用户访问`/items/newitem`时,fastapi会自动将`newitem`传入`read_item`函数中并返回对应的值.
+
+##### 查询参数
+在Google里键入google进行搜索,你就会跳转到`https://www.google.com/search?q=google`页面,Google服务器从而向你返回搜索结果,这里的`?q=google`就是**查询参数.**
+
+尽管搜素引擎是查询参数的主要运用场景,但有时候我们需要让用户根据它的查询参数返回对应的值,而fastapi中的写法特别简单:
+```py
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/users/{user_id}/items/{item_id}")
+async def read_user_item(
+    user_id: int, item_id: str, q: str | None = None, short: bool = False
+):
+    item = {"item_id": item_id, "owner_id": user_id}
+    if q:
+        item.update({"q": q})
+    if not short:
+        item.update(
+            {"description": "This is an amazing item that has a long description"}
+        )
+    return item
+```
+fastapi将查询参数**直接写在函数参数**中,这里的`q`参数默认值为None,代表用户可以不带上这个参数,而`short`的默认值为False,代表用户如果不加short参数的话就会默认返回False.
+
+##### 查询参数的校验
+fastapi中有一个Query库,可以配合typing库中的Annotated进行数据校验,一个简单的用法如下:
+```py
+from typing import Annotated
+
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items(q: Annotated[str | None, Query(max_length=50)] = None):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+```
+上述代码要求: 如果你写了q参数,那么它的长度就不能超过50.
+
+>至于更复杂的用法,建议碰到再学,不然也记不住.
+##### 路径参数的校验
+同样,我们可以校验路径参数,fastapi同样封装了一个Path库供我们调用:
+```py
+from typing import Annotated
+
+from fastapi import FastAPI, Path
+
+app = FastAPI()
+
+
+@app.get("/items/{item_id}")
+async def read_items(
+    item_id: Annotated[int, Path(title="The ID of the item to get", ge=1)], q: str
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
+```
+
+#### 请求体与不同的网络请求方法
+上述的代码其实是很有问题的,它使用`results.update`对数据进行了修改,按照Rest规范,get请求不应该对数据做任何修改,只能原样返回数据!
+
+Rest规范的一个简单概述如下:
+1. **如果用户要创建新的数据,他应该使用post请求**
+2. **如果用户要部分修改旧数据,他应该使用patch请求**
+3. **如果用户要全盘替换旧数据,他应该使用put请求**
+4. **如果用户要删除某个旧数据,他应该使用delete请求**
+5. 如果用户仅仅是访问某个页面,使用get请求就行了.
+
+上述的第四点和第五点一般不用用户携带任何信息,只在请求头(request header)里说明即可.但前三点都需要用户在请求体(request body)里给出自己的数据,来修改服务器中的对应路由数据.
+
+自然,我们希望用户提交的数据是足够规范的,不然后端根本无法处理.fastapi紧密结合了pydantic库,用它来约束请求体的格式,一个简单的代码如下:
+```py
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+
+
+app = FastAPI()
+
+
+@app.post("/items/")
+async def create_item(item: Item):
+    return item
+```
+get请求中的函数参数一般都是路由变量和查询参数变量,而post等处理数据的请求中的函数参数可以是用户传来的请求体.具体规则如下,优先级从高到低:
+1. 如果该参数也在路径中声明了，它就是路径参数。
+2. 如果该参数是（int、float、str、bool 等）单一类型，它会被当作查询参数。
+3. 如果该参数的类型声明为 Pydantic 模型，它会被当作请求体。
+
+**一个比较完整的示例**
+```py
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+
+
+app = FastAPI()
+
+
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, item: Item, q: str | None = None):
+    result = {"item_id": item_id, **item.model_dump()}
+    if q:
+        result.update({"q": q})
+    return result
+```
+>我们现在进行的数据处理都是伪处理,数据都没有存储在数据库里,甚至都没有创建一个临时的全局变量来存放数据.
+
+##### 请求体的进阶写法
+1. 我们可以用另外一个BaseModel类来注释一个BaseModel类中的变量:
+```py
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Image(BaseModel):
+    url: str
+    name: str
+
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: set[str] = set()
+    image: Image | None = None
+
+
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, item: Item):
+    results = {"item_id": item_id, "item": item}
+    return results
+```
+
+甚至可以把image字段变成列表:
+```py
+images: list[Image] | None = None
+```
+那么我们就期望接受到这样的请求体:
+```py
+{
+    "name": "Foo",
+    "description": "The pretender",
+    "price": 42.0,
+    "tax": 3.2,
+    "tags": [
+        "rock",
+        "metal",
+        "bar"
+    ],
+    "images": [
+        {
+            "url": "http://example.com/baz.jpg",
+            "name": "The Foo live"
+        },
+        {
+            "url": "http://example.com/dave.jpg",
+            "name": "The Baz"
+        }
+    ]
+}
+```
+#### 定制响应体
+fastapi通过函数的返回值类型注解来指明响应体的格式,它会将输出数据限制并过滤为返回类型中定义的内容:
+```py
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: list[str] = []
+
+
+@app.post("/items/")
+async def create_item(item: Item) -> Item:
+    return item
+
+
+@app.get("/items/")
+async def read_items() -> list[Item]:
+    return [
+        Item(name="Portal Gun", price=42.0),
+        Item(name="Plumbus", price=32.0),
+    ]
+```
+
+如果还需要在返回值约束的基础上对响应体做出进一步约束,就需要使用response参数,非常特别的是,由于没有地方可以放这个参数了,只好放在语法糖中,所以也不用进行导入:
+```py
+from typing import Any
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: list[str] = []
+
+
+@app.post("/items/", response_model=Item)
+async def create_item(item: Item) -> Any:
+    return item
+
+
+@app.get("/items/", response_model=list[Item])
+async def read_items() -> Any:
+    return [
+        {"name": "Portal Gun", "price": 42.0},
+        {"name": "Plumbus", "price": 32.0},
+    ]
+```
+>FastAPI 会使用这个 response_model 来完成数据文档、校验等，并且还会将输出数据转换并过滤为其类型声明。
+
+>如果你的编辑器、mypy 等进行严格类型检查，你可以将函数返回类型声明为 Any。
+>
+>这样你告诉编辑器你是有意返回任意类型。但 FastAPI 仍会使用 response_model 做数据文档、校验、过滤等工作。
+>
+>如果你同时声明了返回类型和 response_model，response_model 会具有优先级并由 FastAPI 使用。
+
+为什么需要引入response_model呢,因为如果我们需要将用户数据进行处理后再进行输出,比如说过滤掉密码等敏感信息,我们可以这么写:
+```py
+from typing import Any
+
+from fastapi import FastAPI
+from pydantic import BaseModel, EmailStr
+
+app = FastAPI()
+
+
+class UserIn(BaseModel):
+    username: str
+    password: str
+    email: EmailStr
+    full_name: str | None = None
+
+
+class UserOut(BaseModel):
+    username: str
+    email: EmailStr
+    full_name: str | None = None
+
+
+@app.post("/user/", response_model=UserOut)
+async def create_user(user: UserIn) -> Any:
+    return user
+```
+但是,如果我们去掉`response_model`参数,把UserOut作为函数的返回类型,由于同一个变量有了两个不同的类型注释,这显然会在类型检查工具中报错.
+
+当然,上述方法是在老式的fastapi项目中使用的,现在我们有一种更好的处理方法,那就是通过类继承:
+```py
+from fastapi import FastAPI
+from pydantic import BaseModel, EmailStr
+
+app = FastAPI()
+
+
+class BaseUser(BaseModel):
+    username: str
+    email: EmailStr
+    full_name: str | None = None
+
+
+class UserIn(BaseUser):
+    password: str
+
+
+@app.post("/user/")
+async def create_user(user: UserIn) -> BaseUser:
+    return user
+```
+user变量虽然是UserIn类型,但它同样也是BaseUser的子类,因此类型检查工具不会报错.
+
+更值得令人惊叹的是,fastapi对这种情况做了很多优化,不会把类继承规则用于返回数据中,而是严格按照声明的返回类型进行处理和过滤.
+
+有时候,我们不知道前端会返回什么东西,这在测试和编写demo代码的时候可能会出现,这个时候我们不需要使用Pydantic模型,而是使用普通的字典或者其他类型注解就可以了:
+```py
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/keyword-weights/", response_model=dict[str, float])
+async def read_keyword_weights():
+    return {"foo": 2.3, "bar": 3.4}
+```
+- 话又说回来,上述代码完全可以将类型注解放进返回值注解中
+
+#### 响应状态码
+fastapi的语法糖中还可以放置响应状态码:
+```py
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.post("/items/", status_code=201)
+async def create_item(name: str):
+    return {"name": name}
+```
+
+### ch2: 使用fastapi处理数据库
 # Python科学计算
 ## Numpy库
 - [官方文档](https://numpy.org/doc/stable/user/absolute_beginners.html)
