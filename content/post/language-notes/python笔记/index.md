@@ -3434,12 +3434,15 @@ class Spider(object_ref):
 
 
 # Python数据库框架
+- 前置知识: 基本的SQL语法
 ## sqlite3
 
 ## SQLAlchemy
 ## SQLModel
 
 # Python网络框架
+- 前置知识: Restful Web API规范,基本的网络通信概念,初级的网络安全/身份认证概念.
+
 >尽管大家都说Python无法很好的处理高并发,但在绝大多数网络通信环境下,它都比其他语言好用的多
 
 
@@ -4188,7 +4191,30 @@ app = FastAPI()
 async def create_item(name: str):
     return {"name": name}
 ```
+由于数字太难记了,fastapi还内置了智能的类型补全:
 
+![alt text](PixPin_2026-05-17_10-35-55.webp)
+
+导入status库后即可使用这种更为清晰的状态码.
+#### 返回错误
+有时候用户的请求有问题,或者服务器本身出了问题(比如数据库无法正常连接上),这个时候可以导入HTTPException来作为响应:
+
+```py
+from fastapi import FastAPI, HTTPException
+
+app = FastAPI()
+
+items = {"foo": "The Foo Wrestlers"}
+
+
+@app.get("/items/{item_id}")
+async def read_item(item_id: str):
+    if item_id not in items:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"item": items[item_id]}
+```
+
+由于`HTTPException`是一个异常类,所以不能使用`return`,只能使用`raise`关键字来抛出,但它依旧会由fastapi传给客户端.
 ### ch2: 使用fastapi处理数据库
 # Python科学计算
 ## Numpy库
