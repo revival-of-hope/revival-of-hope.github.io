@@ -3,7 +3,7 @@ title: "Python笔记"
 date: 2026-04-25T09:56:06+08:00
 description: 
 image: 12904418_p0-夏の日の昼下がり.webp
-
+weight: 1
 ---
 Python在目前是最值得学的语言,没有之一,它依靠简单好用的语法和各种各样的第三方库,被广泛用于以下领域:
 1. 数据挖掘: Python爬虫库
@@ -4215,7 +4215,17 @@ async def read_item(item_id: str):
 ```
 
 由于`HTTPException`是一个异常类,所以不能使用`return`,只能使用`raise`关键字来抛出,但它依旧会由fastapi传给客户端.
-### ch2: 使用fastapi处理数据库
+### ch2: 使用fastapi处理网络安全
+
+### ch3: 使用fastapi处理数据库
+
+### ch4: 使用fastapi进行测试
+
+### ch5: 使用fastapi搭建智能体
+本部分主要会使用fastapi处理deepseek api,并使用一点初步的RAG技术来处理文件.
+
+### ch6: 使用docker部署fastapi
+
 # Python科学计算
 ## Numpy库
 - [官方文档](https://numpy.org/doc/stable/user/absolute_beginners.html)
