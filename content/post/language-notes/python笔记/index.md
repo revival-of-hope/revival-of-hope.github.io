@@ -4216,7 +4216,85 @@ async def read_item(item_id: str):
 
 由于`HTTPException`是一个异常类,所以不能使用`return`,只能使用`raise`关键字来抛出,但它依旧会由fastapi传给客户端.
 ### ch2: 使用fastapi处理网络安全
+#### 实战代码
+先用实战代码建立一点初步的印象:
+```py
+from collections.abc import Generator
+from typing import Annotated
 
+import jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jwt.exceptions import InvalidTokenError
+from pydantic import ValidationError
+from sqlmodel import Session
+
+from app.core import security
+from app.core.config import settings
+from app.core.db import engine
+from app.models import TokenPayload, User
+
+reusable_oauth2 = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/login/access-token"
+)
+# API_V1_STR: str = "/api/v1"
+
+
+def get_db() -> Generator[Session, None, None]:
+    with Session(engine) as session:
+        yield session
+    # engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+
+# @computed_field  # type: ignore[prop-decorator]
+#     @property
+#     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+#         return PostgresDsn.build(
+#             scheme="postgresql+psycopg",
+#             username=self.POSTGRES_USER,
+#             password=self.POSTGRES_PASSWORD,
+#             host=self.POSTGRES_SERVER,
+#             port=self.POSTGRES_PORT,
+#             path=self.POSTGRES_DB,
+#         )
+
+SessionDep = Annotated[Session, Depends(get_db)]
+TokenDep = Annotated[str, Depends(reusable_oauth2)]
+
+
+def get_current_user(session: SessionDep, token: TokenDep) -> User:
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+        )
+        # ALGORITHM = "HS256"
+        # SECRET_KEY: str = secrets.token_urlsafe(32)
+        token_data = TokenPayload(**payload)
+    except (InvalidTokenError, ValidationError):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Could not validate credentials",
+        )
+    user = session.get(User, token_data.sub)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return user
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def get_current_active_superuser(current_user: CurrentUser) -> User:
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=403, detail="The user doesn't have enough privileges"
+        )
+    return current_user
+```
+看的头疼吗,那就对了,现在我开始逐步的深入解释.
+
+#### fastapi中的依赖
 ### ch3: 使用fastapi处理数据库
 
 ### ch4: 使用fastapi进行测试

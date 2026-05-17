@@ -4,6 +4,7 @@ tags:
   - [数据库,后端]
 date: 2026-03-14 08:00:00
 image: 38431299_p0-式さん.webp
+math: true
 ---
 
 - 教材:<< Database System Concepts >>
@@ -1949,12 +1950,12 @@ If it is possible that some entities in E do not participate in relationships in
 # Relational Database Design
 尽管这一章都在说胡话,但是有一道真题是这样的:
 
-![alt text](PixPin_2026-05-16_11-10-09.webp)
+![真题](PixPin_2026-05-16_11-10-09.webp)
 
 如果看不懂的话还是得老老实实学习的.
 ## 前置概念
 - **关系模式(relational schema)**: 创建关系表的sql代码
-- **无损分解(lossless decomposition)**: 如果将一个关系模式分解成两个二关系模式的并集时,没有信息的丢失,那么就称这是一个无损分解
+- **无损分解(lossless decomposition)**: 如果将一个关系模式分解成两个关系模式的并集后没有丢失信息,那么就称这是一个无损分解
 
 如果用公式定义的话,是这样的:
 ```sql
@@ -1980,7 +1981,7 @@ department (dept_name, building, budget)
 ```
 >请考虑这两个模式的交集，即 dept_name。我们发现，由于 dept_name → dept_name, building, budget，因此满足无损分解的规则。
 
-- **多值依赖**: 在关系模式中，当属性集 $A$ 的值确定时，属性集 $B$ 有一组确定的值与之对应，且这组值的取值仅取决于 $A$ 而与表中其他属性 $C$ 完全无关。
+- **多值依赖**: 在关系模式中，当属性集 A 的值确定时，属性集B 有一组确定的值与之对应，且这组值的取值仅取决于 A 而与表中其他属性 C 完全无关。
   - 更通俗的说,当B的取值与C无关时,若C有n种取值,如果A增加一个B的值,那么就需要再插入n行从而保证不会有信息丢失.
   - 所有的函数依赖都是多值依赖.
 
