@@ -1923,8 +1923,20 @@ where semester = 'Spring' and year = 2017);
 - 看这个图就很好理解了,单独的两个实体,如Crick和Tanaka之间的关系就是relationship,而实体集之间的映射关系就是relationship set
 ## E-R图
 - entity set: 使用矩形来表示,分为两个部分,一部分是实体集的名称,一部分是实体集所有属性的名称
+- 实下划线: 标识实体集的主键
+- 虚下划线: 在弱实体集中表示普通属性
 - relationship set: 使用菱形来标识,通过线条连接到多个实体集
-  - relationship set的描述性属性用单矩形虚线连接
+  - relationship set的**描述性属性**用单矩形虚线连接
+
+- **描述性属性**: 单独用虚线从联系集中引出,该属性只属于联系本身.
+
+以“学生（Student）选修（Enroll）课程（Course）”为例：
+
+- 学生有属性：学号、姓名。
+- 课程有属性：课程号、课程名。
+- 成绩（Grade）：这个属性既不能放在学生表（因为学生选不同课成绩不同），也不能放在课程表（因为不同学生上这门课成绩不同）。它必须依附于“选修”这个联系。
+
+转换成关系模式时,将多对多的联系集单独转换成一张独立的物理表即可,该表的主键为两端实体主键的集合,而描述性属性作为普通字段.
 ![alt text](PixPin_2026-04-09_09-37-00.webp)
 
 - **映射基数(mapping cardinality)**: 一个实体通过一个联系集关联的其他实体的数量,有以下四种:
@@ -1941,11 +1953,11 @@ If it is possible that some entities in E do not participate in relationships in
 
 使用双线来表示一个实体集在联系集中全部参与.
 
+
+
 ### 汇总
 ![alt text](PixPin_2026-04-10_10-35-46.webp)
 
-
-##  The Unified Modeling Language (UML)
 
 # Relational Database Design
 尽管这一章都在说胡话,但是有一道真题是这样的:
@@ -2148,7 +2160,17 @@ department (dept_name, building, budget)
 ![alt text](PixPin_2026-05-16_12-55-29.webp)
 
 ### 4NF分解
+如果一个满足BCNF的关系表中有两个关于同一个属性R的多值依赖,那么它仍然违反了4NF,需要将这两个多值依赖分别拆分出来,才能让属性R变成超码.
 ## 时态函数依赖
+有时候我们会对一个数据设定有效期,用`start`和`end`两个变量表示:
+![alt text](PixPin_2026-05-17_14-46-59.webp)
+
+- 快照(snapshot): 某个元组在特定时刻的数据值.
+
+那么,时态函数依赖的定义如下:
+
+- 对于r(R)的所有实例,r的所有快照都满足函数依赖α->β.
+
 
 # Complex Data Types
 >In this chapter, we discuss several non-atomic data types that are widely used,including **semi-structured data, object-based data, textual data, and spatial data**.
@@ -2311,7 +2333,7 @@ Two types of spatial data are particularly important:
 
 对比一下中英文版本,所有标题都有对应,那就直接看中文版了,而第8章只有英文版可以看了:
 
-![alt text](PixPin_2026-05-07_15-12-08.webp)
+![概览](PixPin_2026-05-07_15-12-08.webp)
 
 ## ch6: E-R模型引入
 
@@ -2330,7 +2352,7 @@ Two types of spatial data are particularly important:
 对于实体集A和B之间的二元联系集R来说,映射基数有四种情况:
 
 1. 一对一
-2. 一对多: A中的一个实体可以与B中任意数量的实体相关联
+2. 一对多: A中的一个实体可以与B中任意数量的实体相关联.
 3. 多对一: A中的一个实体至多与B中的一个实体关联,但B中的一个实体可以与A中任意数量的实体相关联.
 4. 多对多
 
@@ -2352,13 +2374,26 @@ Two types of spatial data are particularly important:
 
 **映射基数**用有向线段和无向线段来区分,有向线段表示从另一边**只能触及箭头指向方的一个实体**,无向线段表示从另一边指向这一方**没有任何指向限制**:
 
-![alt text](PixPin_2026-05-07_15-55-34.webp)
+![把三角形想象成电阻或者整流器可能更好理解](PixPin_2026-05-07_15-55-34.webp)
 
 如果实体集中的所有实体都必须参与到联系集R中,那么就称实体集在R中的参与是**全部的**,用**双线**表示,如果允许部分实体不参与,则称为**部分的**,仍然用单线表示.
-### 习题
+### 考点
+1. 画E-R图
+   1. 考试应该会给出属性和联系,不然根本不好改卷,那就很好画了
+2. 将E-R图转换成关系模式
+   1. 首先所有的实体集都可以轻松的转换成关系模式,标注主键即可
+   2. 联系集需要分别引用双方的主键,并加入自身的描述性属性
+
+应该就3道大题30分.
 ## ch7: 关系数据库设计
-- 这章的主要考点就是范式和函数依赖.
-### 习题
+### 考点
+1. 范式分解
+   1. 可能考一个3NF分解和一个BCNF分解,不管怎样确实都很简单
+   2. BCNF分解如果不是超码就直接分解,而3NF分解还需要考虑β中的属性是否属于候选码.
+   3. 鉴于内容太少,有可能会考一个多值依赖分解.
+
+应该就三道大题40分.
+
 ## ch8: Complex Data Types
 ### 关系型数据库的面向对象特性
 - **构造函数**
@@ -2404,6 +2439,27 @@ create table teachers
 inherits people;
 ```
 - 通过`inherits`关键字实现继承
+
+#### 引用的处理
+- 习题里都是这个,期末考试肯定不考,但小测可能会考.
+- 这个特性只有Oracle支持
+
+```sql
+create type Person
+(ID varchar(20) primary key,
+name varchar(20),
+address varchar(20))
+ref from(ID);
+create table people of Person;
+
+create type Department (
+dept name varchar(20),
+head ref(Person) scope people);
+create table departments of Department;
+```
+- 这里的ref关键字是Oracle的写法,而前面的教材使用通用的references写法.
+- `scope`关键字用于将引用限定到某一个表实例上
+
 ### RDF和SPARQL
 - 鉴于数据库老师非常非常sb,所以有可能会考这种犄角旮旯的语法.
 
@@ -2477,7 +2533,21 @@ $$P[j] = \delta / N + (1 - \delta) * \sum_{i=1}^{N} (T[i, j] * P[i])$$
 
 我看这个应该不会考
 
+### 考点
+1. 面向对象的SQL
+   1. 应该会让我们写一个`create type`并进行构造,然后再写一个`create type... under`用来继承
+2. 搜索引擎算法
+   1. 先计算TF和IDF,然后再针对查询词集合进行汇总.
+3. SPARQL语句,应该会拿一个最简单的例子来说明即可.
+
+应该就三道大题30分.
 ### 习题
+#### 8.3
+看得出来作者有多离谱了,前面明明说table之间用`inherits`关键字继承,type之间用`under`关键字继承,但这里显然混用了:
+![alt text](PixPin_2026-05-17_15-46-32.webp)
+
+额,那还是按前面写的来算了...
+
 # Application Development(过)
 # Big Data
 >当数据的数量和种类多到一定程度时,传统的关系型数据库就无能为力了,需要采用更为复杂的数据结构来处理.
@@ -2718,8 +2788,9 @@ SQL 语句：`SELECT * FROM table WHERE Gender='m' AND Income='L1';`
 - (3/28)我服了原来这个ppt是[官网](https://db-book.com/slides-dir/index.html)上的,而我们老师实际啥都没干...
 
 ## 本教材核心: 大学数据库
-![alt text](PixPin_2026-03-26_08-23-16.webp)
 - keys used
+![alt text](PixPin_2026-03-26_08-23-16.webp)
+
 ![alt text](PixPin_2026-03-26_08-24-59.webp)
 - schema diagram
 
@@ -2850,4 +2921,4 @@ create table prereq
 - teaches: 教师教授的课程信息
 - student: 学生的信息
 - takes: 学生所选的真实课表
-- 
+
