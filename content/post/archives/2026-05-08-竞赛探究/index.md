@@ -2,7 +2,7 @@
 title: "竞赛探究"
 date: 2026-05-08T22:14:15+08:00
 description: 
-image: 
+image: 53692621_p0-闇の渓谷.webp
 tags: 
     - 调研
 

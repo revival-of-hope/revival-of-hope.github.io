@@ -40,8 +40,8 @@ image: 92260989_p0-秘密の願い事.webp
 # 日语词汇
 
 # 日语动词
-[参考文章](https://blog.lingodeer.com/japanese-verb-conjugation-guide/)
-由于我能找到的中文文章都不太想教会我日语动词语法,就只好看看lingodeer了
+- [参考文章](https://blog.lingodeer.com/japanese-verb-conjugation-guide/)
+
 ## 动词分类
 Fear not, as Japanese verbs are divided into only three groups:
 

@@ -4292,7 +4292,7 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
         )
     return current_user
 ```
-看的头疼吗,那就对了,现在我开始逐步的深入解释.
+看的头疼吗,那就对了,现在我开始逐步地深入探究.
 
 #### fastapi中的依赖
 ### ch3: 使用fastapi处理数据库

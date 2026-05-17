@@ -2226,7 +2226,7 @@ let promise = fetch(url, {
   window: window // null
 });
 ```
-
+## ES6和CommonJS
 ## 总结
 尽管ES6之后的js终于变得像是一门正式语言了,但是如果我们每次写网页都需要写一个个html文档,再通过script标签嵌入js代码的话,是很难做到模块化开发的,大量的代码杂糅在一起,十分难看又很难维护.
 
@@ -3361,7 +3361,7 @@ export class CancelablePromise<T> implements Promise<T> {
 
 不管怎样,现在写前端代码终于能够和写后端一样舒服了...
 
-# nodejs介绍
+# 前端运行环境
 ## 前置概念
 如同cpp,java等语言需要经过编译后才能执行一样,前端项目也有自己的编译器: **浏览器引擎**,它有以下功能:
 * **HTML 解析与 DOM 树构建**：将从网络接收到的 HTML 原始字节流转换为符合 W3C 标准的文档对象模型（DOM）树结构。
@@ -3375,11 +3375,106 @@ export class CancelablePromise<T> implements Promise<T> {
 
 最典型的浏览器引擎就是开源的Blink引擎,chorome,egde,国产浏览器都使用它来渲染页面.
 
-js单独由js引擎编译,最常见的js引擎就是**v8引擎**.
+浏览器引擎只能处理html代码和css代码,而js单独由js引擎编译,最常见的js引擎就是**v8引擎**.
 
-而Node.js则彻底将js引擎和浏览器引擎分离,从而让我们在不使用浏览器的情况下处理前端代码.
-## Node.js的历史
+而Node则彻底将js引擎和浏览器引擎分离,从而让我们在不使用浏览器的情况下处理前端代码.
+## Node
+- [wiki](https://en.wikipedia.org/wiki/Node.js)
+
+目前Node仍然是前端项目的主流运行时.
+### 1. 诞生与初期（2009 - 2011）
+
+* **起源**：2009年由 **Ryan Dahl** 基于 Google V8 引擎开发。其初衷是解决 Apache 等服务器在高并发（10,000+ 连接）下的瓶颈，推行事件驱动和非阻塞 I/O 范式。
+* **生态起步**：2010年，**npm** 诞生，简化了包的发布与安装。
+* **跨平台**：2011年，在微软与 Joyent 的合作下发布了原生 Windows 版本。
+
+### 2. 管理更迭与分裂（2012 - 2014）
+
+* **领导权更替**：Ryan Dahl 之后，项目先后由 Isaac Schlueter（npm 创始人）和 Timothy J. Fontaine 领导。
+* **社区分裂**：由于对 Joyent 治理模式及 V8 更新速度不满，Fedor Indutny 于 2014 年创建了分支 **io.js**，旨在建立更开放的社区治理结构。
+
+### 3. 合并与统一（2015 - 2019）
+
+* **基金会成立**：2015年初成立 Node.js 基金会以调和双方矛盾。
+* **回归统一**：2015年9月，Node.js v0.12 与 io.js v3.3 合并为 **Node v4.0**，引入了 ES6 特性并确立了长期支持（LTS）周期。
+* **最终合并**：2019年，JS 基金会与 Node.js 基金会合并为 **OpenJS 基金会**。
+
+**版本演进**
+- 偶数版本（如 18, 20, 22）：每年的 4 月发布，10 月进入 LTS 阶段，生命周期通常为 3 年，适合生产环境。
+- 奇数版本（如 19, 21, 23）：每年的 10 月发布，生命周期短（约 6 个月），主要用于测试新特性。
+
+而现在已经迭代到26版本号了.
+
+## 包管理器
+
+如同python有pip管理器一样,前端项目也有包管理器,Node官方的包管理器是npm,有开发者觉得npm运行太慢了,就又开发了yarn和pnpm两种包管理器.
+
+
+当然,长江后浪推前浪,后来又出现了一个新的包管理器Bun,它的速度更是快的吓人.
+![alt text](PixPin_2026-05-17_16-58-47.webp)
+
+- [图片来源](https://javascript.plainenglish.io/npm-yarn-pnpm-bun-install-real-app-benchmarking-72c475498024)
+
+
+然而,Bun本身并不仅仅是一个包管理器,它的目标是彻底代替Node.js,作为新的js运行时:
+![alt text](PixPin_2026-05-17_17-01-59.webp)
+## 新兴的js运行时
+### Bun
+- [官网](https://bun.com/)
+
+Bun于2023年正式发布,由于构建速度很快,且兼容Node项目,很快就爆火了,但最近两年的Bun可以说是All-in-AI了,我很不看好,甚至在前两天做出了这么离谱的事情(今天是5/17):
+![alt text](PixPin_2026-05-17_17-26-28.webp)
+
+- 哈?一百万行代码?你直接梭哈了?
+- [知乎讨论](https://www.zhihu.com/question/2038401743025854118)
+
+真的无法理解:
+![alt text](PixPin_2026-05-17_17-29-09.webp)
+
+不过看到bun项目的issues数量后,我释怀了:
+![alt text](PixPin_2026-05-17_17-34-57.webp)
+### Deno
+- [wiki](https://en.wikipedia.org/wiki/Deno_(software))
+Deno是由Node.js创始人于2018年的演讲中推出的Node.js替代品,为的是消除Node.js的种种缺陷:
+![alt text](PixPin_2026-05-17_17-08-45.webp)
+
+- Deno最初用Go编写,但后来用Rust取代了Go
+
+尽管如此,买账的人并不太多,Deno往往是Bun和Node.js后的第三选项.
+
+
+## 构建器
+
+## 转译器
+### Babel
+>Babel 是一类比较常用的jsx转换工具
+
+```js
+// 转换前
+const element = <h1>Hello</h1>;
+
+// 转换后
+var element = React.createElement("h1", null, "Hello");
+```
+### typescript compiler(tsc)
+用于将tsx和ts代码转换成普通的js代码,前面已经介绍过它的效果了,这里就不多说了.
+### esbuild
+- [官网](https://esbuild.bootcss.com/getting-started/)
+
+事实上,esbuild又是构建器又是转译器,官网上有一个对比图:
+![alt text](PixPin_2026-05-17_17-41-03.webp)
+
+
+## 总结
+前端项目的基石有三个:
+1. 运行时: Node,Bun,Deno
+2. 构建器: Vite,Webpack,Rollup
+3. 转译器: Babel,tsc,esbuild
+
+运行时是现代前端项目的基石,它负责处理网络通信,IO读取等原本由浏览器引擎来做的活儿,让前端的开发能够暂时离开浏览器.
+
+
+
 # Tailwind
 
 # Next.js
-# Nestjs
