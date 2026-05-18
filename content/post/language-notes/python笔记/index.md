@@ -4292,9 +4292,232 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
         )
     return current_user
 ```
-看的头疼吗,那就对了,现在我开始逐步地深入探究.
+看的头疼吗,那就对了,我将逐步解释比较难懂的地方.
 
 #### fastapi中的依赖
+- 依赖: 某个变量初始化所用的可调用对象(函数,生成器,类等),
+
+fastapi通过在Annotated中使用Depends库来导入依赖:
+```py
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(q: str | None = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+```
+这样一来,变量commons就被`common_parameters`函数初始化了,而不需要我们显式在代码中写明初始化函数.
+
+Python中允许为类型注释设置别名,所以我们可以将`Annotated[dict, Depends(common_parameters)`提出来进行代码复用:
+```py
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(q: str | None = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+CommonsDep = Annotated[dict, Depends(common_parameters)]
+
+
+@app.get("/items/")
+async def read_items(commons: CommonsDep):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: CommonsDep):
+    return commons
+```
+
+除了函数之外,类也可以作为依赖,但很少用到:
+```py
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: Annotated[CommonQueryParams, Depends()]):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+```
+而上面的实战代码中,就是使用了生成器作为依赖:
+```py
+def get_db() -> Generator[Session, None, None]:
+    with Session(engine) as session:
+        yield session
+    # engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+
+SessionDep = Annotated[Session, Depends(get_db)]
+```
+这里的生成器用法很简单,就是打开数据库连接后,将session实例注入到依赖中,处理完毕后就会自动关闭数据库连接.
+
+#### 网络安全规范: OAuth2
+- [阮一峰教程](https://www.ruanyifeng.com/blog/2019/04/oauth_design.html)
+
+>简单说，OAuth 就是一种授权机制。数据的所有者告诉系统，同意授权第三方应用进入系统，获取这些数据。系统从而产生一个短期的进入令牌（token），用来代替密码，供第三方应用使用。
+
+令牌（token）与密码（password）的作用是一样的，都可以进入系统，但是有三点差异。
+
+（1）令牌是短期的，到期会自动失效，用户自己无法修改。密码一般长期有效，用户不修改，就不会发生变化。
+
+（2）令牌可以被数据所有者撤销，会立即失效。以上例而言，屋主可以随时取消快递员的令牌。密码一般不允许被他人撤销。
+
+（3）令牌有权限范围（scope），比如只能进小区的二号门。对于网络服务来说，只读令牌就比读写令牌更安全。密码一般是完整权限。
+
+
+总结一下就是,当服务器将token(令牌)返回给客户端后,用户之后访问页面时,只需要使用令牌进行验证就行了,不再需要每次都输入用户名和密码了.
+#### OAuth2PasswordBearer库
+**示例代码**
+```py
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+from fastapi.security import OAuth2PasswordBearer
+
+app = FastAPI()
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+TokenDep = Annotated[str, Depends(oauth2_scheme)]
+
+@app.get("/items/")
+async def read_items(token: TokenDep):
+    return {"token": token}
+```
+- 上述的代码只是一个异常简化的流程,我们没有对token进行任何特殊处理,也没有在发放token时对用户进行核验(比如要求用户输入用户名和密码)
+
+我们从fastapi调用了OAuth2PasswordBearer库,并用参数`tokenUrl="token"`初始化`oauth2_scheme`,但这个参数是可有可无的,只不过是帮助Swagger UI来生成文档而已,不写也没有任何影响.
+
+>fastapi高度集成了对Swagger UI的支持,`Swagger UI`本身是一个可视化的路由界面,帮助开发者更好地看懂路由操作.
+
+而OAuth2PasswordBearer类主要的功能就是在接受用户请求时,提取出该用户使用的token,并校验请求的格式是否正常,如果用户的请求头中没有`Authorization`字段或者其值不包含`Bearer`的格式说明,就会抛出`HTTP 401 Unauthorized`异常.
+
+
+**更长的示例代码**
+```py
+from typing import Annotated
+
+from fastapi import Depends, FastAPI
+from fastapi.security import OAuth2PasswordBearer
+from pydantic import BaseModel
+
+app = FastAPI()
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+class User(BaseModel):
+    username: str
+    email: str | None = None
+    full_name: str | None = None
+    disabled: bool | None = None
+
+
+def fake_decode_token(token):
+    return User(
+        username=token + "fakedecoded", email="john@example.com", full_name="John Doe"
+    )
+
+
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+    user = fake_decode_token(token)
+    return user
+
+
+@app.get("/users/me")
+async def read_users_me(current_user: Annotated[User, Depends(get_current_user)]):
+    return current_user
+```
+可以看到,我们在获取当前用户时使用了`get_current_user`依赖,这个依赖使用了从请求头中提取的token,并假装用这个token对用户的数据进行了解密,并得到了解密后的用户数据.
+
+#### Python加密库
+>本来应该单独提到第二级标题来讲的,但放到这里更能贴合实战的情景,而这些库本来也就是用来处理网络通信的.
+##### 前置概念: JWT与token防伪
+- [jwt官网](https://www.jwt.io/)
+- [wiki](https://zh.wikipedia.org/wiki/JSON_Web_Token)
+
+现代的前后端通信通常都通过jwt(JSON Web Tokens)来实现,它与传统的token认证方式有很大的区别:
+
+- 传统 token 方式：用户登录成功后，服务端生成一个随机 token 给用户，并且在服务端(数据库或缓存)中保存一份 token，以后用户再来访问时需携带 token，服务端接收到 token 之后，去数据库或缓存中进行校验 token 的是否超时、是否合法
+  - 显然,由于多了数据库存取的开销,是不太合算的.
+- jwt 方式：用户登录成功后，服务端通过 jwt 生成一个随机 token 给用户（服务端无需保留 token），以后用户再来访问时需携带token，服务端接收到 token 之后，通过 jwt 对 token 进行校验是否超时、是否合法
+  - 一切加密和解密的流程都由后端自动执行,不必过多操心.
+
+进入jwt官网后,我们可以看到如下界面:
+![alt text](PixPin_2026-05-18_18-52-48.webp)
+
+一个JWT由三部分明文加密构成:
+1. Header(头部): 声明使用的加密算法和token的种类,这里使用的算法是**HS256**,也是最通用的加密算法,它会将数据加密成一个极难被反向破解的字符串.
+   1. JWT使用Base64Ur算法l编码Header部分
+2. Playload(负载): 要传输的数据.
+   1. JWT使用Base64Url算法编码Playload部分
+3. Signature(签名): 它由如下部分组成:
+
+```text
+HMACSHA256(
+  base64UrlEncode(header) + "." +
+  base64UrlEncode(payload),
+  secret)
+```
+加密后JWT会再使用Base64Url对其进行编码,变成常见的43个Base64Url字符.
+
+**算法的简单解释**
+- **secret**: 签名的最后一部分也被称为盐(salt),可以任意填写,用于增大攻击者的破解难度,详情可见[wiki](https://zh.wikipedia.org/wiki/%E7%9B%90_(%E5%AF%86%E7%A0%81%E5%AD%A6))
+- **Base64**编码: 将数据转换成二进制编码后,使用64种字符对应6个二进制位进行重新映射,例如`000000`对应`A`,`111111`对应`/`.
+  - 主要目的是为了解决JSON中大量的`{}`,`:`等字符与HTTP协议本身的控制字符冲突的问题,**不起到任何加密作用**.
+- **Base64Url**: 由于浏览器的URL编码器会把`/`和`+`解析成形如`%xx`的格式,所以为了适配加密文本的传输,该算法将加密文本中的`+`变成`-`,`/`变成`_`,解密的时候同时做出对应的处理.
+- **SHA256**算法: 将输入数据转换成对应的256位二进制数,对应32个字节,理论上无法被破解
+
+到这里我们会发现,JWT并不是一个加密方法,而只是一个明文的通行证而已.也就是说,所有的数据本质上都是明文的,不提供任何加密渠道.
+
+实际上,真正的加密由HTTPS本身保证,它确保JWT不会被攻击者窃取,那么当服务器接收到某个JWT时,它也可以保证这个JWT是真实的,从而验证该JWT后给用户放行.
+
+就算攻击者知道了用户发送的数据(Payload)和使用的加密算法(Header),由于secret(盐)只存储在服务器端,攻击者无法用前两个数据组装出合法的签名,也就不能伪造真实的用户了.
+
+总体来说就是,JWT本身是不保密的,但它通过HTTPS和哈希加盐两个机制实现了用户的防伪认证.
+
+##### pyjwt
+- 导入方法: `pip install pyjwt`
+
+
+
+
+
 ### ch3: 使用fastapi处理数据库
 
 ### ch4: 使用fastapi进行测试
