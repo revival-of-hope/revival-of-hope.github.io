@@ -2338,7 +2338,7 @@ Two types of spatial data are particularly important:
 ## ch6: E-R模型引入
 
 ### 概念
-- entity(实体): 对应关系表中的某一项,可以通过特定的标签与其他实体区分开来
+- **entity(实体)**: 对应关系表中的某一项,可以通过特定的标签与其他实体区分开来
 - **entity set(实体集)**: 对应关系表,是实体的一个集合,例如所有教师,所有学生.
 - **relationship(联系)**: 两个或者多个实体间的关联
 - **relationship set(联系集)**: 相同类型联系的集合
@@ -2427,16 +2427,15 @@ create type Student under Person
 create type Teacher under Person
 (salary integer);
 ```
-括号内是继承后新增的属性
+- 括号内是继承后新增的属性
 
 - table间的**继承**
 ```sql
-create table students
-(degree varchar(20))
-inherits people;
-create table teachers
-(salary integer)
-inherits people;
+create table people of Person;
+create table students of Student
+under people;
+create table teachers of Teacher
+under people;
 ```
 - 通过`inherits`关键字实现继承
 
@@ -2541,12 +2540,6 @@ $$P[j] = \delta / N + (1 - \delta) * \sum_{i=1}^{N} (T[i, j] * P[i])$$
 3. SPARQL语句,应该会拿一个最简单的例子来说明即可.
 
 应该就三道大题30分.
-### 习题
-#### 8.3
-看得出来作者有多离谱了,前面明明说table之间用`inherits`关键字继承,type之间用`under`关键字继承,但这里显然混用了:
-![alt text](PixPin_2026-05-17_15-46-32.webp)
-
-额,那还是按前面写的来算了...
 
 # Application Development(过)
 # Big Data

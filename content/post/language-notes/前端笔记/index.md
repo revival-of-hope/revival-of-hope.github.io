@@ -5,6 +5,7 @@ tags:
 - 前端
 image: 60155475_p0-ゆき.webp
 math: true
+weight: 2
 ---
 # 前端概览
 - [W3schools](https://www.w3schools.com/css/css_intro.asp)
@@ -2226,7 +2227,7 @@ let promise = fetch(url, {
   window: window // null
 });
 ```
-## ES6和CommonJS
+
 ## 总结
 尽管ES6之后的js终于变得像是一门正式语言了,但是如果我们每次写网页都需要写一个个html文档,再通过script标签嵌入js代码的话,是很难做到模块化开发的,大量的代码杂糅在一起,十分难看又很难维护.
 
@@ -3381,19 +3382,20 @@ export class CancelablePromise<T> implements Promise<T> {
 ## Node
 - [wiki](https://en.wikipedia.org/wiki/Node.js)
 
-目前Node仍然是前端项目的主流运行时.
-### 1. 诞生与初期（2009 - 2011）
+>目前Node仍然是前端项目的主流运行时.
+### Node的历史
+#### 1. 诞生与初期（2009 - 2011）
 
 * **起源**：2009年由 **Ryan Dahl** 基于 Google V8 引擎开发。其初衷是解决 Apache 等服务器在高并发（10,000+ 连接）下的瓶颈，推行事件驱动和非阻塞 I/O 范式。
 * **生态起步**：2010年，**npm** 诞生，简化了包的发布与安装。
 * **跨平台**：2011年，在微软与 Joyent 的合作下发布了原生 Windows 版本。
 
-### 2. 管理更迭与分裂（2012 - 2014）
+#### 2. 管理更迭与分裂（2012 - 2014）
 
 * **领导权更替**：Ryan Dahl 之后，项目先后由 Isaac Schlueter（npm 创始人）和 Timothy J. Fontaine 领导。
 * **社区分裂**：由于对 Joyent 治理模式及 V8 更新速度不满，Fedor Indutny 于 2014 年创建了分支 **io.js**，旨在建立更开放的社区治理结构。
 
-### 3. 合并与统一（2015 - 2019）
+#### 3. 合并与统一（2015 - 2019）
 
 * **基金会成立**：2015年初成立 Node.js 基金会以调和双方矛盾。
 * **回归统一**：2015年9月，Node.js v0.12 与 io.js v3.3 合并为 **Node v4.0**，引入了 ES6 特性并确立了长期支持（LTS）周期。
@@ -3404,10 +3406,102 @@ export class CancelablePromise<T> implements Promise<T> {
 - 奇数版本（如 19, 21, 23）：每年的 10 月发布，生命周期短（约 6 个月），主要用于测试新特性。
 
 而现在已经迭代到26版本号了.
+### Node使用与npm
+- [官方文档](https://docs.npmjs.com/cli/v11/commands/npm)
 
-## 包管理器
+Node项目中都有一个`package.json`文件,记录了导入的包和可使用的命令行命令等信息:
+```json
+{
+  "name": "vite-project",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@eslint/js": "^10.0.1",
+    "@rolldown/plugin-babel": "^0.2.3",
+    "@types/babel__core": "^7.20.5",
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^8.0.12"
+  }
+}
+```
 
-如同python有pip管理器一样,前端项目也有包管理器,Node官方的包管理器是npm,有开发者觉得npm运行太慢了,就又开发了yarn和pnpm两种包管理器.
+- scripts: 表明了可以使用的脚本命令,比如dev对应的命令可以通过`npm run dev`来运行
+
+接下来重点介绍一些常用的npm命令
+#### npm install
+
+- `npm install 包名1 包名2 ...`: 安装所需的npm包
+- `npm i 包名`: 简写形式
+- `npm i 包名 --global`/`npm i 包名 -g`: 全局安装,安装在本地文件夹而非项目文件夹中,除非你确实需要用这个npm包来执行全局命令,否则不要这么做
+- `npm install 包名@1.2.1`: 安装该包的特定版本
+- `npm install 包名@latest`: 安装或者升级到该包的最新版本,这也是默认命令
+
+
+有时候我们安装npm包后,命令行会弹出类似这样的警告:
+![alt text](image.png)
+
+这就涉及到了npm的安全漏洞知识了.
+#### npm安全漏洞解析
+- [官方文档](https://docs.npmjs.com/auditing-package-dependencies-for-security-vulnerabilities)
+
+npm 将漏洞分为四个风险等级：
+
+1. Low (低度): 难以被恶意利用，通常需要本地访问权限。
+2. Moderate (中度): 具备一定的被攻击风险，例如特定构造下的拒绝服务攻击（DoS）。
+3. High (高度): 漏洞可能导致数据泄露、跨站脚本攻击（XSS）。
+4. Critical (严重): 极度危险，攻击者可能借此远程执行恶意代码（RCE），必须立刻修复。
+
+所以,当我们安装npm包的时候需要额外注意,不要下载了恶意的代码包(这也被称为**供应链投毒**),而由于所有的包管理器(pnpm,bun,yarn)都共享同一个仓库源,所以用其他下载方式也会被感染.
+#### npm audit
+- `npm audit fix`: 该命令用于修复一些比较简单的包漏洞
+- `npm audit fix --force`: 强制将包升级到绝对安全的版本,很有可能会导致项目无法运行.
+#### npx/npm exec
+>npx本质上是`npm exec`的别名,用法基本一样.
+
+运行`npx 包名`时,它会按照以下路径查找包:
+1. 项目目录
+2. 本地全局目录
+
+如果没有找到,它就会在临时目录中创建该包的缓存,并不会下载到项目目录中,在运行结束后会进行清理.
+#### npm create/npm init
+- [博客文章](https://www.cnblogs.com/itkkk/p/18184613)
+
+- `npm create`是`npm init`的别名,由于`create`比起`init`来说更直观,能够表达出构建模板项目的意思,所以很多时候都会使用`npm create`来代替`npm init`.
+
+官方对`npm init`的解释如下:
+- npm init foo -> npm exec create-foo
+- npm init @usr/foo -> npm exec @usr/create-foo
+- npm init @usr -> npm exec @usr/create
+- npm init @usr@2.0.0 -> npm exec @usr/create@2.0.0
+- npm init @usr/foo@2.0.0 -> npm exec @usr/create-foo@2.0.0
+
+大致来说就是,运行`npm create vite@latest`相当于运行`npm init vite@latest`,而后一个命令相当于运行`npm exec create-vite@latest`,能够执行初始化脚本后搭建一个基本项目出来.
+
+
+## 新兴的包管理器
+后来,有开发者觉得npm运行太慢了,就又开发了yarn和pnpm两种包管理器.
 
 
 当然,长江后浪推前浪,后来又出现了一个新的包管理器Bun,它的速度更是快的吓人.
@@ -3418,6 +3512,7 @@ export class CancelablePromise<T> implements Promise<T> {
 
 然而,Bun本身并不仅仅是一个包管理器,它的目标是彻底代替Node.js,作为新的js运行时:
 ![alt text](PixPin_2026-05-17_17-01-59.webp)
+
 ## 新兴的js运行时
 ### Bun
 - [官网](https://bun.com/)
@@ -3444,6 +3539,109 @@ Deno是由Node.js创始人于2018年的演讲中推出的Node.js替代品,为的
 
 
 ## 构建器
+### Webpack
+- [官网](https://webpack.docschina.org/concepts/)
+- [wiki](https://zh.wikipedia.org/wiki/Webpack)
+
+>Webpack 是一款由 Tobias Koppers 于 2012 年发布的静态模块打包器，它通过建立一个包含项目所有资源（JS、CSS、图片等）的依赖关系图，将各种不同规范的模块转化为浏览器可识别的静态资源.
+
+Webpack是前端构建器的始祖,如果用npm导入它的话,是这样写的:
+```bash
+npm install webpack webpack-cli
+```
+然后就可以用`webpack.config.js`进行基本的构建配置,当然我们没有必要去深入了解,毕竟现在确实不会用到webpack了.
+### Rollup
+- [官网](https://www.rollupjs.com/)
+>Rollup 是一款由 Rich Harris 于 2015 年推出的 JavaScript 模块打包器，它开创性地引入了 **Tree-shaking**（摇树优化）技术，通过静态分析 ES 模块依赖关系来剔除未使用的代码，从而生成体积极小、结构扁平的生产环境资源包，因其输出代码纯净且符合标准，现已成为 Vite 生产构建核心及多数开源库（如 React、Vue）打包的首选工具。
+
+- [教程](https://www.rollupjs.com/tutorial/)
+  - 非常他推荐跟着这个教程走一遍,然后就可以懂得前端打包的基本原理了.
+### esbuild
+- [官网](https://esbuild.bootcss.com/getting-started/)
+  - 推荐跟着教程来快速入门
+
+现代构建器esbuild于2020年正式发布,并以他超绝的构建速度震惊了全世界,官网上有一个对比图:
+![alt text](PixPin_2026-05-17_17-41-03.webp)
+
+不管怎样,它的构建速度确实很快,我们看看它是如何做到的,首先新建一个项目后运行以下命令:
+```bash
+npm i esbuild react react-dom
+```
+之后在根目录新建一个`app.jsx`文件:
+```jsx
+import * as React from "react";
+import * as Server from "react-dom/server";
+
+let Greet = () => <h1>Hello, world!</h1>;
+console.log(Server.renderToString(<Greet />));
+```
+之后运行以下命令执行esbuild脚本:
+```bash
+.\node_modules\.bin\esbuild app.jsx --bundle --outfile=out.js
+```
+然后就得到了一个一万多行的js代码:
+![alt text](PixPin_2026-05-18_14-25-45.webp)
+
+很惊人吧,而且,之前的构件工具只能处理html,css和普通的js代码,而它不需要转译器的帮助就可以处理jsx代码了,自然ts和tsx文件也是支持的,从而直接取代了转译器的活儿.
+
+### Vite
+#### 概览
+>Vite 是由 Vue.js 作者尤雨溪（Evan You）于 2020 年发起的新一代前端构建工具
+
+>Vite 诞生之初，浏览器刚刚获得了对 ES 模块（ESM）的广泛支持。ESM 允许浏览器直接加载 JavaScript 文件，无需工具事先将它们打包成单个文件。而传统的构建工具（通常称为 打包器）会在浏览器展示任何内容之前，将整个应用预先处理一遍。应用越大，等待的时间就越长。
+
+Vite 采用了一种截然不同的方式，将工作拆分为两部分：
+
+1. 依赖（几乎不会变动的库）：使用快速的原生工具 预构建 一次，即可随时就绪。
+2. 源码（频繁变动的应用代码）：通过原生 ESM 按需提供。浏览器只加载当前页面所需的内容，Vite 则在请求时对每个文件进行转换。
+
+这意味着无论应用规模多大，开发服务器的启动几乎都是即时的。当你修改某个文件时，Vite 通过原生 ESM 的 **模块热替换**（HMR）只更新浏览器中的对应模块，无需整页刷新，也无需等待重新构建。
+
+>Vite 最初在底层依赖两个独立的工具：esbuild 负责开发阶段的快速编译，Rollup 负责生产构建中的深度优化。这套方案可行，但维护两条流水线带来了不一致性：不同的转换行为、各自独立的插件系统，以及越来越多的粘合代码来保持两者对齐。
+
+>**Rolldown** 的出现将二者统一为一个打包器：用 Rust 编写以获得原生速度，并与生态系统已依赖的同一套插件 API 兼容。它使用 Oxc 进行解析、转换和压缩。这赋予了 Vite 一条端到端的工具链，其中构建工具、打包器和编译器共同维护，作为一个整体协同演进。
+
+换句话说vite是前端构建工具的集大成者,将前端项目的构建速度优化到了极致.
+#### 配置文件
+使用vite的前端项目中,根目录下都有一个`vite.config.ts`文件:
+```ts
+import path from "node:path"
+import tailwindcss from "@tailwindcss/vite"
+import { tanstackRouter } from "@tanstack/router-plugin/vite"
+import react from "@vitejs/plugin-react-swc"
+import { defineConfig } from "vite"
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  plugins: [
+    tanstackRouter({
+      target: "react",
+      autoCodeSplitting: true,
+    }),
+    react(),
+    tailwindcss(),
+  ],
+})
+```
+
+以下代码非常值得关注:
+```ts
+resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+```
+我们在前端项目中看到有些文件是以`@`的形式导入的,就是通过这个别名设置实现的:
+```js
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+```
 
 ## 转译器
 ### Babel
@@ -3458,23 +3656,31 @@ var element = React.createElement("h1", null, "Hello");
 ```
 ### typescript compiler(tsc)
 用于将tsx和ts代码转换成普通的js代码,前面已经介绍过它的效果了,这里就不多说了.
-### esbuild
-- [官网](https://esbuild.bootcss.com/getting-started/)
 
-事实上,esbuild又是构建器又是转译器,官网上有一个对比图:
-![alt text](PixPin_2026-05-17_17-41-03.webp)
+### SWC
+- [官网](https://swc.rs/docs/getting-started)
 
-
+使用Rust编写的现代转译器,速度极快,是现代前端框架的标准配置.
+## 测试工具(待补充)
+### playwright
+### eslint
 ## 总结
-前端项目的基石有三个:
+前端项目中有好几个概念:
 1. 运行时: Node,Bun,Deno
-2. 构建器: Vite,Webpack,Rollup
-3. 转译器: Babel,tsc,esbuild
+2. 构建器: Vite,Webpack,Rollup等
+3. 转译器: Babel,tsc
 
-运行时是现代前端项目的基石,它负责处理网络通信,IO读取等原本由浏览器引擎来做的活儿,让前端的开发能够暂时离开浏览器.
+运行时是现代前端项目开发的基石,它负责处理网络通信,IO读取等原本由浏览器引擎来做的活儿,让前端的开发能够暂时离开浏览器.
 
+构建器将html,css,js文件打包成一个或几个文件,并进行大量的优化工作,方便项目的打包和运行.
 
+转译器将jsx,ts,tsx等代码转换成普通的js文件,供构建器调用处理.
 
+了解了这些概念,你就会明白为什么前端项目会比后端项目多出那么多配置文件了:
+![alt text](PixPin_2026-05-18_12-52-15.webp)
+
+- 当然,上述的介绍都很浅薄,真要实战的话需要专门去看相应的官方文档.
+- 前端工具开发目前正在全面转向Rust/Go,说明这两个语言确实很快.
 # Tailwind
 
 # Next.js
