@@ -4512,13 +4512,215 @@ HMACSHA256(
 总体来说就是,JWT本身是不保密的,但它通过HTTPS和哈希加盐两个机制实现了用户的防伪认证.
 
 ##### pyjwt
+- [官方文档](https://pyjwt.readthedocs.io/en)
+  - 不太清晰
 - 导入方法: `pip install pyjwt`
 
+懂得了jwt的原理后,就可以很轻松的使用这个库了,我们一共需要三个参数: 加密/解密的负载,使用的算法,盐
 
+jwt的所有常用功能只用以下代码就可以展示了:
+```py
+import jwt
+encoded_jwt = jwt.encode({"some": "payload"}, "secret", algorithm="HS256")
+jwt.decode(encoded_jwt, "secret", algorithms=["HS256"])
+{'some': 'payload'}
+```
+
+而在前面的实战代码中,我们确实也是这么使用它的:
+```py
+def get_current_user(session: SessionDep, token: TokenDep) -> User:
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+        )
+```
+既然有解密,那自然有加密,在另外一处文件的代码中,我们是这么进行加密的:
+```py
+def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
+    expire = datetime.now(timezone.utc) + expires_delta
+    to_encode = {"exp": expire, "sub": str(subject)}
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+```
+
+jwt库本身支持不少的加密算法,但我们只使用最常用的sha256就可以了:
+![alt text](PixPin_2026-05-19_13-22-33.webp)
+##### 前置概念: 如何加密密码
+- [一个非常好的介绍文章](https://draven.co/whys-the-design-password-with-md5/)
+
+如参考文章中所提到的那样,普通的哈希函数由于存在哈希碰撞和彩虹表破解的风险,所以完全不推荐用来加密密码,而是应该使用`Argon2`,`Brypt`等现代的专用加密算法.
+
+至于具体原理可以去搜寻论文解决,我们只要知道目前它们是绝对安全的,可以用来加密密码就可以了.
+
+- 以前的哈希函数都需要我们额外存储盐,而现代加密函数的盐都是内置的.
+##### pwdlib
+- [官网](https://frankie567.github.io/pwdlib/)
+- 导入方法: `pwdlib[argon2,bcrypt]`,只使用其中的一个版本也可以.
+
+该库是作为传统加密库passlib的后继者出现的,它的主要作用如下:
+1.  Provide an easy-to-use wrapper to hash and verify passwords
+2.  Support modern and secure algorithms like Argon2 or Bcrypt
+
+这恰恰是我们所需要的加密库功能,它的基本使用方法如下:
+```py
+from pwdlib import PasswordHash
+password_hash = PasswordHash.recommended()
+```
+目前该库的底层默认算法是Argon2算法,上述代码相当于激活了一个使用Argon2算法的加密类.
+
+之后我们就可以用这个加密类来加密密码:
+```py
+hash = password_hash.hash("herminetincture")
+```
+
+自然,当验证用户时,我们还可以使用这个类来验证密码:
+```py
+valid = password_hash.verify("herminetincture", hash)
+```
+
+该库的一个进阶用法是用来处理使用过时加密算法的老数据库,首先,我们先显式创建一个加密类:
+```py
+from pwdlib import PasswordHash, exceptions
+from pwdlib.hashers.argon2 import Argon2Hasher
+from pwdlib.hashers.bcrypt import BcryptHasher
+
+password_hash = PasswordHash((
+    Argon2Hasher(),
+    BcryptHasher(),
+))
+```
+第一个参数是推荐的新算法,第二个参数是要兼容的过时算法,之后我们可以跟之前一样调用这个类来进行加密和验证,如果要创建新的密码,它会自动使用新算法,如果是要验证老的密码,它可以通过以下方式自动替换老密码:
+```py
+valid, updated_hash = password_hash.verify_and_update("herminetincture", hash)
+```
+- 还是很方便的.
+#### 回到实战代码
+```py
+from collections.abc import Generator
+from typing import Annotated
+
+import jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jwt.exceptions import InvalidTokenError
+from pydantic import ValidationError
+from sqlmodel import Session
+
+from app.core import security
+from app.core.config import settings
+from app.core.db import engine
+from app.models import TokenPayload, User
+
+reusable_oauth2 = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/login/access-token"
+)
+# API_V1_STR: str = "/api/v1"
+
+
+def get_db() -> Generator[Session, None, None]:
+    with Session(engine) as session:
+        yield session
+    # engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+
+# @computed_field  # type: ignore[prop-decorator]
+#     @property
+#     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+#         return PostgresDsn.build(
+#             scheme="postgresql+psycopg",
+#             username=self.POSTGRES_USER,
+#             password=self.POSTGRES_PASSWORD,
+#             host=self.POSTGRES_SERVER,
+#             port=self.POSTGRES_PORT,
+#             path=self.POSTGRES_DB,
+#         )
+
+SessionDep = Annotated[Session, Depends(get_db)]
+TokenDep = Annotated[str, Depends(reusable_oauth2)]
+
+
+def get_current_user(session: SessionDep, token: TokenDep) -> User:
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+        )
+        # ALGORITHM = "HS256"
+        # SECRET_KEY: str = secrets.token_urlsafe(32)
+        token_data = TokenPayload(**payload)
+    except (InvalidTokenError, ValidationError):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Could not validate credentials",
+        )
+    user = session.get(User, token_data.sub)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return user
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def get_current_active_superuser(current_user: CurrentUser) -> User:
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=403, detail="The user doesn't have enough privileges"
+        )
+    return current_user
+```
+现在上面这段代码就非常好理解了:
+1. 首先我们使用OAuth2PasswordBearer类创建了一个从用户请求自动提取token的依赖
+2. 接着在`get_current_user`函数中,我们获取用户的token后,使用jwt库对其进行解码.
+3. 如果验证失败则抛出HTTP异常,如果验证成功则从数据库返回用户的基本信息,如果不存在这个用户,或者用户被删除了,那么同样报错.
+
+另外一处有一个用于产生token的实战代码:
+```py
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+import jwt
+from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
+from pwdlib.hashers.bcrypt import BcryptHasher
+
+from app.core.config import settings
+
+password_hash = PasswordHash(
+    (
+        Argon2Hasher(),
+        BcryptHasher(),
+    )
+)
+
+
+ALGORITHM = "HS256"
+
+
+def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
+    expire = datetime.now(timezone.utc) + expires_delta
+    to_encode = {"exp": expire, "sub": str(subject)}
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def verify_password(
+    plain_password: str, hashed_password: str
+) -> tuple[bool, str | None]:
+    return password_hash.verify_and_update(plain_password, hashed_password)
+
+
+def get_password_hash(password: str) -> str:
+    return password_hash.hash(password)
+```
+1. `create_access_token`函数首先设定token的过期期限后将其与负载进行合并封装,这个负载则是用户的id,用于唯一标识用户,之后我们使用jwt库来加密这个合并后的负载,产生token提供给用户.
+2. `verify_password`函数用于验证和升级用户的哈希密码
+3. `get_password_hash`函数用于加密新的密码.
 
 
 
 ### ch3: 使用fastapi处理数据库
+>FastAPI 并不要求你使用 SQL（关系型）数据库。你可以使用你想用的任何数据库。
 
 ### ch4: 使用fastapi进行测试
 

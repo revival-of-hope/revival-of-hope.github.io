@@ -3363,6 +3363,7 @@ export class CancelablePromise<T> implements Promise<T> {
 不管怎样,现在写前端代码终于能够和写后端一样舒服了...
 
 # 前端运行环境
+- 令人震惊的是网上没有人能够好好的把这些必要的知识点好好总结一下,让无数前端新人看着一大堆配置文件一脸懵逼.
 ## 前置概念
 如同cpp,java等语言需要经过编译后才能执行一样,前端项目也有自己的编译器: **浏览器引擎**,它有以下功能:
 * **HTML 解析与 DOM 树构建**：将从网络接收到的 HTML 原始字节流转换为符合 W3C 标准的文档对象模型（DOM）树结构。
@@ -3406,7 +3407,7 @@ export class CancelablePromise<T> implements Promise<T> {
 - 奇数版本（如 19, 21, 23）：每年的 10 月发布，生命周期短（约 6 个月），主要用于测试新特性。
 
 而现在已经迭代到26版本号了.
-### Node使用与npm
+### npm使用
 - [官方文档](https://docs.npmjs.com/cli/v11/commands/npm)
 
 Node项目中都有一个`package.json`文件,记录了导入的包和可使用的命令行命令等信息:
@@ -3499,7 +3500,9 @@ npm 将漏洞分为四个风险等级：
 
 大致来说就是,运行`npm create vite@latest`相当于运行`npm init vite@latest`,而后一个命令相当于运行`npm exec create-vite@latest`,能够执行初始化脚本后搭建一个基本项目出来.
 
+>一般来说,执行`npm create xxx`时,你可以有各种各样的配置选项,跟着命令行的说明选择自己想要的项目版本就行了.
 
+![配置图片](PixPin_2026-05-19_12-07-39.webp)
 ## 新兴的包管理器
 后来,有开发者觉得npm运行太慢了,就又开发了yarn和pnpm两种包管理器.
 
@@ -3661,9 +3664,150 @@ var element = React.createElement("h1", null, "Hello");
 - [官网](https://swc.rs/docs/getting-started)
 
 使用Rust编写的现代转译器,速度极快,是现代前端框架的标准配置.
-## 测试工具(待补充)
+## 测试与格式化工具(待补充)
 ### playwright
 ### eslint
+### biome
+## tsconfig.json详解
+- [官方文档](https://www.typescriptlang.org/zh/docs/handbook/tsconfig-json.html)
+
+>当目录中出现了 tsconfig.json 文件，则说明该目录是 TypeScript 项目的根目录。tsconfig.json 文件指定了编译项目所需的根目录下的文件以及编译选项。
+>
+>JavaScript 项目可以使用 jsconfig.json 文件，它的作用与 tsconfig.json 基本相同，只是默认启用了一些 JavaScript 相关的编译选项。
+
+有两个比较基本的例子:
+```json
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "noImplicitAny": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true
+  },
+  "files": [
+    "core.ts",
+    "sys.ts",
+    "types.ts",
+    "scanner.ts",
+    "parser.ts",
+    "utilities.ts",
+    "binder.ts",
+    "checker.ts",
+    "emitter.ts",
+    "program.ts",
+    "commandLineParser.ts",
+    "tsc.ts",
+    "diagnosticInformationMap.generated.ts"
+  ]
+}
+```
+
+一个个加ts文件太麻烦了,与CMakelist的写法类似,我们可以通过通配符一键导入所有文件:
+```ts
+{
+  "compilerOptions": {
+    "module": "system",
+    "noImplicitAny": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "outFile": "../../built/local/tsc.js",
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "**/*.spec.ts"]
+}
+```
+- 编译配置和很多乱七八糟的内容就没必要一一赘述了,还是很好懂的.再说使用框架编写的话就没必要管这些配置了.
+
+### vite中让人搞不懂的tsconfig配置
+如果你曾经使用过vite官方的模板项目的话,也就是运行过以下命令:
+```bash
+npm create vite@latest 
+```
+就会发现它的文件夹下有三个tsconfig配置文件:
+![alt text](PixPin_2026-05-19_11-40-04.webp)
+
+ts的默认配置文件`tsconfig.json`下只有这个内容:
+```json
+{
+  "files": [],
+  // "files": [] 是必须的，它告诉编译器主文件不需要直接编译任何代码，只需调度引用的子项目。
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+```
+另外两个文件分别对应了`app`模式和`node`模式,即在浏览器中运行的配置和在node中运行的配置,这是为什么呢?
+
+[StackOverflow](https://stackoverflow.com/questions/72027949/why-does-vite-create-two-typescript-config-files-tsconfig-json-and-tsconfig-nod)上有一个不太清晰的解答,而[geeksforgeeks](https://www.geeksforgeeks.org/typescript/why-does-vite-create-multiple-typescript-config-files-tsconfigjson-tsconfigappjson-and-tsconfignodejson/)上的解答也是摸棱两可的,翻遍了全网也找不到一个比较好的说明.
+
+那没办法了,只好来找不同了:
+
+这是tsconfig.app.json:
+```json
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "esnext",
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"]
+}
+```
+
+这是tsconfig.node.json:
+```ts
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023"],
+    "module": "esnext",
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["vite.config.ts"]
+}
+```
+
+我们需要先澄清一个[误区](https://kettanaito.com/blog/one-thing-nobody-explained-to-you-about-typescript),`include`属性真正的作用是**配置tsconfig.json的作用域**,也就是说,我们针对不同的文件可以设定不同的配置.
+
+比如说这里,我们的`tsconfig.node.json`只是针对`vite.config.ts`设定的,而`tsconfig.app.json`是针对src文件夹中的所有文件设定的.
+
+由于Vite使用的是Node的接口,那么它自然需要针对Node做出对应的配置调整,而源文件夹使用Vite进行构建,就需要针对Vite进行自己的调整.
+
 ## 总结
 前端项目中有好几个概念:
 1. 运行时: Node,Bun,Deno
@@ -3683,4 +3827,13 @@ var element = React.createElement("h1", null, "Hello");
 - 前端工具开发目前正在全面转向Rust/Go,说明这两个语言确实很快.
 # Tailwind
 
+
+# 前端常用库
+## Zod
+## Tanstack
+## Axios
+
 # Next.js
+
+# shadcn
+- [官网](https://ui.shadcn.com/)
