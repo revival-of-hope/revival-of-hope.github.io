@@ -2536,7 +2536,8 @@ class Settings(BaseSettings):
 - 参考文章: 官方文档以及菜鸟教程
 ## 爬虫概念
 >[wiki](https://en.wikipedia.org/wiki/Web_crawler)
-Web crawler, sometimes called a spider or spiderbot and often shortened to crawler, is an Internet bot that systematically browses the World Wide Web and that is typically operated by **search engines** for the purpose of Web indexing (web spidering)
+>
+>Web crawler, sometimes called a spider or spiderbot and often shortened to crawler, is an Internet bot that systematically browses the World Wide Web and that is typically operated by **search engines** for the purpose of Web indexing (web spidering)
 实际上,只要一个自动化程序做了下列的某一件事情,就可以认定为爬虫:
 - 获取web资源
 - 模拟浏览器/用户行为
@@ -3772,15 +3773,18 @@ fastapi是上述这些通信框架的集大成者,它糅合了无数前人的心
 鉴于机器学习/Agent项目都使用python语言进行开发,该类项目的部署使用原生的python也更为合理,在未来一定会有非常广阔的应用情景.
 
 从fastapi的star数就可以看出来它有多受欢迎:
-![alt text](PixPin_2026-05-14_16-24-14.webp)
+
+![star数](PixPin_2026-05-14_16-24-14.webp)
 
 大厂比如字节对于这方面的人才需求目前还很少:
-![alt text](PixPin_2026-05-14_16-33-46.webp)
+
+![招聘官网](PixPin_2026-05-14_16-33-46.webp)
 
 fastapi官方有一个非常优秀的[模板项目](https://github.com/fastapi/full-stack-fastapi-template),截止目前(26/5/14)已经有了43k个star,说明还是很受欢迎的,前端使用最新的react框架,后端则使用了fastapi框架进行后端服务和sqlmodel进行ORM映射,采用了docker compose进行微服务部署.速览一遍这个项目你可以很快发现fastapi的魅力和强大.
 
 当然,要看懂这个项目,你需要懂这些技术:
-![alt text](PixPin_2026-05-14_18-19-49.webp)
+
+![技术一览](PixPin_2026-05-14_18-19-49.webp)
 
 这些技术显然不是一个小白可以轻松在短时间内掌握的,即便是Claude Code也不能架构出这么完美的代码,这种精品的前后端项目在Github上也是非常稀少的,非常推荐跟着这个项目的技术栈学习.
 
