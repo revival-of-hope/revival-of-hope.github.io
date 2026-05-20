@@ -670,7 +670,7 @@ function myFunction() {
 
 看得出来CSS本身的生态比起HTML来更加混乱,甚至没有一个统一的版本号.
 
-## CSS语法与CSS选择器
+## CSS基本语法
 一个常见的css写法如下:
 ![alt text](PixPin_2026-04-30_12-38-22.webp)
 
@@ -687,7 +687,7 @@ p {
   text-align: center;
 }
 ```
-### 选择器
+### 基本的css选择器
 #### 标签元素的修饰
 该方法通常用于全局样式的处理,例如下面的代码会将所有的p标签变红:
 ```css
@@ -721,7 +721,7 @@ id选择器只会处理单个标签:
 }
 ```
 
-而有时候如果多个元素的处理方法相同的话:
+而有时候如果多个元素的处理方法相同的话,我们可以这样写:
 ```css
 h1 {
   text-align: center;
@@ -997,7 +997,22 @@ If some of the property values are missing, they will be set to their initial (d
 ```
 - 只有一代的strong标签会被选中
 
+### 属性选择器
+- [菜鸟教程](https://www.runoob.com/css/css-attribute-selectors.html)
 
+```css
+/* 选择所有具有 `type` 属性的元素 */
+[type] {
+  border: 1px solid red;
+}
+```
+
+```css
+/* 选择所有 `type` 属性等于 `text` 的元素 */
+[type="text"] {
+  background-color: yellow;
+}
+```
 ### 合并选择
 我们可以将普通的选择和类选择合并,变成这样:
 ```css
@@ -1086,7 +1101,209 @@ p::first-line {
 
 我们偶尔会看到CSS代码中出现`@`这个符号,它的作用十分广大,属于CSS的高级语法
 ## @规则
+我们经常可以在css中看到诸如`@import`,`@media`等语句,它们都属于@规则(at-rules),属于一个比较高级的css语法.
+### 概览
+| At-rule                    | Description                                                                                                                                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`@charset`**             | Specifies the character encoding used in the style sheet                                                                                                                                                                                          |
+| **`@container`**           | Define styles for elements in container, depending on the container's size or style                                                                                                                                                               |
+| **`@counter-style`**       | Lets you define your own counter styles                                                                                                                                                                                                           |
+| **`@font-face`**           | Specifies a custom font with which to display text                                                                                                                                                                                                |
+| **`@font-palette-values`** | Allows you to customize the default values of a font-palette                                                                                                                                                                                      |
+| **`@import`**              | Allows you to import a style sheet into another style sheet                                                                                                                                                                                       |
+| **`@keyframes`**           | Controls the steps in an animation by defining styles for points along the animation sequence                                                                                                                                                     |
+| **`@layer`**               | Used to control how the CSS cascade layers evaluates the order of styles                                                                                                                                                                          |
+| **`@media`**               | Applies parts of a style sheet based on the result of one or more media queries                                                                                                                                                                   |
+| **`@namespace`**           | Defines an XML namespace to be used in the style sheet                                                                                                                                                                                            |
+| **`@page`**                | Customizes the dimension, orientation, and margins of printed pages                                                                                                                                                                               |
+| **`@property`**            | Allows you to define custom CSS properties directly in the stylesheet without having to run any JavaScript. This at-rule has data type checking and constraining, sets default values, and defines whether the property can inherit values or not |
+| **`@scope`**               | Allows you to select elements in specific DOM subtrees and target elements precisely without writing overly-specific selectors                                                                                                                    |
+| **`@starting-style`**      | Defines an element's starting styles before the element gets its first style update                                                                                                                                                               |
+| **`@supports`**            | Used to test whether a browser supports a CSS feature                                                                                                                                                                                             |
+### 参考文章
+- [一个比较全面的参考文章](https://www.cnblogs.com/coco1s/p/16853591.html)
+  - 看这篇文章就够了.
+## flex布局
+- [阮一峰教程](https://www.ruanyifeng.com/blog/2015/07/flex-grammar.html)
+## 特殊css语法
+### :root选择器
+- [参考](https://www.w3schools.com/cssref/sel_root.php)
 
+root选择器会作用于所有的html元素,注意,是所有的.它永远指向html标签,所有的后代元素都会继承这些属性.
+```css
+:root
+{
+    background:#ff0000;
+}
+```
+但是,:root的优先级不是最高的,CSS 的权重由高到低排列如下：
+
+1. Inline 样式（写在 HTML 标签内的 style="..."）
+2. ID 选择器（如 #app）
+3. 类/伪类/属性选择器（如 .btn, :root, :hover, [disabled]）
+4. 元素/伪元素选择器（如 html, body, div, ::before）
+
+:root 属于第 3 级。因此，ID 选择器和 Inline 样式的优先级都高于 :root。
+```css
+/* 1. 在根元素上定义变量 */
+:root {
+  --theme-color: oklch(0.6 0.118 184.704); /* 青色 */
+}
+
+/* 2. 使用 HTML 元素选择器（权重低于 :root） */
+html {
+  --theme-color: red; /* 无法覆盖 :root，因为 :root 权重更高 */
+}
+
+/* 3. 使用 ID 选择器（权重高于 :root） */
+#page-root {
+  --theme-color: blue; /* 成功覆盖！如果 <html> 标签带有 id="page-root"，变量将变为蓝色 */
+}
+```
+
+>如果你在 :root 中定义了基础变量，后续在特定组件（如 .dark-theme 类）中需要修改变量时，由于类选择器的权重与 :root 平级，只要后面的解析顺序靠后，或者选择器更具体（如 body.dark-theme），就能轻易覆盖掉全局变量，实现主题切换。
+### 自定义属性
+出于让css属性的作用更加清晰的目的,我们会自定义一些css属性,在属性名字前加上`--`前缀即可:
+```css
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+}
+```
+使用时,我们需要通过var关键字来调用自定义属性,告知浏览器去找我们自定义的值:
+```css
+.card {
+  /* 使用 --radius 变量设置圆角 */
+  border-radius: var(--radius); 
+  
+  /* 使用 --card 和 --card-foreground 设置背景色和文字颜色 */
+  background-color: var(--card);
+  color: var(--card-foreground);
+  
+  /* 使用 --border 变量设置边框颜色 */
+  border: 1px solid var(--border);
+}
+```
+甚至还可以通过calc关键字对数字类的变量进行数学运算:
+```css
+.large-card {
+  /* 将原本 0.625rem 的圆角放大两倍 */
+  border-radius: calc(var(--radius) * 2); 
+}
+```
+
+
+
+## 实战: 实现明暗主题切换
+**index.html**
+```html
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>主题切换示例</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="card">
+    <h2>主题切换核心原理</h2>
+    <p>通过修改 html 标签上的 data-theme 属性，触发不同作用域下的 CSS 变量覆盖。</p>
+    <button id="theme-toggle">切换主题</button>
+  </div>
+
+  <script>
+    const toggleBtn = document.getElementById('theme-toggle');
+    const htmlEl = document.documentElement;
+
+    toggleBtn.addEventListener('click', () => {
+      const currentTheme = htmlEl.getAttribute('data-theme');
+      const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
+      htmlEl.setAttribute('data-theme', nextTheme);
+    });
+  </script>
+</body>
+</html>
+```
+**style.css**
+```css
+/* ==========================================================================
+   1. 变量定义（利用属性选择器进行同级权重覆盖）
+   ========================================================================== */
+
+/* 默认浅色主题：绑定在带有 data-theme="light" 的根元素上 */
+:root[data-theme="light"] {
+  --background: oklch(1 0 0);           /* 纯白 */
+  --foreground: oklch(0.145 0 0);       /* 深灰黑 */
+  --card: oklch(0.98 0 0);              /* 极浅灰 */
+  --border: oklch(0.922 0 0);           /* 浅灰边框 */
+  --primary: oklch(0.5982 0.10687 182.4689); /* 品牌青色 */
+  --primary-foreground: oklch(1 0 0);  /* 按钮文字白 */
+}
+
+/* 深色主题：当属性变为 data-theme="dark" 时，同权重的变量被整组覆盖 */
+:root[data-theme="dark"] {
+  --background: oklch(0.145 0 0);       /* 深灰黑 */
+  --foreground: oklch(0.985 0 0);       /* 接近纯白 */
+  --card: oklch(0.2 0 0);               /* 稍浅的深灰 */
+  --border: oklch(0.3 0 0);             /* 暗灰边框 */
+  --primary: oklch(0.65 0.12 182.4689);  /* 略微调高亮度的青色 */
+  --primary-foreground: oklch(0.1 0 0); /* 按钮文字黑 */
+}
+
+/* ==========================================================================
+   2. 样式应用（业务代码完全不需要感知当前是什么主题，直接引用变量）
+   ========================================================================== */
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  /* 平滑过渡主题切换时的色彩突变 */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  padding: 2rem;
+  border-radius: 0.625rem;
+  max-width: 400px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+button {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+button:hover {
+  filter: brightness(0.9);
+}
+```
+可以看到,我们通过设置两套css属性,和简单的js脚本,就实现了明暗主题的切换:
+
+![亮主题](PixPin_2026-05-20_13-44-25.webp)
+
+![暗主题](PixPin_2026-05-20_13-44-42.webp)
+
+## 总结
+现代的css可以非常复杂,并非我们通常认为的那样简单,后面会介绍一些现代css框架,减少css编写的难度,但先让我们进入Javascript的世界,让网页动起来吧.
 
 # JavaScript
 - [wiki](https://en.wikipedia.org/wiki/JavaScript)
@@ -3825,8 +4042,106 @@ ts的默认配置文件`tsconfig.json`下只有这个内容:
 
 - 当然,上述的介绍都很浅薄,真要实战的话需要专门去看相应的官方文档.
 - 前端工具开发目前正在全面转向Rust/Go,说明这两个语言确实很快.
-# Tailwind
 
+
+# 现代CSS框架
+## Tailwind
+### 前置概念: 为什么要有Tailwind
+- [背景介绍](https://blog.huli.tw/2022/05/23/atomic-css-and-tailwind-css/)
+- [简要介绍tailwind](https://medium.com/@Kelly_CHI/tailwind-css-introduction-and-tools-68e770b2bf7f)
+- [tailwind辨析](https://www.builder.io/blog/tailwind-css-drama)
+
+
+![alt text](PixPin_2026-05-20_11-03-08.webp)
+
+
+大多数人第一次见到tailwind的时候都会是这个感受:
+>When I first encountered it, I kind of gagged a bit. I couldn’t help but glaze over the long list of classes that sullied my HTML.
+
+不管怎样,在了解了它的优缺点后,先来试试用Tailwindcss进行开发吧.
+
+### 安装步骤
+- [官网](https://tailwindcss.com/docs/installation/using-vite)
+
+tailwind可以在html和JSX/TSX文件中使用,如果仅仅是在html中使用的话相当简单,通过CDN导入即可:
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- CDN导入 -->
+  </head>
+  <body>
+    <h1 class="text-3xl font-bold underline">
+      Hello world!
+    </h1>
+  </body>
+</html>
+```
+
+![效果图](PixPin_2026-05-20_11-11-03.webp)
+
+还可以设定自定义的css规则:
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --color-clifford: #aa373d;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="text-3xl font-bold underline text-clifford">Hello world!</h1>
+  </body>
+</html>
+```
+
+![效果图](PixPin_2026-05-20_11-15-54.webp)
+
+
+如果是在vite框架中使用的话,需要进行以下配置:
+1. 导入tailwindcss包: `npm install tailwindcss @tailwindcss/vite`
+2. 在`vite.config.ts`里导入tailwindcss:
+```ts
+import { defineConfig } from 'vite'
+import tailwindcss from '@tailwindcss/vite'
+export default defineConfig({
+  plugins: [
+    tailwindcss(),
+  ],
+})
+```
+3. 在全局css文件(可能是main.css/app.css/index.css)中导入tailwindcss:
+```css
+@import "tailwindcss";
+```
+4. 入口ts文件(可能是main.tsx)中一般都已经导入了该全局css文件: `import './index.css'`,因此,在src文件夹中的所有文件中,都可以通过`className`使用tailwind,不需要进行额外的导入.
+```ts
+// src/components/Button.tsx
+// ❌ 顶部不需要 import 'tailwindcss'
+
+export default function Button() {
+  return (
+    //  直接使用，直接生效
+    <button className="bg-blue-500 text-white px-4 py-2 rounded">
+      按钮
+    </button>
+  )
+}
+```
+
+### 基本语法
+
+## shadcn
+- [官网](https://ui.shadcn.com/)
+- [比较完整的介绍](https://medium.com/@Kelly_CHI/shadcn-ui-tailwind-components-6fd4f1959147)
 
 # 前端常用库
 ## Zod
@@ -3835,5 +4150,3 @@ ts的默认配置文件`tsconfig.json`下只有这个内容:
 
 # Next.js
 
-# shadcn
-- [官网](https://ui.shadcn.com/)

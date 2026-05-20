@@ -2527,7 +2527,8 @@ class Settings(BaseSettings):
 
         return self
 ```
-# Python爬虫
+# Python爬虫(待补充)
+- 写的不好,日后有机会来重构
 和机器学习一样,我第一次学习Python爬虫是没有任何成果的,一开始是听说有这么个东西,就去zlib上随便下了本参考书,由于参考书是十年前的,因此使用了很多老掉牙的库和奇奇怪怪的语法,再加上当时水平有限,根本无法复现,于是就浅尝辄止了.
 
 但现在,我想要试着用爬虫找到合适的招聘数据用来为以后的暑期实习和秋招服务,所以又把这门技术捡起来从零开始学了.
@@ -3003,7 +3004,7 @@ def test():
     enterText.send_keys(Keys.RETURN)
 ```
 
-### 真>>实战
+### 实战
 ```py
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -3435,10 +3436,74 @@ class Spider(object_ref):
 
 # Python数据库框架
 - 前置知识: 基本的SQL语法
+
+## 前置概念: ORM与数据库连接
+### ORM
+- [wiki](https://en.wikipedia.org/wiki/Object%E2%80%93relational_mapping)
+
+在实际生产中,我们总是需要在后端的数据库中存储用户的数据,一开始,我们需要使用SQL手动插入新数据,就算有各种各样的数据库优化,但操作起来还是很麻烦,不过,早期互联网的使用人数少,问题还不是太大.在2000s年代,ORM(对象关系映射)框架诞生了,它使得后端开发人员可以使用面向对象的语言(Java,C#等)来操作数据库.
+
+### 数据库连接
+当然,就像使用SQL前我们需要先打开数据库一样,使用ORM的前提是建立起与数据库的连接.现代的ORM框架会通过该语言的**数据库驱动**(如Java中的JDBC),与要**映射到的数据库**(SQLite,MySQL等数据库)进行连接,将我们的面向对象语言翻译成SQL语句,并通过网络通道发送给数据库,数据库执行SQL语句并存储结果.
+
 ## sqlite3
+- [官网](https://docs.python.org/zh-cn/3/library/sqlite3.html)
+
+由于是官方库,所以教程文档很枯燥,不过基本功能还是很简单的.由于太过古老,所以不太推荐学,最多会在那种AI生成的作业项目中看到.
 
 ## SQLAlchemy
+- [官网教程](https://docs.sqlalchemy.org/en/20/orm/quickstart.html)
+  - 对新人不太友好.
+鉴于SQLModel是对SQLAlchemy的封装,并且面向对象上做的比SQLAlchemy更好,所以直接学SQLModel就行了.
 ## SQLModel
+- [官网](https://sqlmodel.tiangolo.com/)
+>SQLModel is based on Python type annotations, and powered by Pydantic and SQLAlchemy
+>
+>SQLModel **can only help you with SQL Databases**.
+
+如官网所说,SQLModel只支持关系型数据库,类似Redis和MongoDB这种非关系型数据库得专门去找其他的库来处理.
+
+### 基本用法
+```py
+from sqlmodel import Field, SQLModel, create_engine
+
+
+class Hero(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str
+    secret_name: str
+    age: int | None = None
+
+
+sqlite_file_name = "database.db"
+sqlite_url = f"sqlite:///{sqlite_file_name}"
+
+engine = create_engine(sqlite_url, echo=True)
+
+SQLModel.metadata.create_all(engine)
+```
+上述代码有几点需要说明:
+1. SQLModel其实就是对Pydantic中的BaseModel的高层封装,加入了对SQLAlchemy的支持
+2. Hero中的字段基本都是Pydantic的原生语法,Field方法也是对Pydantic的封装,加入了对SQLAlchemy的抽象支持
+3. `sqlite_url`即为SQLModel的目标连接数据库,由于sqlite的连接最简单,所以官方教程给的也是sqlite.
+
+`"sqlite:///{sqlite_file_name}"`的详细解释:
+>我们可以拿HTTP协议来做对比: `https://sqlmodel.tiangolo.com/`中,`https://`表示采用了HTTPS协议,之后紧跟着的是该网站的域名,最后一个`/`则代表该网站的根路径`/`.
+>
+>同理,`sqlite:///{sqlite_file_name}`中的第一部分是表示所连接的服务器,供底层驱动选择对应的服务器;
+>而由于SQLite是一个无服务器的本地数据库,不需要IP地址来识别,那么就不再需要中间的域名,但是`/`根路径还是需要保留,代表连接的是当前文件夹下的sqlite数据库,也就是`sqlite:// /database.db`,去掉无意义的空格后就变成了`sqlite:///database.db`.
+
+如果拿其他的数据库来举例,其实更好理解,比如说连接的是PostgreSQL数据库,我们就要这么写:
+```py
+# 1. 使用新一代 psycopg 驱动（即 psycopg3，原生支持异步）
+pg_url = "postgresql+psycopg://postgres:password123@127.0.0.1:5432/my_database"
+```
+尽管看上去与之前的sqlite写法完全不同,但大致结构是相同的,目前先不用管它了.
+
+4. `create_engine`函数
+
+如果你还记得一点SQL知识的话,就会知道在数据库中主键是**非空的**!但是上面的代码却将id这个主键的默认值设定为了None,这是为什么呢?
+
 
 # Python网络框架
 - 前置知识: Restful Web API规范,基本的网络通信概念,初级的网络安全/身份认证概念.
