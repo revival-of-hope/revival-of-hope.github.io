@@ -3881,10 +3881,7 @@ var element = React.createElement("h1", null, "Hello");
 - [官网](https://swc.rs/docs/getting-started)
 
 使用Rust编写的现代转译器,速度极快,是现代前端框架的标准配置.
-## 测试与格式化工具(待补充)
-### playwright
-### eslint
-### biome
+
 ## tsconfig.json详解
 - [官方文档](https://www.typescriptlang.org/zh/docs/handbook/tsconfig-json.html)
 
@@ -4137,16 +4134,148 @@ export default function Button() {
 }
 ```
 
-### 基本语法
+### 基本语法(待补充)
 
-## shadcn
+## shadcn(待补充)
 - [官网](https://ui.shadcn.com/)
 - [比较完整的介绍](https://medium.com/@Kelly_CHI/shadcn-ui-tailwind-components-6fd4f1959147)
 
-# 前端常用库
-## Zod
-## Tanstack
-## Axios
-
 # Next.js
+## 概览
+- [官方文档](https://nextjs.org/docs)
+
+
+Next.js是一个拥抱AI的React框架,深度适配Agent,有多适配呢,甚至会在模板项目里内置AGENTS.md,你就说离不离谱吧:
+![alt text](PixPin_2026-05-21_15-34-19.webp)
+
+内容如下:
+```md
+<!-- BEGIN:nextjs-agent-rules -->
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+<!-- END:nextjs-agent-rules -->
+```
+- 看得出来很贴心了...
+
+### 历史
+鉴于[wiki](https://en.wikipedia.org/wiki/Next.js)上的说明实在太简单了,让AI总结了一下...
+
+#### 1. 萌芽期：解决 React 的痛点 (2016 - 2018)
+
+2016 年前后的 React 处于绝对的统治地位，但它有一个致命问题：**纯客户端渲染（CSR）**。这意味着浏览器拿到的 HTML 是一个空壳，对 SEO（搜索引擎优化）极不友好，且首屏加载慢。
+
+* **2016年10月（v1.0）**：由 ZEIT 公司（现 Vercel）开源。它最初只有 6 个核心功能，主打**开箱即用的服务端渲染（SSR）**和**基于文件系统的路由（Pages Router）**。开发者只需在 `pages` 目录下建个文件，路由和服务器端渲染就自动搞定了。
+* **2019年（v8.0）**：引入了 **Serverless（无服务器）** 架构支持，使每个页面路由都可以编译成一个独立的 Lambda 函数，为后续的全球边缘分发奠定了工程基础。
+
+#### 2. 黄金期：拥抱静态化与全面流行 (2019 - 2021)
+
+随着 Jamstack 概念的兴起，Next.js 开始从单一的 SSR 向多元化渲染架构演进，并得到了 Google 团队的直接工程代码贡献。
+
+* **v9.x - v10.x**：推出了 **SSG（静态站点生成）** 以及革命性的 **ISR（增量静态再生）**。ISR 允许开发者在后台增量更新部分静态页面，而无需重新构建整个网站，近乎完美地平衡了“静态页面的极速”与“动态数据的实时”。
+* **2020年**：公司正式更名为 **Vercel**，获得了巨大的商业成功。
+* **2021年（v12.0）**：这是一个底层工程的转折点。Next.js 开始放弃原有的 JavaScript 工具链，引入了基于 Rust 编写的 **SWC 编译器**，替代了 Babel 和 Terser，使代码编译和压缩速度提升了数倍。
+
+#### 3. 阵痛与变革：App Router 与重构 (2022 - 2024)
+
+随着 React 官方提出 React Server Components（RSC，服务端组件）概念，Next.js 作为其实验小白鼠，迎来了历史上最具争议也最激进的一次彻底重构。
+
+* **2022年10月（v13.0）**：推出了全新的 **App Router (`app/` 目录)**。它彻底改变了原有的页面开发思维：组件默认在服务器端运行，只有声明 `"use client"` 的才是客户端组件。
+* **2023年（v14.0）**：**Server Actions（服务器动作）** 走向稳定。前端开发者可以在组件里直接写操作数据库的异步函数，甚至不需要再手动编写传统意义上的 API 路由。
+* *这一时期的代价是巨大的。缓存机制过于激进、文档混乱、黑盒问题频发，导致社区出现了不小的抵触情绪。*
+
+#### 4. 稳健与前沿：反思缓存与 AI 时代 (2025 - 至今)
+
+在经历了两年的动荡后，Next.js 开始回归理性，专注于稳定性、底层工具链的收尾，以及对新兴技术的适配。
+
+* **2024年底 - 2025年（v15.0）**：顺应民意进行大刀阔斧的“拨乱反正”。核心改变是**将默认的激进自动缓存改为“默认不缓存（Opt-in）”**，大幅度降低了开发者的心智负担，并全面适配 React 19。同时，基于 Rust 的全新打包工具 **Turbopack** 逐步替代 Webpack 成为默认的开发构建底座。
+* **2025年底 - 2026年（v16.0 及后续）**：进入稳定长期支持（LTS）阶段。除进一步稳固基础外，开始内置对 **AI 开发生态（如 Agent 和 MCP 协议）** 的原生工程支持，从“全栈 Web 框架”向“AI 时代的通用应用底座”演进。
+### App Router与Pages Router
+根据上面的历史也可以知道,Next.js目前支持两种路由,一个是App Router,一个是Pages Router,由于Pages Router不再进行更新,所以现在只推荐使用App Router了:
+
+![官网](PixPin_2026-05-21_15-45-15.webp)
+# 前端常用库
+## Tanstack router
+### AI介绍
+官网下东西太多了,让AI稍微介绍一下:
+TanStack 官网生态庞大，是因为它已经从最初的一个单一数据请求库（React Query），演变成了一整套**框架无关（Framework-Agnostic）的现代化前端应用全家桶**。
+
+其核心设计哲学是“Headless（无头/无 UI 样式）”**和**“极致的 TypeScript 类型安全”。这意味着它的很多库只负责核心逻辑、状态和计算，不提供任何 HTML 标签或 CSS 样式，由开发者自由绑定到 React、Vue、Solid 或 Svelte 等任何前端框架中。
+
+核心产品可以划分为以下四大板块：
+
+#### 1. 三大基石级核心库（也是最常用的）
+
+* **TanStack Query (原名 React Query)**：
+* **定位**：异步状态与数据请求管理。
+* **做什么**：前端开发中最核心的“服务器状态管理工具”。它帮你搞定前端最头疼的**数据缓存、自动后台刷新、请求去重、垃圾回收、滚动分页加载**等功能。现在支持 React、Vue、Svelte 等全框架。
+
+
+* **TanStack Table (原名 React Table)**：
+* **定位**：强大的表格与数据网格（Datagrid）逻辑引擎。
+* **做什么**：它是典型的 Headless 库。它不给你任何表格样式，但把表格所需要的**排序、过滤、多选、列拖拽、分层折叠、服务端分页**等极其复杂的逻辑全部封装好了，样式完全由你自己用 Tailwind 或普通 CSS 去写。
+
+
+* **TanStack Router**：
+* **定位**：极致类型安全的客户端路由。
+* **做什么**：为了对抗 Next.js 等框架的基于文件系统的路由而生。它的核心卖点是 **100% Type-Safe（类型安全）**。你的跳转路径、URL 参数（Search Params）全部有严格的 TypeScript 类型推导，输错一个字母编译就报错。
+
+
+
+---
+
+#### 2. 進阶全栈与架构扩展
+
+* **TanStack Start**：
+* **定位**：全栈 Web 框架。
+* **做什么**：基于 TanStack Router 和 Vite 构建。它直接对标 Next.js、Remix 或 Nuxt，支持全文档 SSR（服务端渲染）、数据流式传输（Streaming）以及 Server Functions（直连后端的服务器函数）。
+
+
+* **TanStack Form**：
+* **定位**：高性能、类型安全的表单状态管理。
+* **做什么**：对标 Formik 或 React Hook Form。同样是无头（Headless）设计，主打在极高频输入下依然保持超高的渲染性能，且表单字段的类型校验非常严苛。
+
+
+
+---
+
+#### 3. 高性能交互与底座
+
+* **TanStack Virtual**：
+* **定位**：虚拟滚动/虚拟列表。
+* **做什么**：当你有几万、几十万条数据要展示在页面上时，如果直接渲染 DOM 会导致浏览器卡死。它帮你只渲染当前屏幕“看得见”的那几十条，并在滚动时动态复用 DOM，实现 60FPS 的丝滑滚动。
+
+
+* **TanStack DB**：
+* **定位**：响应式客户端优先（Client-first）的 API 存储仓库。
+* **做什么**：让你在前端像操作本地数据库一样，支持乐观更新（Optimistic Mutations）、实时查询（Live Queries），保证 UI 的极速响应和状态一致。
+
+
+* **TanStack Store**：
+* **定位**：底层的不可变响应式状态库（内部底座）。
+
+
+
+---
+
+#### 4. 前沿/AI/工程工具
+
+* **TanStack AI**：
+* **定位**：统一的多模型 AI SDK。提供干净的 TypeScript 接口，防止厂商锁定。
+
+
+* **TanStack Intent**：
+* **定位**：让 npm 包原生支持 AI Agent。能将库的知识和 API 自动暴露给 AI 代理（如支持 MCP 协议的系统）。
+
+
+* **TanStack Devtools / Config / CLI**：
+* 统一的调试面板、工程化配置包和脚手架工具。
+
+## Axios
+## Zod
+## playwright
+## eslint
+## biome
+
+
 

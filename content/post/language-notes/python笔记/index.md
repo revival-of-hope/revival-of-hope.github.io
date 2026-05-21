@@ -2529,6 +2529,7 @@ class Settings(BaseSettings):
 ```
 # Python爬虫(待补充)
 - 写的不好,日后有机会来重构
+
 和机器学习一样,我第一次学习Python爬虫是没有任何成果的,一开始是听说有这么个东西,就去zlib上随便下了本参考书,由于参考书是十年前的,因此使用了很多老掉牙的库和奇奇怪怪的语法,再加上当时水平有限,根本无法复现,于是就浅尝辄止了.
 
 但现在,我想要试着用爬虫找到合适的招聘数据用来为以后的暑期实习和秋招服务,所以又把这门技术捡起来从零开始学了.
@@ -3484,7 +3485,8 @@ engine = create_engine(sqlite_url, echo=True)
 SQLModel.metadata.create_all(engine)
 ```
 上述代码有几点需要说明:
-1. SQLModel其实就是对Pydantic中的BaseModel的高层封装,加入了对SQLAlchemy的支持
+1. SQLModel类其实就是对Pydantic中的BaseModel的高层封装,加入了对SQLAlchemy的支持
+   1. `table=True`表示这是一个关系表,可以与数据库进行交互,而默认值`table=False`表示这只是一个普通的`BaseModel`,用于数据校验.
 2. Hero中的字段基本都是Pydantic的原生语法,Field方法也是对Pydantic的封装,加入了对SQLAlchemy的抽象支持
 3. `sqlite_url`即为SQLModel的目标连接数据库,由于sqlite的连接最简单,所以官方教程给的也是sqlite.
 
@@ -3501,10 +3503,17 @@ pg_url = "postgresql+psycopg://postgres:password123@127.0.0.1:5432/my_database"
 ```
 尽管看上去与之前的sqlite写法完全不同,但大致结构是相同的,目前先不用管它了.
 
-4. `create_engine`函数
+- 要进一步了解的话可以看[这个](https://docs.sqlalchemy.org/en/14/core/engines.html).
+
+4. `create_engine`函数根据`sqlite_url`创建了一个引擎,这个引擎负责与数据库进行连接.
+   1. `echo=True`表示会打印所以执行的SQL语句,用于调试.
+5. `SQLModel.metadata.create_all(engine)`,最后一行代码需要好好解释:
+   1. 当我们创建了`table=True`的SQLModel时,它会自动注册在SQLModel的metadata对象中
+   2. 这个metadata对象有一个create_all方法,会根据数据库的地址和注册了的SQLModel类,自动创建数据库并填充表进去
 
 如果你还记得一点SQL知识的话,就会知道在数据库中主键是**非空的**!但是上面的代码却将id这个主键的默认值设定为了None,这是为什么呢?
 
+>SQLModel会在数据保存的时候,自动按顺序设定主键,所以我们不要手动填写值,但是如果不填默认值的话,在填入数据的时候还要加上`id=None`这样的参数,这显然很麻烦,所以我们会直接给主键填上默认值`None`
 
 # Python网络框架
 - 前置知识: Restful Web API规范,基本的网络通信概念,初级的网络安全/身份认证概念.
