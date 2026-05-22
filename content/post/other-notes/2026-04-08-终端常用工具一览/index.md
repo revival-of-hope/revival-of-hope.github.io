@@ -180,7 +180,7 @@ RawContentLength  : 632441
 
 
 ## 包管理器
-### Scoop(推荐)
+### Scoop
 - [官网](https://scoop.sh/)
 
 官网的介绍很简单,只有一行:
@@ -301,29 +301,6 @@ winget默认全局安装,如果不操心应用安装位置的话,使用winget比
 
 
 
-## --version
-尽管很多工具都支持**工具名 --version**的方式查询版本,但遗憾的是有一些工具**不愿意**沿用这个惯例,所以只好单独在这里分类讨论了
-
-- 事实上,尽管大多数工具都统一使用--参数的形式,但也有不少工具使用-参数的形式,真的就没人想过统一一下吗...
-### 构建工具
-- gcc/g++
-- make
-- tar
-- git
-- cmake
-- git
-- docker
-- curl
-
-### 编程
-- python
-- node
-- npm
-- ruby
-- java: 使用`java -version`也可以
-
-### 不支持的
-- go: `go version`,何必少写那两横呢
 
 
 
