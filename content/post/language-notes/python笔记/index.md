@@ -3459,13 +3459,15 @@ class Spider(object_ref):
 鉴于SQLModel是对SQLAlchemy的封装,并且面向对象上做的比SQLAlchemy更好,所以直接学SQLModel就行了.
 ## SQLModel
 - [官网](https://sqlmodel.tiangolo.com/)
+
+### 概览
 >SQLModel is based on Python type annotations, and powered by Pydantic and SQLAlchemy
 >
 >SQLModel **can only help you with SQL Databases**.
 
 如官网所说,SQLModel只支持关系型数据库,类似Redis和MongoDB这种非关系型数据库得专门去找其他的库来处理.
 
-### 基本用法
+
 ```py
 from sqlmodel import Field, SQLModel, create_engine
 
@@ -3511,10 +3513,369 @@ pg_url = "postgresql+psycopg://postgres:password123@127.0.0.1:5432/my_database"
    1. 当我们创建了`table=True`的SQLModel时,它会自动注册在SQLModel的metadata对象中
    2. 这个metadata对象有一个create_all方法,会根据数据库的地址和注册了的SQLModel类,自动创建数据库并填充表进去
 
+6. 如果不指定表名的话,SQLModel会将类名转换为小写格式后存入数据库,也就是`hero`
+
 如果你还记得一点SQL知识的话,就会知道在数据库中主键是**非空的**!但是上面的代码却将id这个主键的默认值设定为了None,这是为什么呢?
 
 >SQLModel会在数据保存的时候,自动按顺序设定主键,所以我们不要手动填写值,但是如果不填默认值的话,在填入数据的时候还要加上`id=None`这样的参数,这显然很麻烦,所以我们会直接给主键填上默认值`None`
+### CRUD操作
+#### 插入新行
+```py
 
+def create_heroes():
+    hero_1 = Hero(name="Deadpond", secret_name="Dive Wilson")
+    hero_2 = Hero(name="Spider-Boy", secret_name="Pedro Parqueador")
+    hero_3 = Hero(name="Rusty-Man", secret_name="Tommy Sharp", age=48)
+
+    with Session(engine) as session:
+        session.add(hero_1)
+        session.add(hero_2)
+        session.add(hero_3)
+
+        session.commit()
+```
+首先我们创建了用Hero类创建了三个实例,并通过`with`关键字打开了与数据库之间的连接(session),通过add方法添加这三个实例后,通过commit方法提交更改,大功告成!
+
+- Session类接收当前创建的引擎实例作为参数
+- 向数据库提交更改的方式非常类似Git中的操作.
+
+用VScode的SQLITE VIEWER插件打开创建的数据库,发现确实成功插入了:
+![示意图](PixPin_2026-05-22_13-06-28.webp)
+
+如果我们再运行一遍代码,可以看到会重复插入数据,这也告诉我们不要在多个地方进行数据操作,否则很容易出问题:
+![示意图](PixPin_2026-05-22_13-07-35.webp)
+
+#### 读取数据
+**只使用select**
+```py
+from sqlmodel import Field, Session, SQLModel, create_engine, select
+
+class Hero(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str
+    secret_name: str
+    age: int | None = None
+
+# 省略一大段代码
+
+def select_heroes():
+    with Session(engine) as session:
+        statement = select(Hero)
+        results = session.exec(statement)
+        for hero in results:
+            print(hero)
+
+# id=1 name='Deadpond' age=None secret_name='Dive Wilson'
+# id=2 name='Spider-Boy' age=None secret_name='Pedro Parqueador'
+# id=3 name='Rusty-Man' age=48 secret_name='Tommy Sharp'
+```
+在读取数据前,我们同样需要打开与数据库的连接,但这次我们只需要写一个查询语句即可,然后通过exec方法执行查询,并得到返回结果.
+
+需要注意的是,results的类型相当复杂:
+![alt text](PixPin_2026-05-22_14-19-52.webp)
+
+我们没必要去管它的内部是怎么实现的,一般来说我们用以下几种方法处理exec得到的数据:
+1. 直接用`for ... in results`遍历,这会返回其中的每一行数据
+2. 使用results.all()一次获取所有行的数据
+3. 使用results.first()获取第一行数据,或者使用results.one()获取第一行非空数据
+
+只有select的SQL是不完整的,SQLModel还支持在select的基础上进行各种各样的过滤:
+1. where方法:
+```py
+def select_heroes():
+    with Session(engine) as session:
+        statement = select(Hero).where(Hero.name != "Deadpond")
+        results = session.exec(statement)
+        for hero in results:
+            print(hero)
+```
+2. limit方法,只获取特定的前几个结果:
+```py
+def select_heroes():
+    with Session(engine) as session:
+        statement = select(Hero).limit(3)
+        results = session.exec(statement)
+        heroes = results.all()
+        print(heroes)
+```
+3. offset方法,跳过特定的前几个结果:
+```py
+def select_heroes():
+    with Session(engine) as session:
+        statement = select(Hero).offset(3).limit(3)
+        results = session.exec(statement)
+        heroes = results.all()
+        print(heroes)
+```
+
+##### col方法
+你的编辑器在使用这些比较时可能会给你一个错误，例如
+```py
+Hero.age > 35
+```
+这将是一个错误，告诉你:
+>Hero.age 可能为 None，你不能将 None 与 > 进行比较
+
+当我们使用这些特殊的类属性在 .where() 中时，在程序执行期间，特殊的类属性会知道该比较仅适用于数据库中非 NULL 的值，并且它将正确工作。
+
+但编辑器不知道它是一个特殊的类属性，所以它试图帮助我们防止错误（在这种情况下是误报）。
+
+为此，我们可以导入 col()（“column”的缩写）
+```py
+def select_heroes():
+    with Session(engine) as session:
+        statement = select(Hero).where(col(Hero.age) >= 35)
+        results = session.exec(statement)
+        for hero in results:
+            print(hero)
+```
+这样，编辑器就知道这段代码实际上是正确的，因为这是一个特殊的 SQLModel 列。
+##### get方法
+有时候我们会通过主键的id直接选择到某一行,这时候就可以用get方法:
+```py
+def select_heroes():
+    with Session(engine) as session:
+        hero = session.get(Hero, 1)
+        print("Hero:", hero)
+```
+这在用户验证时相当有用.
+#### 更新数据
+```py
+def update_heroes():
+    with Session(engine) as session:
+        statement = select(Hero).where(Hero.name == "Spider-Boy")
+        results = session.exec(statement)
+        hero = results.one()
+        print("Hero:", hero)
+
+        hero.age = 16
+        session.add(hero)
+        session.commit()
+        session.refresh(hero)
+```
+更新数据的步骤如下:
+1. 选取要更改的数据
+2. 直接修改对应的属性
+3. 提交更改
+
+#### 删除数据
+```py
+def delete_heroes():
+    with Session(engine) as session:
+        statement = select(Hero).where(Hero.name == "Spider-Youngster")
+        results = session.exec(statement)
+        hero = results.one()
+        print("Hero: ", hero)
+
+        session.delete(hero)
+        session.commit()
+```
+删除数据的步骤如下:
+1. 选取要删除的数据
+2. 运用delete函数删除该行
+3. 提交更改
+#### 刷新数据
+在更改数据后,如果我们想立刻看到数据的更改,就需要用到session.refresh函数:
+```py
+# 1. 你创建了一个新用户，此时你只给内存传了名字
+new_user = User(name="张三") 
+session.add(new_user)
+session.commit() # 提交到了数据库
+
+# 2. 此时如果你打印 id，可能会是 None 或者旧值
+print(new_user.id) 
+
+# 3. 刷新一下，强迫程序去数据库把数据库刚生成的 id 拿回来
+session.refresh(new_user) 
+
+# 4. 现在能正确拿到数据库生成的 id 了（比如 1）
+print(new_user.id)
+```
+#### 创建索引
+在SQLModel中创建索引相当简单:
+```py
+from sqlmodel import Field, Session, SQLModel, create_engine, select
+
+
+class Hero(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    secret_name: str
+    age: int | None = Field(default=None, index=True)
+```
+只要这样就行了,我们不用做任何额外的工作,数据库在用到该索引时会自动进行优化,我们不用考虑任何事情.
+
+- 当然只为关键列创建索引就够了,否则会浪费数据库的内存.
+### 进阶操作
+#### 使用UUID作为主键
+- [官网文档](https://docs.pythonlang.cn/3/library/uuid.html)
+- [wiki](https://en.wikipedia.org/wiki/Universally_unique_identifier)
+
+UUID由128位数字组成,两个UUID相同的可能性几乎为零.由于UUID是系统随机生成的,将UUID作为主键不会向用户暴露数据库中的任何额外信息.
+
+为了在SQLModel中使用uuid,我们需要导入系统库uuid和sqlmodel中的工具库:
+```py
+import uuid
+
+from sqlmodel import Field, Session, SQLModel, create_engine, select
+
+class Hero(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    name: str = Field(index=True)
+    secret_name: str
+    age: int | None = Field(default=None, index=True)
+```
+`default_factory`参数接收一个函数,这个函数将在实例创建时给被修饰的属性赋予初始值,也就是说,在数据发送到数据库之前我们就已经为数据生成id了.
+
+之后就可以忽略这个属性的存在了,我们可以跟平常一样从数据库中获取特定uuid对应的数据.
+
+#### 多表关联
+>如同数据库中经常要用到外键引用外表一样,我们在SQLModel中也可以直接实现多个表的关联.
+##### 引用外键
+```py
+class Team(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    headquarters: str
+
+
+class Hero(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    secret_name: str
+    age: int | None = Field(default=None, index=True)
+
+    team_id: int | None = Field(default=None, foreign_key="team.id")
+```
+之后我们就可以在创建新行时指定Hero所属的team:
+```py
+
+def create_heroes():
+    with Session(engine) as session:
+        team_preventers = Team(name="Preventers", headquarters="Sharp Tower")
+        team_z_force = Team(name="Z-Force", headquarters="Sister Margaret's Bar")
+        session.add(team_preventers)
+        session.add(team_z_force)
+        session.commit()
+
+        hero_deadpond = Hero(
+            name="Deadpond", secret_name="Dive Wilson", team_id=team_z_force.id
+        )
+        hero_rusty_man = Hero(
+            name="Rusty-Man",
+            secret_name="Tommy Sharp",
+            age=48,
+            team_id=team_preventers.id,
+        )
+        hero_spider_boy = Hero(name="Spider-Boy", secret_name="Pedro Parqueador")
+        session.add(hero_deadpond)
+        session.add(hero_rusty_man)
+        session.add(hero_spider_boy)
+        session.commit()
+
+        session.refresh(hero_deadpond)
+        session.refresh(hero_rusty_man)
+        session.refresh(hero_spider_boy)
+
+        print("Created hero:", hero_deadpond)
+        print("Created hero:", hero_rusty_man)
+        print("Created hero:", hero_spider_boy)
+```
+##### 读取多个表
+SQLModel支持选取多个表:
+```py
+def select_heroes():
+    with Session(engine) as session:
+        statement = select(Hero, Team).where(Hero.team_id == Team.id)
+        results = session.exec(statement)
+        for hero, team in results:
+            print("Hero:", hero, "Team:", team)
+```
+更好的方法是使用join:
+```py
+def select_heroes():
+    with Session(engine) as session:
+        statement = select(Hero, Team).join(Team)
+        results = session.exec(statement)
+        for hero, team in results:
+            print("Hero:", hero, "Team:", team)
+```
+- `select(Hero, Team).join(Team)`可能比较难看懂,SQLModel会自动识别出Team是要`join`的表,而Hero是`from`对应的原表.
+
+SQLModel甚至还支持`left outer join`这种比较高级的SQL语法:
+```py
+def select_heroes():
+    with Session(engine) as session:
+        statement = select(Hero, Team).join(Team, isouter=True)
+        results = session.exec(statement)
+        for hero, team in results:
+            print("Hero:", hero, "Team:", team)
+```
+- 我们只需要在join方法中加上`isouter`字段就行了,如果要实现`right outer join`,把Hero放进join方法中替换即可.
+
+#### 关系属性
+SQLModel中还支持设置关系属性:
+```py
+from sqlmodel import Field, Relationship, Session, SQLModel
+
+class Team(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    headquarters: str
+
+    heroes: list["Hero"] = Relationship(back_populates="team")
+
+
+class Hero(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    secret_name: str
+    age: int | None = Field(default=None, index=True)
+
+    team_id: int | None = Field(default=None, foreign_key="team.id")
+    team: Team | None = Relationship(back_populates="heroes")
+```
+- 可以看到,这是一个一对多关系
+
+上述的关系属性声明可以帮助我们简化查询,这两段代码是等价的:
+```py
+def select_heroes():
+    with Session(engine) as session:
+        statement = select(Hero).where(Hero.name == "Spider-Boy")
+        result = session.exec(statement)
+        hero_spider_boy = result.one()
+
+# Code here omitted 👈
+
+        print("Spider-Boy's team again:", hero_spider_boy.team)
+```
+
+而`back_populates`属性的作用是将两个关系属性连接起来,只要有一边发生变化了,另一边同时也会变化并进行相应的数据库修改.
+
+##### 级联删除
+![示意图](PixPin_2026-05-23_17-16-58.webp)
+如图所示,当删除某个角色时,我们希望相关的表也自动删除,这就需要用到`cascade_delete`参数,我们应该也只能把这个属性用在被关联的,没有外键的模型上:
+```py
+class Team(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    headquarters: str
+
+    heroes: list["Hero"] = Relationship(back_populates="team", cascade_delete=True)
+
+class Hero(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    secret_name: str
+    age: int | None = Field(default=None, index=True)
+
+    team_id: int | None = Field(default=None, foreign_key="team.id")
+    team: Team | None = Relationship(back_populates="heroes")
+```
+#### 多对多关系(待补充)
+### 总结
+整体来看,SQLModel是个非常优秀的ORM框架,没有什么学习负担,基本概念都很简单,非常适合用来学习后端与数据库的交互.
+## Alembic
 # Python网络框架
 - 前置知识: Restful Web API规范,基本的网络通信概念,初级的网络安全/身份认证概念.
 
