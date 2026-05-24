@@ -4443,7 +4443,7 @@ function PostComponent() {
 # Next.js
 ## 概览
 - [官方文档](https://nextjs.org/docs)
-  - 三个月前,大概是26年2月,我第一次接触next的时候,官方文档还写的很烂,现在好像重构了一版,清晰了不少.
+  - 三个月前,大概是26年2月,我第一次接触next的时候,官方文档还写的很烂,现在重构了一版,清晰了不少.
 ### 简要介绍
 Next.js是一个全面拥抱AI的React框架,深度适配Agent,有多适配呢,甚至会在模板项目里内置AGENTS.md,你就说离不离谱吧:
 ![alt text](PixPin_2026-05-21_15-34-19.webp)
@@ -4496,6 +4496,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ![官网](PixPin_2026-05-21_15-45-15.webp)
 
 ### 基本架构和配置
+#### 文件夹
 Next通过文件系统来映射路由,用`page.tsx`文件来展示对应路由的网页:
 ```text
 app/
@@ -4512,7 +4513,64 @@ app/
 一个长长的路由示例如下:
 ![示意图](PixPin_2026-05-22_20-45-08.webp)
 
-在每一个`page.tsx`中,都需要有一个**默认导出函数**来展示最终的界面:
+- 只有`page.tsx`和`route.tsx`文件会被映射到路由,其他名字的文件不会被映射到路由:
+
+![示意图](PixPin_2026-05-23_21-55-32.webp)
+
+
+next还支持对文件夹名字做出各种各样的修改:
+
+1. 如果我们要实现动态路由,即在路由中插入变量,需要将文件夹的名字修改成`[var]`或者另外两种变体:
+
+| Next.js App Router 文件路径     | 匹配的 URL 示例                                                      | 路由模式名称                                   |
+| ------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------- |
+| `app/blog/[slug]/page.tsx`      | `/blog/my-first-post`                                                | 动态路由 (Dynamic Segment)                     |
+| `app/shop/[...slug]/page.tsx`   | `/shop/clothing`, `/shop/clothing/shirts`                            | 捕获所有路由 (Catch-all Segments)              |
+| `app/docs/[[...slug]]/page.tsx` | `/docs`, `/docs/layouts-and-pages`, `/docs/api-reference/use-router` | 可选捕获所有路由 (Optional Catch-all Segments) |
+
+2. 如果我们需要对不同功能的路由进行分组,又不希望加深一层路由,就需要用到路由组功能;如果有一些工具文件不希望被映射到路由,那就将`_`放在文件夹名字前面:
+
+| Next.js App Router 文件路径     | 匹配的 URL 路径 | 路由模式 / 特性说明                                                                                                                 |
+| ------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `app/(marketing)/page.tsx`      | `/`             | **路由组 (Route Groups)**：圆括号命名的文件夹在 URL 路径中会被完全省略。                                                            |
+| `app/(shop)/cart/page.tsx`      | `/cart`         | **共享布局路由组**：在 `(shop)` 文件夹内定义的 `layout.tsx` 会被组内所有页面（如 `/cart`）共享，而不影响 URL 结构。                 |
+| `app/blog/_components/Post.tsx` | *不可路由*      | **私有文件夹 (Private Folders)**：以底线 `_` 开头的文件夹及其子目录会被路由系统忽略。适合存放当前模块特有的 UI 组件。               |
+| `app/blog/_lib/data.ts`         | *不可路由*      | **私有文件夹 (Private Folders)**：以底线 `_` 开头的文件夹内的所有文件均不参与路由。适合存放当前模块特有的数据层代码或实用工具函数。 |
+
+
+另外一个非常重要的点就是App Router对应的文件夹就是`app`,这个名字不可更改,next会在app里开始映射路由,app根目录的文件对应的路由即为`/`.
+
+但是,next允许用src文件夹在app文件夹外面进行包裹,也就是说src文件夹下可以有路由文件夹`app`和其他的工具文件夹或者组件库,从而将所有的代码与配置文件隔离开来:
+
+![示意图](PixPin_2026-05-23_21-59-36.webp)
+
+#### 布局文件: layout.tsx
+next中使用`layout.tsx`文件来设置当前路由以及所有子路由的布局,这个名字不可改动,更令人惊讶的特性是,该文件不需要手动导入到其他文件夹中,会默认作用于当前路由,这也是通过默认导出函数实现的:
+
+
+尽管其他路由的`layout.tsx`文件是可选的,但根路径下必须有一个`layout.tsx`,且必须包含html和body标签,一般长这样:
+```tsx
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>
+        {/* 布局 UI */}
+        {/* 将 children 放在你想要渲染页面或嵌套布局的位置 */}
+        <main>{children}</main>
+      </body>
+    </html>
+  )
+}
+```
+- 这样一来,就不需要React自带的index.html了,主观上来说项目更加清晰了.
+
+#### 页面文件: page.tsx
+
+在每一个`page.tsx`中,都需要有一个**默认导出函数**来展示最终的界面,叫什么名字倒是无所谓,也没有什么意义:
 ```tsx
 import { useChatStore } from "@/store/chat";
 import ChatArea from "@/components/chat/ChatArea";
@@ -4527,8 +4585,33 @@ export default function ChatPage() {
   return <ChatArea />;
 }
 ```
+如果是动态路由下的文件,需要接收文件夹`[var]`的名字`var`作为参数:
+```tsx
+// app/blog/[slug]/page.tsx
+export default async function BlogPostPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  const post = await getPost(slug)
+ 
+  return (
+    <div>
+      <h1>{post.title}</h1>
+      <p>{post.content}</p>
+    </div>
+  )
+}
+```
 
 
+
+### 总结
+目前看来,next的路由映射做的还算不错,现在让我们看看它对React中的Hook和其他特性做了哪些封装
+
+## 基本概念
+### 链接与导航
 # 前端常用库
 
 ## Axios

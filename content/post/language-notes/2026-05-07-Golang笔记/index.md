@@ -137,12 +137,9 @@ var array_name = [...]datatype{values} // here length is inferred
 2. 使用`:=`符号:
 ```go
 array_name := [length]datatype{values} // here length is defined
-
-// or
-
-array_name := [...]datatype{values} // here length is inferred
 ```
 
+ 
 **示例代码**
 ```go
 package main
@@ -163,3 +160,5 @@ func main() {
 // [1 2 3 4 5]
 
 ```
+
+### 切片
