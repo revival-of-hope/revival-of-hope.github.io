@@ -834,7 +834,7 @@ public class Main {
 }
 ```
 - 自然,这种脱裤子放屁的事情在Java中还有很多...
-![alt text](PixPin_2026-04-27_12-38-33.webp)
+![示意图](PixPin_2026-04-27_12-38-33.webp)
 ### Java 泛型(generic)
 
 **将不同类型的数据统一处理**
@@ -945,7 +945,7 @@ method.invoke(object, 4);
 
 JDK（Java Development Kit）、JRE（Java Runtime Environment）、JVM （Java Virtual Machine）是 Java 开发中的三个重要概念，**JDK 包含了 JRE 和开发工具，JRE 包含了 JVM 和类库，JVM 是 Java 程序的运行环境**。
 
-![alt text](PixPin_2026-05-01_16-49-36.webp)
+![示意图](PixPin_2026-05-01_16-49-36.webp)
 
 这张图说的很清楚了:
 1. JDK除了包含JRE以外,还有javac,javadoc,jar等开发工具
@@ -964,7 +964,7 @@ JDK（Java Development Kit）、JRE（Java Runtime Environment）、JVM （Java 
 class文件是java文件被javac等编译器编译后得到的平台无关的**中间文件**,其地位类似于cpp/c中的目标文件(尽管cpp中的目标文件是平台相关的).
 
 一张非常简洁明了的示意图如下:
-![alt text](PixPin_2026-05-01_16-30-53.webp)
+![示意图](PixPin_2026-05-01_16-30-53.webp)
 
 
 ## Java打包(待补充)
@@ -1033,10 +1033,10 @@ class MyFirstJUnitJupiterTests {
     * **非 XML 尝试**：开始支持非 XML 的项目定义文件（如 Ruby、YAML、Groovy），解耦了内存表示与文件格式。
 ### 安装方法
 [官网](https://maven.apache.org/install.html)下载压缩包后解压,将解压路径的bin目录添加到环境变量:
-![alt text](PixPin_2026-05-01_12-50-48.webp)
+![示意图](PixPin_2026-05-01_12-50-48.webp)
 
 命令行输入`mvn -v`,成功:
-![alt text](PixPin_2026-05-01_12-51-05.webp)
+![示意图](PixPin_2026-05-01_12-51-05.webp)
 
 ### 使用方法
 #### 命令行使用
@@ -1050,19 +1050,19 @@ mvn archetype:generate '-DgroupId=com.example' '-DartifactId=my-first-app' '-Dar
 
 初始结构长这样:
 
-![alt text](PixPin_2026-05-01_16-21-14.webp)
+![示意图](PixPin_2026-05-01_16-21-14.webp)
 
 输入`mvn compile`,构建后增加了target文件夹和其中的一些文件:
 
-![alt text](PixPin_2026-05-01_16-22-10.webp)
+![示意图](PixPin_2026-05-01_16-22-10.webp)
 
 输入`mvn test`,增加了测试结果文件:
 
-![alt text](PixPin_2026-05-01_16-23-45.webp)
+![示意图](PixPin_2026-05-01_16-23-45.webp)
 
 输入`mvn package`,将项目打包成了jar:
 
-![alt text](PixPin_2026-05-01_16-26-33.webp)
+![示意图](PixPin_2026-05-01_16-26-33.webp)
 
 为了运行这个jar
 #### pom.xml
@@ -1089,7 +1089,7 @@ mvn archetype:generate '-DgroupId=com.example' '-DartifactId=my-first-app' '-Dar
 ### 安装方法
 [官网](https://docs.gradle.org/current/userguide/installation.html#installation)下载二进制版本,解压后将bin目录添加到环境变量,命令行输入`gradle -v`,成功:
 
-![alt text](PixPin_2026-05-01_12-57-34.webp)
+![示意图](PixPin_2026-05-01_12-57-34.webp)
 
 - 不要下载完整(complete)版,下了也可以,但没必要.
 

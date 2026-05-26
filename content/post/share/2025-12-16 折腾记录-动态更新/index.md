@@ -157,7 +157,7 @@ Carriage n.马车,火车车厢;运输费用 在carriage return中,carriage译为
 待我期末周回来再搞,毕竟本地看图片还是正常的
 (2026/1/18)
 修好了,只要保证都是相对路径的格式就能正常渲染,尽管我也不知道为什么
-`![alt text](../images/archives/2026/2026-01-18/PixPin_2026-01-18_14-18-42.webp)`
+`![示意图](../images/archives/2026/2026-01-18/PixPin_2026-01-18_14-18-42.webp)`
 >这大概是图片路径的最终解决方案了
 ### 觉得'hexo g -d'还是太长了
 写一个bat脚本,命名为d.bat,每次只要输一个d就可以了,完美解决懒癌,自然我还写了一个s脚本,作用是什么不言而喻
@@ -168,10 +168,10 @@ busuanzi现在天天转圈,于是换成[别人推荐的](https://youyeyejie.gith
 
 只要在以下两个地方中改一下就行了
 
-![alt text](PixPin_2026-01-30_17-39-01.webp)
+![示意图](PixPin_2026-01-30_17-39-01.webp)
 >这里插入脚本`<script defer src="https://events.vercount.one/js"></script>`
 
-![alt text](PixPin_2026-01-30_17-36-06.webp)
+![示意图](PixPin_2026-01-30_17-36-06.webp)
 >这里可以直接换成下面代码,因为busuanzi真没必要再放上去了
 ```pug
 if theme.aside.card_webinfo.enable
@@ -408,7 +408,7 @@ function hugo {
 2. hugo模板
 
 之后在根目录的.github\workflows文件夹下会出现两个新文件分别对应两个actions
-![alt text](PixPin_2026-04-24_20-08-35.webp)
+![示意图](PixPin_2026-04-24_20-08-35.webp)
 
 然后将原仓库整理好的文档一键复制到hugo仓库的content/post文件夹中,除了`cover`字段需要改成`image`字段外,其他的frontmatter都是兼容的.
 - 至于其他的初始化操作由于[官方文档](https://hugo.opendocs.io/)都写的很明白我就不加上了
@@ -417,7 +417,7 @@ function hugo {
 ### 加入gisgus评论系统
 - [参考链接](https://www.lixueduan.com/posts/blog/02-add-giscus-comment/)
 ### 配置tags界面
-![alt text](PixPin_2026-04-24_19-40-42.webp)
+![示意图](PixPin_2026-04-24_19-40-42.webp)
 在pages目录里新增该tags文件夹即可,可以这么写从而启用内置的tag-cloud样式:
 ```md
 ---
@@ -485,7 +485,7 @@ menu:
 不得不说,hugo的部署比起hexo快了好几倍,而且界面更加现代流畅.
 ## hugo增加专栏
 例如,我想要将python相关的笔记放在一起:
-![alt text](PixPin_2026-04-24_21-31-58.webp)
+![示意图](PixPin_2026-04-24_21-31-58.webp)
 可以将笔记放在**python**文件夹里,并设置_index.md和封面图片:
 
 ```md
@@ -503,7 +503,7 @@ menu:
 ```
 
 这就是效果了:
-![alt text](PixPin_2026-04-24_21-36-51.webp)
+![示意图](PixPin_2026-04-24_21-36-51.webp)
 ## 配置Google Analytics
 
 ### 1. 获取 Measurement ID

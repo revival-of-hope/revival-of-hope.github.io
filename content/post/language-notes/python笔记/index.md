@@ -1454,7 +1454,7 @@ coverage html --title "${@-coverage}"
 
 也就是说,到头来还是用pytest执行了tests文件夹里的测试,只不过多了一些其他的包装而已.
 
-![alt text](PixPin_2026-04-01_18-37-20.webp)
+![示意图](PixPin_2026-04-01_18-37-20.webp)
 - 这就是全部的测试文件了,还是很多的,这说明测试并非是无关轻重的代码部分
 
 先来看看最外层的conftest.py文件:
@@ -1772,6 +1772,22 @@ filtered_dump = model.model_dump(
 print("Standard Dump:", standard_dump)
 print("Filtered Dump:", filtered_dump)
 ```
+#### model_validate方法
+>model_validate() 方法从另一个具有属性（或字典）的对象读取数据，并创建该类的新实例
+
+例如,在数据库的CRUD中,为了安全起见,我们会这么写:
+```py
+def create_user(*, session: Session, user_create: UserCreate) -> User:
+    db_obj = User.model_validate(
+        user_create, update={"hashed_password": get_password_hash(user_create.password)}
+    )
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+```
+上述代码会核实新传入的数据是否和User类中的字段对的上,如果对不上会立刻报错,额外定义的字段会被过滤掉,而如果对的上则会保存对应字段的值,哪些没有涉及的字段通通保留默认值,并通过update参数更新自己的其他字段.
+
 #### 错误处理
 >无论Pydantic 在验证数据时发现多少个错误，都会引发一个类型为 ValidationError 的单个异常，而 ValidationError 将包含有关所有错误及其发生方式的信息。
 
@@ -2858,7 +2874,7 @@ unique_paragraph = soup.find('p', id='unique-id')
 git clone https://git.launchpad.net/beautifulsoup
 ```
 
-![alt text](image.png)
+![示意图](image.png)
 事实上,当我们翻阅源码时,会惊讶的发现这个有着20年悠久历史的Python库竟然只有这么一点文件!
 - 而且还能看到**dammit.py**这么一个神奇的名字
 
@@ -3145,7 +3161,7 @@ with sync_playwright() as p:
 ### 基本语法
 #### 同步/异步API
 - [参考](https://devtest-notes.readthedocs.io/zh/latest/web/web-testing-with-playwright-introduction.html)
-![alt text](PixPin_2026-04-03_21-42-39.webp)
+![示意图](PixPin_2026-04-03_21-42-39.webp)
 看上图就知道playwright中有两个主要的模块:sync_api和async_api,分别对应着同步和异步的请求,我们先来看同步请求的用法:
 ```py
 from playwright.sync_api import sync_playwright
@@ -3572,7 +3588,7 @@ def select_heroes():
 在读取数据前,我们同样需要打开与数据库的连接,但这次我们只需要写一个查询语句即可,然后通过exec方法执行查询,并得到返回结果.
 
 需要注意的是,results的类型相当复杂:
-![alt text](PixPin_2026-05-22_14-19-52.webp)
+![示意图](PixPin_2026-05-22_14-19-52.webp)
 
 我们没必要去管它的内部是怎么实现的,一般来说我们用以下几种方法处理exec得到的数据:
 1. 直接用`for ... in results`遍历,这会返回其中的每一行数据
@@ -4078,7 +4094,7 @@ async def app(scope, receive, send):
     })
 ```
 如果使用uv的话,命名为main.py后,运行`uv run uvicorn main:app`即可以出现这个页面:
-![alt text](PixPin_2026-05-13_14-12-28.webp)
+![示意图](PixPin_2026-05-13_14-12-28.webp)
 
 - main表示找到main.py文件,app表示main里面的app函数,也就是说uvicorn会自动启动一个叫做app的异步函数作为服务器.
 
@@ -4214,7 +4230,7 @@ async def read_item(item_id):
 ```
 
 使用Live Server插件打开后的效果如下:
-![alt text](PixPin_2026-05-14_19-31-51.webp)
+![示意图](PixPin_2026-05-14_19-31-51.webp)
 
 然后我再写一个python代码:
 ```py
@@ -4232,14 +4248,14 @@ async def helloword() -> dict:
 - **uvicorn**默认在`127.0.0.1:8000`启动服务器
 
 使用`uvicorn main:app`运行这个代码后访问前端页面:
-![alt text](PixPin_2026-05-14_19-22-19.webp)
+![示意图](PixPin_2026-05-14_19-22-19.webp)
 无论你点了按钮多少次,都是访问失败,但当我们看一下服务器终端时,却没有任何问题:
-![alt text](PixPin_2026-05-14_19-22-38.webp)
+![示意图](PixPin_2026-05-14_19-22-38.webp)
 
 这是怎么回事?
 
 在前端页面敲一下f12键调出控制台,看到这个报错:
-![alt text](PixPin_2026-05-14_19-24-56.webp)
+![示意图](PixPin_2026-05-14_19-24-56.webp)
 
 原来是我们触发了浏览器的CORS安全机制,它是什么?
 ##### CORS
@@ -4280,7 +4296,7 @@ async def helloword() -> dict:
 ```
 
 由于修改了跨域策略,我们需要重启python服务器后再访问前端:
-![alt text](PixPin_2026-05-14_19-50-59.webp)
+![示意图](PixPin_2026-05-14_19-50-59.webp)
 - 非常有效!
 
 总而言之,配合前端代码我们可以更好地理解Fastapi.
@@ -4632,7 +4648,7 @@ async def create_item(name: str):
 ```
 由于数字太难记了,fastapi还内置了智能的类型补全:
 
-![alt text](PixPin_2026-05-17_10-35-55.webp)
+![示意图](PixPin_2026-05-17_10-35-55.webp)
 
 导入status库后即可使用这种更为清晰的状态码.
 #### 返回错误
@@ -4918,7 +4934,7 @@ async def read_users_me(current_user: Annotated[User, Depends(get_current_user)]
   - 一切加密和解密的流程都由后端自动执行,不必过多操心.
 
 进入jwt官网后,我们可以看到如下界面:
-![alt text](PixPin_2026-05-18_18-52-48.webp)
+![示意图](PixPin_2026-05-18_18-52-48.webp)
 
 一个JWT由三部分明文加密构成:
 1. Header(头部): 声明使用的加密算法和token的种类,这里使用的算法是**HS256**,也是最通用的加密算法,它会将数据加密成一个极难被反向破解的字符串.
@@ -4983,7 +4999,7 @@ def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
 ```
 
 jwt库本身支持不少的加密算法,但我们只使用最常用的sha256就可以了:
-![alt text](PixPin_2026-05-19_13-22-33.webp)
+![示意图](PixPin_2026-05-19_13-22-33.webp)
 ##### 前置概念: 如何加密密码
 - [一个非常好的介绍文章](https://draven.co/whys-the-design-password-with-md5/)
 
@@ -5161,10 +5177,729 @@ def get_password_hash(password: str) -> str:
 ### ch3: 使用fastapi处理数据库
 >FastAPI 并不要求你使用 SQL（关系型）数据库。你可以使用你想用的任何数据库。
 
-### ch4: 使用fastapi进行测试
+由于SQLModel的作者与fastapi的作者是同一个人,所以这两个库是高度适配的,我接下来也会按照fastapi的官方教程来展示使用fastapi处理SQLModel.
 
-### ch5: 使用fastapi搭建智能体
-本部分主要会使用fastapi处理deepseek api,并使用一点初步的RAG技术来处理文件.
+#### 搭建初始环境
+```py
+from fastapi import FastAPI
+from sqlmodel import Field, Session, SQLModel, create_engine, select
+
+
+class Hero(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    secret_name: str
+    age: int | None = Field(default=None, index=True)
+
+
+sqlite_file_name = "database.db"
+sqlite_url = f"sqlite:///{sqlite_file_name}"
+
+connect_args = {"check_same_thread": False}
+
+engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
+
+
+def create_db_and_tables():
+    SQLModel.metadata.create_all(engine)
+
+
+app = FastAPI()
+
+
+@app.on_event("startup")
+def on_startup():
+    create_db_and_tables()
+
+
+@app.post("/heroes/")
+def create_hero(hero: Hero):
+    with Session(engine) as session:
+        session.add(hero)
+        session.commit()
+        session.refresh(hero)
+        return hero
+
+
+@app.get("/heroes/")
+def read_heroes():
+    with Session(engine) as session:
+        heroes = session.exec(select(Hero)).all()
+        return heroes
+```
+需要分析的点如下:
+1. `connect_args = {"check_same_thread": False}`: 由于sqlite是默认使用单线程的数据库,异步调用时有可能出现多个线程共用一个链接的情况,这时候sqlite就会报错,所以我们需要通过设置跳过sqlite对多线程的检查.
+2. `@app.on_event("startup")`: 该语法糖修饰的函数会在后端服务启动时执行,帮助我们插入Hero表.尽管这样确实很方便,但在生产环境中我们有更加安全的做法,留待最后说明
+3. `create_hero`函数会从消息体提取出用户传来的新英雄,然后插入到数据库中并返回.
+
+#### 针对客户请求做出响应
+例如.我们可以使用路由中的查询参数:
+```py
+from fastapi import FastAPI, HTTPException, Query
+from sqlmodel import Field, Session, SQLModel, create_engine, select
+
+# Code here omitted 👈
+
+@app.get("/heroes/", response_model=list[HeroPublic])
+def read_heroes(offset: int = 0, limit: int = Query(default=100, le=100)):
+    with Session(engine) as session:
+        heroes = session.exec(select(Hero).offset(offset).limit(limit)).all()
+        return heroes
+```
+至于其他的用法基本都差不多,所以直接给出教程中的完整代码:
+```py
+from fastapi import Depends, FastAPI, HTTPException, Query
+from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
+
+
+class TeamBase(SQLModel):
+    name: str = Field(index=True)
+    headquarters: str
+
+
+class Team(TeamBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+
+    heroes: list["Hero"] = Relationship(back_populates="team")
+
+
+class TeamCreate(TeamBase):
+    pass
+
+
+class TeamPublic(TeamBase):
+    id: int
+
+
+class TeamUpdate(SQLModel):
+    id: int | None = None
+    name: str | None = None
+    headquarters: str | None = None
+
+
+class HeroBase(SQLModel):
+    name: str = Field(index=True)
+    secret_name: str
+    age: int | None = Field(default=None, index=True)
+
+    team_id: int | None = Field(default=None, foreign_key="team.id")
+
+
+class Hero(HeroBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+
+    team: Team | None = Relationship(back_populates="heroes")
+
+
+class HeroPublic(HeroBase):
+    id: int
+
+
+class HeroCreate(HeroBase):
+    pass
+
+
+class HeroUpdate(SQLModel):
+    name: str | None = None
+    secret_name: str | None = None
+    age: int | None = None
+    team_id: int | None = None
+
+
+class HeroPublicWithTeam(HeroPublic):
+    team: TeamPublic | None = None
+
+
+class TeamPublicWithHeroes(TeamPublic):
+    heroes: list[HeroPublic] = []
+
+
+sqlite_file_name = "database.db"
+sqlite_url = f"sqlite:///{sqlite_file_name}"
+
+connect_args = {"check_same_thread": False}
+engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
+
+
+def create_db_and_tables():
+    SQLModel.metadata.create_all(engine)
+
+
+def get_session():
+    with Session(engine) as session:
+        yield session
+
+
+app = FastAPI()
+
+
+@app.on_event("startup")
+def on_startup():
+    create_db_and_tables()
+
+
+@app.post("/heroes/", response_model=HeroPublic)
+def create_hero(*, session: Session = Depends(get_session), hero: HeroCreate):
+    db_hero = Hero.model_validate(hero)
+    session.add(db_hero)
+    session.commit()
+    session.refresh(db_hero)
+    return db_hero
+
+
+@app.get("/heroes/", response_model=list[HeroPublic])
+def read_heroes(
+    *,
+    session: Session = Depends(get_session),
+    offset: int = 0,
+    limit: int = Query(default=100, le=100),
+):
+    heroes = session.exec(select(Hero).offset(offset).limit(limit)).all()
+    return heroes
+
+
+@app.get("/heroes/{hero_id}", response_model=HeroPublicWithTeam)
+def read_hero(*, session: Session = Depends(get_session), hero_id: int):
+    hero = session.get(Hero, hero_id)
+    if not hero:
+        raise HTTPException(status_code=404, detail="Hero not found")
+    return hero
+
+
+@app.patch("/heroes/{hero_id}", response_model=HeroPublic)
+def update_hero(
+    *, session: Session = Depends(get_session), hero_id: int, hero: HeroUpdate
+):
+    db_hero = session.get(Hero, hero_id)
+    if not db_hero:
+        raise HTTPException(status_code=404, detail="Hero not found")
+    hero_data = hero.model_dump(exclude_unset=True)
+    db_hero.sqlmodel_update(hero_data)
+    session.add(db_hero)
+    session.commit()
+    session.refresh(db_hero)
+    return db_hero
+
+
+@app.delete("/heroes/{hero_id}")
+def delete_hero(*, session: Session = Depends(get_session), hero_id: int):
+    hero = session.get(Hero, hero_id)
+    if not hero:
+        raise HTTPException(status_code=404, detail="Hero not found")
+    session.delete(hero)
+    session.commit()
+    return {"ok": True}
+
+
+@app.post("/teams/", response_model=TeamPublic)
+def create_team(*, session: Session = Depends(get_session), team: TeamCreate):
+    db_team = Team.model_validate(team)
+    session.add(db_team)
+    session.commit()
+    session.refresh(db_team)
+    return db_team
+
+
+@app.get("/teams/", response_model=list[TeamPublic])
+def read_teams(
+    *,
+    session: Session = Depends(get_session),
+    offset: int = 0,
+    limit: int = Query(default=100, le=100),
+):
+    teams = session.exec(select(Team).offset(offset).limit(limit)).all()
+    return teams
+
+
+@app.get("/teams/{team_id}", response_model=TeamPublicWithHeroes)
+def read_team(*, team_id: int, session: Session = Depends(get_session)):
+    team = session.get(Team, team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    return team
+
+
+@app.patch("/teams/{team_id}", response_model=TeamPublic)
+def update_team(
+    *,
+    session: Session = Depends(get_session),
+    team_id: int,
+    team: TeamUpdate,
+):
+    db_team = session.get(Team, team_id)
+    if not db_team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    team_data = team.model_dump(exclude_unset=True)
+    db_team.sqlmodel_update(team_data)
+    session.add(db_team)
+    session.commit()
+    session.refresh(db_team)
+    return db_team
+
+
+@app.delete("/teams/{team_id}")
+def delete_team(*, session: Session = Depends(get_session), team_id: int):
+    team = session.get(Team, team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    session.delete(team)
+    session.commit()
+    return {"ok": True}
+```
+- 如果认真学习过fastapi和sqlmodel的话,看到这段代码应该不会有什么难点了
+
+
+### ch4: 使用fastapi进行测试(待补充)
+>没有测试的代码不是好代码
+
+
+### ch5: 使用fastapi+nextjs搭建简单智能体
+>本部分主要会使用fastapi处理deepseek api,这并不需要用到数据库来存储任何信息,所有的信息都在运行时处理.至于前端部分我会大致介绍路由操作,UI等布局细节就由组件库和AI帮我搞定了.
+
+**最终效果:**
+![示意图](PixPin_2026-05-24_23-47-49.webp)
+
+#### 前置概念: openai库使用
+- [Deepseek API文档](https://api-docs.deepseek.com/zh-cn/)
+  - 由于OpenAI的官方文档拒绝我访问(??),所以只好看Deepseek的API文档了.
+
+>现在,大部分AI api都使用OpenAI的API规范,包括所有的国产AI,尽管Claude还不支持...
+##### 基本用法
+**概览代码**
+```py
+# Please install OpenAI SDK first: `pip3 install openai`
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ.get('DEEPSEEK_API_KEY'),
+    base_url="https://api.deepseek.com")
+
+response = client.chat.completions.create(
+    model="deepseek-v4-pro",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant"},
+        {"role": "user", "content": "Hello"},
+    ],
+    stream=False,
+    reasoning_effort="high",
+    extra_body={"thinking": {"type": "enabled"}}
+)
+
+print(response.choices[0].message.content)
+```
+1. 首先使用OpenAI类创建一个client实例,填入api key和该api的网址
+2. 接着,我们调用该api的对话补全功能,你可能像我一样会很好奇为什么不直接写成`client.create`,而是多了两个中间层,那是因为AI api的功能确实很多:
+```text
+client (根客户端)
+├── chat (聊天业务域)
+│   └── completions (对话补全子功能) -> create()
+├── images (图像业务域)
+│   ├── generate() (文本生图)
+│   ├── edit()     (图片编辑)
+│   └── create_variation()
+├── audio (音频业务域)
+│   ├── transcriptions() (语音转文字)
+│   └── translations()   (语音翻译)
+└── embeddings (向量业务域)
+    └── create() (文本向量化)
+```
+
+>而我们的智能体应用只用对话补全功能就够了,其他的功能deepseek也不支持.
+
+3. messages里有两个键值对,标明为`system`的提示词会具有最高权重,在对话开始的时候就发送给接口,表明为`user`的则为用户输入的提示词.
+4. `stream`表示流式输出,如果设定为False,则会一口气返回所有内容,用户会感受到明显的阻塞,所以实际的智能体应用都会设定为True
+5. `reasoning_effort`: 推理能力,支持以下设定值,"none", "minimal", "low", "medium", "high", "xhigh".
+6. `extra_body={"thinking": {"type": "enabled"}}`: 由于openai库还不支持单独使用推理能力,所以deepseek只好在api上加上额外的信息设置thinking字段为`enabled`,来启动思考模式.
+7. 非流式输出的response样例如下:
+```json
+{
+  "id": "chatcmpl-9A7bC...",
+  "object": "chat.completion",
+  "created": 1713876000,
+  "model": "deepseek-v4-pro",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "你好！我是大语言模型。"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 15,
+    "completion_tokens": 12,
+    "total_tokens": 27
+  }
+}
+```
+
+使用智能体时,有时候由于两个回答的权重过于相近,AI会让我们来选择自己更喜欢的回答.但api调用的话不可能这样干,但是我们可以在使用api的时候选择自己想要的回答数量n,api会返回权重最高的前n个回答.
+
+>尽管如此,deepseek目前还只支持返回一个回答,如果你设定n>=2的话,会返回错误码说明:`'message': 'Invalid n value (currently only n = 1 is supported)'`
+
+我们可以自己写一段代码,来测试一下效果:
+```py
+response = client.chat.completions.create(
+    model="deepseek-v4-pro",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant"},
+        {"role": "user", "content": "请你写一篇800字的高考励志作文"},
+    ],
+    stream=False,
+    reasoning_effort="high",
+    extra_body={"thinking": {"type": "enabled"}},
+)
+
+print(response.choices[0])
+```
+返回内容如下:
+```json
+{
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "logprobs": null,
+      "message": {
+        "role": "assistant",
+        "content": "## 花开不败\n\n百日誓师的声浪犹在耳畔，高考倒计时的数字已如秋叶般飘零。时光真是个奇妙的存在，我们拼命追逐时它步履蹒跚，我们贪恋不舍时它却如白驹过隙。\n\n...\n\n高考的意义，不仅在于那一纸红彤彤的录取通知书，更在于让我们相信，努力的价值，坚持的意义，以及梦想终会开花的奇迹。\n\n没有比脚更长的路，没有比人更高的山。今天，我们站在这里，回眸是春花秋月，是书山学海；眺望是夏云冬雪，是诗和远方。",
+        "refusal": null,
+        "reasoning_content": "用户需要一篇800字的高考励志作文。这是一个明确的创作任务，需要生成一篇符合高考作文要求的文章。\n\n用户的核心需求是获得一篇能激励人心、结构完整、文笔流畅的作文。深层需求可能包括：希望作文立意深刻、有文采、能体现奋斗和人生价值等主题。高考励志作文通常需要回顾备考历程，展现坚持与成长，并传递积极向上的价值观。\n\n想到了可以从几个方面来构思：开篇可以用一个生动的意象或比喻引入，比如时光的痕迹或成长的瞬间；主体部分可以分层次展开，描写备考的艰辛、坚持的意义、心态的调整，并联系更深远的生命价值；结尾要升华主题，鼓舞士气，展望未来。整体语言需要富有感染力，适当运用排比、比喻等修辞手法，保持积极昂扬的基调。\n\n可以开始创作了。",
+        "annotations": null,
+        "audio": null,
+        "function_call": null,
+        "tool_calls": null
+      }
+    }
+  ]
+}
+```
+##### 多轮对话
+大模型是只会考虑当前输入的,要想让模型能够"记忆"之前的输入,一个非常简单的做法是在这次输入中加上上一轮对话的输入输出:
+```py
+# 第 1 轮请求
+messages = [
+    {"role": "user", "content": "你好，我是张三"}
+] # 模型返回：{"role": "assistant", "content": "你好，张三！"}
+
+# 第 2 轮请求（必须携带第 1 轮的全部内容）
+messages = [
+    {"role": "user", "content": "你好，我是张三"},
+    {"role": "assistant", "content": "你好，张三！"},
+    {"role": "user", "content": "我刚才说我叫什么？"}
+]
+```
+
+显然,当对话轮数一多,由于token限制,模型就无法完整获取全部的上下文了,这种做法是完全不可接受的.
+
+>一个比较异想天开的想法是,调用API或者另一个本地AI来处理以前的对话记录,变成一段较短的记录,当然,这确实比较好实现,但仍然不是长久之计.
+
+实际生产中我们会通过KV cache等构建机制来实现多轮对话,但我们这个项目出于简化的目的,甚至不会用到多轮对话,就不用操心这些问题了.
+
+
+
+##### 流式输出
+- 流式输出(stream): API不断输出消息块,后端不断接收消息块,在前端展现出文字逐个输出的效果.
+
+在openai库中,流式输出实质上是通过一个可被迭代的生成器实现的,具体原理不太有必要了解,我们看看怎么使用:
+
+```py
+from openai import OpenAI
+client = OpenAI(api_key="<DeepSeek API Key>", base_url="https://api.deepseek.com")
+
+def stream_agent():
+    messages = [{"role": "user", "content": "9.11 and 9.8, which is greater?"}]
+    response = client.chat.completions.create(
+        model="deepseek-v4-pro",
+        messages=messages,
+        stream=True,
+        reasoning_effort="high"
+        extra_body={"thinking": {"type": "enabled"}},
+    )
+
+    for chunk in response:
+        # 某些 chunk 可能没有 choices，保险起见先判断。
+        if not chunk.choices:
+            continue
+
+        # delta 表示“这一次新增的内容”。
+        delta = chunk.choices[0].delta
+
+        # delta.content 可能是 None。
+        # 只有真的有文本内容时，才 yield 给外部。
+        if delta.content:
+            yield delta.content
+```
+流式输出中,我们通过chunk对象来获取文本块,并使用delta对象来获取新增的内容,并通过生成器供其他函数使用,至于怎么使用,就要用到fastapi的`StreamingResponse`类了
+
+#### StreamingResponse类
+>fastapi默认返回JSON响应,也就是一次返回全部内容,如果想要流式传输纯字符串,或者传输音频或者视频,就需要用到这个类.
+
+官方示例:
+```py
+from collections.abc import AsyncIterable, Iterable
+
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+
+app = FastAPI()
+
+
+message = """
+Rick: (stumbles in drunkenly, and turns on the lights) Morty! You gotta come on. You got--... you gotta come with me.
+Morty: (rubs his eyes) What, Rick? What's going on?
+Rick: I got a surprise for you, Morty.
+Morty: It's the middle of the night. What are you talking about?
+Rick: (spills alcohol on Morty's bed) Come on, I got a surprise for you. (drags Morty by the ankle) Come on, hurry up. (pulls Morty out of his bed and into the hall)
+Morty: Ow! Ow! You're tugging me too hard!
+Rick: We gotta go, gotta get outta here, come on. Got a surprise for you Morty.
+"""
+
+
+@app.get("/story/stream", response_class=StreamingResponse)
+async def stream_story() -> AsyncIterable[str]:
+    for line in message.splitlines():
+        yield line
+
+
+@app.get("/story/stream-no-async", response_class=StreamingResponse)
+def stream_story_no_async() -> Iterable[str]:
+    for line in message.splitlines():
+        yield line
+
+
+@app.get("/story/stream-no-annotation", response_class=StreamingResponse)
+async def stream_story_no_annotation():
+    for line in message.splitlines():
+        yield line
+
+
+@app.get("/story/stream-no-async-no-annotation", response_class=StreamingResponse)
+def stream_story_no_async_no_annotation():
+    for line in message.splitlines():
+        yield line
+
+
+@app.get("/story/stream-bytes", response_class=StreamingResponse)
+async def stream_story_bytes() -> AsyncIterable[bytes]:
+    for line in message.splitlines():
+        yield line.encode("utf-8")
+
+
+@app.get("/story/stream-no-async-bytes", response_class=StreamingResponse)
+def stream_story_no_async_bytes() -> Iterable[bytes]:
+    for line in message.splitlines():
+        yield line.encode("utf-8")
+
+
+@app.get("/story/stream-no-annotation-bytes", response_class=StreamingResponse)
+async def stream_story_no_annotation_bytes():
+    for line in message.splitlines():
+        yield line.encode("utf-8")
+
+
+@app.get("/story/stream-no-async-no-annotation-bytes", response_class=StreamingResponse)
+def stream_story_no_async_no_annotation_bytes():
+    for line in message.splitlines():
+        yield line.encode("utf-8")
+```
+- `response_class`: 设置响应体的种类,默认为`JSONResponse`,指定其他的响应体种类时,fastapi底层会进行相应的调整.
+  - 设置为`StreamingResponse`时会自动在HTTP响应头中加入以下字段:`Content-Type: text/plain; charset=utf-8`,并逐块向前端发送数据.
+- 上述的代码很长,但只是在以不同方式传输同一个长字符串而已,有的使用了类型注释,有的将字符串转换成了二进制流. 
+
+无论怎样,底层的原理我们没必要了解,只要知道`StreamingResponse`类能够轻松实现流式输出.
+
+我们还可以将`StreamingResponse`显式写入返回值里,可以进行自己的定制化操作:
+```py
+@app.post("/api/chat")
+async def chat(request: ChatMessage) -> StreamingResponse:
+    return StreamingResponse(
+        stream_agent(request.message),
+        media_type="text/plain; charset=uft-8",
+    )
+```
+- 第一个参数为某个生成器函数,第二个参数则为我们自己定制的媒体类型
+
+
+#### 路由构想
+>如果不靠ai的话,初学者是很难自己设计出一个能用的路由的,建议不断阅读优秀项目的api设计来学习怎么写路由.
+
+我最简化了项目的路由操作,只保留了两个前端路由: `auth`和`chat`,一个对应从数据库中获取用户数据并认证,另一个对应了从API调用信息并返回.前端通过调用后端的api来模拟数据库交互,并调用大模型输出流.
+
+#### 后端编写
+整个后端加起来就四个文件,去掉了数据库操作,安全验证,严格的类型检查,测试代码,从而凸显出真正重要的核心代码部分:
+![示意图](PixPin_2026-05-24_23-54-46.webp)
+
+1. `route.py`,核心中的核心,总共只写了三个路由:
+
+```py
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from app.core.client import stream_agent
+
+app = FastAPI()
+
+
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class ChatMessage(BaseModel):
+    message: str
+
+
+@app.get("/api/health")
+async def homepage() -> dict:
+    return {"message": "Hello,World!"}
+
+
+@app.get("/api/auth")
+async def check() -> dict:
+    return {
+        "message": "我懒得写验证了,你直接进来吧",
+        "ok": True,
+    }
+
+
+@app.post("/api/chat", response_class=StreamingResponse)
+async def chat(request: ChatMessage):
+    return stream_agent(request.message)
+```
+- `/api/health`用于检查与后端是否正常连接,模拟的是实际生产中的数据库健康检查
+- `/api/auth`用于验证用户,模拟的是实际生产中的用户注册和验证
+- `/api/chat`用于调用deepseek API
+
+2. `client.py`,调用deepseek API:
+```py
+from app.utils.config import settings
+from openai import OpenAI
+from typing import Generator
+
+client = OpenAI(
+    api_key=settings.DEEPSEEK_API_KEY,
+    base_url=settings.DEEPSEEK_URL,
+)
+
+DEFAULT_MODEL = "deepseek-v4-pro"
+
+DEFAULT_SYSTEM_PROMPT = """
+以后的回答都要称呼我为李华,优先输出"你好,李华!"
+"""
+
+
+def stream_agent(
+    user_message: str,
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    model: str = DEFAULT_MODEL,
+) -> Generator[str, None, None]:
+
+    # 创建流式请求。
+    stream = client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "system",
+                "content": system_prompt,
+            },
+            {
+                "role": "user",
+                "content": user_message,
+            },
+        ],
+        stream=True,
+        reasoning_effort="high",
+    )
+
+
+    for chunk in stream:
+        # 某些 chunk 可能没有 choices，保险起见先判断。
+        if not chunk.choices:
+            continue
+
+        # delta 表示“这一次新增的内容”。
+        delta = chunk.choices[0].delta
+
+        # delta.content 可能是 None。
+        # 只有真的有文本内容时，才 yield 给外部。
+        if delta.content:
+            yield delta.content
+```
+3. `config.py`,从根目录的环境变量文件中读取api key:
+```py
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file="../.env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_URL: str = "https://api.deepseek.com"
+
+
+settings = Settings()
+```
+
+4. `main.py`,用uvicorn启动fastapi后端:
+```py
+import uvicorn
+from app.core.route import app
+
+
+def main():
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        workers=1,
+    )
+
+
+if __name__ == "__main__":
+    main()
+```
+
+>整体来说没有任何难理解的地方,不太可能有比这还简单还安全的实现方法了.
+
+#### 前端编写
+1. 初始化nextjs框架:
+```bash
+pnpm create next-app@latest frontend --use-pnpm
+```
+2. 进入前端文件夹后单独导入自己喜欢的shadcn样式:
+```bash
+pnpm dlx shadcn@latest init --preset b0
+```
+3. 加入一些常用的组件:
+```bash
+pnpm dlx shadcn@latest add button card input textarea
+```
+
+之后按照这个示意图添加两个路由文件和两个工具文件`api.ts`即可,其他的文件都是上述初始化过程自带的:
+![示意图](PixPin_2026-05-25_16-05-36.webp)
+
+1. `config/api.ts`: 核心路由,模拟
+
+#### 缓存问题
+如果你成功的按照上述教程编写了所有的前端和后端,与AI对话时你会发现并没有实现流式输出,相反,所有消息都是一次性吐出来的:
+![效果图](PixPin_2026-05-25_16-09-23.webp)
 
 ### ch6: 使用docker部署fastapi
 

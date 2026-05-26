@@ -93,33 +93,33 @@ The **project** operation is a unary operation that returns its argument relatio
 “Find the names of all instructors in the Physics department.”:
 `Π name (σ dept_name = “Physics” (instructor))`
 ### The Cartesian-Product Operation
-![alt text](PixPin_2026-03-26_09-03-48.webp)
+![示意图](PixPin_2026-03-26_09-03-48.webp)
 - 也就是说关系上的笛卡尔积会生成一个nxm大小的单元组表
 
 ### The Join Operation
-![alt text](PixPin_2026-03-26_09-08-22.webp)
+![示意图](PixPin_2026-03-26_09-08-22.webp)
 注意这里的join没有过滤掉重复的id列!
-![alt text](PixPin_2026-03-26_09-10-02.webp)
+![示意图](PixPin_2026-03-26_09-10-02.webp)
 
 ### Set Operations
 求并集(union)的前提条件:
 1. 输入的两个关系具有相同数量的属性
 2. 当属性相关联时,两个关系中对应属性的类型必须相同
-![alt text](PixPin_2026-03-26_09-16-15.webp)
+![示意图](PixPin_2026-03-26_09-16-15.webp)
 
 求交集(intersection):
-![alt text](PixPin_2026-03-26_09-19-11.webp)
+![示意图](PixPin_2026-03-26_09-19-11.webp)
 
 求集差(set-diﬀerence):
-![alt text](PixPin_2026-03-26_09-21-50.webp)
+![示意图](PixPin_2026-03-26_09-21-50.webp)
 ### The Assignment Operation
 >It is convenient at times to write a relational-algebra expression by assigning parts of it to temporary relation variables. 
 The **assignment** operation, denoted by **←**, works like assignment in a programming language.
 
-![alt text](PixPin_2026-03-26_09-24-00.webp)
+![示意图](PixPin_2026-03-26_09-24-00.webp)
 ### The Rename Operation
 >The **rename** operator  refers to  the results of relational-algebra expressions,denoted by the lowercase Greek letter rho (ρ).
-![alt text](PixPin_2026-03-27_08-46-34.webp)
+![示意图](PixPin_2026-03-27_08-46-34.webp)
 
 # Introduction to SQL
 ### Overview of the SQL Query Language
@@ -1888,7 +1888,7 @@ where student.ID = takes.ID;
 以left outer join为例子来说明:
 1. The attributes of tuple r that are **derived from** the left-hand-side relation are ﬁlled in with the values from tuple t.
 2. The remaining attributes of r are ﬁlled with **null values**.
-![alt text](PixPin_2026-03-30_10-42-15.webp)
+![示意图](PixPin_2026-03-30_10-42-15.webp)
 
 ```sql
 select ID
@@ -1918,7 +1918,7 @@ where semester = 'Spring' and year = 2017);
 - relationship: 多个实体之间的关系
 - relationship set: 相同类型的联系集合
 
-![alt text](PixPin_2026-04-09_09-40-11.webp)
+![示意图](PixPin_2026-04-09_09-40-11.webp)
 
 - 看这个图就很好理解了,单独的两个实体,如Crick和Tanaka之间的关系就是relationship,而实体集之间的映射关系就是relationship set
 ## E-R图
@@ -1937,16 +1937,16 @@ where semester = 'Spring' and year = 2017);
 - 成绩（Grade）：这个属性既不能放在学生表（因为学生选不同课成绩不同），也不能放在课程表（因为不同学生上这门课成绩不同）。它必须依附于“选修”这个联系。
 
 转换成关系模式时,将多对多的联系集单独转换成一张独立的物理表即可,该表的主键为两端实体主键的集合,而描述性属性作为普通字段.
-![alt text](PixPin_2026-04-09_09-37-00.webp)
+![示意图](PixPin_2026-04-09_09-37-00.webp)
 
 - **映射基数(mapping cardinality)**: 一个实体通过一个联系集关联的其他实体的数量,有以下四种:
   - 一对一: 从联系集到两个实体集各画一个有向线段
   - 一对多: "多方"使用无向线段连接,"一方"使用有向线段
   - 多对一: 与一对多刚好相反
   - 多对多: 两边都是无向线段
-![alt text](PixPin_2026-04-10_08-44-57.webp)
+![示意图](PixPin_2026-04-10_08-44-57.webp)
 
-![alt text](PixPin_2026-04-10_10-05-54.webp)
+![示意图](PixPin_2026-04-10_10-05-54.webp)
 
 >The participation of an entity set E in a relationship set R is said to be **total** if every entity in E must participate in **at least one** relationship in R. 
 If it is possible that some entities in E do not participate in relationships in R, the participation of entity set E in relationship R is said to be **partial**.
@@ -1956,7 +1956,7 @@ If it is possible that some entities in E do not participate in relationships in
 
 
 ### 汇总
-![alt text](PixPin_2026-04-10_10-35-46.webp)
+![示意图](PixPin_2026-04-10_10-35-46.webp)
 
 
 # Relational Database Design
@@ -1984,7 +1984,7 @@ from(select R1 from r)
 - **闭包(closure)**: 从给定的关系r(R)上成立的函数依赖集合F中推导出的所有函数依赖的集合,*类似于离散数学中的闭包概念*.
 
 那么R1和R2能够构成R的无损分解的条件是,以下函数依赖中至少有一个是在R导出的闭包中:
-![alt text](PixPin_2026-05-14_12-54-25.webp)
+![示意图](PixPin_2026-05-14_12-54-25.webp)
 
 例如:
 ```sql
@@ -2072,7 +2072,7 @@ department (dept_name, building, budget)
 
 伪代码计算闭包:
 
-![alt text](PixPin_2026-05-16_10-58-12.webp)
+![示意图](PixPin_2026-05-16_10-58-12.webp)
 
 - 真这么写的话是要疯的
 
@@ -2157,13 +2157,13 @@ department (dept_name, building, budget)
 
 一道例题如下,不用过多讲解:
 
-![alt text](PixPin_2026-05-16_12-55-29.webp)
+![示意图](PixPin_2026-05-16_12-55-29.webp)
 
 ### 4NF分解
 如果一个满足BCNF的关系表中有两个关于同一个属性R的多值依赖,那么它仍然违反了4NF,需要将这两个多值依赖分别拆分出来,才能让属性R变成超码.
 ## 时态函数依赖
 有时候我们会对一个数据设定有效期,用`start`和`end`两个变量表示:
-![alt text](PixPin_2026-05-17_14-46-59.webp)
+![示意图](PixPin_2026-05-17_14-46-59.webp)
 
 - 快照(snapshot): 某个元组在特定时刻的数据值.
 
@@ -2293,7 +2293,7 @@ Information-retrieval systems therefore estimate relevance of documents to a que
 - TF: term frequency
 
 One way of measuring TF(d, t), the relevance of a term t to a document d, is:
-![alt text](PixPin_2026-04-14_10-07-26.webp)
+![示意图](PixPin_2026-04-14_10-07-26.webp)
 where n(d) denotes the number of term occurrences in the document and n(d, t) denotes the number of occurrences of term t in the document d.
 
 >However, not all terms used as keywords are equal. Suppose a query uses two terms, one
@@ -2303,10 +2303,10 @@ ranked higher than a document containing the term “database” but not “Silb
 
 To ﬁx this problem, weights are assigned to terms using the inverse document fre-
 quency (IDF), deﬁned as:
-![alt text](PixPin_2026-04-14_10-12-52.webp)
+![示意图](PixPin_2026-04-14_10-12-52.webp)
 
 where n(t) denotes the number of documents (among those indexed by the system) that contain the term t. The **relevance** of a document d to **a set of terms Q** is then deﬁned as:
-![alt text](PixPin_2026-04-14_10-13-55.webp)
+![示意图](PixPin_2026-04-14_10-13-55.webp)
 
 >Almost all text documents (in English) contain words such as “and,” “or,” “a,” and
 so on, and hence these words are useless for querying purposes since their inverse doc-
@@ -2358,19 +2358,19 @@ Two types of spatial data are particularly important:
 
 这里的`一对多`和`多对一`如果不好理解的话,可以把`对`看成一个动作指向动词.比如说`一对多`中,A的一个实体**对应了**B中的多个实体.
 
-![alt text](PixPin_2026-05-07_15-52-57.webp)
+![示意图](PixPin_2026-05-07_15-52-57.webp)
 ### E-R图
 **实体集**用矩形来表示:
-![alt text](PixPin_2026-05-07_15-29-05.webp)
+![示意图](PixPin_2026-05-07_15-29-05.webp)
 
 **弱实体集**用双边框矩形表示:
-![alt text](PixPin_2026-05-12_16-59-41.webp)
+![示意图](PixPin_2026-05-12_16-59-41.webp)
 
 **联系集**用菱形来表示:
-![alt text](PixPin_2026-05-07_15-42-03.webp)
+![示意图](PixPin_2026-05-07_15-42-03.webp)
 
 关联弱实体集的强实体集与弱实体集之间的**联系集**用双边框菱形来表示:
-![alt text](PixPin_2026-05-12_17-00-32.webp)
+![示意图](PixPin_2026-05-12_17-00-32.webp)
 
 **映射基数**用有向线段和无向线段来区分,有向线段表示从另一边**只能触及箭头指向方的一个实体**,无向线段表示从另一边指向这一方**没有任何指向限制**:
 
@@ -2466,7 +2466,7 @@ RDF(Resource Description Framework)使用以下两种形式的三元组来标识
 1. `(ID, attribute-name, value)`
 2. `(ID1, relationship-name, ID2)`
 
-![alt text](PixPin_2026-05-15_10-01-41.webp)
+![示意图](PixPin_2026-05-15_10-01-41.webp)
 三元组中的第一个属性被称为subject,第二个被称为predicate(谓词),第三个被称为object.
 
 RDF有以下特性:
@@ -2474,7 +2474,7 @@ RDF有以下特性:
 2. 可以简单的用图像来表示
 
 **一张示意图**
-![alt text](PixPin_2026-05-15_10-09-40.webp)
+![示意图](PixPin_2026-05-15_10-09-40.webp)
 
 >For example, the question “Which city is the capital of the U.S.A.?” can be answered by looking for an edge labeled capital-of, linking an entity to the country U.S.A.
 
@@ -2782,9 +2782,9 @@ SQL 语句：`SELECT * FROM table WHERE Gender='m' AND Income='L1';`
 
 ## 本教材核心: 大学数据库
 - keys used
-![alt text](PixPin_2026-03-26_08-23-16.webp)
+![示意图](PixPin_2026-03-26_08-23-16.webp)
 
-![alt text](PixPin_2026-03-26_08-24-59.webp)
+![示意图](PixPin_2026-03-26_08-24-59.webp)
 - schema diagram
 
 ### 关系表解析
