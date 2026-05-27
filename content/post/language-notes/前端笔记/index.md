@@ -4334,7 +4334,20 @@ export default App
 >由于设计理念的不同,不同框架之间的差别(包括文件路由和依赖库)可能非常大,所以简单浏览一下主流框架的特性后建议迅速选定自己想用的框架,不然在框架之间迁移是很痛苦的.
 
 
-# React router
+# React Router
+## 概览
+- [官网](https://reactrouter.com/start/modes#framework)
+
+>React Router是React官方的全栈框架,经过多年的迭代,现在的功能已经比较全面了.
+
+官网在在一开始的介绍就表明,React Router总共有三种模式(mode):
+- Declarative mode: 主要提供基础路由
+- Data mode: 增加数据加载、action、pending states
+- Framework mode: 完整的框架
+
+三种模式是层层递进的,如果选择前两种模式,就需要搭配其他的库来进行补充,所以新手直接选择`Framework mode`就可以了
+
+
 
 # Tanstack router(待补充)
 ## 概览

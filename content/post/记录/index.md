@@ -4,6 +4,66 @@ draft: true
 tags:
 image:
 ---
+## git代理
+
+
+### 3. 查看 Git 当前代理配置
+
+运行：
+
+```bash
+git config --global --get http.proxy
+git config --global --get https.proxy
+```
+
+
+### 4. 如果你的代理端口就是 7890
+
+确保代理软件已经开启，并且打开：
+
+```text
+System Proxy / 系统代理
+```
+
+然后重新设置 Git：
+
+```bash
+git config --global http.proxy http://127.0.0.1:7890
+git config --global https.proxy http://127.0.0.1:7890
+```
+
+再测试：
+
+```bash
+git ls-remote https://github.com/revival-of-hope/revival-of-hope.github.io.git
+```
+
+如果正常返回一堆 commit hash，就说明通了。
+
+
+### 7. 检查环境变量代理
+
+有时候不是 Git 配置的问题，而是环境变量里设置了代理。
+
+PowerShell 查看：
+
+```powershell
+echo $env:HTTP_PROXY
+echo $env:HTTPS_PROXY
+echo $env:ALL_PROXY
+```
+
+如果里面有错误的 `127.0.0.1:7890`，可以临时清除：
+
+```powershell
+Remove-Item Env:HTTP_PROXY
+Remove-Item Env:HTTPS_PROXY
+Remove-Item Env:ALL_PROXY
+```
+
+然后重新执行 Git 命令。
+
+
 ## guidance
 
 ### 能量充足时

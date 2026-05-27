@@ -29,7 +29,7 @@ func main() {
 ```
 2. Go中的所有文件都属于某个包中,需要使用package 关键字声明,并写在程序的第一行
    1. `package main`是Go程序的入口,不可重复定义,必须且只能包含一个无参数,无返回值的main函数
-
+3. Go中不需要使用`;`来划分语句,直接换行即可
 ### 变量
 #### 变量类型
 Go有三种数据类型:
@@ -125,7 +125,7 @@ func main() {
 - 用法还有很多,但再深入下去也没必要了
 
 ### 数组
-Go中的数组也有两种声明方式.
+Go中的数组有两种声明方式.
 1. 使用var关键字:
 ```go
 var array_name = [length]datatype{values} // here length is defined
@@ -138,6 +138,7 @@ var array_name = [...]datatype{values} // here length is inferred
 ```go
 array_name := [length]datatype{values} // here length is defined
 ```
+>数组的长度是固定的,不可改变,不同长度的数组是不同的类型,要使用长度动态变化的数组,就要用到切片(slice)
 
  
 **示例代码**
@@ -162,3 +163,170 @@ func main() {
 ```
 
 ### 切片
+>切片与数组的最大区别就是**没有固定的长度**
+
+声明时,切片与数组的区别就在于没有指定长度:
+```go
+// 局部变量声明
+slice_name := []datatype{values}
+
+// 完整声明
+var slice_nums = []int{1, 2, 3}
+```
+
+slice支持两种方法:
+1. len: 返回切片的实际长度(实际元素个数)
+2. cap: 返回切片的总容量(可容纳的元素个数)
+
+之所以slice被叫做切片,是因为它可以用来从数组中截取一段数据:
+```go
+package main
+import ("fmt")
+
+func main() {
+  arr1 := [6]int{10, 11, 12, 13, 14,15}
+  myslice := arr1[2:4]
+
+  fmt.Printf("myslice = %v\n", myslice)
+  fmt.Printf("length = %d\n", len(myslice))
+  fmt.Printf("capacity = %d\n", cap(myslice))
+}
+
+// myslice = [12 13]
+// length = 2
+// capacity = 4
+```
+- 值得注意的是,slice在从数组切片时,会将容量设置为起始下标到数组末端的总长度,无论将结束下标设置在哪里都是这样,这也是为什么length为2,capacity却是4的原因
+
+
+### 条件语句
+- Go和python一样,不需要在条件判断部分加上括号,所以为了语义清晰,条件判断中只能是bool表达式(结果是bool),不能出现算术式子
+```go
+package main
+import ("fmt")
+
+func main() {
+  time := 22
+  if time < 10 {
+    fmt.Println("Good morning.")
+  } else if time < 20 {
+    fmt.Println("Good day.")
+  } else {
+    fmt.Println("Good evening.")
+  }
+}
+```
+
+for循环:
+```go
+package main
+import ("fmt")
+
+func main() {
+  for i:=0; i < 5; i++ {
+    if i == 3 {
+      break
+    }
+   fmt.Println(i)
+  }
+}
+```
+range循环的基本框架:
+```go
+for index, value := range array|slice|map {
+   // code to be executed for each iteration
+}
+```
+基本例子:
+```go
+package main
+import ("fmt")
+
+func main() {
+  fruits := [3]string{"apple", "orange", "banana"}
+  for idx, val := range fruits {
+     fmt.Printf("%v\t%v\n", idx, val)
+  }
+}
+```
+
+不用到索引或者值:
+```go
+package main
+import ("fmt")
+
+func main() {
+  fruits := [3]string{"apple", "orange", "banana"}
+  for _, val := range fruits {
+     fmt.Printf("%v\n", val)
+  }
+  for idx, _ := range fruits {
+     fmt.Printf("%v\n", idx)
+  }
+}
+```
+
+### 函数
+如果不返回任何值,基本框架是这样的:
+```go
+func FunctionName(param1 type, param2 type, param3 type) {
+  // code to be executed
+}
+```
+
+例子:
+```go
+package main
+import ("fmt")
+
+func familyName(fname string, age int) {
+  fmt.Println("Hello", age, "year old", fname, "Refsnes")
+}
+
+func main() {
+  familyName("Liam", 3)
+  familyName("Jenny", 14)
+  familyName("Anja", 30)
+}
+```
+
+而如果要返回值的话,返回类型写在函数声明的最后:
+```go
+func FunctionName(param1 type, param2 type) type {
+  // code to be executed
+  return output
+}
+```
+go还支持提前指定返回值:
+```go
+package main
+import ("fmt")
+
+func myFunction(x int, y int) (result int) {
+  result = x + y
+  return result
+  // 也可以写成下面这样
+  // result = x + y
+  // return 
+}
+
+func main() {
+  fmt.Println(myFunction(1, 2))
+}
+```
+因此,go可以实现一次返回多个值:
+```go
+package main
+import ("fmt")
+
+func myFunction(x int, y string) (result int, txt1 string) {
+  result = x + x
+  txt1 = y + " World!"
+  return
+}
+
+func main() {
+  a, b := myFunction(5, "Hello")
+  fmt.Println(a, b)
+}
+```
