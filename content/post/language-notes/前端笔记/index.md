@@ -4068,7 +4068,21 @@ const response = await axios.get("https://example.com/data", {
 ```
 
 ## Zod
-## zustand
+### 概览
+- [官网](https://zod.nodejs.cn/)
+
+- 由于TS只在开发时检查类型,无法在运行时提供任何类型检查,所以就需要各种各样的第三方类型验证库来做补充.
+
+Zod是一个类型验证库,用于核验传入的数据是否符合类型验证的要求,通常用在表单提交等场景.
+
+
+## Zustand
+### 概览
+- [官网](https://zustand.docs.pmnd.rs/)
+
+鉴于React原生的`createContext`比较笨重,需要嵌套多个组件来传递状态,而Zustand能够很好的管理这种跨越组件传递状态的情况,通过语法糖简化状态管理.
+
+
 ## playwright
 ## eslint
 ## biome
@@ -4334,164 +4348,7 @@ export default App
 >由于设计理念的不同,不同框架之间的差别(包括文件路由和依赖库)可能非常大,所以简单浏览一下主流框架的特性后建议迅速选定自己想用的框架,不然在框架之间迁移是很痛苦的.
 
 
-# React Router
-## 概览
-- [官网](https://reactrouter.com/start/modes#framework)
 
->React Router是React官方的全栈框架,经过多年的迭代,现在的功能已经比较全面了.
-
-官网在在一开始的介绍就表明,React Router总共有三种模式(mode):
-- Declarative mode: 主要提供基础路由
-- Data mode: 增加数据加载、action、pending states
-- Framework mode: 完整的框架
-
-三种模式是层层递进的,如果选择前两种模式,就需要搭配其他的库来进行补充,所以新手直接选择`Framework mode`就可以了
-
-
-
-# Tanstack router(待补充)
-## 概览
-- [官网](https://ui.shadcn.com/docs/dark-mode/vite)
-### 官网的AI介绍
-Tanstack官网里的东西太多了,让AI稍微介绍一下:
-
-TanStack 官网生态庞大，是因为它已经从最初的一个单一数据请求库（React Query），演变成了一整套**框架无关（Framework-Agnostic）的现代化前端应用全家桶**。
-
-其核心设计哲学是“Headless（无头/无 UI 样式）”**和**“极致的 TypeScript 类型安全”。这意味着它的很多库只负责核心逻辑、状态和计算，不提供任何 HTML 标签或 CSS 样式，由开发者自由绑定到 React、Vue、Solid 或 Svelte 等任何前端框架中。
-
-核心产品可以划分为以下四大板块：
-
-#### 1. 三大基石级核心库（也是最常用的）
-
-* **TanStack Query (原名 React Query)**：
-* **定位**：异步状态与数据请求管理。
-* **做什么**：前端开发中最核心的“服务器状态管理工具”。它帮你搞定前端最头疼的**数据缓存、自动后台刷新、请求去重、垃圾回收、滚动分页加载**等功能。现在支持 React、Vue、Svelte 等全框架。
-
-
-* **TanStack Table (原名 React Table)**：
-* **定位**：强大的表格与数据网格（Datagrid）逻辑引擎。
-* **做什么**：它是典型的 Headless 库。它不给你任何表格样式，但把表格所需要的**排序、过滤、多选、列拖拽、分层折叠、服务端分页**等极其复杂的逻辑全部封装好了，样式完全由你自己用 Tailwind 或普通 CSS 去写。
-
-
-* **TanStack Router**：
-* **定位**：极致类型安全的客户端路由。
-* **做什么**：为了对抗 Next.js 等框架的基于文件系统的路由而生。它的核心卖点是 **100% Type-Safe（类型安全）**。你的跳转路径、URL 参数（Search Params）全部有严格的 TypeScript 类型推导，输错一个字母编译就报错。
-
-
-
----
-
-#### 2. 進阶全栈与架构扩展
-
-* **TanStack Start**：
-* **定位**：全栈 Web 框架。
-* **做什么**：基于 TanStack Router 和 Vite 构建。它直接对标 Next.js、Remix 或 Nuxt，支持全文档 SSR（服务端渲染）、数据流式传输（Streaming）以及 Server Functions（直连后端的服务器函数）。
-
-
-* **TanStack Form**：
-* **定位**：高性能、类型安全的表单状态管理。
-* **做什么**：对标 Formik 或 React Hook Form。同样是无头（Headless）设计，主打在极高频输入下依然保持超高的渲染性能，且表单字段的类型校验非常严苛。
-
-
-
----
-
-#### 3. 高性能交互与底座
-
-* **TanStack Virtual**：
-* **定位**：虚拟滚动/虚拟列表。
-* **做什么**：当你有几万、几十万条数据要展示在页面上时，如果直接渲染 DOM 会导致浏览器卡死。它帮你只渲染当前屏幕“看得见”的那几十条，并在滚动时动态复用 DOM，实现 60FPS 的丝滑滚动。
-
-
-* **TanStack DB**：
-* **定位**：响应式客户端优先（Client-first）的 API 存储仓库。
-* **做什么**：让你在前端像操作本地数据库一样，支持乐观更新（Optimistic Mutations）、实时查询（Live Queries），保证 UI 的极速响应和状态一致。
-
-
-* **TanStack Store**：
-* **定位**：底层的不可变响应式状态库（内部底座）。
-
-
-
----
-
-#### 4. 前沿/AI/工程工具
-
-* **TanStack AI**：
-* **定位**：统一的多模型 AI SDK。提供干净的 TypeScript 接口，防止厂商锁定。
-
-
-* **TanStack Intent**：
-* **定位**：让 npm 包原生支持 AI Agent。能将库的知识和 API 自动暴露给 AI 代理（如支持 MCP 协议的系统）。
-
-
-* **TanStack Devtools / Config / CLI**：
-* 统一的调试面板、工程化配置包和脚手架工具。
-
-### 回到主题
-由于Next.js的很多特性是绑定在Vercel自己的服务器平台上的,生态也比较封闭,而新兴的Tanstack router框架更加拥抱开源生态,所以逐渐热门起来.
-
-官网介绍中,Tanstack有`file-based`和`code-based`两种写法,由于code-based写法难度比较高,官方也不很推荐,所以还是用file-based写法.
-
-## 基本用法
-- [官方文档](https://tanstack.com/router/latest/docs/routing/routing-concepts)
-  - 讲的不是很清晰,有一定的理解难度,但也只能看这个了.
-### 路由创建
-1. 除了根路由外,所有的路由都使用`createFileRoute`函数创建,该函数接收路由字符串作为参数,一个例子如下:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/')({ component: Home })
-
-function Home() {
-  return (
-    <div className="p-8">
-      <h1 className="text-4xl font-bold">Welcome to TanStack Start</h1>
-      <p className="mt-4 text-lg">
-        Edit <code>src/routes/index.tsx</code> to get started.
-      </p>
-    </div>
-  )
-}
-```
-- 值得注意的是createFileRoute函数后有两个括号,也就是在函数返回之后又继续调用函数接收了`component: Home`对象,而这个组件对象就是Home函数.
-
-2. 根路由需要单独使用`createRootRoute`函数:
-
-```tsx
-import { createRootRoute } from '@tanstack/react-router'
-
-import '../styles.css'
-
-export const Route = createRootRoute({
-  component: RootComponent,
-})
-
-function RootComponent() {
-  return (
-    <h1>"hello world!"</h1>
-  )
-}
-```
-3. 如果路由有变量的话,tanstack为此设置了语法糖`$`:
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/posts/$postId')({
-  // In a loader
-  loader: ({ params }) => fetchPost(params.postId),
-  // Or in a component
-  component: PostComponent,
-})
-
-function PostComponent() {
-  // In a component!
-  const { postId } = Route.useParams()
-  return <div>Post ID: {postId}</div>
-}
-```
-- 由于官方文档写的太烂了,我先缓缓吧.
 # Next.js
 ## 概览
 - [官方文档](https://nextjs.org/docs)
@@ -4759,6 +4616,7 @@ export default function SearchBar() {
   return <>Search: {search}</>
 }
 ```
+
 表格如下:
 | 完整 URL               | 方法调用                   | 返回值       | 行为说明                                                   |
 | ---------------------- | -------------------------- | ------------ | ---------------------------------------------------------- |
@@ -4792,7 +4650,7 @@ export default function Page() {
 
 ### 常用特性
 
-#### 简单使用Metabeta
+#### 简单使用Metadata
 >设置html中head标签部分的metadata,从而改善网页的SEO.
 
 nextjs会默认配置以下两个metadata:
@@ -4812,3 +4670,163 @@ export const metadata: Metadata = {
  
 export default function Layout() {}
 ```
+
+
+# React Router(待补充)
+## 概览
+- [官网](https://reactrouter.com/start/modes#framework)
+
+>React Router是React官方的全栈框架,经过多年的迭代,现在的功能已经比较全面了.
+
+官网在在一开始的介绍就表明,React Router总共有三种模式(mode):
+- Declarative mode: 主要提供基础路由
+- Data mode: 增加数据加载、action、pending states
+- Framework mode: 完整的框架
+
+三种模式是层层递进的,如果选择前两种模式,就需要搭配其他的库来进行补充,所以新手直接选择`Framework mode`就可以了
+
+
+
+# Tanstack router(待补充)
+## 概览
+- [官网](https://ui.shadcn.com/docs/dark-mode/vite)
+### 官网的AI介绍
+Tanstack官网里的东西太多了,让AI稍微介绍一下:
+
+TanStack 官网生态庞大，是因为它已经从最初的一个单一数据请求库（React Query），演变成了一整套**框架无关（Framework-Agnostic）的现代化前端应用全家桶**。
+
+其核心设计哲学是“Headless（无头/无 UI 样式）”**和**“极致的 TypeScript 类型安全”。这意味着它的很多库只负责核心逻辑、状态和计算，不提供任何 HTML 标签或 CSS 样式，由开发者自由绑定到 React、Vue、Solid 或 Svelte 等任何前端框架中。
+
+核心产品可以划分为以下四大板块：
+
+#### 1. 三大基石级核心库（也是最常用的）
+
+* **TanStack Query (原名 React Query)**：
+* **定位**：异步状态与数据请求管理。
+* **做什么**：前端开发中最核心的“服务器状态管理工具”。它帮你搞定前端最头疼的**数据缓存、自动后台刷新、请求去重、垃圾回收、滚动分页加载**等功能。现在支持 React、Vue、Svelte 等全框架。
+
+
+* **TanStack Table (原名 React Table)**：
+* **定位**：强大的表格与数据网格（Datagrid）逻辑引擎。
+* **做什么**：它是典型的 Headless 库。它不给你任何表格样式，但把表格所需要的**排序、过滤、多选、列拖拽、分层折叠、服务端分页**等极其复杂的逻辑全部封装好了，样式完全由你自己用 Tailwind 或普通 CSS 去写。
+
+
+* **TanStack Router**：
+* **定位**：极致类型安全的客户端路由。
+* **做什么**：为了对抗 Next.js 等框架的基于文件系统的路由而生。它的核心卖点是 **100% Type-Safe（类型安全）**。你的跳转路径、URL 参数（Search Params）全部有严格的 TypeScript 类型推导，输错一个字母编译就报错。
+
+
+
+---
+
+#### 2. 進阶全栈与架构扩展
+
+* **TanStack Start**：
+* **定位**：全栈 Web 框架。
+* **做什么**：基于 TanStack Router 和 Vite 构建。它直接对标 Next.js、Remix 或 Nuxt，支持全文档 SSR（服务端渲染）、数据流式传输（Streaming）以及 Server Functions（直连后端的服务器函数）。
+
+
+* **TanStack Form**：
+* **定位**：高性能、类型安全的表单状态管理。
+* **做什么**：对标 Formik 或 React Hook Form。同样是无头（Headless）设计，主打在极高频输入下依然保持超高的渲染性能，且表单字段的类型校验非常严苛。
+
+
+
+---
+
+#### 3. 高性能交互与底座
+
+* **TanStack Virtual**：
+* **定位**：虚拟滚动/虚拟列表。
+* **做什么**：当你有几万、几十万条数据要展示在页面上时，如果直接渲染 DOM 会导致浏览器卡死。它帮你只渲染当前屏幕“看得见”的那几十条，并在滚动时动态复用 DOM，实现 60FPS 的丝滑滚动。
+
+
+* **TanStack DB**：
+* **定位**：响应式客户端优先（Client-first）的 API 存储仓库。
+* **做什么**：让你在前端像操作本地数据库一样，支持乐观更新（Optimistic Mutations）、实时查询（Live Queries），保证 UI 的极速响应和状态一致。
+
+
+* **TanStack Store**：
+* **定位**：底层的不可变响应式状态库（内部底座）。
+
+
+
+---
+
+#### 4. 前沿/AI/工程工具
+
+* **TanStack AI**：
+* **定位**：统一的多模型 AI SDK。提供干净的 TypeScript 接口，防止厂商锁定。
+
+
+* **TanStack Intent**：
+* **定位**：让 npm 包原生支持 AI Agent。能将库的知识和 API 自动暴露给 AI 代理（如支持 MCP 协议的系统）。
+
+
+* **TanStack Devtools / Config / CLI**：
+* 统一的调试面板、工程化配置包和脚手架工具。
+
+### 回到主题
+由于Next.js的很多特性是绑定在Vercel自己的服务器平台上的,生态也比较封闭,而新兴的Tanstack router框架更加拥抱开源生态,所以逐渐热门起来.
+
+官网介绍中,Tanstack有`file-based`和`code-based`两种写法,由于code-based写法难度比较高,官方也不很推荐,所以还是用file-based写法.
+
+## 基本用法
+- [官方文档](https://tanstack.com/router/latest/docs/routing/routing-concepts)
+  - 讲的不是很清晰,有一定的理解难度,但也只能看这个了.
+### 路由创建
+1. 除了根路由外,所有的路由都使用`createFileRoute`函数创建,该函数接收路由字符串作为参数,一个例子如下:
+
+```tsx
+import { createFileRoute } from '@tanstack/react-router'
+
+export const Route = createFileRoute('/')({ component: Home })
+
+function Home() {
+  return (
+    <div className="p-8">
+      <h1 className="text-4xl font-bold">Welcome to TanStack Start</h1>
+      <p className="mt-4 text-lg">
+        Edit <code>src/routes/index.tsx</code> to get started.
+      </p>
+    </div>
+  )
+}
+```
+- 值得注意的是createFileRoute函数后有两个括号,也就是在函数返回之后又继续调用函数接收了`component: Home`对象,而这个组件对象就是Home函数.
+
+2. 根路由需要单独使用`createRootRoute`函数:
+
+```tsx
+import { createRootRoute } from '@tanstack/react-router'
+
+import '../styles.css'
+
+export const Route = createRootRoute({
+  component: RootComponent,
+})
+
+function RootComponent() {
+  return (
+    <h1>"hello world!"</h1>
+  )
+}
+```
+3. 如果路由有变量的话,tanstack为此设置了语法糖`$`:
+```tsx
+import { createFileRoute } from '@tanstack/react-router'
+
+export const Route = createFileRoute('/posts/$postId')({
+  // In a loader
+  loader: ({ params }) => fetchPost(params.postId),
+  // Or in a component
+  component: PostComponent,
+})
+
+function PostComponent() {
+  // In a component!
+  const { postId } = Route.useParams()
+  return <div>Post ID: {postId}</div>
+}
+```
+- 由于官方文档写的太烂了,我先缓缓吧.

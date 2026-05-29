@@ -346,464 +346,22 @@ int shutdown(SOCKET sock, int how)
 不推荐阅读,前面两三章还可以,后面完全变成毫无意义的代码分析了.
 
 ## OBJECT REPLICATION
-
-# 深度学习论文学习
-## 前置概念
-- 论文大致按照年份排序,有一个先后关系
-- 学习前提: 阅读过<< Deep Learning From Scratch>>即可,然后就可以大致跟着时间线走,如果忽略前人的研究成果直接跳到最新模型的话,那绝对是看不懂的.
-
-首先,深度学习领域的主要框架类型有如下几个:
-1. CNN(卷积神经网络): 通过卷积层来实现高维的图像/3D输入,适用于处理图像.
-   1. 代表框架有LeNet,ResNet等.
-   2. [wiki](https://en.wikipedia.org/wiki/Convolutional_neural_network)
-2. RNN(循环神经网络): 适用于处理具有时间先后顺序的数据,例如音频
-   1. 代表框架有LSTM,GRU等
-   2. [wiki](https://en.wikipedia.org/wiki/Recurrent_neural_network)
-3. Transformer: 适用于处理文本,代码,多模态信号
-   1. 代表框架有GPT,Llama,BERT等
-4. GNN(图神经网络): 适用于处理社交网络等网络数据
-   1. 代表框架有GCN,GAT等
-
-
-然后,我们需要大致明白一条主要的时间线:
-1. 1986年<< Learning representations by back-propagating errors >>将反向传播算法引入了神经网络
-2. 1989年<< Backpropagation applied to handwritten zip code recognition >>是第一篇真正将反向传播算法实际应用到学习过程中的论文,也是CNN的原型论文
-3. 1990年<< Finding Structure in Time >>是RNN的原型论文.
-4. 1997年<< Long Short-Term Memory >>提出了LSTM框架
-5. 2015年<< Deep Residual Learning for Image Recognition >>提出了深度残差网络
-6. 2017年<< Attention Is All You Need >>提出了Transformer框架.
-7. 2018年<< Improving Language Understanding
-by Generative Pre-Training >>提出了基于Transformer的GPT框架
-1. 2023年<< LLaMA: Open and Efficient Foundation Language Models >>提出了基于Transformer的LLaMA框架.
-
-
-- 这些主要论文中间穿插着许多奠基者的研究成果,我也会适当地学习这些论文.
-- 由于我只是一个业余爱好者,只想准确的了解现代大模型背后的原理,所以只会挑选最经典或者最优秀的论文来大致学习一下.
-- (5/22): 早期论文大多会深入底层的原理,讲的特别深入和透彻,能够洋洋洒洒写三四十页;而越是新的论文,就越是含混不清,潦草的介绍了公式和框架就结束了,总共十几页中能有四五页真东西就不错了.这固然有版面限制的原因在,但我想还是因为风气出了问题.
-
-### 卷积神经网络是如何实现反向传播计算的
-一般神经网络的反向传播计算很好理解,我们只需要对某一位置的参数求偏导就行了,但卷积神经网络多了一个卷积层和池化层,这显然没有那么好处理.
-
-- [一个比较好的说明](https://zhuanlan.zhihu.com/p/61898234)
-  - 由于讲的挺好的,我就不讲了...
-
-## Learning representations by back-propagating errors(1986)
-
-![介绍](PixPin_2026-05-14_17-04-17.webp)
-
-如标题所说,这篇论文将反向传播算法引入了多层神经网络的学习,堪称深度学习领域的祖师爷,不过由于内容很简单,就没有深入看的必要了,真的就只讲了一个反向传播算法而已.
-
-## Serial Order: A Parallel Distributed Processing Approach(1986)
->该论文是<< Finding Structure in Time >>这篇论文的灵感来源,很有必要阅读.
-
-![首页](PixPin_2026-05-21_22-28-23.webp)
-![目录](PixPin_2026-05-21_22-29-23.webp)
-- 还是有点长的...
-### 总结
->总体来看,这篇论文花了大量的篇幅介绍前人的研究成果和技术的底层原理,但整体的架构是非常简单的,一张图就可以表示:
-![示意图](PixPin_2026-05-22_12-12-57.webp)
-
----
-AI总结
-
-传统的并行分布式处理（PDP，即早期的神经网络）擅长处理静态的空间模式输入输出，但无法解决**序列行为（Serial Order）**。人类在说话、打字、走路时，动作是有先后顺序的，且当前的动作高度依赖于之前的状态。Jordan 探讨的是：一个没有内部时钟的并行网络，如何按顺序产出一系列有特定先后关系、有时间跨度的动作。
-
-Jordan 提出了一种通过外部反馈（External Feedback）引入时间维度的方法。
-
-```
- [计划层 Plan Layer] (保持不变，代表当前任务目标)
-        │
-        ▼
- [隐藏层 Hidden Layer] ◄───┐
-        │                 │
-        ▼                 │
- [输出层 Output Layer] ───┐ │ (即时反馈：100% 当前输出)
-        │                 │ │
-        ▼                 │ │
- [状态层 State Layer] ────┼─┘ 
-   (循环自反馈：μ * 上一次状态 + 当前输出)
-
-```
-
-网络由四层结构组成：
-
-1. **计划层 (Plan Layer)**：输入端。在整个序列输出期间，计划层的激活状态保持**恒定**。它代表整体意图（例如“单词 X”或“动作序列 A”）。
-2. **隐藏层 (Hidden Layer)**：进行非线性特征组合。
-3. **输出层 (Output Layer)**：产生当前时间步的实际动作或特征。
-4. **状态层 (State Layer / Context Layer)**：这是该架构的核心创新。
-* 状态层接收两个来源的输入：一个是**输出层当前的直接反馈**，另一个是**状态层自身的自连接循环反馈**。
-* 数学物理机制：状态层单元具有持续性，其更新公式为：
-
-$$x_{state}(t+1) = \mu \cdot x_{state}(t) + x_{output}(t)$$
-
-
-其中 $\mu$ 介于 0 到 1 之间（衰减因子）。这意味着状态层对过去所有输出进行了加权指数衰减式的累积，形成了对“过去行为轨迹”的记忆。
-
-
-## Backpropagation Applied to Handwritten Zip Code Recognition(1989)
-- [一个很不错的复现仓库](https://github.com/karpathy/lecun1989-repro)
-
-![介绍](PixPin_2026-05-20_19-49-10.webp)
-### 概览与总结
->这篇论文将反向传播算法用来训练一个可以识别从邮件中获取的手写数字的卷积神经网络,是第一次将反向传播用在实际工程中的论文,也证明了神经网络相比其他算法的优越性.
-
-![预处理](PixPin_2026-05-20_20-03-08.webp)
-
-首先,研究者将40到60像素的手写数字图片通过线性映射处理成16x16像素的图片,尽可能的保留了原图像的灰度特征:
-![映射处理](PixPin_2026-05-20_20-10-20.webp)
-
-然后通过卷积神经网络和反向传播计算,我们会得到10个数字的概率输出:
-![示意图](PixPin_2026-05-20_20-12-52.webp)
-
-- 如果你阅读过<< Deep Learning From Scratch>>的话,就会发现这正是这本书前几章所用的例子,换句话说,作者把这篇论文用简单的语言和代码又翻译了一遍而已.
-
-大概的训练方法:
-1. 所有的连接权重（Weights）和偏置（Biases）全部使用均匀分布（Uniform Distribution）进行随机初始化,随机范围严格控制在 $[-\frac{2.4}{F_i}, \frac{2.4}{F_i}]$ 之间
-2. 使用MSE(均方误差)来计算误差
-3. 使用小批量的SGD算法进行反向传播计算
-4. 总训练次数为23轮
-
->全文的内容大致就是这样,在今天看来是平平无奇的,在当时来看的话那可真的是天纵英才的设计啊.
-
-## Finding Structure in Time(1990)
-
-![首页](PixPin_2026-05-21_22-07-03.webp)
-### 引言
-具有时间顺序的数据(后简称时序数据)在实际生产中很常见,但以往的模型最常用的方法是,将不同时间的数据拆分到一个序列中输入,也就是以空间换时间,但作者提出,我们不应该把时间看作一个额外的输入维度,而应该在加工数据时就把时间考虑进去.
-
-该论文接下来分为几个部分:
-1. 介绍用空间换时间带来的问题(略过不看,因为全是作者的主观论述,没有一点点实际数据的支撑,这在顶刊论文中还是很少见的)
-2. 研究方法
-3. 实验结果
-
-### 研究方法
-作者提出,要能够处理时序数据,最好的解决方法是让模型具有记忆能力.在Jordan(1986)论文的基础上,他设计了这样一个模型:
-
-![模型图](PixPin_2026-05-22_12-15-04.webp)
-
-- 如果看过Jordan论文的话就会知道,Elman只是把状态层改成与隐藏层绑定,而非和输出层绑定,这就是唯一的区别,但这样一来,我们就可以让训练参数与输出结果解耦,实现更好的训练效果.
-
-在之后就没有什么内容了,基本都是实验和不痛不痒的论述,重点在于说明这种架构为什么可以适配时序数据,因为相邻的输入确实比距离遥远的输入权重关系更近:
-
-![示意图](PixPin_2026-05-22_12-53-03.webp)
-
-
-## LONG SHORT-TERM MEMORY(1997)
-- 机器学习领域划时代的论文不多,但这篇论文可以算上.
-![示意图](PixPin_2026-05-20_18-40-08.webp)
-
-### 总结
-尽管这篇论文很经典,但论述实在太专业了,而且理论公式让人看着头疼:
-![示意图](PixPin_2026-05-20_18-48-31.webp)
-
-
-简单来说就是,LSTM将RNN中的隐藏层单元替换成了LSTM单元(Cell);
-![示意图](PixPin_2026-05-20_18-58-17.webp)
-
-这个单元可以进行循环计算,能够将不同时刻的数据联系起来:
-![示意图](PixPin_2026-05-20_19-30-50.webp)
-
-这种架构能够大大加速训练过程,并减少时间间隔过长引发的信息丢失.
-
->在Transformer诞生之前,LSTM是主流的NLP框架,尽管它能够处理更长的时间步长,但在面对大量的数据时仍然无能无力,所以现在的大模型都不会使用它了.
-## A Neural Probabilistic Language Model(2003)
-- 这篇论文引入了embedding的概念,是后续NLP模型的必要组成部分.
-
-![首页](PixPin_2026-05-23_16-18-30.webp)
-### 引入
->NLP的一大难点在于输入的词向量可能有各种各样的维度,与训练数据完全不同,该论文提出,可以通过训练让模型学会比训练数据多上指数级别的语义相近的实际数据.具体来说就是模型同时学习离散的单词和完整的句子,当出现与训练数据结构类似的句子时也可以很好的做出应对.
-
-- 我已经尽力翻译了,但原文确实太难看懂了,不像是摘要,还是接着看具体实现吧.
-
-
-
-
-
-## Learning Phrase Representations using RNN Encoder–Decoder for Statistical Machine Translation(2014)
-
-![首页](PixPin_2026-05-22_12-55-39.webp)
-- 尽管这篇论文比2017年那篇早,但它也不是首先提出编码器-解码器架构的,而是参考了前人的研究成果,但继续追根溯源也没必要.
-### 引入
->该论文提出了用两个循环神经网络(RNN)组成的编码器-解码器架构,编码器将输入数据处理成固定长度的向量,解码器将向量处理成输出数据.
-
-![架构解释图](PixPin_2026-05-23_15-56-53.webp)
-### 架构解释
-该模型的RNN中的隐藏层单元是一个LSTM单元的简化版本:
-![结构图](PixPin_2026-05-23_16-01-37.webp)
-
-
-完整的流程如下:
-1. 编码器不断读取输入,将其处理成固定长度的向量
-2. 解码器根据向量逐个输出预测值,最大化下一个词的条件概率,每个预测值都与之前的所有输入相关:
-
-$$P(y_t \mid y_1, ..., y_{t-1}, c)$$
-
-
-
-## Sequence to Sequence Learning with Neural Networks(2014)
-
-## ADAM: A METHOD FOR STOCHASTIC OPTIMIZATION(2015)
-![示意图](PixPin_2026-05-08_17-07-53.webp)
-- 这篇2015年的论文提出了一种新的神经网络学习方法:ADAM,是两年后推出的Transformer模型的核心算法,还是很有必要了解的
-- (2026/4): 第一次读论文,也不知道怎么读,总不至于全部复制过来再逐个翻译吧,想了想还是读完全文后做一点要点总结算了.
-
-### 引入
->在机器学习中,常见的优化算法都属于一阶方法**first-order methods**,即只使用目标函数(例如损失函数)的一阶导数(例如梯度)来更新参数.其中,随机梯度下降法**stochastic gradient descent (SGD)**是最著名也是非常有效的学习方法.
-
-本文提出的Adam算法同样也是一个随机最优化(**stochastic optimization**)的一阶算法,它的名字来源于`adaptive moment estimation`.
-
-该算法借鉴了两个优秀算法的长处:
-1. AdaGrad,于2011年提出,可以很好地处理稀疏梯度(即梯度向量中绝大多数元素为0的情况)
-2. RMSProp,于2012年提出,能够很好地处理小批量训练?(on-line)和非平稳环境(not-stationary).
-### 算法实现
-### 伪代码
-$$\begin{array}{l}
-\hline \mathbf{Algorithm\ 1:} \text{ Adam, our proposed algorithm for stochastic optimization. See section 2 for details,} \\
-\text{and for a slightly more efficient (but less clear) order of computation. } g_{t}^{2} \text{ indicates the elementwise} \\
-\text{square } g_{t} \odot g_{t} \text{. Good default settings for the tested machine learning problems are } \alpha=0.001, \\
-\beta_{1}=0.9, \beta_{2}=0.999 \text{ and } \epsilon=10^{-8} \text{. All operations on vectors are element-wise. With } \beta_{1}^{t} \text{ and } \beta_{2}^{t} \\
-\text{we denote } \beta_{1} \text{ and } \beta_{2} \text{ to the power } t . \\
-\hline \mathbf{Require:} \alpha: \text{Stepsize} \\
-\mathbf{Require:} \beta_{1}, \beta_{2} \in[0,1): \text{Exponential decay rates for the moment estimates} \\
-\mathbf{Require:} f(\theta): \text{Stochastic objective function with parameters } \theta \\
-\mathbf{Require:} \theta_{0}: \text{Initial parameter vector} \\
-\quad m_{0} \leftarrow 0 \text{ (Initialize } 1^{\text {st }} \text{ moment vector)} \\
-\quad v_{0} \leftarrow 0 \text{ (Initialize } 2^{\text {nd }} \text{ moment vector)} \\
-\quad t \leftarrow 0 \text{ (Initialize timestep)} \\
-\quad \mathbf{while} \ \theta_{t} \text{ not converged } \mathbf{do} \\
-\quad\quad t \leftarrow t+1 \\
-\quad\quad g_{t} \leftarrow \nabla_{\theta} f_{t}\left(\theta_{t-1}\right) \text{ (Get gradients w.r.t. stochastic objective at timestep } t) \\
-\quad\quad m_{t} \leftarrow \beta_{1} \cdot m_{t-1}+\left(1-\beta_{1}\right) \cdot g_{t} \text{ (Update biased first moment estimate)} \\
-\quad\quad v_{t} \leftarrow \beta_{2} \cdot v_{t-1}+\left(1-\beta_{2}\right) \cdot g_{t}^{2} \text{ (Update biased second raw moment estimate)} \\
-\quad\quad \widehat{m}_{t} \leftarrow m_{t} /\left(1-\beta_{1}^{t}\right) \text{ (Compute bias-corrected first moment estimate)} \\
-\quad\quad \widehat{v}_{t} \leftarrow v_{t} /\left(1-\beta_{2}^{t}\right) \text{ (Compute bias-corrected second raw moment estimate)} \\
-\quad\quad \theta_{t} \leftarrow \theta_{t-1}-\alpha \cdot \widehat{m}_{t} /\left(\sqrt{\widehat{v}_{t}}+\epsilon\right) \text{ (Update parameters)} \\
-\quad \mathbf{end\ while} \\
-\quad \mathbf{return} \ \theta_{t} \text{ (Resulting parameters)} \\
-\hline
-\end{array}$$
-
-有几个专业名词不太好懂:
-1. first moment: 一阶矩,即梯度的期望(均值)
-2. second raw moment: 二阶原始矩,不对数据减去均值直接求平方期望,若减去均值在求平方期望,则称为中心矩(即方差)
-3. `exponential decay rates`: 指数衰减率,衰减率越大参数更新越慢,之所以叫指数是因为某一时刻的值是先前所有历史值的加权和:
-   - $$V_t = (1-\beta)(g_t + \beta g_{t-1} + \beta^2 g_{t-2} + \beta^3 g_{t-3} + \dots)$$
-
-
-- 大概这种论文都有一个伪代码来简单的解释自己算法的整个流程吧,乍一看有点懵,实际上确实比看文字更好懂一点
-### 具体原理
->The stochasticity might come from the evaluation at random subsamples (minibatches)
-of datapoints, or arise from inherent function noise.
-
-- 之所以说这个算法是随机的,是因为它的数据可能是一个随机的小批量抽取,或者说数据本身存在噪音
-
-> However, these moving averages are
-initialized as (vectors of) 0’s, leading to moment estimates that are biased towards zero, especially
-during the initial timesteps, and especially when the decay rates are small (i.e. the βs are close to 1).
-
-- 由于m和v的初始值被置为0,所以在函数刚起步的时候,特别是当衰减率也很低(β接近1)时,会导致矩估计(均值)偏向0,导致学习失败.
-
->因此,我们需要用一点技巧来克服这个问题,这会在下一章被解决.
-
-- 看了一个小时,明天再来,看论文确实很累
-### 误差修正
-![示意图](PixPin_2026-05-10_20-09-14.webp)
-通过一个简单的等比数列求和,我们发现某一时刻的梯度被缩小到了真实值的$(1 - \beta_2^t)$ 倍,所以在伪代码中我们会在计算出两个参数后对其进行误差修正.
-
-### 4个实验
-选取的实验都是非常经典的模型,而不是像某些垃圾论文一样用一些奇怪的数据集在奇怪的模型上训练.
-
-- training cost: 指的就是损失函数值
-#### LOGISTICR EGRESSION
-![示意图](PixPin_2026-05-10_20-19-56.webp)
-#### MULTI-LAYER NEURAL NETWORKS
-
-![示意图](PixPin_2026-05-10_20-22-13.webp)
-#### CONVOLUTIONAL NEURAL NETWORKS
-![示意图](PixPin_2026-05-10_20-25-26.webp)
-#### BIAS-CORRECTION TERM
-![示意图](PixPin_2026-05-10_20-25-51.webp)
-
-基本都是全方位打压以前的反向传播算法
-### 结论
-- 有个扩展的AdaMax算法被我忽略掉了
-- 附录也被我省略了,数学不好的人是看不得这种东西的
-  - ![示意图](PixPin_2026-05-10_20-28-55.webp)
-
->The method combines the advantages of
-two recently popular optimization methods: the ability of AdaGrad to deal with sparse gradients,
-and the ability of RMSProp to deal with non-stationary objectives. 
+# 网络游戏核心技术与实战
+- 讲的挺全面的,要想搞懂联机游戏是什么看这本书就对了.尽管如此,很多地方都讲的很啰嗦,实战代码部分也不够清晰,中规中矩吧.
+
+## 要点总结
+### 为什么不能用数据库存储游戏信息
+>假如要在搭载了 6502 芯片的家用游戏机上使用 RDBMS 会怎么样呢？当然首先必须通过 SQL 语句，但是像 SELECT * from FlyingObjects 这样的语句，单单判断语法是否正确就要消耗几百个 CPU 周期，显然不现实。
 >
->The method is straightforward
-to implement and requires little memory. 
+>游戏编程必须在 1 帧内完成坐标的判断和保存。为此，必须只通过组合 CPU 所具有的一些最原始的命令来实现这些处理，只是读取数据就要花费几百个周期是相当不合理的。因此，在家用游戏机中，基本不考虑使用 RDBMS 这种方式。
 
->The experiments confirm the analysis on the rate of convergence in **convex problems**.
->
->Overall, we found Adam to be **robust and well-suited to a wide range of non-convex optimization problems** in the field machine learning.
 
-第一篇论文看下来的感受还是挺好的,既没有什么宏大叙事,也没有多少弯弯绕绕,很清楚的把一个算法的前前后后都讲清楚了,非常推荐阅读.
-## Deep Residual Learning for Image Recognition(2015)
-## Identity Mappings in Deep Residual Networks(2016)
-## Attention Is All You Need(2017)(待补充)
-![示意图](PixPin_2026-05-10_20-31-11.webp)
-- 划时代的论文,划时代的杰作,划时代的人才
-- transformer是基于大量前人的研究工作实现的,需要预先懂得很多知识后再来看比较好.
-### 引言和背景介绍
-- 相比ADMA论文,这一篇的摘要不够清晰,引入也很啰嗦...
+# C和指针
+不推荐阅读,甚至没找到有必要做笔记的地方,你就说写的有多烂吧.
 
->To the best of our knowledge, however, the Transformer is the first transduction model relying
-entirely on self-attention to compute representations of its input and output without using sequence-
-aligned RNNs or convolution. 
+![豆瓣评分](PixPin_2026-05-27_11-37-51.webp)
 
-原来编码器-解码器模型在几年前的论文中就提出来了,注意力机制也不是这篇论文的原创,但是Transformer将先前的论文成果结合在一起,提出**完全依靠自注意力机制来计算输入输出结果,而不使用循环神经网络或者卷积**,从而解决了长距离信息丢失的问题.
-### 模型架构
-> At each step the model is auto-regressive
-[10], consuming the previously generated symbols as additional input when generating the next.
-
-![示意图](PixPin_2026-05-11_13-07-49.webp)
-
-#### 编码器和解码器架构
-**编码器(Encoder)**由6个完全相同的层并行组成,每个层都有两个子层:
-1. 多头子注意力层,后面会详细解释
-2. **position-wise fully connected feed-forward network**(前馈全连接层)
-
-在每个子层后,都有一个正规化层
-### 
-## Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks(2021)
-- 在Agent构建中被广泛应用的RAG概念就是这篇2021年的论文提出的
-![示意图](PixPin_2026-05-13_17-49-29.webp)
-
-### 摘要
->由于预训练的模型针对特定的语料时的表现较差,研究人员引入了**retrieval-augmented generation**模型,它使用了预训练的seq2seq模型(于2014年提出的编码器-解码器模型)和未被模型学习过的Wikipedia语料,这种模型比单独的预训练模型和专门针对Wikipedia语料训练的模型效果还要好.
-
-### 引入
->由于预训练好的模型不能轻易的扩展或者修改参数,所以有研究者提出了将预训练模型和外部语料结合在一起的混合模型架构,如REALM和ORQA模型,而RAG架构就是在这些研究的基础上提出来的.
-
->We build RAG models where the parametric memory is a pre-trained seq2seq transformer, and the
-non-parametric memory is a dense vector index of Wikipedia, accessed with a pre-trained neural retriever.
-
-### 原理
-- RAG的具体原理确实比较复杂,怪不得这么缺这方面的人才.
-- 这部分的原文不太像人话,就算是论文也请你写的正常一点吧...
-- 更别提整篇论文只有一张说明图,和一两张实验图表,你好意思去上顶刊,去评优秀论文吗😀
-```md
-
-## RAG 核心模型架构
-
-RAG（Retrieval-Augmented Generation）模型结合了**参数化记忆**（Generator）与**非参数化记忆**（Retriever）。其核心逻辑是利用输入序列 $x$ 检索文档 $z$，并将 $z$ 作为生成目标序列 $y$ 的额外上下文。
-
-模型包含两个组件：
-
-1. **检索器 $p_\eta(z|x)$**：给定查询 $x$，返回文本段落的分布（通常取 Top-K）。
-2. **生成器 $p_\theta(y_i|x, z, y_{1:i-1})$**：基于原始输入 $x$、检索到的文档 $z$ 以及已生成的 $i-1$ 个token，生成当前token $y_i$。
-
-
-## 处理潜在变量 $z$ 的两种方式
-
-为了实现端到端训练，文档 $z$ 被视为**潜在变量（Latent Variable）**。根据对 $z$ 边缘化（Marginalize）方式的不同，分为两种模型：
-
-### 1. RAG-Sequence 模型
-
-该模型假设生成整个序列时使用的是**同一篇文档**。它将 $z$ 视为单个潜在变量，通过对 Top-K 文档的概率进行求和来计算 $p(y|x)$：
-
-$$p_{\text{RAG-Sequence}}(y|x) \approx \sum_{z \in \text{top-k}(p(\cdot|x))} p_\eta(z|x) p_\theta(y|x, z) = \sum_{z \in \text{top-k}(p(\cdot|x))} p_\eta(z|x) \prod_i^N p_\theta(y_i|x, z, y_{1:i-1})$$
-
-### 2. RAG-Token 模型
-
-该模型允许在生成每个token时**切换文档**。生成器可以从多个文档中挑选内容来组织答案：
-
-$$p_{\text{RAG-Token}}(y|x) \approx \prod_i^N \sum_{z \in \text{top-k}(p(\cdot|x))} p_\eta(z|x) p_\theta(y_i|x, z, y_{1:i-1})$$
-
-
-## 关键组件实现
-
-### 检索器：DPR (Dense Passage Retriever)
-
-检索概率基于双编码器（Bi-encoder）架构：
-
-
-$$p_\eta(z|x) \propto \exp(d(z)^\top q(x))$$
-
-* $d(z) = \text{BERT}_d(z)$：文档编码。
-* $q(x) = \text{BERT}_q(x)$：查询编码。
-检索过程通过 **MIPS（最大内积搜索）** 在线性时间内完成。
-
-### 生成器：BART
-
-使用预训练的 **BART-large**（seq2seq Transformer）。处理时直接将输入 $x$ 与检索内容 $z$ 进行拼接。
-
-## 训练与解码
-
-### 训练 (Training)
-
-* **目标函数**：最小化负边际对数似然 $\sum_j -\log p(y_j|x_j)$。
-* **更新策略**：为了降低计算成本，不更新文档编码器 $\text{BERT}_d$ 和索引，仅微调查询编码器 $\text{BERT}_q$ 和生成器 $\theta$。
-
-### 解码 (Decoding)
-
-* **RAG-Token**：可以视为标准的自回归模型，直接使用标准**束搜索（Beam Search）**。
-* 转移概率：$p'_\theta(y_i|x, y_{1:i-1}) = \sum_{z \in \text{top-k}(p(\cdot|x))} p_\eta(z|x) p_\theta(y_i|x, z, y_{1:i-1})$。
-
-
-* **RAG-Sequence**：由于似然函数无法分解为单token概率，需针对每个文档 $z$ 分别运行束搜索，得到候选集 $Y$。
-* **Thorough Decoding**：对不在某些文档束中的候选序列进行额外的正向传播计算，补全概率后求和。
-* **Fast Decoding**：假设未在某文档束中出现的序列概率为 0，直接在现有候选集中求和，提高效率。
-```
-
-![示意图](PixPin_2026-05-13_18-42-20.webp)
-- 这种东西没人看了不迷糊吧,真搞算法的话还是很难的
-
-大致意思是,我们可以用两种方法实现RAG,一个是一口气生成完整答案的,一个是逐token参考文档生成答案的,第二种方案中,预训练模型在每生成一个token时会参考前文和多个文档语料,选择最优的文档语料来生成.
-
-具体的原理如下:
-
-我们将本地文档切分成短片段,存储在向量数据库中,当用户提问时,我们把用户输入向量和文档向量组合拼接起来,再喂给模型让它输出.
-
-问题来了,我们输入的本地文档可能非常庞大,超过了模型的上下文限制,不可能也直接输入进去.我们需要**通过检索器进行快速的筛选**,找到与用户提问最符合的几个文档向量后再进行拼接.
-
-检索器的实现原理还比较简单:
-
-$p_{\eta}(z|x) \propto \exp(d(z)^\top q(x))$
-$d(z) = \text{BERT}_d(z)$
-$q(x) = \text{BERT}_q(x)$
-
-**1. 向量化（Bi-Encoder 架构）**
-检索器使用了两个独立的 BERT 模型：
-
-* **查询编码器 $q(x)$**：把你的提问（Query）转换成一串数字（特征向量）。
-* **文档编码器 $d(z)$**：把海量的背景资料（Documents）也转换成相同维度的数字串。
-
-
-**2. 相似度计算（内积运算）**
-公式中的 $d(z)^\top q(x)$ 代表两个向量的**点积**。通俗来说：
-
-* 如果提问和某个文档在语义上越接近，它们生成的数字串在空间中的方向就越一致。
-* 方向越一致，点积的数值（得分）就越高。
-* $\exp$ 函数的作用是拉大分值差距，让得分高的文档脱颖而出。
-
-**3. 极速筛选（MIPS 问题）**
-面对数以亿计的文档，逐一计算点积太慢。该模型将问题转化为**最大内积搜索（MIPS）**, 通过建立特殊的“索引”结构，就能在接近线性的时间内锁定最匹配的前 $k$ 个文档。
-
-至于MIPS怎么实现的?不好意思原文没怎么提😅
-
-### 总结
-尽管RAG通俗的解释还是很好理解的,但这篇论文对于具体原理的实现总有一点不情愿解释的感觉,就好像自己也实现不了的样子,而且根据论文中的实验结果来说,很多任务RAG并不是最优解:
-![示意图](PixPin_2026-05-14_16-45-54.webp)
-
-真正做Agent的话,RAG的能力还是很有限的,它有以下弊端:
-1. 企业要想真正使用RAG,就需要把开源的模型或者自己开发的模型部署好后,在每次针对特定语料库训练时进行参数上的微调,这是很麻烦的,如果不微调的话表现会更差.
-   1. 况且这篇论文没怎么讲如何实现参数微调,我有理由怀疑只是把语料喂进去重新训练了而已,而非是在输出端口进行微调.
-2. 鉴于大多数企业不具备自主开发优秀大模型的能力,就需要调用第三方的API,调用API的话就不能对模型做手脚,而是要对自己本地的语料进行处理,储存一个向量数据库,并在输出时进行拼接.至于怎么实现,我看也不是很成熟,不然为什么这么缺这方面的人才.
-
-
-
-
-
-
-## LLaMA: Open and Efficient Foundation Language Models(2023)
-![示意图](PixPin_2026-05-10_20-30-42.webp)
-
-
+可是这种书却能拿到这么高的分数,反而说明了C系语言的教材有多么匮乏和枯燥.
 # 计算机组成与设计: 硬件/软件接口
 ## 教材介绍和错误澄清
 - 这本书的作者是John L. Hennessy 与 David A. Patterson,都是硬件领域中极其杰出的人物
@@ -1014,6 +572,597 @@ MIPS中采用`边沿触发时钟(edge-triggered clocking)`,所有的状态改变
 >控制冒险实际上就是我们在程序编写中常见的while和for循环操作.
 
 ## 存储器
+### 前置概念
+- 局部性原理:
+  - 时间局部性(temporal locality): 如果某个数据项被访问，那么在不久的将来它可能再次被访问
+  - 空间局部性(spatial locality): 如果某个数据项被访问,与它地址相邻的数据项可能很快也将被访问
+
+根据局部性原理,我们可以将存储器设计成分层的结构:
+
+![示意图](PixPin_2026-05-28_12-29-14.webp)
+
+### cache的设计
+cache的基本原理可以这样表述:
+>将主存中的内存块映射到cache中的每一行中,如果cache有8行,那么就对主存地址取模8,将余数相同的地址全部对应到cache的一行中
+
+当然,我们需要对cache中某一行存储的内存块设置**标签**(tag),否则无法区分这到底是哪个内存块,如果cache有8行,那么我们可以直接将内存地址的低三位设置为余数,其他位数设置为标签,例如(10111)对应的是cache第8行,标签为10.
+
+
+
+
+
+
+## 总结
+总体看下来的感受还是可以的,大多数内容都讲的比较详细,解决了我关于MIPS指令集的不少疑问.
+# 深度学习论文学习
+## 前置概念
+- 论文大致按照年份排序,有一个先后关系
+- 学习前提: 阅读过<< Deep Learning From Scratch>>即可,然后就可以大致跟着时间线走,如果忽略前人的研究成果直接跳到最新模型的话,那绝对是看不懂的.
+
+首先,深度学习领域的主要框架类型有如下几个:
+1. CNN(卷积神经网络): 通过卷积层来实现高维的图像/3D输入,适用于处理图像.
+   1. 代表框架有LeNet,ResNet等.
+   2. [wiki](https://en.wikipedia.org/wiki/Convolutional_neural_network)
+2. RNN(循环神经网络): 适用于处理具有时间先后顺序的数据,例如音频
+   1. 代表框架有LSTM,GRU等
+   2. [wiki](https://en.wikipedia.org/wiki/Recurrent_neural_network)
+3. Transformer: 适用于处理文本,代码,多模态信号
+   1. 代表框架有GPT,Llama,BERT等
+4. GNN(图神经网络): 适用于处理社交网络等网络数据
+   1. 代表框架有GCN,GAT等
+
+
+然后,我们需要大致明白一条主要的时间线:
+1. 1986年<< Learning representations by back-propagating errors >>将反向传播算法引入了神经网络
+2. 1989年<< Backpropagation applied to handwritten zip code recognition >>是第一篇真正将反向传播算法实际应用到学习过程中的论文,也是CNN的原型论文
+3. 1990年<< Finding Structure in Time >>是RNN的原型论文.
+4. 1997年<< Long Short-Term Memory >>提出了LSTM框架
+5. 2015年<< Deep Residual Learning for Image Recognition >>提出了深度残差网络
+6. 2017年<< Attention Is All You Need >>提出了Transformer框架.
+7. 2018年<< Improving Language Understanding by Generative Pre-Training >>提出了基于Transformer的GPT框架
+8. 2023年<< LLaMA: Open and Efficient Foundation Language Models >>提出了基于Transformer的LLaMA框架.
+
+
+- 这些主要论文中间穿插着许多奠基者的研究成果,我也会适当地学习这些论文.
+- 由于我只是一个业余爱好者,只想准确的了解现代大模型背后的原理,所以只会挑选最经典或者最优秀的论文来大致学习一下.
+- (5/22): 早期论文大多会深入底层的原理,讲的特别深入和透彻,能够洋洋洒洒写三四十页;而越是新的论文,就越是含混不清,潦草的介绍了公式和框架就结束了,总共十几页中能有四五页真东西就不错了.这固然有版面限制的原因在,但我想还是因为风气出了问题.
+- (5/28): 早期的经典论文都是大学里的研究者提出的,而近十年的突破性论文都是由大公司里的研究者提出的,这不仅说明巨头科技公司垄断了顶尖的人才,也说明学术研究的环境不再像以前那般淳朴了.
+- (5/29): 早期的经典论文之间时间跨度很大,随着深度学习的不断火爆,论文数量呈指数级上升,每一年都有新的突破性成果,这又何尝不是一场你死我活的大跃进.
+
+### 卷积神经网络是如何实现反向传播计算的
+一般神经网络的反向传播计算很好理解,我们只需要对某一位置的参数求偏导就行了,但卷积神经网络多了一个卷积层和池化层,这显然没有那么好处理.
+
+- [一个比较好的说明](https://zhuanlan.zhihu.com/p/61898234)
+  - 由于讲的挺好的,我就不讲了...
+
+## Learning representations by back-propagating errors(1986)
+
+![介绍](PixPin_2026-05-14_17-04-17.webp)
+
+如标题所说,这篇论文将反向传播算法引入了多层神经网络的学习,堪称深度学习领域的祖师爷,不过由于内容很简单,就没有深入看的必要了,真的就只讲了一个反向传播算法而已.
+
+## Serial Order: A Parallel Distributed Processing Approach(1986)
+>该论文是<< Finding Structure in Time >>这篇论文的灵感来源,很有必要阅读.
+
+![首页](PixPin_2026-05-21_22-28-23.webp)
+![目录](PixPin_2026-05-21_22-29-23.webp)
+- 还是有点长的...
+### 总结
+>总体来看,这篇论文花了大量的篇幅介绍前人的研究成果和技术的底层原理,但整体的架构是非常简单的,一张图就可以表示:
+![示意图](PixPin_2026-05-22_12-12-57.webp)
+
+---
+AI总结
+
+传统的并行分布式处理（PDP，即早期的神经网络）擅长处理静态的空间模式输入输出，但无法解决**序列行为（Serial Order）**。人类在说话、打字、走路时，动作是有先后顺序的，且当前的动作高度依赖于之前的状态。Jordan 探讨的是：一个没有内部时钟的并行网络，如何按顺序产出一系列有特定先后关系、有时间跨度的动作。
+
+Jordan 提出了一种通过外部反馈（External Feedback）引入时间维度的方法。
+
+```
+ [计划层 Plan Layer] (保持不变，代表当前任务目标)
+        │
+        ▼
+ [隐藏层 Hidden Layer] ◄───┐
+        │                 │
+        ▼                 │
+ [输出层 Output Layer] ───┐ │ (即时反馈：100% 当前输出)
+        │                 │ │
+        ▼                 │ │
+ [状态层 State Layer] ────┼─┘ 
+   (循环自反馈：μ * 上一次状态 + 当前输出)
+
+```
+
+网络由四层结构组成：
+
+1. **计划层 (Plan Layer)**：输入端。在整个序列输出期间，计划层的激活状态保持**恒定**。它代表整体意图（例如“单词 X”或“动作序列 A”）。
+2. **隐藏层 (Hidden Layer)**：进行非线性特征组合。
+3. **输出层 (Output Layer)**：产生当前时间步的实际动作或特征。
+4. **状态层 (State Layer / Context Layer)**：这是该架构的核心创新。
+* 状态层接收两个来源的输入：一个是**输出层当前的直接反馈**，另一个是**状态层自身的自连接循环反馈**。
+* 数学物理机制：状态层单元具有持续性，其更新公式为：
+
+$$x_{state}(t+1) = \mu \cdot x_{state}(t) + x_{output}(t)$$
+
+
+其中 $\mu$ 介于 0 到 1 之间（衰减因子）。这意味着状态层对过去所有输出进行了加权指数衰减式的累积，形成了对“过去行为轨迹”的记忆。
+
+
+## Backpropagation Applied to Handwritten Zip Code Recognition(1989)
+- [一个很不错的复现仓库](https://github.com/karpathy/lecun1989-repro)
+
+![介绍](PixPin_2026-05-20_19-49-10.webp)
+### 概览与总结
+>这篇论文将反向传播算法用来训练一个可以识别从邮件中获取的手写数字的卷积神经网络,是第一次将反向传播用在实际工程中的论文,也证明了神经网络相比其他算法的优越性.
+
+![预处理](PixPin_2026-05-20_20-03-08.webp)
+
+首先,研究者将40到60像素的手写数字图片通过线性映射处理成16x16像素的图片,尽可能的保留了原图像的灰度特征:
+![映射处理](PixPin_2026-05-20_20-10-20.webp)
+
+然后通过卷积神经网络和反向传播计算,我们会得到10个数字的概率输出:
+![示意图](PixPin_2026-05-20_20-12-52.webp)
+
+- 如果你阅读过<< Deep Learning From Scratch>>的话,就会发现这正是这本书前几章所用的例子,换句话说,作者把这篇论文用简单的语言和代码又翻译了一遍而已.
+
+大概的训练方法:
+1. 所有的连接权重（Weights）和偏置（Biases）全部使用均匀分布（Uniform Distribution）进行随机初始化,随机范围严格控制在 $[-\frac{2.4}{F_i}, \frac{2.4}{F_i}]$ 之间
+2. 使用MSE(均方误差)来计算误差
+3. 使用小批量的SGD算法进行反向传播计算
+4. 总训练次数为23轮
+
+>全文的内容大致就是这样,在今天看来是平平无奇的,在当时来看的话那可真的是天纵英才的设计啊.
+
+## Finding Structure in Time(1990)
+
+![首页](PixPin_2026-05-21_22-07-03.webp)
+### 引言
+具有时间顺序的数据(后简称时序数据)在实际生产中很常见,但以往的模型最常用的方法是,将不同时间的数据拆分到一个序列中输入,也就是以空间换时间,但作者提出,我们不应该把时间看作一个额外的输入维度,而应该在加工数据时就把时间考虑进去.
+
+该论文接下来分为几个部分:
+1. 介绍用空间换时间带来的问题(略过不看,因为全是作者的主观论述,没有一点点实际数据的支撑,这在顶刊论文中还是很少见的)
+2. 研究方法
+3. 实验结果
+
+### 研究方法
+作者提出,要能够处理时序数据,最好的解决方法是让模型具有记忆能力.在Jordan(1986)论文的基础上,他设计了这样一个模型:
+
+![模型图](PixPin_2026-05-22_12-15-04.webp)
+
+- 如果看过Jordan论文的话就会知道,Elman只是把状态层改成与隐藏层绑定,而非和输出层绑定,这就是唯一的区别,但这样一来,我们就可以让训练参数与输出结果解耦,实现更好的训练效果.
+
+在之后就没有什么内容了,基本都是实验和不痛不痒的论述,重点在于说明这种架构为什么可以适配时序数据,因为相邻的输入确实比距离遥远的输入权重关系更近:
+
+![示意图](PixPin_2026-05-22_12-53-03.webp)
+
+
+## LONG SHORT-TERM MEMORY(1997)
+- 机器学习领域划时代的论文不多,但这篇论文可以算上.
+![示意图](PixPin_2026-05-20_18-40-08.webp)
+
+### 总结
+尽管这篇论文很经典,但论述实在太专业了,而且理论公式让人看着头疼:
+![示意图](PixPin_2026-05-20_18-48-31.webp)
+
+
+简单来说就是,LSTM将RNN中的隐藏层单元替换成了LSTM单元(Cell);
+![示意图](PixPin_2026-05-20_18-58-17.webp)
+
+这个单元可以进行循环计算,能够将不同时刻的数据联系起来:
+![示意图](PixPin_2026-05-20_19-30-50.webp)
+
+这种架构能够大大加速训练过程,并减少时间间隔过长引发的信息丢失.
+
+>在Transformer诞生之前,LSTM是主流的NLP框架,尽管它能够处理更长的时间步长,但在面对大量的数据时仍然无能无力,所以现在的大模型都不会使用它了.
+## A Neural Probabilistic Language Model(2003)
+- 这篇论文引入了embedding的雏形概念,是后续NLP模型的必要组成部分.
+
+![首页](PixPin_2026-05-23_16-18-30.webp)
+### 引入
+>NLP的一大难点在于输入的词向量可能有各种各样的维度,与训练数据完全不同,该论文提出,可以通过训练让模型学会比训练数据多上指数级别的语义相近的实际数据.具体来说就是模型同时学习离散的单词和完整的句子,当出现与训练数据结构类似的句子时也可以很好的做出应对.
+
+- 我已经尽力翻译了,但原文确实太难看懂了,不像是摘要,还是接着看具体实现吧.
+
+传统的词估计方法n-gram(n为上下文词个数,如trigram只看前两个词)无法理解句子之前的相似性,不能将训练集的结果扩展到无数的可能输入中,效果很差.
+
+该论文提出,尽管潜在的词向量维度很大(比如有17000个用于训练的英文单词,每个单词都用one-hot表示,就需要17000个17000维度向量,但有效的信息其实只有一个维度),但我们可以用一个比较小的维度向量来存储单词(例如30,60维):
+
+```text
+dog  → [0.12, -0.34, 0.88, ...]
+cat  → [0.10, -0.31, 0.85, ...]
+table → [-0.56, 0.21, -0.09, ...]
+```
+
+但是,这个词向量要怎么训练呢,又如何将这种词向量转换成预测的输出呢,这就需要探究一下该论文的模型架构了.
+### 模型架构
+输入时,我们可以将句子拆分成一个个英文单词(而非如今常说的token),这些英文单词不再使用高维向量的one-hot表示,而是使用数字编号(例如the对应1,cat对应2).每个数字编号对应一个低维度(30维或者60维)的词向量(如前所说).
+
+最初的词向量是选用特定的随机算法产生的初始值,训练时,会将输入的句子送进神经网络中,得到下一个词的预测概率,如果词表中有17000个词,那么就有17000个输出,概率总和为1,选取概率最大的那个词输出即可.
+
+具体的神经网络结构如下:
+
+![结构图](PixPin_2026-05-27_12-44-27.webp)
+
+可以看到,我们首先使用tanh函数处理输入的词向量,得到词表中每个词的基本输出分数,再通过softmax计算出最大概率的词是哪个.
+
+>该论文还提出,由于softmax层涉及大量的指数运算,所以需要相对大的算力来进行,可以采用各种各样的并行算法来优化计算.
+
+
+### 总结
+整体原理相当简单,遗憾的是写文章的人相当咬文嚼字,长难句一大堆,不太喜欢把技术实现写明白点.
+## Linguistic Regularities in Continuous Space Word Representations(2013)
+![首页](PixPin_2026-05-27_13-38-36.webp)
+### 概览和总结
+该论文提出了一种词向量相似性的计算方法: The Vector Offset Method,如果两对词向量对应的词语语义相近,那么它们在词向量上的分布也是相近的,例如:
+
+$$\text{king} - \text{man} + \text{woman} \approx \text{queen}$$
+
+具体的方法就是通过其他三个向量计算出目标向量:
+
+**y=xb​−xa​+xc​**
+
+词表中于y余弦相似度最高的词即为目标词向量.
+
+该论文通过实验证明,如果词向量的维度越高,计算出来的相似词的准确度就越高,部分解答了为什么词向量能够对应现实文本的语义,为后续的模型训练提供了一定的理论依据.
+
+## Efficient Estimation of Word Representations in Vector Space(2013)
+![首页](PixPin_2026-05-27_13-13-00.webp)
+### 模型架构
+在03年那篇论文的基础上,该论文提出了两种新的简化模型架构: **CBOW(Continuous Bag-of-Words Model)**和**Skip-gram**,架构图如下:
+
+![架构图](PixPin_2026-05-28_14-59-28.webp)
+
+>CBOW根据上下文语境预测中间词,而Skip-gram根据中间词预测上下文
+
+
+
+## Dropout: A Simple Way to Prevent Neural Networks from Overfitting(2014)(待补充)
+![首页](PixPin_2026-05-29_12-15-41.webp)
+- 在一大堆公司冠名的论文中突然冒出来一个多伦多大学还是很惊艳的
+
+## Learning Phrase Representations using RNN Encoder–Decoder for Statistical Machine Translation(2014)
+
+![首页](PixPin_2026-05-22_12-55-39.webp)
+- 这篇论文可能是最早提出编码器-解码器架构的,但我也不太确定.
+
+### 总结
+
+>该论文提出了用两个循环神经网络(RNN)组成的编码器-解码器架构,编码器将输入数据处理成固定长度的向量,解码器将向量处理成输出数据.
+
+![架构解释图](PixPin_2026-05-23_15-56-53.webp)
+
+在此之上,论文还提出了一个LSTM单元的简化版本作为RNN的隐藏层,是后续GRU(Gated Recurrent Unit)的雏形:
+
+![结构图](PixPin_2026-05-23_16-01-37.webp)
+
+
+完整的流程如下:
+1. 编码器不断读取输入,将其处理成固定长度的向量
+2. 解码器根据向量逐个输出预测值,最大化下一个词的条件概率,每个预测值都与之前的所有输入相关:
+
+$$P(y_t \mid y_1, ..., y_{t-1}, c)$$
+
+
+由于当时SMT(statistical machine translation)是主流的NLP模型,所以该论文仅仅是把这个新架构作为SMT的补充部分,没有预想到它的潜力会有这么大.
+
+
+
+## Sequence to Sequence Learning with Neural Networks(2014)
+![首页](PixPin_2026-05-28_15-16-37.webp)
+### 概括与总结
+该论文提出,可以使用两个多层的LSTM网络,一个用于将输入序列(sequence)编码成固定长度的词向量,另一个用于将词向量解码成输出序列.与上一篇论文相同,也是拿把英语翻译成法语的任务来做实验.
+
+- 这篇论文基本贡献只是把上一篇论文中的RNN隐藏层换成了LSTM单元,彻底脱离了SMT system,尽管如此,它的影响力还是比较大的,后续论文尊称该论文的模型架构为seq2seq模型.
+
+
+## ADAM: A METHOD FOR STOCHASTIC OPTIMIZATION(2015)
+![示意图](PixPin_2026-05-08_17-07-53.webp)
+- 这篇2015年的论文提出了一种新的神经网络学习方法:ADAM,是两年后推出的Transformer模型的核心算法,还是很有必要了解的
+- (2026/4): 第一次读论文,也不知道怎么读,总不至于全部复制过来再逐个翻译吧,想了想还是读完全文后做一点要点总结算了.
+
+### 引入
+>在机器学习中,常见的优化算法都属于一阶方法**first-order methods**,即只使用目标函数(例如损失函数)的一阶导数(例如梯度)来更新参数.其中,随机梯度下降法**stochastic gradient descent (SGD)**是最著名也是非常有效的学习方法.
+
+本文提出的Adam算法同样也是一个随机最优化(**stochastic optimization**)的一阶算法,它的名字来源于`adaptive moment estimation`.
+
+该算法借鉴了两个优秀算法的长处:
+1. AdaGrad,于2011年提出,可以很好地处理稀疏梯度(即梯度向量中绝大多数元素为0的情况)
+2. RMSProp,于2012年提出,能够很好地处理小批量训练?(on-line)和非平稳环境(not-stationary).
+### 算法实现
+### 伪代码
+$$\begin{array}{l}
+\hline \mathbf{Algorithm\ 1:} \text{ Adam, our proposed algorithm for stochastic optimization. See section 2 for details,} \\
+\text{and for a slightly more efficient (but less clear) order of computation. } g_{t}^{2} \text{ indicates the elementwise} \\
+\text{square } g_{t} \odot g_{t} \text{. Good default settings for the tested machine learning problems are } \alpha=0.001, \\
+\beta_{1}=0.9, \beta_{2}=0.999 \text{ and } \epsilon=10^{-8} \text{. All operations on vectors are element-wise. With } \beta_{1}^{t} \text{ and } \beta_{2}^{t} \\
+\text{we denote } \beta_{1} \text{ and } \beta_{2} \text{ to the power } t . \\
+\hline \mathbf{Require:} \alpha: \text{Stepsize} \\
+\mathbf{Require:} \beta_{1}, \beta_{2} \in[0,1): \text{Exponential decay rates for the moment estimates} \\
+\mathbf{Require:} f(\theta): \text{Stochastic objective function with parameters } \theta \\
+\mathbf{Require:} \theta_{0}: \text{Initial parameter vector} \\
+\quad m_{0} \leftarrow 0 \text{ (Initialize } 1^{\text {st }} \text{ moment vector)} \\
+\quad v_{0} \leftarrow 0 \text{ (Initialize } 2^{\text {nd }} \text{ moment vector)} \\
+\quad t \leftarrow 0 \text{ (Initialize timestep)} \\
+\quad \mathbf{while} \ \theta_{t} \text{ not converged } \mathbf{do} \\
+\quad\quad t \leftarrow t+1 \\
+\quad\quad g_{t} \leftarrow \nabla_{\theta} f_{t}\left(\theta_{t-1}\right) \text{ (Get gradients w.r.t. stochastic objective at timestep } t) \\
+\quad\quad m_{t} \leftarrow \beta_{1} \cdot m_{t-1}+\left(1-\beta_{1}\right) \cdot g_{t} \text{ (Update biased first moment estimate)} \\
+\quad\quad v_{t} \leftarrow \beta_{2} \cdot v_{t-1}+\left(1-\beta_{2}\right) \cdot g_{t}^{2} \text{ (Update biased second raw moment estimate)} \\
+\quad\quad \widehat{m}_{t} \leftarrow m_{t} /\left(1-\beta_{1}^{t}\right) \text{ (Compute bias-corrected first moment estimate)} \\
+\quad\quad \widehat{v}_{t} \leftarrow v_{t} /\left(1-\beta_{2}^{t}\right) \text{ (Compute bias-corrected second raw moment estimate)} \\
+\quad\quad \theta_{t} \leftarrow \theta_{t-1}-\alpha \cdot \widehat{m}_{t} /\left(\sqrt{\widehat{v}_{t}}+\epsilon\right) \text{ (Update parameters)} \\
+\quad \mathbf{end\ while} \\
+\quad \mathbf{return} \ \theta_{t} \text{ (Resulting parameters)} \\
+\hline
+\end{array}$$
+
+有几个专业名词不太好懂:
+1. first moment: 一阶矩,即梯度的期望(均值)
+2. second raw moment: 二阶原始矩,不对数据减去均值直接求平方期望,若减去均值在求平方期望,则称为中心矩(即方差)
+3. `exponential decay rates`: 指数衰减率,衰减率越大参数更新越慢,之所以叫指数是因为某一时刻的值是先前所有历史值的加权和:
+   - $$V_t = (1-\beta)(g_t + \beta g_{t-1} + \beta^2 g_{t-2} + \beta^3 g_{t-3} + \dots)$$
+
+
+- 大概这种论文都有一个伪代码来简单的解释自己算法的整个流程吧,乍一看有点懵,实际上确实比看文字更好懂一点
+### 具体原理
+>The stochasticity might come from the evaluation at random subsamples (minibatches)
+of datapoints, or arise from inherent function noise.
+
+- 之所以说这个算法是随机的,是因为它的数据可能是一个随机的小批量抽取,或者说数据本身存在噪音
+
+> However, these moving averages are
+initialized as (vectors of) 0’s, leading to moment estimates that are biased towards zero, especially
+during the initial timesteps, and especially when the decay rates are small (i.e. the βs are close to 1).
+
+- 由于m和v的初始值被置为0,所以在函数刚起步的时候,特别是当衰减率也很低(β接近1)时,会导致矩估计(均值)偏向0,导致学习失败.
+
+>因此,我们需要用一点技巧来克服这个问题,这会在下一章被解决.
+
+- 看了一个小时,明天再来,看论文确实很累
+### 误差修正
+![示意图](PixPin_2026-05-10_20-09-14.webp)
+通过一个简单的等比数列求和,我们发现某一时刻的梯度被缩小到了真实值的$(1 - \beta_2^t)$ 倍,所以在伪代码中我们会在计算出两个参数后对其进行误差修正.
+
+### 4个实验
+选取的实验都是非常经典的模型,而不是像某些垃圾论文一样用一些奇怪的数据集在奇怪的模型上训练.
+
+- training cost: 指的就是损失函数值
+#### LOGISTICR EGRESSION
+![示意图](PixPin_2026-05-10_20-19-56.webp)
+#### MULTI-LAYER NEURAL NETWORKS
+
+![示意图](PixPin_2026-05-10_20-22-13.webp)
+#### CONVOLUTIONAL NEURAL NETWORKS
+![示意图](PixPin_2026-05-10_20-25-26.webp)
+#### BIAS-CORRECTION TERM
+![示意图](PixPin_2026-05-10_20-25-51.webp)
+
+基本都是全方位打压以前的反向传播算法
+### 结论
+- 有个扩展的AdaMax算法被我忽略掉了
+- 附录也被我省略了,数学不好的人是看不得这种东西的
+  - ![示意图](PixPin_2026-05-10_20-28-55.webp)
+
+>The method combines the advantages of
+two recently popular optimization methods: the ability of AdaGrad to deal with sparse gradients,
+and the ability of RMSProp to deal with non-stationary objectives. 
+>
+>The method is straightforward
+to implement and requires little memory. 
+
+>The experiments confirm the analysis on the rate of convergence in **convex problems**.
+>
+>Overall, we found Adam to be **robust and well-suited to a wide range of non-convex optimization problems** in the field machine learning.
+
+第一篇论文看下来的感受还是挺好的,既没有什么宏大叙事,也没有多少弯弯绕绕,很清楚的把一个算法的前前后后都讲清楚了,非常推荐阅读.
+## Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift(2015)
+- 影响非常深远的BN方法就是这篇论文提出的
+![首页](PixPin_2026-05-28_18-31-38.webp)
+### 概览与总结
+>在深层神经网络中,由于位置靠后的层在训练时总是需要根据位置靠前的层的参数的变化而调整,会严重拖累训练的进度,这种现象被称为**Internal Covariate Shift**,大意为,其他层的变化导致该层也不得不变化而产生的训练偏差.
+>
+>因此,该论文提出可以使用Batch Normalization来处理训练时输入的mini-batch,从而加速训练和减少偏差,实际的应用效果也非常好.
+
+**核心算法步骤**
+
+对于一个拥有 $m$ 个样本的小批量（Mini-batch）数据 $\mathcal{B} = \{x_{1...m}\}$：
+
+1. **计算批次均值**（Mini-batch Mean）：
+
+$$\mu_{\mathcal{B}} = \frac{1}{m} \sum_{i=1}^{m} x_i$$
+
+
+2. **计算批次方差**（Mini-batch Variance）：
+
+$$\sigma_{\mathcal{B}}^2 = \frac{1}{m} \sum_{i=1}^{m} (x_i - \mu_{\mathcal{B}})^2$$
+
+
+3. **标准化**（Normalize）：
+
+$$\hat{x}_i = \frac{x_i - \mu_{\mathcal{B}}}{\sqrt{\sigma_{\mathcal{B}}^2 + \epsilon}}$$
+
+
+
+*注：$\epsilon$ 是一个为了防止分母为0而加入的极小常数。*
+4. **缩放与平移**（Scale and Shift）：
+
+$$y_i = \gamma \hat{x}_i + \beta$$
+
+*注：$\gamma$ 和 $\beta$ 是网络需要学习的标量参数。*
+
+>实际上确实是很简单的处理,但偏偏就是很有效.
+
+
+
+## Deep Residual Learning for Image Recognition(2015)
+- 深度残差网络在2015年的ImageNet比赛中问世,成功击败了所有的竞争模型,一举夺魁.
+![首页](PixPin_2026-05-28_18-18-28.webp)
+
+### 概览与总结
+仅仅是普通的加深网络层数未必会让训练效果更好,甚至会反过来让训练效果变差,该论文提出可以引入一个**残差学习框架**,这个框架基于以下原理:
+
+假设有一个56层的网络,那么我们可以让前20层于普通的20层网络一样训练,后36层只做恒等映射,直接输出原值,那么这样加深多少层理论上都不可能会比原来的训练效果更差,如果我们对这些恒等映射层做一些简单的正向优化,那么训练结果就一定比20层网络更好.
+
+实际的优化做法相当简单,更改附加层的训练目标即可:
+
+![原理示意](PixPin_2026-05-29_13-08-50.webp)
+
+
+该框架后来被称为**Deep residual network**,简称为**ResNet**.
+
+- 至于要看具体是怎么做的,该论文提供了[github仓库](https://github.com/kaiminghe/deep-residual-networks),还是很不错的
+
+>后续的<< Identity Mappings in Deep Residual Networks(2016) >>中这四个作者对ResNet做了进一步的分析,并提出了一个优化版本.
+## Neural Machine Translation by Jointly Learning to Align and Translate(2016)
+
+## Attention Is All You Need(2017)
+![示意图](PixPin_2026-05-10_20-31-11.webp)
+
+- (5/29): 为了能够看懂这篇威名远扬的论文,我作为一个完全的小白,在阅读完入门书后,又前前后后花了20天阅读前人的研究成果,终于得以一瞥这一横空出世的集大成者.
+
+### 引言和背景介绍
+
+
+### 模型架构
+
+![模型架构图](PixPin_2026-05-11_13-07-49.webp)
+
+
+## Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks(2021)
+- 在Agent构建中被广泛应用的RAG概念就是这篇2021年的论文提出的
+![首页](PixPin_2026-05-13_17-49-29.webp)
+
+### 摘要
+>由于预训练的模型针对特定的语料时的表现较差,研究人员引入了**retrieval-augmented generation**模型,它使用了预训练的seq2seq模型(于2014年提出的编码器-解码器模型)和未被模型学习过的Wikipedia语料,这种模型比单独的预训练模型和专门针对Wikipedia语料训练的模型效果还要好.
+
+### 引入
+>由于预训练好的模型不能轻易的扩展或者修改参数,所以有研究者提出了将预训练模型和外部语料结合在一起的混合模型架构,如REALM和ORQA模型,而RAG架构就是在这些研究的基础上提出来的.
+
+>We build RAG models where the parametric memory is a pre-trained seq2seq transformer, and the
+non-parametric memory is a dense vector index of Wikipedia, accessed with a pre-trained neural retriever.
+
+### 原理
+- RAG的具体原理确实比较复杂,怪不得这么缺这方面的人才.
+- 这部分的原文不太像人话,就算是论文也请你写的正常一点吧...
+- 更别提整篇论文只有一张说明图,和一两张实验图表,你好意思去上顶刊,去评优秀论文吗😀
+```md
+
+## RAG 核心模型架构
+
+RAG（Retrieval-Augmented Generation）模型结合了**参数化记忆**（Generator）与**非参数化记忆**（Retriever）。其核心逻辑是利用输入序列 $x$ 检索文档 $z$，并将 $z$ 作为生成目标序列 $y$ 的额外上下文。
+
+模型包含两个组件：
+
+1. **检索器 $p_\eta(z|x)$**：给定查询 $x$，返回文本段落的分布（通常取 Top-K）。
+2. **生成器 $p_\theta(y_i|x, z, y_{1:i-1})$**：基于原始输入 $x$、检索到的文档 $z$ 以及已生成的 $i-1$ 个token，生成当前token $y_i$。
+
+
+## 处理潜在变量 $z$ 的两种方式
+
+为了实现端到端训练，文档 $z$ 被视为**潜在变量（Latent Variable）**。根据对 $z$ 边缘化（Marginalize）方式的不同，分为两种模型：
+
+### 1. RAG-Sequence 模型
+
+该模型假设生成整个序列时使用的是**同一篇文档**。它将 $z$ 视为单个潜在变量，通过对 Top-K 文档的概率进行求和来计算 $p(y|x)$：
+
+$$p_{\text{RAG-Sequence}}(y|x) \approx \sum_{z \in \text{top-k}(p(\cdot|x))} p_\eta(z|x) p_\theta(y|x, z) = \sum_{z \in \text{top-k}(p(\cdot|x))} p_\eta(z|x) \prod_i^N p_\theta(y_i|x, z, y_{1:i-1})$$
+
+### 2. RAG-Token 模型
+
+该模型允许在生成每个token时**切换文档**。生成器可以从多个文档中挑选内容来组织答案：
+
+$$p_{\text{RAG-Token}}(y|x) \approx \prod_i^N \sum_{z \in \text{top-k}(p(\cdot|x))} p_\eta(z|x) p_\theta(y_i|x, z, y_{1:i-1})$$
+
+
+## 关键组件实现
+
+### 检索器：DPR (Dense Passage Retriever)
+
+检索概率基于双编码器（Bi-encoder）架构：
+
+
+$$p_\eta(z|x) \propto \exp(d(z)^\top q(x))$$
+
+* $d(z) = \text{BERT}_d(z)$：文档编码。
+* $q(x) = \text{BERT}_q(x)$：查询编码。
+检索过程通过 **MIPS（最大内积搜索）** 在线性时间内完成。
+
+### 生成器：BART
+
+使用预训练的 **BART-large**（seq2seq Transformer）。处理时直接将输入 $x$ 与检索内容 $z$ 进行拼接。
+
+## 训练与解码
+
+### 训练 (Training)
+
+* **目标函数**：最小化负边际对数似然 $\sum_j -\log p(y_j|x_j)$。
+* **更新策略**：为了降低计算成本，不更新文档编码器 $\text{BERT}_d$ 和索引，仅微调查询编码器 $\text{BERT}_q$ 和生成器 $\theta$。
+
+### 解码 (Decoding)
+
+* **RAG-Token**：可以视为标准的自回归模型，直接使用标准**束搜索（Beam Search）**。
+* 转移概率：$p'_\theta(y_i|x, y_{1:i-1}) = \sum_{z \in \text{top-k}(p(\cdot|x))} p_\eta(z|x) p_\theta(y_i|x, z, y_{1:i-1})$。
+
+
+* **RAG-Sequence**：由于似然函数无法分解为单token概率，需针对每个文档 $z$ 分别运行束搜索，得到候选集 $Y$。
+* **Thorough Decoding**：对不在某些文档束中的候选序列进行额外的正向传播计算，补全概率后求和。
+* **Fast Decoding**：假设未在某文档束中出现的序列概率为 0，直接在现有候选集中求和，提高效率。
+```
+
+![示意图](PixPin_2026-05-13_18-42-20.webp)
+- 这种东西没人看了不迷糊吧,真搞算法的话还是很难的
+
+大致意思是,我们可以用两种方法实现RAG,一个是一口气生成完整答案的,一个是逐token参考文档生成答案的,第二种方案中,预训练模型在每生成一个token时会参考前文和多个文档语料,选择最优的文档语料来生成.
+
+具体的原理如下:
+
+我们将本地文档切分成短片段,存储在向量数据库中,当用户提问时,我们把用户输入向量和文档向量组合拼接起来,再喂给模型让它输出.
+
+问题来了,我们输入的本地文档可能非常庞大,超过了模型的上下文限制,不可能也直接输入进去.我们需要**通过检索器进行快速的筛选**,找到与用户提问最符合的几个文档向量后再进行拼接.
+
+检索器的实现原理还比较简单:
+
+$p_{\eta}(z|x) \propto \exp(d(z)^\top q(x))$
+$d(z) = \text{BERT}_d(z)$
+$q(x) = \text{BERT}_q(x)$
+
+**1. 向量化（Bi-Encoder 架构）**
+检索器使用了两个独立的 BERT 模型：
+
+* **查询编码器 $q(x)$**：把你的提问（Query）转换成一串数字（特征向量）。
+* **文档编码器 $d(z)$**：把海量的背景资料（Documents）也转换成相同维度的数字串。
+
+
+**2. 相似度计算（内积运算）**
+公式中的 $d(z)^\top q(x)$ 代表两个向量的**点积**。通俗来说：
+
+* 如果提问和某个文档在语义上越接近，它们生成的数字串在空间中的方向就越一致。
+* 方向越一致，点积的数值（得分）就越高。
+* $\exp$ 函数的作用是拉大分值差距，让得分高的文档脱颖而出。
+
+**3. 极速筛选（MIPS 问题）**
+面对数以亿计的文档，逐一计算点积太慢。该模型将问题转化为**最大内积搜索（MIPS）**, 通过建立特殊的“索引”结构，就能在接近线性的时间内锁定最匹配的前 $k$ 个文档。
+
+至于MIPS怎么实现的?不好意思原文没怎么提😅
+
+### 总结
+尽管RAG通俗的解释还是很好理解的,但这篇论文对于具体原理的实现总有一点不情愿解释的感觉,就好像自己也实现不了的样子,而且根据论文中的实验结果来说,很多任务RAG并不是最优解:
+![示意图](PixPin_2026-05-14_16-45-54.webp)
+
+真正做Agent的话,RAG的能力还是很有限的,它有以下弊端:
+1. 企业要想真正使用RAG,就需要把开源的模型或者自己开发的模型部署好后,在每次针对特定语料库训练时进行参数上的微调,这是很麻烦的,如果不微调的话表现会更差.
+   1. 况且这篇论文没怎么讲如何实现参数微调,我有理由怀疑只是把语料喂进去重新训练了而已,而非是在输出端口进行微调.
+2. 鉴于大多数企业不具备自主开发优秀大模型的能力,就需要调用第三方的API,调用API的话就不能对模型做手脚,而是要对自己本地的语料进行处理,储存一个向量数据库,并在输出时进行拼接.至于怎么实现,我看也不是很成熟,不然为什么这么缺这方面的人才.
+
+
+
+
+
+
+## LLaMA: Open and Efficient Foundation Language Models(2023)
+![首页](PixPin_2026-05-10_20-30-42.webp)
+
+## DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning(2025)
 
 # Linux内核设计与实现
 - 尽管源码分析很多,好在都有一些比较概括性的介绍,只看介绍就行了,谁愿意看你那些破碎的代码分析呢.再说Linux的0.01版只有一万行代码,真要研究的话看那个也足够了.
@@ -1168,9 +1317,167 @@ Linux2.6版本引入了CFS(完全公平调度)机制:
 
 >二者的差异就在于中断是由硬件引发而非由软件引发
 ## 内核同步
+- 临界区: 存放共享数据的代码段
+- 同步: 避免两个进程在同一个临界区中同时执行,因为进程调度中发生进程抢占的情况经常出现,例如中断,内核抢占和多处理器
+- 加锁: 在进程执行时给临界区加锁可以让其他进程无法进入临界区,从而实现进程同步
+- 死锁: 每个进程都在等待被加锁的资源才能继续执行,而这个资源被解锁的条件恰恰是该进程执行完毕
+  - 自死锁: 一个进程在执行中申请获得自己持有的锁,那么该进程只能永远等待下去
+  - 自旋锁(spin lock): 最多只能被一个可执行进程持有的锁,其他进程在等待该进程执行完毕时必须不停地反复询问,原地旋转(spin).
+  - 读/写自旋锁: 多个读任务可以同时持有读者锁,但只能由一个写任务持有写者锁,且写者代码执行时不可以有读者代码同时执行.**该类锁显然是针对读写任务设计的**
+  - 信号量: 信号量是一种睡眠锁,如果一个进程试图获取被占用的信号量时,将会被推进一个等待队列并睡眠,只有当信号量被释放时才能被唤醒.**该类锁是针对需要长时间执行的进程设定的.**
 
-# C和指针
+![两个进程的例子](PixPin_2026-05-29_09-44-33.webp)
 
+
+# 计算机体系结构: 量化研究方法
+- 如上一本书所说明的,这本书属于进阶版本的教材,但因为是相同的作者写的,所以编排风格十分相似.
+
+## 量化设计与分析基础
+### 前置概念
+应用程序中主要有两种并行:
+1. 数据级并行(DLP): 同时操作多个数据项
+2. 任务级并行(TLP): 同时执行多个工作任务
+
+计算机硬件为了实现上述的两种架构,有以下四种并行方法:
+1. 指令级并行: 利用流水线实现数据级并行
+2. 使用向量处理机和GPU: 将单条指令并行应用于一个数据集,实现数据级并行
+3. 线程级并行: 在并行线程间进行交互,实现数据级/任务级并行
+4. 请求级并行
+
+我们还可以根据指令流与数据流的关系将计算机架构分成4类:
+1. 单指令流,单数据流(SISD): 使用单处理器,顺序执行指令,但可以实现指令级并行
+2. 单指令流,多数据流(SIMD): 使用多处理器,不同的处理器可以装载不同的数据流,但只能由一个处理器来装载指令,是现代GPU的主要架构
+3. 多指令流,单数据流(MISD): 不太有开发的必要,指令容易冲突,还不能并行处理多个数据.
+4. 多指令流,多数据流(MIMD): 每个处理器都使用自己的指令操控自己的数据,是现代CPU的主要架构.
+
+### 指令集体系结构(ISA)
+几乎所有的ISA都属于通用寄存器体系结构,80x86有16个通用寄存器和16个存储浮点数据的寄存器;MIPS有32个通用寄存器和32个浮点寄存器.
+
+所有的计算机都使用**字节寻址**来访问存储器操作数,MIPS有三种寻址方式: 寄存器寻址,立即数寻址,位移量寻址.
+
+MIPS的操作指令比较简单,大致可分为以下几种:
+1. 数据传输指令
+2. 算术逻辑指令
+3. 控制指令
+4. 浮点指令
+
+| 指令类型/操作码                       | 指令含义                                                                                                         |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **数据传输**                          | 在寄存器和存储器之间，或者在整数和FP或特殊寄存器之间移动数据；唯一的存储器寻址模式是16位位移量加上GPR的内容      |
+| LB, LBU, SB                           | 载入字节、载入无符号字节、存储字节（至/自整数寄存器）                                                            |
+| LH, LHU, SH                           | 载入半字、载入无符号半字、存储半字（至/自整数寄存器）                                                            |
+| LW, LWU, SW                           | 载入字、载入无符号字、存储字（至/自整数寄存器）                                                                  |
+| LD, SD                                | 载入双字、存储双字（至/自整数寄存器）                                                                            |
+| L.S, L.D, S.S, S.D                    | 载入SP浮点、载入DP浮点、存储SP浮点、存储DP浮点                                                                   |
+| MFC0, MTC0                            | 在GPR与特殊寄存器之间复制数据                                                                                    |
+| MOV.S, MOV.D                          | 将一个SP或DP FP寄存器复制到另一个FP寄存器                                                                        |
+| MFC1, MTC1                            | 在FP寄存器与整数寄存器之间复制32位                                                                               |
+| **算术/逻辑**                         | 对GPR中的整数或逻辑数据进行操作；带有符号算术运算溢出时进行陷阱捕获                                              |
+| DADD, DADDI, DADDU, DADDIU            | 加，加立即数（所有立即数为16位），有符号和无符号                                                                 |
+| DSUB, DSUBU                           | 减，有符号和无符号                                                                                               |
+| DMUL, DMULU, DDIV, DDIVU, MADD        | 乘和除，有符号和无符号，乘-加；所有运算的操作数和结果都是64位数值                                                |
+| AND, ANDI                             | 与，和立即数相与                                                                                                 |
+| OR, ORI, XOR, XORI                    | 或，和立即数求或，异或，和立即数求异或                                                                           |
+| LUI                                   | 载入高位立即数；将立即数载入到寄存器的32~47位，然后进行符号扩展                                                  |
+| DSLL, DSRL, DSRA, DSLLV, DSRLV, DSRAV | 移位：立即数形式（DS__）和变量形式（DS__V），移位为左逻辑移位、右逻辑移位、右算术移位                            |
+| SLT, SLTI, SLTU, SLTIU                | 若小于操作数则置位、若小于立即数则置位、有符号和无符号                                                           |
+| **控制**                              | 控制分支和跳转，相对于PC寄存器或通过寄存器控制                                                                   |
+| BEQZ, BNEZ                            | GPR等于/不等于0时转移，相对于PC+4偏移16位偏移量                                                                  |
+| BEQ, BNE                              | GPR相等/不等时转移、相对于PC+4偏移16位偏移量                                                                     |
+| BC1T, BC1F                            | 测试FP状态寄存器中的对比位，并转移；相对于PC+4偏移16位偏移量                                                     |
+| MOVN, MOVZ                            | 如果第三个GPR为负数/零，则将第一个GPR复制到第二个GPR                                                             |
+| J, JR                                 | 跳转至与PC+4偏移26位偏移量的位置（J）、跳转至寄存器中的目标位置（JR）                                            |
+| JAL, JALR                             | 跳转和链接：将PC+4保存在R31中，目标为相对于PC（JAL）或寄存器（JALR）                                             |
+| TRAP                                  | 转移到操作系统的一个向量地址                                                                                     |
+| ERET                                  | 从异常中返回用户代码，恢复用户模式                                                                               |
+| **浮点**                              | 对DP和SP格式执行FP操作                                                                                           |
+| ADD.D, ADD.S, ADD.PS                  | DP、SP相加，一对SP数相加                                                                                         |
+| SUB.D, SUB.S, SUB.PS                  | DP、SP相减，一对SP数相减                                                                                         |
+| MUL.D, MUL.S, MUL.PS                  | DP、SP浮点数相乘，一对SP数相乘                                                                                   |
+| MADD.D, MADD.S, MADD.PS               | DP、SP浮点数相乘加，一对SP数相乘加                                                                               |
+| DIV.D, DIV.S, DIV.PS                  | DP、SP浮点数相除，一对SP数相除                                                                                   |
+| CVT.*.*                               | 转换指令：CVT.x.y从类型x转换为类型y，其中x和y为L（64位整数）、W（32位整数）、D（DP）或S（SP）。两个操作数都是FRP |
+| C.*.D, C.*.S                          | DP和SP对比：“_”=LT, GT, LE, GE, EQ, NE；在FP状态寄存器中置位                                                     |
+
+MIPS中所有指令的长度都是32位,从而简化了指令译码:
+![示意图](image-2.png)
+
+### Amdahl定律: 计算加速比
+Amdahl定律用于计算升级某个部件/功能时获得的**加速比**,即采用升级前所用的时间与升级后所用时间的比值,从而衡量出某个部件/功能的贡献大小:
+
+$$S_{\text{latency}} = \frac{1}{(1 - p) + \frac{p}{s}}$$
+
+* $S_{\text{latency}}$：整个任务执行速度的理论加速比。
+* $p$：任务中受益于资源改进的部分所占的时间比例（$0 \le p \le 1$）。
+* $s$：受改进部分原本的性能提升倍数。
+
+![示意图](PixPin_2026-05-16_10-25-13.webp)
+
+### CPI: 衡量处理器的性能
+所有计算机都有一个时钟周期,那么CPU执行某个任务的时间就等于**经过的周期数乘以一个时钟周期的时间**.
+
+我们使用**每条指令的周期数**(Cycle Per Instruction,CPI)来衡量某条指令所花的时间长度:
+
+$$\text{CPI} = \frac{\text{程序的CPU时钟周期数}}{\text{指令数}}$$
+
+那么处理器的性能就取决于三个变量: 时钟周期,CPI,指令数.
+
+## 存储器层次结构设计
+鉴于快速存储器非常昂贵,现代计算机都使用分层的存储器结构,从而实现以下效果:
+- **每字节的成本几乎与最便宜的存储器级别相同,速度几乎与最快速的级别相同**
+
+
+![示意图](image-3.png)
+
+- 下一级存储器通常会保留上一级存储器的所有信息,才能保证信息不会丢失
+### 优化缓存性能
+1. 使用小而简单的第一级缓存,缩短命中时间
+2. 采用**路预测**,缩短命中时间
+   1. 缓存中留出一部分空间用于预测下一次要访问的数据
+3. 缓存访问流水化(Cache Access Pipelining),即将缓存访问拆成多个步骤,提高缓存带宽:
+
+```md
+时钟周期：   |  Cycle 1  |  Cycle 2  |  Cycle 3  |  Cycle 4  |
+指令 A:     [ 地址解码 ] [ 阵列驱动 ] [ 数据读出 ]
+指令 B:                 [ 地址解码 ] [ 阵列驱动 ] [ 数据读出 ]
+指令 C:                             [ 地址解码 ] [ 阵列驱动 ] [ 数据读出 ]
+````
+4. 采用无阻塞缓存,提高缓存带宽
+   1. 出现缓存不命中(miss)时,不中断缓存访问,这是通过在缓存内部引入了一组特殊的硬件寄存器实现的,它被称为**未命中状态保持寄存器**（MSHR，Miss Status Holding Registers）.
+
+![示意图](PixPin_2026-05-17_09-46-34.webp)
+
+5. 采用多种缓存,提高缓存带宽.
+   1. 将缓存划分成多个相互独立的,支持同时访问的缓存组
+6. 关键字优先和提前重启动,降低缓存不命中的代价
+   1. 缓存与主存交换数据的最小单位是块(Block),一个块包含多个字(word),当CPU只需要某一块其中的一个字时,缓存控制器直接跳转到对应的地址获取那个缺失的字,让CPU恢复执行后再发送该块的剩余部分
+   2. 另一种实现方法,缓存保持顺序读取,实时检查当前块中是否出现了CPU需要的字,一旦出现就直接发送给CPU,再接着发送剩余部分.
+
+7. 合并写缓冲区,降低缓存不命中的代价
+   1. 为了不让CPU每次执行缓存的写入操作时都等待新数据从缓存慢慢传回内存,我们会设计一个写缓冲区,CPU将数据写入该缓冲区后继续执行,缓冲区负责将数据异步写入下级存储.
+   2. 如果新写入的数据与缓冲区中某个数据属于一个块(这是非常常见的情况,因为代码和数据通常都保存在一块连续内存上),则直接将这两部分数据合并,节省写缓冲区空间
+
+![示意图](image-4.png)
+
+8. 采用编译器优化,降低缓存不命中的概率
+   1. 编译器会对代码进行优化处理,帮助处理器以更高的效率执行代码
+
+上面的这些做法都在现代计算机体系结构中得到了广泛的应用.
+### 存储器种类
+- Static Random Access Memory(SRAM): 通常用作缓存,集成在处理器的芯片上,响应速度远超DRAM
+- Dynamic Random Access Memory(DRAM): 用作内存条,在每次读取信息后会破坏该信息,所以要进行**刷新**后写回数据,速度比较慢,适合放在硬盘和缓存中间作为缓冲存储器.
+- SDRAM: 同步DRAM,DRAM的优化版本,现代的内存条都是SDRAM.
+- NAND flash(闪存): 最常见的闪存就是SSD(固态硬盘),通常为最后一级存储器,速度很慢,但比起HDD(机械硬盘)又快得多.
+
+## 附录B: 存储器层次结构
+### 前置概念
+1. 根据主存块在cache中的放置位置,可以讲cache的组织方式分成三种:
+   1. 直接映射: `(块地址)MOD(缓存行数)`
+   2. 全相联: 块可以放在缓存中的任意位置
+   3. 组相联: 块可以放在缓存中的有限个位置组成的组(set)中.块首先通过`(块地址)MOD(缓存组数)`映射到组,可以放在组中的任意位置.
+      1. 如果组中有n个块,就被称为n路组相联
+## 附录C: 流水线
+## 指令级并行
 # Hello算法
 - [官网](https://www.hello-algo.com/chapter_computational_complexity/time_complexity/#5-olog-n)
 ## 前言
@@ -1524,188 +1831,201 @@ priority_queue<int, vector<int>, greater<int>> minHeap(input.begin(), input.end(
 2. 邻接表: 存储实际存在的边,空间复杂度更小,但时间复杂度更高.
 ## 算法
 ### 搜索
-#### 二分查找
+#### 二分查找(过)
+### 排序
+#### 选择排序(selection sort)
+>每轮从未排序的区间选择最小的元素,将其放到已排序区间的末尾
+
+```cpp
+/* 选择排序 */
+void selectionSort(vector<int> &nums) {
+    int n = nums.size();
+    // 外循环：未排序区间为 [i, n-1]
+    for (int i = 0; i < n - 1; i++) {
+        // 内循环：找到未排序区间内的最小元素
+        int k = i;
+        for (int j = i + 1; j < n; j++) {
+            if (nums[j] < nums[k])
+                k = j; // 记录最小元素的索引
+        }
+        // 将该最小元素与未排序区间的首个元素交换
+        swap(nums[i], nums[k]);
+    }
+}
+```
+这显然是O(n^2)的时间复杂度,对于相同大小的元素,有可能发生相对顺序的改变,因此是非稳定的:
+
+![示意图](PixPin_2026-05-27_11-52-25.webp)
 
 
-# 网络游戏核心技术与实战
-## 前置概念
-![层次体系图](PixPin_2026-05-25_16-13-27.webp)
+#### 冒泡排序(bubble sort)
+>连续地与相邻元素交换,每一轮将当前最大的元素交换至正确位置
 
-## 网络游戏的历史
+```cpp
+/* 冒泡排序（标志优化）*/
+void bubbleSortWithFlag(vector<int> &nums) {
+    // 外循环：未排序区间为 [0, i]
+    for (int i = nums.size() - 1; i > 0; i--) {
+        bool flag = false; // 初始化标志位
+        // 内循环：将未排序区间 [0, i] 中的最大元素交换至该区间的最右端
+        for (int j = 0; j < i; j++) {
+            if (nums[j] > nums[j + 1]) {
+                // 交换 nums[j] 与 nums[j + 1]
+                // 这里使用了 std::swap() 函数
+                swap(nums[j], nums[j + 1]);
+                flag = true; // 记录交换元素
+            }
+        }
+        if (!flag)
+            break; // 此轮“冒泡”未交换任何元素，直接跳出
+    }
+}
+```
+由于相等元素之间不交换,所以,前后顺序能够保持不变,是稳定的.
+#### 插入排序(insertion sort)
+>从第一个元素开始保证局部有序,不断将后面的元素插入到前面已经排序好的队列中
+
+```cpp
+/* 插入排序 */
+void insertionSort(vector<int> &nums) {
+    // 外循环：已排序区间为 [0, i-1]
+    for (int i = 1; i < nums.size(); i++) {
+        int base = nums[i], j = i - 1;
+        // 内循环：将 base 插入到已排序区间 [0, i-1] 中的正确位置
+        while (j >= 0 && nums[j] > base) {
+            nums[j + 1] = nums[j]; // 将 nums[j] 向右移动一位
+            j--;
+        }
+        nums[j + 1] = base; // 将 base 赋值到正确位置
+    }
+}
+```
+由于需要遍历读取和遍历查找,所以还是n^2的时间复杂度.如果如上述示例中所写,相等的值将会被插入到右侧,因此是稳定的.
+
+#### 快速排序(quick sort)
+- 逻辑比较复杂,所以我以前学算法的时候都没彻底搞懂快排...
+
+>首先锚定一个基准数,将左侧比基准数大的放到右侧,右侧比基准数小的放到左侧,处理完后的两边对于基准数来说是有序的,之后再递归处理即可.
+
+
+```cpp
+/* 哨兵划分 */
+int partition(vector<int> &nums, int left, int right) {
+    // 以 nums[left] 为基准数
+    int i = left, j = right;
+    while (i < j) {
+        while (i < j && nums[j] >= nums[left])
+            j--;                // 从右向左找首个小于基准数的元素
+        while (i < j && nums[i] <= nums[left])
+            i++;                // 从左向右找首个大于基准数的元素
+        swap(nums[i], nums[j]); // 交换这两个元素
+    }
+    swap(nums[i], nums[left]);  // 将基准数交换至两子数组的分界线
+    return i;                   // 返回基准数的索引
+}
+
+/* 快速排序 */
+void quickSort(vector<int> &nums, int left, int right) {
+    // 子数组长度为 1 时终止递归
+    if (left >= right)
+        return;
+    // 哨兵划分
+    int pivot = partition(nums, left, right);
+    // 递归左子数组、右子数组
+    quickSort(nums, left, pivot - 1);
+    quickSort(nums, pivot + 1, right);
+}
+```
+#### 归并排序(merge sort)
+>大致想法其实和快速排序差不多,都是将大数组不断拆分成小数组后进行排序,不同的是快速排序在拆分前就排序,而归并排序是在拆分后进行排序
+```cpp
+/* 合并左子数组和右子数组 */
+void merge(vector<int> &nums, int left, int mid, int right) {
+    // 左子数组区间为 [left, mid], 右子数组区间为 [mid+1, right]
+    // 创建一个临时数组 tmp ，用于存放合并后的结果
+    vector<int> tmp(right - left + 1);
+    // 初始化左子数组和右子数组的起始索引
+    int i = left, j = mid + 1, k = 0;
+    // 当左右子数组都还有元素时，进行比较并将较小的元素复制到临时数组中
+    while (i <= mid && j <= right) {
+        if (nums[i] <= nums[j])
+            tmp[k++] = nums[i++];
+        else
+            tmp[k++] = nums[j++];
+    }
+    // 将左子数组和右子数组的剩余元素复制到临时数组中
+    while (i <= mid) {
+        tmp[k++] = nums[i++];
+    }
+    while (j <= right) {
+        tmp[k++] = nums[j++];
+    }
+    // 将临时数组 tmp 中的元素复制回原数组 nums 的对应区间
+    for (k = 0; k < tmp.size(); k++) {
+        nums[left + k] = tmp[k];
+    }
+}
+
+/* 归并排序 */
+void mergeSort(vector<int> &nums, int left, int right) {
+    // 终止条件
+    if (left >= right)
+        return; // 当子数组长度为 1 时终止递归
+    // 划分阶段
+    int mid = left + (right - left) / 2;    // 计算中点
+    mergeSort(nums, left, mid);      // 递归左子数组
+    mergeSort(nums, mid + 1, right); // 递归右子数组
+    // 合并阶段
+    merge(nums, left, mid, right);
+}
+```
+
+- 实际上我并没有听说过有什么程序使用归并排序来处理数据结构的.
+
+#### 堆排序(heap sort)
+
+```cpp
+/* 堆的长度为 n ，从节点 i 开始，从顶至底堆化 */
+void siftDown(vector<int> &nums, int n, int i) {
+    while (true) {
+        // 判断节点 i, l, r 中值最大的节点，记为 ma
+        int l = 2 * i + 1;
+        int r = 2 * i + 2;
+        int ma = i;
+        if (l < n && nums[l] > nums[ma])
+            ma = l;
+        if (r < n && nums[r] > nums[ma])
+            ma = r;
+        // 若节点 i 最大或索引 l, r 越界，则无须继续堆化，跳出
+        if (ma == i) {
+            break;
+        }
+        // 交换两节点
+        swap(nums[i], nums[ma]);
+        // 循环向下堆化
+        i = ma;
+    }
+}
+
+/* 堆排序 */
+void heapSort(vector<int> &nums) {
+    // 建堆操作：堆化除叶节点以外的其他所有节点
+    for (int i = nums.size() / 2 - 1; i >= 0; --i) {
+        siftDown(nums, nums.size(), i);
+    }
+    // 从堆中提取最大元素，循环 n-1 轮
+    for (int i = nums.size() - 1; i > 0; --i) {
+        // 交换根节点与最右叶节点（交换首元素与尾元素）
+        swap(nums[0], nums[i]);
+        // 以根节点为起点，从顶至底进行堆化
+        siftDown(nums, i, 0);
+    }
+}
+```
+
 # 深度探索C++对象模型
 ## 关于对象
 # x86汇编语言：从实模式到保护模式(待补充)
-# Building Generative AI Services with FastAPI(待补充)
-# 计算机体系结构: 量化研究方法(待补充)
-- 如上一本书所说明的,这本书属于进阶版本的教材,但因为是相同的作者写的,所以编排风格十分相似.
-
-## 量化设计与分析基础
-### 前置概念
-应用程序中主要有两种并行:
-1. 数据级并行(DLP): 同时操作多个数据项
-2. 任务级并行(TLP): 同时执行多个工作任务
-
-计算机硬件为了实现上述的两种架构,有以下四种并行方法:
-1. 指令级并行: 利用流水线实现数据级并行
-2. 使用向量处理机和GPU: 将单条指令并行应用于一个数据集,实现数据级并行
-3. 线程级并行: 在并行线程间进行交互,实现数据级/任务级并行
-4. 请求级并行
-
-我们还可以根据指令流与数据流的关系将计算机架构分成4类:
-1. 单指令流,单数据流(SISD): 使用单处理器,顺序执行指令,但可以实现指令级并行
-2. 单指令流,多数据流(SIMD): 使用多处理器,不同的处理器可以装载不同的数据流,但只能由一个处理器来装载指令,是现代GPU的主要架构
-3. 多指令流,单数据流(MISD): 不太有开发的必要,指令容易冲突,还不能并行处理多个数据.
-4. 多指令流,多数据流(MIMD): 每个处理器都使用自己的指令操控自己的数据,是现代CPU的主要架构.
-
-### 指令集体系结构(ISA)
-几乎所有的ISA都属于通用寄存器体系结构,80x86有16个通用寄存器和16个存储浮点数据的寄存器;MIPS有32个通用寄存器和32个浮点寄存器.
-
-所有的计算机都使用**字节寻址**来访问存储器操作数,MIPS有三种寻址方式: 寄存器寻址,立即数寻址,位移量寻址.
-
-MIPS的操作指令比较简单,大致可分为以下几种:
-1. 数据传输指令
-2. 算术逻辑指令
-3. 控制指令
-4. 浮点指令
-
-| 指令类型/操作码                       | 指令含义                                                                                                         |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **数据传输**                          | 在寄存器和存储器之间，或者在整数和FP或特殊寄存器之间移动数据；唯一的存储器寻址模式是16位位移量加上GPR的内容      |
-| LB, LBU, SB                           | 载入字节、载入无符号字节、存储字节（至/自整数寄存器）                                                            |
-| LH, LHU, SH                           | 载入半字、载入无符号半字、存储半字（至/自整数寄存器）                                                            |
-| LW, LWU, SW                           | 载入字、载入无符号字、存储字（至/自整数寄存器）                                                                  |
-| LD, SD                                | 载入双字、存储双字（至/自整数寄存器）                                                                            |
-| L.S, L.D, S.S, S.D                    | 载入SP浮点、载入DP浮点、存储SP浮点、存储DP浮点                                                                   |
-| MFC0, MTC0                            | 在GPR与特殊寄存器之间复制数据                                                                                    |
-| MOV.S, MOV.D                          | 将一个SP或DP FP寄存器复制到另一个FP寄存器                                                                        |
-| MFC1, MTC1                            | 在FP寄存器与整数寄存器之间复制32位                                                                               |
-| **算术/逻辑**                         | 对GPR中的整数或逻辑数据进行操作；带有符号算术运算溢出时进行陷阱捕获                                              |
-| DADD, DADDI, DADDU, DADDIU            | 加，加立即数（所有立即数为16位），有符号和无符号                                                                 |
-| DSUB, DSUBU                           | 减，有符号和无符号                                                                                               |
-| DMUL, DMULU, DDIV, DDIVU, MADD        | 乘和除，有符号和无符号，乘-加；所有运算的操作数和结果都是64位数值                                                |
-| AND, ANDI                             | 与，和立即数相与                                                                                                 |
-| OR, ORI, XOR, XORI                    | 或，和立即数求或，异或，和立即数求异或                                                                           |
-| LUI                                   | 载入高位立即数；将立即数载入到寄存器的32~47位，然后进行符号扩展                                                  |
-| DSLL, DSRL, DSRA, DSLLV, DSRLV, DSRAV | 移位：立即数形式（DS__）和变量形式（DS__V），移位为左逻辑移位、右逻辑移位、右算术移位                            |
-| SLT, SLTI, SLTU, SLTIU                | 若小于操作数则置位、若小于立即数则置位、有符号和无符号                                                           |
-| **控制**                              | 控制分支和跳转，相对于PC寄存器或通过寄存器控制                                                                   |
-| BEQZ, BNEZ                            | GPR等于/不等于0时转移，相对于PC+4偏移16位偏移量                                                                  |
-| BEQ, BNE                              | GPR相等/不等时转移、相对于PC+4偏移16位偏移量                                                                     |
-| BC1T, BC1F                            | 测试FP状态寄存器中的对比位，并转移；相对于PC+4偏移16位偏移量                                                     |
-| MOVN, MOVZ                            | 如果第三个GPR为负数/零，则将第一个GPR复制到第二个GPR                                                             |
-| J, JR                                 | 跳转至与PC+4偏移26位偏移量的位置（J）、跳转至寄存器中的目标位置（JR）                                            |
-| JAL, JALR                             | 跳转和链接：将PC+4保存在R31中，目标为相对于PC（JAL）或寄存器（JALR）                                             |
-| TRAP                                  | 转移到操作系统的一个向量地址                                                                                     |
-| ERET                                  | 从异常中返回用户代码，恢复用户模式                                                                               |
-| **浮点**                              | 对DP和SP格式执行FP操作                                                                                           |
-| ADD.D, ADD.S, ADD.PS                  | DP、SP相加，一对SP数相加                                                                                         |
-| SUB.D, SUB.S, SUB.PS                  | DP、SP相减，一对SP数相减                                                                                         |
-| MUL.D, MUL.S, MUL.PS                  | DP、SP浮点数相乘，一对SP数相乘                                                                                   |
-| MADD.D, MADD.S, MADD.PS               | DP、SP浮点数相乘加，一对SP数相乘加                                                                               |
-| DIV.D, DIV.S, DIV.PS                  | DP、SP浮点数相除，一对SP数相除                                                                                   |
-| CVT.*.*                               | 转换指令：CVT.x.y从类型x转换为类型y，其中x和y为L（64位整数）、W（32位整数）、D（DP）或S（SP）。两个操作数都是FRP |
-| C.*.D, C.*.S                          | DP和SP对比：“_”=LT, GT, LE, GE, EQ, NE；在FP状态寄存器中置位                                                     |
-
-MIPS中所有指令的长度都是32位,从而简化了指令译码:
-![示意图](image-2.png)
-
-### Amdahl定律: 计算加速比
-Amdahl定律用于计算升级某个部件/功能时获得的**加速比**,即采用升级前所用的时间与升级后所用时间的比值,从而衡量出某个部件/功能的贡献大小:
-
-$$S_{\text{latency}} = \frac{1}{(1 - p) + \frac{p}{s}}$$
-
-* $S_{\text{latency}}$：整个任务执行速度的理论加速比。
-* $p$：任务中受益于资源改进的部分所占的时间比例（$0 \le p \le 1$）。
-* $s$：受改进部分原本的性能提升倍数。
-
-![示意图](PixPin_2026-05-16_10-25-13.webp)
-
-### CPI: 衡量处理器的性能
-所有计算机都有一个时钟周期,那么CPU执行某个任务的时间就等于**经过的周期数乘以一个时钟周期的时间**.
-
-我们使用**每条指令的周期数**(Cycle Per Instruction,CPI)来衡量某条指令所花的时间长度:
-
-$$\text{CPI} = \frac{\text{程序的CPU时钟周期数}}{\text{指令数}}$$
-
-那么处理器的性能就取决于三个变量: 时钟周期,CPI,指令数.
-
-## 存储器层次结构设计
-鉴于快速存储器非常昂贵,现代计算机都使用分层的存储器结构,从而实现以下效果:
-- **每字节的成本几乎与最便宜的存储器级别相同,速度几乎与最快速的级别相同**
-
-
-![示意图](image-3.png)
-
-- 下一级存储器通常会保留上一级存储器的所有信息,才能保证信息不会丢失
-### 优化缓存性能
-1. 使用小而简单的第一级缓存,缩短命中时间
-2. 采用**路预测**,缩短命中时间
-   1. 缓存中留出一部分空间用于预测下一次要访问的数据
-3. 缓存访问流水化(Cache Access Pipelining),即将缓存访问拆成多个步骤,提高缓存带宽:
-
-```md
-时钟周期：   |  Cycle 1  |  Cycle 2  |  Cycle 3  |  Cycle 4  |
-指令 A:     [ 地址解码 ] [ 阵列驱动 ] [ 数据读出 ]
-指令 B:                 [ 地址解码 ] [ 阵列驱动 ] [ 数据读出 ]
-指令 C:                             [ 地址解码 ] [ 阵列驱动 ] [ 数据读出 ]
-````
-4. 采用无阻塞缓存,提高缓存带宽
-   1. 出现缓存不命中(miss)时,不中断缓存访问,这是通过在缓存内部引入了一组特殊的硬件寄存器实现的,它被称为**未命中状态保持寄存器**（MSHR，Miss Status Holding Registers）.
-
-![示意图](PixPin_2026-05-17_09-46-34.webp)
-
-5. 采用多种缓存,提高缓存带宽.
-   1. 将缓存划分成多个相互独立的,支持同时访问的缓存组
-6. 关键字优先和提前重启动,降低缓存不命中的代价
-   1. 缓存与主存交换数据的最小单位是块(Block),一个块包含多个字(word),当CPU只需要某一块其中的一个字时,缓存控制器直接跳转到对应的地址获取那个缺失的字,让CPU恢复执行后再发送该块的剩余部分
-   2. 另一种实现方法,缓存保持顺序读取,实时检查当前块中是否出现了CPU需要的字,一旦出现就直接发送给CPU,再接着发送剩余部分.
-
-7. 合并写缓冲区,降低缓存不命中的代价
-   1. 为了不让CPU每次执行缓存的写入操作时都等待新数据从缓存慢慢传回内存,我们会设计一个写缓冲区,CPU将数据写入该缓冲区后继续执行,缓冲区负责将数据异步写入下级存储.
-   2. 如果新写入的数据与缓冲区中某个数据属于一个块(这是非常常见的情况,因为代码和数据通常都保存在一块连续内存上),则直接将这两部分数据合并,节省写缓冲区空间
-
-![示意图](image-4.png)
-
-8. 采用编译器优化,降低缓存不命中的概率
-   1. 编译器会对代码进行优化处理,帮助处理器以更高的效率执行代码
-
-上面的这些做法都在现代计算机体系结构中得到了广泛的应用.
-### 存储器种类
-- Static Random Access Memory(SRAM): 通常用作缓存,集成在处理器的芯片上,响应速度远超DRAM
-- Dynamic Random Access Memory(DRAM): 用作内存条,在每次读取信息后会破坏该信息,所以要进行**刷新**后写回数据,速度比较慢,适合放在硬盘和缓存中间作为缓冲存储器.
-- SDRAM: 同步DRAM,DRAM的优化版本,现代的内存条都是SDRAM.
-- NAND flash(闪存): 最常见的闪存就是SSD(固态硬盘),通常为最后一级存储器,速度很慢,但比起HDD(机械硬盘)又快得多.
-## 附录A: 指令集基本原理
-### 指令集体系结构的种类
-1. 栈结构: 早期计算机
-2. 累加器结构: 早期计算机
-3. 寄存器-存储器结构: x86架构等CISC
-4. 寄存器-寄存器结构(载入-存储结构): RISC-V,MIPS等RISC
-
-如果计算C=A+B的话,这四种结构的操作过程如下:
-| 栈 (Stack) | 累加器 (Accumulator) | 寄存器（寄存器-存储器） (Register-Memory) | 寄存器（载入-存储） (Load-Store / Register-Register) |
-| ---------- | -------------------- | ----------------------------------------- | ---------------------------------------------------- |
-| Push A     | Load A               | Load R1, A                                | Load R1, A                                           |
-| Push B     | Add B                | Add R3, R1, B                             | Load R2, B                                           |
-| Add        | Store C              | Store R3, C                               | Add R3, R1, R2                                       |
-| Pop C      |                      |                                           | Store R3, C                                          |
-
-### 存储器寻址
-MIPS指令集是字节寻址的,提供对字节(8位),半字(16位)和字(32位)的访问方式.
-
-MIPS支持多种寻址方式,常见的几种如下:
-| 寻址方式       | 指令举例         | 含义                                           | 使用时机                                      |
-| -------------- | ---------------- | ---------------------------------------------- | --------------------------------------------- |
-| 寄存器寻址     | Add R4,R3        | Regs[R4] ← Regs[R4] + Regs[R3]                 | 当一个值在寄存器中                            |
-| 立即数寻址     | Add R4,#3        | Regs[R4] ← Regs[R4] + 3                        | 对于常量                                      |
-| 位移量寻址     | Add R4,100(R1)   | Regs[R4] ← Regs[R4] + Mem[100 + Regs[R1]]      | 访问本地变量（+模拟寄存器间接、直接寻址方式） |
-| 寄存器间接寻址 | Add R4,(R1)      | Regs[R4] ← Regs[R4] + Mem[Regs[R1]]            | 使用指针或计算得出的地址寻址                  |
-| 索引寻址       | Add R3,(R1 + R2) | Regs[R3] ← Regs[R3] + Mem[Regs[R1] + Regs[R2]] | 有时用于数组寻址：R1为数组的基址，R2为索引值  |
-
-
-## 附录B: 存储器层次结构
-## 附录C: 流水线
-## 指令级并行
 
 # Go语言圣经(待补充)
 - [中文版网站](https://golang-china.github.io/gopl-zh/preface-zh.html)

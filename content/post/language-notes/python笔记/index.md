@@ -3892,6 +3892,104 @@ class Hero(SQLModel, table=True):
 ### 总结
 整体来看,SQLModel是个非常优秀的ORM框架,没有什么学习负担,基本概念都很简单,非常适合用来学习后端与数据库的交互.
 ## Alembic
+- [中文文档](https://hellowac.github.io/alembic-doc-zh)
+>单纯使用ORM框架的话很难实现数据库的迁移和安全的CRUD,这个时候我们就可以用到alembic库
+
+### 基本用法
+1. 导入alembic:
+```bash
+uv add alembic
+uv run alembic init (希望的文件夹名)
+```
+- 文件夹名可以随便填,一般推荐填写为alembic让它的语义更清晰
+
+2. 根目录下会出现`alembic.ini`文件和alembic文件夹,我们可以将`alembic`文件夹放在任何文件夹下,只需要修改`alembic.ini`文件中的`script_location`参数即可
+   1. 例如: `script_location = app/alembic`表示alembic脚本在根目录下的app/alembic中.
+
+3. 修改alembic文件夹中的env.py,只用导入自己创建的sqlalchemy/sqlmodel表即可:
+
+
+原内容:
+```py
+# add your model's MetaData object here
+# for 'autogenerate' support
+# from myapp import mymodel
+# target_metadata = mymodel.Base.metadata
+target_metadata = None
+```
+修改后:
+```py
+from app.models import SQLModel 
+# 由于from语句会实际扫描并执行文件中的所有内容,所以models文件中的表其实就全部导入了.
+from app.core.config import settings 
+
+target_metadata = SQLModel.metadata
+```
+
+4. 最后一步,指定数据库的位置,有两种写法,第一种是直接在`alembic.ini`中写明:
+
+```ini
+# database URL.  This is consumed by the user-maintained env.py script only.
+# other means of configuring database URLs may be customized within the env.py
+# file.
+sqlalchemy.url = driver://user:pass@localhost/dbname
+```
+这个配置文件会被`env.py`读取并自动处理:
+```py
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode.
+
+    This configures the context with just a URL
+    and not an Engine, though an Engine is acceptable
+    here as well.  By skipping the Engine creation
+    we don't even need a DBAPI to be available.
+
+    Calls to context.execute() here emit the given string to the
+    script output.
+
+    """
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode.
+
+    In this scenario we need to create an Engine
+    and associate a connection with the context.
+
+    """
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, target_metadata=target_metadata
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+```
+
+
+
 # Python网络框架
 - 前置知识: Restful Web API规范,基本的网络通信概念,初级的网络安全/身份认证概念.
 
@@ -5895,12 +5993,259 @@ pnpm dlx shadcn@latest add button card input textarea
 之后按照这个示意图添加两个路由文件和两个工具文件`api.ts`即可,其他的文件都是上述初始化过程自带的:
 ![示意图](PixPin_2026-05-25_16-05-36.webp)
 
-1. `config/api.ts`: 核心路由,模拟
+1. `config/api.ts`: 核心路由:
+```ts
+export const API_BASE_URL = "http://127.0.0.1:8000";
+
+export const API_ROUTES = {
+//   health: `${API_BASE_URL}/api/health`, 实际上没用到
+  authCheck: `${API_BASE_URL}/api/auth`,
+  chatStream: `${API_BASE_URL}/api/chat`,
+};
+```
+- 可以看到,如果不使用自动化工具的话,我们实质上需要一条条在这里列出后端的路由.
+
+2. `lib/api.ts`: 工具请求函数:
+```ts
+import { API_ROUTES } from "@/config/api";
+
+
+// 这个函数用来请求后端的假登录检查
+export async function checkAuth() {
+  const response = await fetch(API_ROUTES.authCheck);
+
+  if (!response.ok) {
+    throw new Error("认证检查失败");
+  }
+
+  return response.json();
+}
+
+export async function streamChatMessage(
+  message: string,
+  onChunk: (chunk: string) => void,
+) {
+  // 发送 POST 请求给 FastAPI
+  const response = await fetch(API_ROUTES.chatStream, {
+    method: "POST",
+
+    // 告诉后端：我发送的是 JSON
+    headers: {
+      "Content-Type": "application/json",
+    },
+
+    // 把 JS 对象转成 JSON 字符串
+    // 后端的 ChatMessage 会接收这里的 message
+    body: JSON.stringify({
+      message,
+    }),
+  });
+
+  // 如果后端返回错误，就抛出异常
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "聊天接口请求失败");
+  }
+
+  // response.body 是浏览器提供的流式响应体
+  // 如果没有 body，说明当前环境不支持流式读取
+  if (!response.body) {
+    throw new Error("当前浏览器不支持流式响应");
+  }
+
+  // 创建 reader，用来一段一段读取后端返回的数据
+  const reader = response.body.getReader();
+
+  // TextDecoder 用来把二进制数据转成字符串
+  const decoder = new TextDecoder("utf-8");
+
+  // 不断读取流
+  while (true) {
+    // reader.read() 每次读取一小块数据
+    const { done, value } = await reader.read();
+
+    // done 为 true，说明后端流式输出结束
+    if (done) {
+      break;
+    }
+
+    // value 是 Uint8Array，需要解码成字符串
+    const chunk = decoder.decode(value, {
+      stream: true,
+    });
+
+    // 把这一小段文本交给页面使用
+    onChunk(chunk);
+  }
+}
+```
+
+3. `auth/page.tsx`:
+```tsx
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { Button } from "@/components/ui/button";
+import { checkAuth } from "@/lib/api";
+
+export default function AuthPage() {
+  // 用来跳转页面
+  const router = useRouter();
+
+  // 保存后端返回的信息
+  const [message, setMessage] = useState("请点击按钮检查登录状态");
+
+  async function handleCheckAuth() {
+    // 点击按钮后，进入加载状态
+
+    try {
+      // 请求 FastAPI 的 /api/auth/check
+      const data = await checkAuth();
+
+      if (data.ok) {
+        sessionStorage.setItem("authPassed", "true");
+
+        // 显示后端返回的信息
+        setMessage(data.message ?? "验证成功，正在跳转到首页...");
+
+        // 验证成功后跳回根路由
+        setTimeout(() => {
+          router.replace("/");
+        }, 1000);
+      } else {
+        // 如果后端返回 ok: false，就停留在 auth 页面
+        setMessage("验证失败，请稍后再试");
+      }
+    } catch (error) {
+      // 如果后端没有启动、接口写错、跨域失败，都会进入这里
+      setMessage("请求认证接口失败");
+    }
+  }
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-6 p-8">
+      <h1 className="text-3xl font-bold">Auth Page</h1>
+
+      <p className="rounded-lg border p-4">{message}</p>
+
+      <Button onClick={handleCheckAuth}>{"检查登录状态"}</Button>
+    </main>
+  );
+}
+```
+
+4. `chat/page.tsx`: 聊天界面
+```tsx
+"use client";
+
+import { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+
+import { streamChatMessage } from "@/lib/api";
+
+export default function ChatPage() {
+  // 保存用户输入的问题
+  const [message, setMessage] = useState("");
+
+  // 保存模型返回的答案
+  const [answer, setAnswer] = useState("");
+
+  // 保存加载状态
+  const [loading, setLoading] = useState(false);
+
+  // 保存错误信息
+  const [error, setError] = useState("");
+
+  // 表单提交时执行这个函数
+  async function handleSubmit(event: any) {
+    // 阻止浏览器默认刷新页面
+    event.preventDefault();
+
+    // 去掉前后空格后，如果没有内容，就不发送请求
+    if (!message.trim()) {
+      return;
+    }
+
+    // 每次提问前，先清空旧答案和旧错误
+    setAnswer("");
+    setError("");
+
+    // 进入加载状态
+    setLoading(true);
+
+    try {
+      // 调用封装好的流式请求函数
+      await streamChatMessage(message, (chunk) => {
+        // 每收到一小段内容，就追加到 answer 后面
+        setAnswer((prev) => prev + chunk);
+      });
+    } catch (err) {
+      // 如果请求失败，就把错误显示到页面上
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("发生未知错误");
+      }
+    } finally {
+      // 无论成功还是失败，最后都退出加载状态
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-8">
+      <section className="space-y-2">
+        <h1 className="text-3xl font-bold">AI Chat</h1>
+        <p className="text-muted-foreground">
+          这个页面会调用 FastAPI 的 /api/chat/stream 接口。
+        </p>
+      </section>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Textarea
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          placeholder="请输入你想问 AI 的问题"
+          className="min-h-32"
+        />
+
+        <Button type="submit" disabled={loading}>
+          {loading ? "生成中..." : "发送"}
+        </Button>
+      </form>
+
+      {error && (
+        <div className="rounded-lg border border-red-300 p-4 text-red-600">
+          {error}
+        </div>
+      )}
+
+      <section className="rounded-lg border p-4">
+        <h2 className="mb-2 font-semibold">模型回答</h2>
+
+        {answer ? (
+          <pre className="whitespace-pre-wrap text-sm leading-7">{answer}</pre>
+        ) : (
+          <p className="text-sm text-muted-foreground">还没有回答。</p>
+        )}
+      </section>
+    </main>
+  );
+}
+```
+
+之后运行`npm run dev`即可看到大致效果.
+
 
 #### 缓存问题
 如果你成功的按照上述教程编写了所有的前端和后端,与AI对话时你会发现并没有实现流式输出,相反,所有消息都是一次性吐出来的:
 ![效果图](PixPin_2026-05-25_16-09-23.webp)
 
+问题是,我们的前后端都使用了正确的流式写法
 ### ch6: 使用docker部署fastapi
 
 # Python科学计算
