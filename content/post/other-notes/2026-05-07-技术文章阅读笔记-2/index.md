@@ -357,6 +357,10 @@ int shutdown(SOCKET sock, int how)
 
 # Generative AI with Python 
 - 不推荐阅读
+# 基于大模型的RAG应用开发与优化
+- 值得一看,尽管很多地方都是不太重要的接口调用和代码分析,但讲的还算不错,能有不少收获
+
+![RAG应用架构示意图](PixPin_2026-05-29_17-36-37.webp)
 
 # C和指针
 不推荐阅读,甚至没找到有必要做笔记的地方,你就说写的有多烂吧.
@@ -621,8 +625,9 @@ cache的基本原理可以这样表述:
 4. 1997年<< Long Short-Term Memory >>提出了LSTM框架
 5. 2015年<< Deep Residual Learning for Image Recognition >>提出了深度残差网络
 6. 2017年<< Attention Is All You Need >>提出了Transformer框架.
-7. 2018年<< Improving Language Understanding by Generative Pre-Training >>提出了基于Transformer的GPT框架
-8. 2023年<< LLaMA: Open and Efficient Foundation Language Models >>提出了基于Transformer的LLaMA框架.
+7. 2018年<< Improving Language Understanding by Generative Pre-Training >>提出了GPT框架
+8. 2023年<< LLaMA: Open and Efficient Foundation Language Models >>提出了LLaMA框架.
+9. 2025年<< DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning >>提出了DeepSeek-r1框架.
 
 
 - 这些主要论文中间穿插着许多奠基者的研究成果,我也会适当地学习这些论文.
@@ -1045,6 +1050,11 @@ $$y_i = \gamma \hat{x}_i + \beta$$
 
 1. Encoder: 由6个完全相同的层堆叠而成,每层由两个子层构成,一个是多头的注意力计算单元,一个是简单的全连接层,在这两个子层后,都跟着一个残差网络和正规化层,最终输出一个512维的向量
 2. Decoder: 同样由6个完全相同的层堆叠而成,在编码器的基础上多加了一个子层,用于在推理时处理之前的输出和在训练时喂入标准答案
+## Improving Language Understanding by Generative Pre-Training(2018)
+![首页](PixPin_2026-05-30_19-02-51.webp)
+- 江山代有才人出,各领风骚几个月儿
+
+
 ## Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks(2021)
 - 在Agent构建中被广泛应用的RAG概念就是这篇2021年的论文提出的
 ![首页](PixPin_2026-05-13_17-49-29.webp)
@@ -2065,12 +2075,6 @@ void heapSort(vector<int> &nums) {
 2. 找到状态转移方程
 3. 开始递归
 
-# 基于大模型的RAG应用开发与优化
-- 值得一看,尽管很多地方都是不太重要的接口调用和代码分析,但讲的还算不错
-## 要点
-### RAG是什么
-
-![RAG应用架构示意图](PixPin_2026-05-29_17-36-37.webp)
 
 # Go语言圣经
 - [中文版网站](https://golang-china.github.io/gopl-zh/preface-zh.html)
