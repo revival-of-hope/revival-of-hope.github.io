@@ -3893,7 +3893,7 @@ class Hero(SQLModel, table=True):
 整体来看,SQLModel是个非常优秀的ORM框架,没有什么学习负担,基本概念都很简单,非常适合用来学习后端与数据库的交互.
 ## Alembic
 - [中文文档](https://hellowac.github.io/alembic-doc-zh)
->单纯使用ORM框架的话很难实现数据库的迁移和安全的CRUD,这个时候我们就可以用到alembic库
+>单纯使用ORM框架的话很难实现数据库的迁移和安全的CRUD,这个时候我们就可以用到alembic库.
 
 ### 基本用法
 1. 导入alembic:
@@ -3988,7 +3988,52 @@ else:
     run_migrations_online()
 ```
 
+第二种方法是修改env.py,自动读取setting.py中配置的url,这种方法更加推荐,避免要在多个地方同时修改环境变量,fastapi模板项目中是这么做的:
 
+```py
+from app.core.config import settings
+
+def get_url():
+    return str(settings.SQLALCHEMY_DATABASE_URI)
+
+
+def run_migrations_offline():
+
+    url = get_url()
+    context.configure(
+        url=url, target_metadata=target_metadata, literal_binds=True, compare_type=True
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online():
+
+    configuration = config.get_section(config.config_ini_section)
+    configuration["sqlalchemy.url"] = get_url()
+    connectable = engine_from_config(
+        configuration,
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, target_metadata=target_metadata, compare_type=True
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+
+```
+上述代码直接修改了两个函数的默认内容,将url的读取局限在python文件之间,显然更加规范一点.
 
 # Python网络框架
 - 前置知识: Restful Web API规范,基本的网络通信概念,初级的网络安全/身份认证概念.
@@ -5974,7 +6019,8 @@ if __name__ == "__main__":
     main()
 ```
 
->整体来说没有任何难理解的地方,不太可能有比这还简单还安全的实现方法了.
+之后只需运行`uv run main.py`即可.
+
 
 #### 前端编写
 1. 初始化nextjs框架:
@@ -6245,13 +6291,31 @@ export default function ChatPage() {
 如果你成功的按照上述教程编写了所有的前端和后端,与AI对话时你会发现并没有实现流式输出,相反,所有消息都是一次性吐出来的:
 ![效果图](PixPin_2026-05-25_16-09-23.webp)
 
-问题是,我们的前后端都使用了正确的流式写法
-### ch6: 使用docker部署fastapi
+我们可以按f12打开控制台看一下api的响应:
+![示意图](PixPin_2026-05-29_16-57-59.webp)
 
-# Python科学计算
-## Numpy库
-- [官方文档](https://numpy.org/doc/stable/user/absolute_beginners.html)
+我们需要知道一个事实:
+>浏览器会默认帮我们缓存服务器传来的响应体,如果我们希望浏览器不要缓存,就需要在响应头里的`Cache-Control`字段对浏览器明确说明.
+>
+>幸好,fastapi支持直接定制我们想要的响应头
 
-### 
 
-## Matplotlib库
+所以,我们需要修改之前的`route.py`中的最后一个路由,变成这个样子:
+```py
+@app.post("/api/chat", response_class=StreamingResponse)
+async def chat(request: ChatMessage):
+    # return stream_agent(request.message)
+
+    return StreamingResponse(
+        stream_agent(request.message),
+        headers={
+            "Cache-Control": "no-cache",
+        },
+    )
+```
+- `response_class`字段实际上现在是冗余的,但写上也没有问题
+
+最后这个简单的智能体就大功告成了.
+
+### ch6: 给智能体加入数据库(待补充)
+# Python机器学习

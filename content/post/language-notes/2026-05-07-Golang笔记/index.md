@@ -4,7 +4,7 @@ date: 2026-05-23T19:09:06+08:00
 description: 
 image: 
 math: 
-draft: true
+draft: 
 ---
 
 # Go基础
@@ -14,8 +14,9 @@ draft: true
 
 >Go语言由Google的Robert Griesemer、Rob Pike和Ken Thompson于2007年开始设计，其初衷是因不满C++的复杂性，旨在解决多核、网络化机器及大规模代码库带来的开发效率、静态类型安全与并发性能问题；该语言于2009年11月正式开源发布，并在2012年3月推出1.0稳定版本，凭借结合了C语言的运行效率与Python般的易读性，以及内置的CSP并发模型和围绕软件工程流程（如包管理、构建、测试）的生态优化，现已在Google及全球开源项目与生产环境中得到广泛应用。
 
-## 基础语法
+## w3schools
 - [w3schools](https://www.w3schools.com/go/go_getting_started.php)
+  - 很多地方都没有展开讲,但了解Go的基础语法已经足够了
 
 ### 前置概念
 1. Go属于C系函数,故也通过main函数启动:
@@ -136,7 +137,9 @@ var array_name = [...]datatype{values} // here length is inferred
 ```
 2. 使用`:=`符号:
 ```go
-array_name := [length]datatype{values} // here length is defined
+array_name := [length]datatype {values} // here length is defined
+q := [...]int{1, 2, 3}
+
 ```
 >数组的长度是固定的,不可改变,不同长度的数组是不同的类型,要使用长度动态变化的数组,就要用到切片(slice)
 
@@ -330,3 +333,129 @@ func main() {
   fmt.Println(a, b)
 }
 ```
+### 结构体
+Go最令人惊讶的地方就是彻底抛弃了class,转而使用struct来组织对象:
+```go
+type Person struct {
+  name string
+  age int
+  job string
+  salary int
+}
+```
+使用时仍然使用对象访问符`.`:
+```go
+package main
+import ("fmt")
+
+type Person struct {
+  name string
+  age int
+  job string
+  salary int
+}
+
+func main() {
+  var pers1 Person
+  var pers2 Person
+
+  // Pers1 specification
+  pers1.name = "Hege"
+  pers1.age = 45
+  pers1.job = "Teacher"
+  pers1.salary = 6000
+
+  // Pers2 specification
+  pers2.name = "Cecilie"
+  pers2.age = 24
+  pers2.job = "Marketing"
+  pers2.salary = 4500
+
+  // Access and print Pers1 info
+  fmt.Println("Name: ", pers1.name)
+  fmt.Println("Age: ", pers1.age)
+  fmt.Println("Job: ", pers1.job)
+  fmt.Println("Salary: ", pers1.salary)
+
+  // Access and print Pers2 info
+  fmt.Println("Name: ", pers2.name)
+  fmt.Println("Age: ", pers2.age)
+  fmt.Println("Job: ", pers2.job)
+  fmt.Println("Salary: ", pers2.salary)
+}
+```
+### map
+
+Go提供了map来存储字典,有两种声明方法:
+```go
+var a = map[KeyType]ValueType{key1:value1, key2:value2,...}
+b := map[KeyType]ValueType{key1:value1, key2:value2,...}
+```
+还可以使用`make`创建map:
+```go
+package main
+import ("fmt")
+
+func main() {
+  var a = make(map[string]string) // The map is empty now
+  a["brand"] = "Ford"
+  a["model"] = "Mustang"
+  a["year"] = "1964"
+
+  b := make(map[string]int)
+  b["Oslo"] = 1
+  b["Bergen"] = 2
+  b["Trondheim"] = 3
+  b["Stavanger"] = 4
+
+  fmt.Printf("a\t%v\n", a)
+  fmt.Printf("b\t%v\n", b)
+}
+```
+
+## A Tour of Go
+- [官网](https://go.dev/tour)
+  - 意外发现官网有这个教程,在有了上面的简单基础后看起来出奇的舒服.
+
+### 要点总结
+1. Go中没有while,所以我们可以把for写成while的形式,属于是一种语法糖,不会报错:
+```go
+package main
+
+import "fmt"
+
+func main() {
+	sum := 1
+	for sum < 1000 {
+		sum += sum
+	}
+	fmt.Println(sum)
+}
+
+```
+2. Go的if语句中还允许变量声明和多个短句,但我认为没必要,否则维护起来会很难受:
+
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+func pow(x, n, lim float64) float64 {
+	if v := math.Pow(x, n); v < lim {
+		return v
+	}
+	return lim
+}
+
+func main() {
+	fmt.Println(
+		pow(3, 2, 10),
+		pow(3, 3, 20),
+	)
+}
+```
+
+
