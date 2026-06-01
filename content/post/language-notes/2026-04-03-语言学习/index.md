@@ -32,10 +32,15 @@ image: 92260989_p0-秘密の願い事.webp
 - PoC: "Proof of Concept",为了证明某个技术方案在物理上是可行的，先写一个简陋的 Demo。
 
 ### 专业名词的缩写
+
 - CI: Continuous integration,持续集成,也就是随时运行,随时与主分支合并
 - SOA: **Service-oriented architecture**,通过服务来划分架构
 - RPC: **Remote procedure call**,隐藏通信细节,让程序像本地函数一样请求远程服务器的通信协议
 - SaaS: **Software as a Service**,最主要的特征是,**用户的数据不保存在本地,而是保存在云服务器上**,最典型的例子如钉钉,飞书等企业工具,而本地通常不会保存用户的详细数据.
+- SOTA: **State-of-the-Art**,表示该模型/算法是当前任务中性能最好的
+  - 附加两个经常用到的英文单词
+  - Baseline: **基础参照物**,用于与改进模型进行对比的基本模型
+  - Benchmark: **基准**,用于评估模型性能的标准数据集.
 
 # 日语词汇
 

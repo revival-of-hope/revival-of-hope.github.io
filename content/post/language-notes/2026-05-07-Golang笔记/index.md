@@ -417,7 +417,7 @@ func main() {
 - [官网](https://go.dev/tour)
   - 意外发现官网有这个教程,在有了上面的简单基础后看起来出奇的舒服.
 
-### 要点总结
+### 基本语法
 1. Go中没有while,所以我们可以把for写成while的形式,属于是一种语法糖,不会报错:
 ```go
 package main
@@ -457,5 +457,348 @@ func main() {
 	)
 }
 ```
+3. defer关键字用于把一个函数调用推迟到当前函数即将返回时再执行:
 
+```go
+func main() {
+    fmt.Println("A")
 
+    defer fmt.Println("B")
+
+    fmt.Println("C")
+}
+// A
+// C
+// B
+```
+
+defer实质上是通过栈来实现的,如果我们重叠多个defer就能看出效果:
+```go
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("counting")
+
+	for i := 0; i < 10; i++ {
+		defer fmt.Println(i)
+	}
+
+	fmt.Println("done")
+}
+​
+// counting
+// done
+// 9
+// 8
+// 7
+// 6
+// 5
+// 4
+// 3
+// 2
+// 1
+// 0
+```
+
+4. 可以使用const/var关键字一次声明一大堆变量:
+```go
+package main
+
+import "fmt"
+
+type Vertex struct {
+	X, Y int
+}
+
+var (
+	v1 = Vertex{1, 2}  // has type Vertex
+	v2 = Vertex{X: 1}  // Y:0 is implicit
+	v3 = Vertex{}      // X:0 and Y:0
+	p  = &Vertex{1, 2} // has type *Vertex
+)
+
+func main() {
+	fmt.Println(v1, p, v2, v3)
+}
+
+```
+编译器会根据初始值推断类型,所以最后一个p被推断成了指针变量.
+
+5. 切片是对数组的引用,更改切片会对数组同时生效:
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	names := [4]string{
+		"John",
+		"Paul",
+		"George",
+		"Ringo",
+	}
+	fmt.Println(names)
+
+	a := names[0:2]
+	b := names[1:3]
+	fmt.Println(a, b)
+
+	b[0] = "XXX"
+	fmt.Println(a, b)
+	fmt.Println(names)
+}
+// [John Paul George Ringo]
+// [John Paul] [Paul George]
+// [John XXX] [XXX George]
+// [John XXX George Ringo]
+```
+
+6. Go中的切片还支持将结构体内嵌在其中的写法:
+```go
+package main
+
+import "fmt"
+
+func main() {
+	q := []int{2, 3, 5, 7, 11, 13}
+	fmt.Println(q)
+
+	r := []bool{true, false, true, true, false, true}
+	fmt.Println(r)
+
+	s := []struct {
+		i int
+		b bool
+	}{
+		{2, true},
+		{3, false},
+		{5, true},
+		{7, true},
+		{11, false},
+		{13, true},
+	}
+	fmt.Println(s)
+}
+```
+7. 切片支持多种多样的省略写法:
+```go
+For the array
+var a [10]int
+these slice expressions are equivalent:
+
+a[0:10]
+a[:10]
+a[0:]
+a[:]
+```
+>The default is zero for the low bound and the length of the underlying slice or array for the high bound.
+
+8. 切片的空值为nil:
+```go
+package main
+
+import "fmt"
+
+func main() {
+	var s []int
+	fmt.Println(s, len(s), cap(s))
+	if s == nil {
+		fmt.Println("nil!")
+	}
+}
+// [] 0 0
+// nil!
+```
+### 高级语法
+#### map
+使用make来初始化map:
+```go
+package main
+
+import "fmt"
+
+type Vertex struct {
+	Lat, Long float64
+}
+
+var m map[string]Vertex
+
+func main() {
+	m = make(map[string]Vertex)
+	m["Bell Labs"] = Vertex{
+		40.68433, -74.39967,
+	}
+	fmt.Println(m["Bell Labs"])
+}
+```
+还可以带上初始值进行初始化,这比较类似于python中dict的写法:
+```go
+package main
+
+import "fmt"
+
+type Vertex struct {
+	Lat, Long float64
+}
+
+var m = map[string]Vertex{
+	"Bell Labs": Vertex{
+		40.68433, -74.39967,
+	},
+	"Google": Vertex{
+		37.42202, -122.08408,
+	},
+}
+
+func main() {
+	fmt.Println(m)
+}
+```
+当然,还可以简写,省略掉值的类型声明:
+```go
+package main
+
+import "fmt"
+
+type Vertex struct {
+	Lat, Long float64
+}
+
+var m = map[string]Vertex{
+	"Bell Labs": {40.68433, -74.39967},
+	"Google":    {37.42202, -122.08408},
+}
+
+func main() {
+	fmt.Println(m)
+}
+```
+#### 函数
+Go非常有意思的地方就是可以像Javascript一样将函数作为参数:
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+func compute(fn func(float64, float64) float64) float64 {
+	return fn(3, 4)
+}
+
+func main() {
+	hypot := func(x, y float64) float64 {
+		return math.Sqrt(x*x + y*y)
+	}
+	fmt.Println(hypot(5, 12))
+
+	fmt.Println(compute(hypot))
+	fmt.Println(compute(math.Pow))
+}
+
+```
+更有意思的地方在于Go可以将函数作为返回值,这被称为**函数闭包**,这一写法与Javascript中的匿名函数非常相像:
+```go
+package main
+
+import "fmt"
+
+func adder() func(int) int {
+	sum := 0
+	return func(x int) int {
+		sum += x
+		return sum
+	}
+}
+
+func main() {
+	pos, neg := adder(), adder()
+	for i := 0; i < 10; i++ {
+		fmt.Println(
+			pos(i),
+			neg(-2*i),
+		)
+	}
+}
+```
+
+- adder相当于一个中转站,用于传递参数x.
+- 尽管sum是一个局部变量,但只要pos和neg这两个局部函数变量还在,由于他俩引用了sum,所以sum一直都不会被回收,直到main函数执行完毕,sum的值都会一直保留.
+#### 方法
+鉴于Go没有class,只能用结构体来存储方法,写法上也非常奇特,需要在函数名字前加上结构体的参数说明,既不写在最开头,也不写在参数里,调用方法则使用成员运算符`.`:
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+type Vertex struct {
+	X, Y float64
+}
+
+func (v Vertex) Abs() float64 {
+	return math.Sqrt(v.X*v.X + v.Y*v.Y)
+}
+
+func main() {
+	v := Vertex{3, 4}
+	fmt.Println(v.Abs())
+}
+```
+- 这种写法比较清晰的说明了方法与属性不是存放在一起的,而是以类似指针的方式指向结构体.
+
+如果我们把结构体参数放入参数变量中,就变成了普通的函数:
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+type Vertex struct {
+	X, Y float64
+}
+
+func Abs(v Vertex) float64 {
+	return math.Sqrt(v.X*v.X + v.Y*v.Y)
+}
+
+func main() {
+	v := Vertex{3, 4}
+	fmt.Println(Abs(v))
+}
+```
+
+不过,即便是使用`type`关键字自定义的类型,也可以有自己的方法:
+
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+type MyFloat float64
+
+func (f MyFloat) Abs() float64 {
+	if f < 0 {
+		return float64(-f)
+	}
+	return float64(f)
+}
+
+func main() {
+	f := MyFloat(-math.Sqrt2)
+	fmt.Println(f.Abs())
+}
+```
+## 总结
+Go是一个非常有特点的语言,一方面,他继承了多门语言的精华,综合了前辈语言的特性,使用严格的语法规则来避免绝大部分的误区;另一方面,他非常的灵活,提供了各种各样的语法糖和简写版本,为程序员提供不同的实现方法.

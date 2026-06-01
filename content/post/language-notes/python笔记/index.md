@@ -4034,6 +4034,22 @@ else:
 
 ```
 上述代码直接修改了两个函数的默认内容,将url的读取局限在python文件之间,显然更加规范一点.
+## psycopg
+- [官方文档](https://www.psycopg.org/psycopg3/docs/)
+- [名字由来](https://stackoverflow.com/questions/41483525/where-did-the-psycopg2-name-come-from?utm_source=chatgpt.com)
+### 概览
+psycopg是postgresql的驱动库(不使用这个库就无法启动数据库),安装方式如下:
+```bash
+uv add "psycopg[binary]"
+```
+实际上还有另外两种形式的库,但都不推荐,官网有一个对比表格如下:
+
+![表格](PixPin_2026-06-01_15-05-01.webp)
+
+而我们实质上不需要关注这个库的底层是如何实现的,因为SQLAlchemy和SQLModel都帮我们封装好了,所以只需要导入这个库后,在postgresql的url中说明一下就可以了,其他的我们什么也不用管:
+```toml
+DATABASE_URL=postgresql+psycopg://postgres:123456@localhost:5432/my_chat_db
+```
 
 # Python网络框架
 - 前置知识: Restful Web API规范,基本的网络通信概念,初级的网络安全/身份认证概念.
@@ -6317,5 +6333,213 @@ async def chat(request: ChatMessage):
 
 最后这个简单的智能体就大功告成了.
 
-### ch6: 给智能体加入数据库(待补充)
+### ch6: 给智能体加入数据库
+#### 准备阶段
+现在,让我们试着给上面这个智能体加入postgre数据库,我们需要先明确来两个要点.
+1. 哪些路由要用到数据库?
+2. 数据库中要用到几个表?表的关系如何设定?
+
+
+##### 要点1: 在哪加入数据库
+先看一下我们一开始写的三个路由:
+```py
+@app.get("/api/health")
+async def homepage() -> dict:
+    return {"message": "Hello,World!"}
+
+
+@app.get("/api/auth")
+async def check() -> dict:
+    return {
+        "message": "我懒得写验证了,你直接进来吧",
+        "ok": True,
+    }
+
+
+@app.post("/api/chat", response_class=StreamingResponse)
+async def chat(request: ChatMessage):
+    # return stream_agent(request.message)
+
+    return StreamingResponse(
+        stream_agent(request.message),
+        headers={
+            "Cache-Control": "no-cache",
+        },
+    )
+```
+显然,health路由可以用来检查数据库是否成功启动,auth路由可以查看数据库来验证用户,chat路由在返回消息的时候还需要把聊天记录存入数据库.
+
+第一个比较好办,启动一个空查询,如果返回true的话就说明数据库启动了;
+
+第二个也好办,我们为每个用户建立一行数据即可.
+
+第三个比较难办,怎么存储聊天记录? 非流式输出的话我们只需要一次性把消息存入数据库即可,但我们使用的是流式输出,一个简单的想法是把对话累加起来再存入,实现起来确实也很简单.
+
+- 暂时先不加入多轮对话,我们只需保存用户的最新对话及结果,在展示在前端页面即可,不然项目就会一下子变得太复杂了
+
+##### 要点2: 设计表格
+设计数据库如果真的去一个个使用BCNF和3NF来检查表的话那就太离谱了,我们先按照上述的路由想法给出两个初始的表格,后续慢慢优化即可.
+
+对于用户来说,我们需要以下的必要信息: 用户id(主键),用户名,密码(先明文存储,做一个伪加密):
+
+```sql
+create table User(
+    user_id numeric,
+    user_name varchar,
+    password numeric,
+    primary key id
+);
+```
+显然,上述的设计非常糟糕,但我们先放着,等另一个表设计完了再来动它.
+
+对于对话来说,我们实质上只要对话id和最新的对话信息就够了:
+```sql
+create table ChatMessage(
+    chat_id numeric,
+    content varchar,
+    primary key chat_id,
+);
+```
+
+现在回头来看User表,我们需要把User和ChatMessage一一关联起来,在只保存最新信息的情况下,这是一个一对一关系,那么我们可以在User表中存储ChatMessage的chat_id作为外键:
+```sql
+create table User(
+    user_id numeric,
+    user_name varchar,
+    password numeric,
+    primary key id,
+    foreign key chat_id from ChatMessage
+);
+```
+接着,对于加密功能,我们需要实际想象一下整个流程:
+1. 用户注册时输入用户名和密码
+2. 后端对密码进行哈希处理
+3. 数据库存入哈希后的密码和对应的智能体
+4. 当用户登录时,我们将用户输入的密码哈希后,与数据库中存储的对应哈希密码比对即可.
+
+那么这实际上需要两张表,一个用于用户输入,一个用于实际的数据库存储,考虑到OOP的设计,我们可以设计第三张表作为父表,方便后续的复用:
+
+```py
+class UserBase(BaseModel):
+    user_name: str
+
+class UserCreate(UserBase):
+    password: int
+
+class User(UserBase):
+    user_id: int|None =None
+    hashed_password: int
+    chat_id: int
+```
+- 这只是一个初步的设计,所以就没具体按照语法实现了
+
+##### 数据库的一些必要知识
+postgresql的url长这样:
+```toml
+DATABASE_URL=postgresql+psycopg://用户名:密码@主机地址:端口号/数据库名
+```
+一个完整的示例是这样的:
+```toml
+DATABASE_URL=postgresql+psycopg://postgres:123456@localhost:5432/my_chat_db
+```
+
+非常值得称道的是,pydantic内置了对PostgreSQL的支持,书写这种长长的url也变得很简单了:
+```py
+from pydantic import (
+    PostgresDsn,
+    computed_field,
+)
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        # Use top level .env file (one level above ./backend/)
+        env_file="../.env",
+        env_ignore_empty=True,
+        extra="ignore",
+    )
+    POSTGRES_SERVER: str
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str = ""
+    POSTGRES_DB: str = ""
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+        return PostgresDsn.build(
+            scheme="postgresql+psycopg",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD,
+            host=self.POSTGRES_SERVER,
+            port=self.POSTGRES_PORT,
+            path=self.POSTGRES_DB,
+        )
+```
+
+了解了这些知识后,令人痛苦的重构就要开始了.
+#### 重构阶段
+##### 第一步: 环境变量文件和config.py
+先在.env中加入以下字段:
+```toml
+POSTGRES_SERVER=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=app
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=123456
+```
+然后按照之前的示例处理Settings类即可:
+
+```py
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import (
+    computed_field,
+    PostgresDsn,
+)
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file="../.env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_URL: str = "https://api.deepseek.com"
+
+    POSTGRES_SERVER: str
+    POSTGRES_PORT: int = 5432
+    POSTGRES_DB: str
+    POSTGRES_USER: str = ""
+    POSTGRES_PASSWORD: str = ""
+
+    @computed_field
+    @property
+    def DATABASE_URI(self) -> PostgresDsn:
+        return PostgresDsn.build(
+            scheme="postgresql+psycopg",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD,
+            host=self.POSTGRES_SERVER,
+            port=self.POSTGRES_PORT,
+            path=self.POSTGRES_DB,
+        )
+
+
+settings = Settings()  # type: ignore
+```
+##### 第二步: 设计模型
+在app文件夹下新建models文件夹,并新建一个model.py文件:
+```py
+
+```
+### ch7: 进一步优化: 实现多轮对话,设置管理员,实现token验证
+
+### ch8: 使用docker+traefik部署智能体
 # Python机器学习
+## 前言
+说到机器学习的python库,大多数人第一个会接触和学习的可能都是pytorch,但是pytorch实际上是机器学习中的底层框架,这和学cpp一样,如果你一上来就奔着STL库实现和Make编写,是不太可能看得懂的.
+
+因此,更为实际的道路是在学习完基本的机器学习知识后,先使用Langchain等高级框架来实战,等待稍微精通后再来学习底层库.
+
+- 可惜的是,我也是在走了不少弯路后才认识到这点的.
+
+

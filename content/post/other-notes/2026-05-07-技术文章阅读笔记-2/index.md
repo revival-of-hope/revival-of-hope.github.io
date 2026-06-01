@@ -600,6 +600,9 @@ cache的基本原理可以这样表述:
 
 ## 总结
 总体看下来的感受还是可以的,大多数内容都讲的比较详细,解决了我关于MIPS指令集的不少疑问.
+# Python3网络爬虫开发实战
+## 爬虫基础
+讲的还不错,基本涉及了爬虫所需的所有知识,尤其是关于session,cookie的地方讲的很好,帮我扫清了一点疑惑
 # 深度学习论文学习
 ## 前置概念
 - 论文大致按照年份排序,有一个先后关系
@@ -1052,8 +1055,61 @@ $$y_i = \gamma \hat{x}_i + \beta$$
 2. Decoder: 同样由6个完全相同的层堆叠而成,在编码器的基础上多加了一个子层,用于在推理时处理之前的输出和在训练时喂入标准答案
 ## Improving Language Understanding by Generative Pre-Training(2018)
 ![首页](PixPin_2026-05-30_19-02-51.webp)
-- 江山代有才人出,各领风骚几个月儿
+- GPT-1
+### 引入
+>先前的模型架构都只适配于单一的任务,针对不同的任务都要提供不同的标注好了的训练数据和参数.该论文提出,我们可以通过将自监督的预训练和有监督的调参结合起来,让模型能够只做很小的改动就可以适应各种各样的任务.
+>
+>具体来说,就是把模型训练分为两步,第一步只使用未标注的数据来初始化模型,第二步才针对不同的任务使用不同的标注数据进行调参.
 
+- 事实上,如文中所承认的那样,GPT的做法并不新颖,前人已经把**Unsupervised pre-training**用在了LSTM模型上,GPT只是把这个方法挪用到了Transformer上而已.
+### 训练过程
+#### Unsupervised pre-training
+对于文本补全任务来说,我们只需要用到Transformer的后半部分,也就是解码器就足够了,论文中实际上也是这么做的.
+
+>Given an unsupervised corpus of **tokens** $\mathcal{U} = \{u_1, \dots, u_n\}$, we use a standard language modeling objective to **maximize the following likelihood**:
+
+$$L_1(\mathcal{U}) = \sum_i \log P(u_i|u_{i-k}, \dots, u_{i-1}; \Theta)$$
+
+>where $k$ is **the size of the context window**(这也是这几年的大模型着重强化的部分), and the **conditional probability** $P$ is modeled using a neural network with parameters $\Theta$. These parameters are trained using stochastic gradient descent.
+
+- 之所以要取log(这实际上是自然对数),是因为我们最终需要计算所有输出token的条件概率的乘积,使用log可以把乘法变成加法,简化运算
+
+上面只是训练的最终目标,而训练的中间过程可以用三个公式概括:
+
+$$\begin{aligned}
+h_0 &= UW_e + W_p \\
+h_l &= \text{transformer\_block}(h_{l-1}) \forall i \in [1, n]  \\
+P(u) &= \text{softmax}(h_n W_e^T)
+\end{aligned}$$
+
+>where $U = (u_{-k}, \dots, u_{-1})$ is the context vector of tokens, $n$ is the number of layers, $W_e$ is the token embedding matrix, and $W_p$ is the position embedding matrix.
+
+第一步将token变成带有位置信息的向量,第二步通过多层的transformer进行迭代计算,得到针对每个要输出token位置的"注意力向量",第三步使用softmax查找与该"注意力向量"最匹配的那个token并输出.
+
+- 实际上来说就是把Attention那篇论文重新阐述了一遍,把原理讲的更清晰了.
+
+总的来说,这一步的预处理最大化地应用了Transformer的结构优势,因为Transformer的解码器架构由于带有mask层,天生就适合用来进行自我监督训练.
+#### Supervised fine-tuning
+
+>We assume a labeled dataset $\mathcal{C}$, where each instance consists of a sequence of input tokens, $x^1, \dots, x^m$, along with a label $y$. 
+The inputs are passed through our pre-trained model to obtain the final transformer block's activation $h_l^m$, which is then fed into an added linear output layer with parameters $W_y$ to predict $y$:
+
+$$P(y|x^1, \dots, x^m) = \text{softmax}(h_l^m W_y)$$
+
+>This gives us the following objective to maximize:
+
+$$L_2(\mathcal{C}) = \sum_{(x,y)} \log P(y|x^1, \dots, x^m)$$
+
+- 实际上这与前面的步骤完全相同,只不过这次提供的语料是标注好了的而已.
+
+## Language Models are Unsupervised Multitask Learners(2019)
+- GPT-2
+![首页](PixPin_2026-06-01_19-38-54.webp)
+### 概览与总结
+>如标题所说的那样,大模型训练
+
+## Language Models are Few-Shot Learners (2020)
+- GPT-3
 
 ## Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks(2021)
 - 在Agent构建中被广泛应用的RAG概念就是这篇2021年的论文提出的
@@ -1190,7 +1246,7 @@ $q(x) = \text{BERT}_q(x)$
 ![首页](PixPin_2026-05-10_20-30-42.webp)
 
 ## DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning(2025)
-
+# 操作系统导论
 # Linux内核设计与实现
 - 尽管源码分析很多,好在都有一些比较概括性的介绍,只看介绍就行了,谁愿意看你那些破碎的代码分析呢.再说Linux的0.01版只有一万行代码,真要研究的话看那个也足够了.
 
@@ -1358,7 +1414,35 @@ Linux2.6版本引入了CFS(完全公平调度)机制:
 ## 时间管理
 1. **处理器的时钟频率是可调的**,操作系统可以根据自己的需要动态调节时钟频率,这也是为什么在低功耗模式下打游戏会卡顿,时钟频率下降后,单位时间内操作系统能够处理的任务数就变少了.
 2. 更高的时钟频率可以提高内核定时器的精度,细化每个任务的分配时间,从而提高整体的运行速度.
-## 虚拟文件系统
+## 虚拟文件系统(virtual file system,VFS)
+>之所以我们能够直接对外接硬盘进行操作,就是虚拟文件系统的功劳
+
+VFS定义了所有文件系统都支持的接口,通过把文件视为文件对象来做统一的处理.
+
+VFS 中有四个主要的对象类型，它们分别是：
+
+* 超级块对象，它代表一个具体的已安装文件系统。
+* 索引节点对象，它代表一个具体文件。
+* 目录项对象，它代表一个目录项，是路径的一个组成部分。
+* 文件对象，它代表由进程打开的文件。
+## 块I/O层
+
+- 块设备: 能够随机访问固定大小的数据片的硬件设备,如硬盘和闪存
+- 字符设备: 可以按照字符流的方式有序访问,如键盘和音箱
+- 块: 文件系统的最小寻址单元,为固定大小的数据片,需要是扇区的整数倍大小,通常为4KB
+- 扇区: 设备的最小寻址单元,为512B/4KB大小
+- 缓冲区: 块被调入内存时的存储区,每个缓冲区对应一个块
+### I/O调度程序
+Linux2.6中同时存在四种I/O调度程序:
+
+| 调度器                | 主要目标       | 特点                                               |
+| --------------------- | -------------- | -------------------------------------------------- |
+| `noop`                | 尽量少做事     | 简单 FIFO，适合硬件自己已经会调度的场景            |
+| `deadline`            | 避免请求饿死   | 给请求设置期限，尤其保护读请求延迟                 |
+| `anticipatory` / `as` | 预测后续读请求 | 服务完一次读请求后短暂等待，避免马上切去远处写请求 |
+| `cfq`                 | 公平性         | 按进程/队列分配 I/O 时间，强调公平和桌面体验       |
+
+
 
 # 计算机体系结构: 量化研究方法
 - 如上一本书所说明的,这本书属于进阶版本的教材,但因为是相同的作者写的,所以编排风格十分相似.
@@ -1522,9 +1606,31 @@ $$\text{CPI} = \frac{\text{程序的CPU时钟周期数}}{\text{指令数}}$$
    2. 写回: 写入缓存,缓存中的数据如果被修改了,那么在被替换时才会被写入主存中.
       1. 写入时占用的时钟周期短,节省功耗
 
-### 缓存性能
-## 附录C: 流水线
+### 缓存优化
+1. 增加相联度: 主存块可以放进cache的候选位置变多,被替换的概率下降
+2. 增大存取的主存块大小: 根据空间局部性,如果程序访问了某个地址,它很可能马上访问附近的地址;但主存块太大的话,cache容纳的主存块个数过少,反而会降低性能
+3. 增大cache容量: 装的主存块个数变多
+4. 使用多级缓存,多级缓存的存储器平均访问时间计算方法如下:
+
+![示意图](Gemini_Generated_Image_ocpjz0ocpjz0ocpj.png)
+
+
+
 ## 指令级并行
+### 前置概念
+- 指令级并行: 有两种实现方式,一种是依靠硬件来动态实现并行,一种是依靠编译器来静态发现并实现并行.
+
+为了确定能否开展指令级并行,我们需要判断指令间是否相关,总共有三种类型的相关:
+1. **数据相关**: 指令i的结果可能会被指令j使用,或者指令i的结果会被指令k使用,而指令k的结果会被指令j使用,这两种情况都被称为数据相关.
+   1. 如果两条指令数据相关,那么他们必须顺序执行,无法真正的并行.
+2. **名称相关**: 指令i需要用到指令j需要的寄存器/存储器位置
+   1. 名称相关非常好解决,既可以让编译器对涉及冲突的寄存器进行**重命名**(即更换寄存器),也可以让硬件更改冲突的存储器位置.
+3. **控制相关**: 条件语句中的条件指令与执行语句只能顺序执行.
+### 编译器优化
+
+
+
+
 # Hello算法
 - [官网](https://www.hello-algo.com/chapter_computational_complexity/time_complexity/#5-olog-n)
 ## 前言
@@ -2257,6 +2363,7 @@ s += ", right foot"
 # x86汇编语言：从实模式到保护模式(待补充)
 # On Java 8(待补充)
 - [中文翻译版链接](https://zyb0408.github.io/gitbooks/onjava8/)
+
 讲的还算详细和有体系,但由于我已经了解过其中的大多数内容了,所以就只摘抄一些比较难懂和重要的部分,很多我这辈子都未必能用到的零碎知识点就直接跳过了.
 ## Java的垃圾回收
 ### 文章摘录
