@@ -1,7 +1,5 @@
 ---
 title: Java笔记
-tags: 
-    - Java
 image: 55474959_p0-式さん.webp
 date: 2026-04-26 08:00:00
 ---

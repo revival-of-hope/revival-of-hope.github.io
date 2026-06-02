@@ -6477,6 +6477,7 @@ class Settings(BaseSettings):
 
 了解了这些知识后,令人痛苦的重构就要开始了.
 #### 重构阶段
+>重构的要点是,让系统不能正常运行的时间尽可能短,否则你做的就不是重构
 ##### 第一步: 环境变量文件和config.py
 先在.env中加入以下字段:
 ```toml
@@ -6527,10 +6528,38 @@ class Settings(BaseSettings):
 settings = Settings()  # type: ignore
 ```
 ##### 第二步: 设计模型
-在app文件夹下新建models文件夹,并新建一个model.py文件:
+在app文件夹下新建一个model.py文件:
 ```py
+from sqlmodel import Relationship, SQLModel, Field
 
+
+class UserBase(SQLModel):
+    name: str
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class User(UserBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    chat: "ChatMessage" = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+
+class ChatMessage(SQLModel, table=True):
+    chat_id: int | None = Field(default=None, primary_key=True)
+    content: str | None = None
+    user_id: int | None = Field(default=None, foreign_key="user.id")
+    user: User | None = Relationship(back_populates="chat")
 ```
+- 尽管UserBase只有一个属性,看上去很蠢,但这却是实现OOP的必要损失.
+##### 第三步: 加入数据库依赖
+
+##### 第四步: 加入哈希部分
+##### 第五步: 实现crud.py
+##### 第六步: 修改路由实现
 ### ch7: 进一步优化: 实现多轮对话,设置管理员,实现token验证
 
 ### ch8: 使用docker+traefik部署智能体
@@ -6538,7 +6567,7 @@ settings = Settings()  # type: ignore
 ## 前言
 说到机器学习的python库,大多数人第一个会接触和学习的可能都是pytorch,但是pytorch实际上是机器学习中的底层框架,这和学cpp一样,如果你一上来就奔着STL库实现和Make编写,是不太可能看得懂的.
 
-因此,更为实际的道路是在学习完基本的机器学习知识后,先使用Langchain等高级框架来实战,等待稍微精通后再来学习底层库.
+因此,更为实际的道路是在了解了基本的机器学习知识后,先使用Langchain等高级框架来实战,等稍微精通后再来学习底层库.
 
 - 可惜的是,我也是在走了不少弯路后才认识到这点的.
 

@@ -4,7 +4,6 @@ date: 2026-05-23T19:09:06+08:00
 description: 
 image: 
 math: 
-draft: 
 ---
 
 # Go基础
@@ -800,5 +799,161 @@ func main() {
 	fmt.Println(f.Abs())
 }
 ```
+##### 指针方法
+Go去掉了C++中的`->`运算符,即使是指针变量也同样使用`.`运算符来访问成员属性/方法:
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+type Vertex struct {
+	X, Y float64
+}
+
+func (v Vertex) Abs() float64 {
+	return math.Sqrt(v.X*v.X + v.Y*v.Y)
+}
+
+func (v *Vertex) Scale(f float64) {
+	v.X = v.X * f
+	v.Y = v.Y * f
+}
+
+func main() {
+	v := Vertex{3, 4}
+	v.Scale(10)
+	fmt.Println(v.Abs())
+}
+```
+值得注意的是,方法既可以传入结构体指针也可以传入结构体变量,Go编译器会自动进行转换:
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+type Vertex struct {
+	X, Y float64
+}
+
+func (v Vertex) Abs() float64 {
+	return math.Sqrt(v.X*v.X + v.Y*v.Y)
+}
+
+func AbsFunc(v Vertex) float64 {
+	return math.Sqrt(v.X*v.X + v.Y*v.Y)
+}
+
+func main() {
+	v := Vertex{3, 4}
+	fmt.Println(v.Abs())
+	fmt.Println(AbsFunc(v))
+
+	p := &Vertex{4, 3}
+	fmt.Println(p.Abs())
+	fmt.Println(AbsFunc(*p))
+}
+```
+- 这让代码报错的可能性大幅度下降了
+#### 接口
+Go中的接口是隐式完成的,不需要类似Java中的`implements`关键字,一个类型只要实现了接口要求的方法,就实现了这个接口:
+```go
+package main
+
+import "fmt"
+
+type I interface {
+	M()
+}
+
+type T struct {
+	S string
+}
+
+// This method means type T implements the interface I,
+// but we don't need to explicitly declare that it does so.
+func (t T) M() {
+	fmt.Println(t.S)
+}
+
+func main() {
+	var i I = T{"hello"}
+	i.M()
+}
+```
+而被实现的接口也可以被后续的实现直接覆盖,这同样与Java不一样:
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+type I interface {
+	M()
+}
+
+type T struct {
+	S string
+}
+
+func (t *T) M() {
+	fmt.Println(t.S)
+}
+
+type F float64
+
+func (f F) M() {
+	fmt.Println(f)
+}
+
+func main() {
+	var i I
+
+	i = &T{"Hello"}
+	describe(i)
+	i.M()
+
+	i = F(math.Pi)
+	describe(i)
+	i.M()
+}
+
+func describe(i I) {
+	fmt.Printf("(%v, %T)\n", i, i)
+}
+```
+
+如果接口内留空,那么就可以用来存储属性,这个属性同样可以被重载,从而在Go真正提出泛型前实现非正式的泛型:
+```go
+package main
+
+import "fmt"
+
+func do(i interface{}) {
+	switch v := i.(type) {
+	case int:
+		fmt.Printf("Twice %v is %v\n", v, v*2)
+	case string:
+		fmt.Printf("%q is %v bytes long\n", v, len(v))
+	default:
+		fmt.Printf("I don't know about type %T!\n", v)
+	}
+}
+
+func main() {
+	do(21)
+	do("hello")
+	do(true)
+}
+
+```
+
 ## 总结
 Go是一个非常有特点的语言,一方面,他继承了多门语言的精华,综合了前辈语言的特性,使用严格的语法规则来避免绝大部分的误区;另一方面,他非常的灵活,提供了各种各样的语法糖和简写版本,为程序员提供不同的实现方法.
