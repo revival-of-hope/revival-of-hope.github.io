@@ -6358,8 +6358,6 @@ async def check() -> dict:
 
 @app.post("/api/chat", response_class=StreamingResponse)
 async def chat(request: ChatMessage):
-    # return stream_agent(request.message)
-
     return StreamingResponse(
         stream_agent(request.message),
         headers={
@@ -6371,7 +6369,7 @@ async def chat(request: ChatMessage):
 
 第一个比较好办,启动一个空查询,如果返回true的话就说明数据库启动了;
 
-第二个也好办,我们为每个用户建立一行数据即可.
+第二个需要修改一下,改成用户登录,这需要我们创建一个用户表
 
 第三个比较难办,怎么存储聊天记录? 非流式输出的话我们只需要一次性把消息存入数据库即可,但我们使用的是流式输出,一个简单的想法是把对话累加起来再存入,实现起来确实也很简单.
 
@@ -6417,14 +6415,17 @@ create table User(
 3. 数据库存入哈希后的密码和对应的智能体
 4. 当用户登录时,我们将用户输入的密码哈希后,与数据库中存储的对应哈希密码比对即可.
 
-那么这实际上需要两张表,一个用于用户输入,一个用于实际的数据库存储,考虑到OOP的设计,我们可以设计第三张表作为父表,方便后续的复用:
+那么这实际上需要三张表,一个用于用户注册,一个用于用户登录,一个用于实际的数据库存储,考虑到OOP的设计,我们可以设计第四张表作为父表,方便后续的复用:
 
 ```py
 class UserBase(BaseModel):
     user_name: str
 
-class UserCreate(UserBase):
-    password: int
+class UserRegister(UserBase):
+    password: str
+
+class UserLogin(UserBase):
+    password: str
 
 class User(UserBase):
     user_id: int|None =None
@@ -6476,7 +6477,7 @@ class Settings(BaseSettings):
 ```
 
 了解了这些知识后,令人痛苦的重构就要开始了.
-#### 重构阶段
+#### 后端重构阶段
 >重构的要点是,让系统不能正常运行的时间尽可能短,否则你做的就不是重构
 ##### 第一步: 环境变量文件和config.py
 先在.env中加入以下字段:
@@ -6537,12 +6538,17 @@ class UserBase(SQLModel):
     name: str
 
 
-class UserCreate(UserBase):
+class UserRegister(UserBase):
+    password: str
+
+
+class UserLogin(UserBase):
     password: str
 
 
 class User(UserBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str
     chat: "ChatMessage" = Relationship(
         back_populates="user",
         cascade_delete=True,
@@ -6556,13 +6562,71 @@ class ChatMessage(SQLModel, table=True):
 ```
 - 尽管UserBase只有一个属性,看上去很蠢,但这却是实现OOP的必要损失.
 ##### 第三步: 加入数据库依赖
+```py
+from collections.abc import Generator
+from typing import Annotated
+
+from sqlmodel import Session
+from app.core.db import init_db, engine
+from fastapi import Depends, HTTPException
+from app.models import User
+
+
+def get_db() -> Generator[Session, None, None]:
+    with Session(engine) as session:
+        yield session
+
+
+SessionDep = Annotated[Session, Depends(get_db)]
+
+
+def fake_get_current_user(session: SessionDep) -> User:
+    user = session.get(User, 114514)
+    if not user:
+        raise HTTPException(status_code=404, detail="User Not Found")
+    return user
+
+
+CurrentUser = Annotated[User, Depends(fake_get_current_user)]
+```
+1. `get_db`,用于打开与数据库的连接,将其放进依赖可以有效避免每次显式调用get_db函数的麻烦.
+
+>在目前这个阶段,我们只能实现**虚假的**获取当前用户,主要原因就在于如果不使用token/cookie,那么就无法知道这个用户是谁,一个容易想到的方法就是让用户在前端自己选择id并通过post请求发送给后端,但在现代的工程中不可能使用这种极其危险的方式,所以就不这么做了.
 
 ##### 第四步: 加入哈希部分
-##### 第五步: 实现crud.py
-##### 第六步: 修改路由实现
-### ch7: 进一步优化: 实现多轮对话,设置管理员,实现token验证
+```py
+from pwdlib import PasswordHash
 
-### ch8: 使用docker+traefik部署智能体
+hash_method = PasswordHash.recommended()
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return hash_method.verify(plain_password, hashed_password)
+
+
+def hashing_password(plain_password: str):
+    return hash_method.hash(plain_password)
+```
+两个函数,一个用于验证,一个用于加密
+##### 第五步: 实现crud.py
+先考虑一下要实现之前的三个路由我们要做些什么:
+1. 用户注册: 传入`UserRegister`并加密成`User`存入数据库即可
+2. 用户登录: 传入`UserLogin`并与数据库中存储的`User`进行比对,也就是通过id选取数据库中的特定行
+   1. 等会,我们并不知道当前用户的id!没有办法,这里也只能做一个伪装登录了,那么这样一来,创建用户也不用真的创建了,因为读取不了啊
+   2. 不过,出于完整性的考虑,我们可以用名字来选取数据库,尽管并非主键,但在我们这个项目里也够用了
+3. 用户验证: 如果使用token的话就没必要进行额外验证了,而不使用token的话我们也不知道他是谁,所以这一部分可以直接跳过了
+4. 健康检查: 执行一次空查询,检查数据库是否正常.
+
+##### 第六步: 修改路由实现
+
+#### 前端重构阶段
+
+### ch7: 实现token验证
+现在最大的问题是,即便有了注册+登录的流程,后端还是无法记住当前用户,那么也就不可能真正的给用户传递数据库的信息,也就是说,数据库基本没被用上! 因此,我们需要加入token功能,在用户的每次数据库请求中加上token依赖,这样我们才能知道这是哪个用户,我们又应该返回哪条消息.
+### ch8: 实现多轮对话
+### ch9: 加入管理员账户
+
+### ch10: 使用docker+traefik部署智能体
 # Python机器学习
 ## 前言
 说到机器学习的python库,大多数人第一个会接触和学习的可能都是pytorch,但是pytorch实际上是机器学习中的底层框架,这和学cpp一样,如果你一上来就奔着STL库实现和Make编写,是不太可能看得懂的.

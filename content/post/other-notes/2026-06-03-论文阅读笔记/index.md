@@ -40,6 +40,7 @@ math: true
 - (5/28): 早期的经典论文都是大学里的研究者提出的,而近十年的突破性论文都是由大公司里的研究者提出的,这不仅说明巨头科技公司垄断了顶尖的人才,也说明学术研究的环境不再像以前那般淳朴了.
 - (5/29): 早期的经典论文之间时间跨度很大,随着深度学习的不断火爆,论文数量呈指数级上升,每一年都有新的突破性成果,这又何尝不是一场你死我活的大跃进.
 - (6/1): GPT的突破性成果让所有人都见识到了大模型的可怕,但至今为止都没有人能够清晰的告诉我们,为什么把模型变大就可以实现这种奇迹般的涌现,还有就是,模型的大小到底有没有极限,大模型的发展是否存在一个瓶颈,没有人能够说明.前方,有可能是天堂,也可能是地狱.
+- (6/4): 实际上来说,大模型确实算是一种爆发性的增长,在2017年以前,语言模型只能应付简单的文本标注和文本分类任务,而在这之后,语言模型就可以真正地实现文本理解和文本生成了,这一飞跃确实值得让人深思.而如今,语言模型的发展再次停滞,足足有十年没有新的突破性架构被提出了,现有的改进都是对Transformer本身的结构优化,尽管如此,由于商业界本身的滞后性,大小企业仍然在争先恐后的入场,但实际的落地应用却并没有看上去那么多.
 
 ### 卷积神经网络是如何实现反向传播计算的
 一般神经网络的反向传播计算很好理解,我们只需要对某一位置的参数求偏导就行了,但卷积神经网络多了一个卷积层和池化层,这显然没有那么好处理.
@@ -455,7 +456,21 @@ $$y_i = \gamma \hat{x}_i + \beta$$
 
 1. Encoder: 由6个完全相同的层堆叠而成,每层由两个子层构成,一个是多头的注意力计算单元,一个是简单的全连接层,在这两个子层后,都跟着一个残差网络和正规化层,最终输出一个512维的向量
 2. Decoder: 同样由6个完全相同的层堆叠而成,在编码器的基础上多加了一个子层,用于在推理时处理之前的输出和在训练时喂入标准答案
-## Deep contextualized word representations(2018)
+## Deep Reinforcement Learning from Human Preferences(2017)
+- 该论文提出了著名了RLHF方法
+![首页](PixPin_2026-06-04_13-20-45.webp)
+
+### 概览与总结
+对于复杂的任务来说,我们无法建立一个合适的目标函数,然而,人类可以很好的判断这类任务的完成程度.
+
+因此,很早就有研究提出,我们可以在强化学习阶段里让人类来评价Agent的表现来帮助Agent学习.
+
+然而,这篇论文把这个观点进一步细化: **人类的打分是主观的,但是结果A和结果B哪个更好是可以由人类"客观的"比较出来的,因此可以作为训练目标用来强化模型的学习.**
+
+这篇论文并没有实际的结果,只是通过几个实验数据说明了一件事: 神经网络的学习在RLHF的帮助下能够变得更加平滑,减缓梯度消失的问题.
+
+
+
 ## Improving Language Understanding by Generative Pre-Training(2018)
 ![首页](PixPin_2026-05-30_19-02-51.webp)
 - GPT-1
@@ -538,8 +553,43 @@ GPT-2的基本架构与GPT-1没有什么区别,值得注意的地方就是把上
 
 - OpenAI提供了gpt-2的示例代码,使用`git clone https://github.com/openai/gpt-2.git`下载即可查阅
   - 是用tensorflow实现的,所以看起来会不太习惯
+## Fine-Tuning Language Models from Human Preferences(2019)
+![首页](PixPin_2026-06-04_13-59-20.webp)
+- 该论文将RLHF引入了GPT
+
+### 概览与总结
+试一下全新的极简版总结,如果论文的摘要都能说的这么清楚就好了,遗憾的是没几篇摘要真的符合这个要求.
+
+- 使用模型: 未经过微调阶段的GPT-1
+- 训练任务: 有两类任务,一个是生成特定风格的文本,一个是根据数据集总结文本.
+- 训练目标: 由人类来从多个备选回答中选择最好的,并构造对应的损失函数
+
+在文本生成任务上,RLHF比数据微调等方法的表现更佳,但在文本总结任务上,RLHF方法遭遇了重大的挫折,模型只是简单的复制粘贴原文,没能真正地去概括文章,尽管文章中提出这或许是数据质量的问题,但RLHF确实不太适合用来处理这类任务.
 
 ## CodeBERT: A Pre-Trained Model for Programming and Natural Languages(2020)
+![首页](PixPin_2026-06-03_14-08-45.webp)
+### 概览与总结
+CodeBERT的模型架构与RoBERTa-base(BERT的改良版)完全相同,总参数量为125M.
+- 显然,这注定了CodeBERT无法胜任代码生成任务,而只能做代码理解任务,后面也可以看到确实是这样的.
+
+CodeBERT的训练语料为Github上6种主流编程语言的仓库:
+
+![示意图](PixPin_2026-06-03_14-11-10.webp)
+
+![挑选规则](PixPin_2026-06-03_14-22-48.webp)
+
+![示例](PixPin_2026-06-03_14-23-53.webp)
+
+预训练阶段的目标有两种:
+1. 预测被MASK替代的token,这被称为Masked Language Modeling(MLM)
+2. 判断某个token是否被用其他容易混淆的token替换过,这被称为Replaced Token Detection(RTD)
+
+实验部分实现的功能有两个:
+1. 根据自然语言找到对应的代码
+2. 根据代码生成简单的文档
+
+总的来说,BERT型的编码器架构是不太适合用于代码生成的,所以之后还是以解码器结构为主流.
+
 ## Language Models are Few-Shot Learners (2020)
 - GPT-3
 - 一年一篇突破性论文,你不发财谁发财.
@@ -558,6 +608,13 @@ GPT-2的基本架构与GPT-1没有什么区别,值得注意的地方就是把上
 
 也是因为这篇论文,后续的大参数语言模型都被称为**大语言模型(large language model).**
 ## Evaluating Large Language Models Trained on Code(2021)
+![首页](PixPin_2026-06-03_14-39-27.webp)
+- 该论文提出了对GPT-3进行微调后的Codex,这与现在所说的Codex并不是同一个概念,这个Codex在2020年就接入了Github Copilot,在后来的几年中,GPT都是Copilot的默认模型.
+
+### 概览与总结
+CodeX的基本架构和GPT-3没有什么区别,只是使用的Github的代码数据进行了微调,模型的训练目标是根据docstring生成能够通过所有单元测试的简单代码,而实验中的成功率也不是很高.尽管这离NL-PL的目标还很远,但已经足够鼓舞人心了.
+
+![训练样本示意图](PixPin_2026-06-04_13-19-21.webp)
 ## Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks(2021)
 - 在Agent构建中被广泛应用的RAG概念就是这篇2021年的论文提出的
 ![首页](PixPin_2026-05-13_17-49-29.webp)
@@ -686,12 +743,13 @@ $q(x) = \text{BERT}_q(x)$
 
 
 
-
+## Efficiently Scaling Transformer Inference(2022)
+![首页](PixPin_2026-06-04_14-38-14.webp)
 ## Training Compute-Optimal Large Language Models(2022)
 ![首页](PixPin_2026-06-02_13-23-39.webp)
 ## Training language models to follow instructions with human feedback(2022)
 - InstructGPT,实际基本对应了GPT3.5
-  - 在见识到了chatGPT的巨大潜力后,OpenAI不再就新模型阐释任何的技术细节了
+
 ## LLaMA: Open and Efficient Foundation Language Models(2023)
 ![首页](PixPin_2026-05-10_20-30-42.webp)
 

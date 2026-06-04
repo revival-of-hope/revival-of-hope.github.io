@@ -954,6 +954,58 @@ func main() {
 }
 
 ```
+#### 异常
+Go中的很多函数都会在程序出错时返回异常,但这需要我们显式用一个多出来的err字段接收,而非其他语言通常使用的隐式接收.
+```go
+i, err := strconv.Atoi("42")
+if err != nil {
+    fmt.Printf("couldn't convert number: %v\n", err)
+    return
+}
+fmt.Println("Converted integer:", i)
+```
+#### 泛型
+Go加入泛型经过了长达十年的考量,所以实现得很不错.
+
+首先,Go支持对泛型进行约束,也就是限制可以在该泛型函数中使用的类型,常用的约束只有两个:
+1. any: 可以是任何类型
+2. comparable: 该类型需要能够用`==`或`!=`操作,也就是可进行比较.
+
+```go
+package main
+
+import "fmt"
+
+type List[T any] struct {
+	next *List[T]
+	val  T
+}
+
+// Index returns the index of x in s, or -1 if not found.
+func Index[T comparable](s []T, x T) int {
+	for i, v := range s {
+		// v and x are type T, which has the comparable
+		// constraint, so we can use == here.
+		if v == x {
+			return i
+		}
+	}
+	return -1
+}
+
+func main() {
+	// Index works on a slice of ints
+	si := []int{10, 20, 15, -10}
+	fmt.Println(Index(si, 15))
+
+	// Index also works on a slice of strings
+	ss := []string{"foo", "bar", "baz"}
+	fmt.Println(Index(ss, "hello"))
+}
+```
+- 写法上也扔掉了Cpp中的`<>`符号,转而使用`[]`,体现了Go尽量减少内置符号种类的思想
+- 而且,泛型写在了函数/类型声明之后,这实际上让代码变得更清晰了
+
 
 ## 总结
 Go是一个非常有特点的语言,一方面,他继承了多门语言的精华,综合了前辈语言的特性,使用严格的语法规则来避免绝大部分的误区;另一方面,他非常的灵活,提供了各种各样的语法糖和简写版本,为程序员提供不同的实现方法.
