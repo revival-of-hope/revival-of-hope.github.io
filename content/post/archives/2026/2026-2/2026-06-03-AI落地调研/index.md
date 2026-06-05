@@ -58,10 +58,34 @@ Anthropic于2022年暑期就已经训练出了Claude的测试版本,但直到202
 >不管怎样,Anthropic实际上是踩着OpenAI的头上位了,后来者居上的事情不罕见,但"白手起家"还能后来居上的案例还是太少了.
 
 ## Google DeepMind: 明明是我先来的
+- [wiki](https://en.wikipedia.org/wiki/Google_DeepMind)
+### 传奇开场
+**Demis Hassabis**,24年诺奖得主,国际象棋神童,剑桥大学计算机科学学士,伦敦大学学院认知神经科学PhD,很难想象这些称号都是一个人所有的,我们只能用一个词语来描述他: **天才中的天才**.
+
+2010年,他在伦敦创立了DeepMind公司,2014年该公司被Google收购,收购价为4亿到6.5亿美元之间.尽管如此,Hassabis仍然保留了DeepMind的相对独立,继续留在伦敦发展.
+
+2015年,DeepMind研发的AlphaGo模型以5:0的战绩击败了欧洲围棋冠军,并在16年以4:1的战绩击败了李世石,17年,柯洁也被AlphaGo击败.人类第一次正式见识到了AI的可怕.
+
+>DeepMind之后又研发出了AlphaGo Zero模型,完全击败了先前的AlphaGo
+
+2018年,DeepMind的AlphaFold在第13届CASP中胜出,成功预测了43种蛋白质中25种的最准确结构,之后DeepMind又提出了各种改进版本,并发布了对应的开源模型.
+
+- 2024年,Hassabis因AlphaFold获得了诺贝尔化学奖
+
+### Gemini的诞生
+2023年4月,Deepmind与Google Brain合并,由Demis Hassabis出任CEO,这显然是为了更好的统筹研究,以便开发出有实力挑战OpenAI的大模型.
+
+- 另一部分原因是为了挽救当年2月发布的非常失败的Bard模型带来的灾难性影响
+
+2023年12月,Gemini1.0版本发布,2024年12月Gemini2.0Flash发布,2025年6月,发布了Gemini CLI,2025年11月,Gemini 3.0发布.
+
+>非常值得一提的是2025年8月爆火的Nano Banana(实质是Gemini 2.5 Flash Image),尽管最近被GPT Image 2超过了,但之前一直都是图像生成领域的标杆.
+
+至于现在,Gemini的定位非常尴尬,因为他的编码能力在御三家中其实是最弱的,图像生成能力也被GPT超越,在新的突破性模型诞生之前,只能默默隐忍了.
 
 
 ## DeepSeek: 给世界带来一点中国震撼
-
+# 多模态: 让暴风雨来得更猛烈些吧
 
 # AI芯片公司: 上游市场
 
