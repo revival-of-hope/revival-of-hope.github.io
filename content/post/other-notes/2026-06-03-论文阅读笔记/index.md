@@ -743,18 +743,56 @@ $q(x) = \text{BERT}_q(x)$
 
 
 
-## Efficiently Scaling Transformer Inference(2022)
+## Efficiently Scaling Transformer Inference(2022)(待补充)
 ![首页](PixPin_2026-06-04_14-38-14.webp)
+
+### 引入
+随着模型的参数量越来越大,需要的算力也越来越多,我们需要将大模型分散到多张显卡上进行训练,这被称为**分布式架构**.但是由于模型的输出是前后相关的,对于第n个要输出的token,它需要获知前n-1个输出的token,这说明简单的拆分模型是不可能的,需要有更为复杂的方法.
+
+分布式架构有以下难点:
+1. 对于chatGPT和Gemini这种网页对话智能体,需要极低的时延,不能有卡顿感,这要求我们能够以极快的速度完成推理并输出回答.
+2. 大模型的参数已经多到塞不进一张单独的主存条里的程度了,而Transformer中每一层的attention key和value 张量(这被称为KV cache,也就是注意力计算的缓存)也需要被全部存储在主存中供当前要输出的token使用,如此强烈的数据相关性限制了并行性的可能.
+
+总的来说,模型训练有以下几个要考虑的成本:
+1. 计算成本: 大规模的矩阵乘法所需的计算量是很大的
+2. 通信成本: 将模型部署到多个芯片上后,我们需要引入芯片间的数据传输
+
+该文章提出两种模型切分方法:
+1. 2D切分
+2. weight-gathered切分
+
+
+![示意图](PixPin_2026-06-06_19-28-32.webp)
 ## Training Compute-Optimal Large Language Models(2022)
 ![首页](PixPin_2026-06-02_13-23-39.webp)
 ## Training language models to follow instructions with human feedback(2022)
 - InstructGPT,实际基本对应了GPT3.5
+![首页](PixPin_2026-06-06_19-33-26.webp)
+
+### 概览与总结
+大模型的预训练目标只是根据输入预测输出而已,至于输入是否有问题,输出又是否有歧义和危害性,它是不知道的,这与我们训练大模型的目的: **“follow the user’s instructions helpfully and safely”**是背道而驰的.
+
+为了能让LLM真正被投入使用而不危害社会,该论文从2017年那篇论文中引入了RLHF方法,用来微调GPT-3.
+
+训练方法如下图所示:
+
+![训练图](PixPin_2026-06-06_19-44-10.webp)
+
+
+实际效果是很惊人的,1.3B的InstructGPT(经过RLHF的小规模GPT-3)比175B的GPT-3能够输出更符合常理的答案,而当二者规模相同时的输出对比也更为惊人:
+
+![对比图1](PixPin_2026-06-06_19-49-18.webp)
+
+![对比图2](PixPin_2026-06-06_19-49-47.webp)
+
+很明显,即便是175B的GPT-3输出的答案实际上也是惨不忍睹的,但经过RLHF后,大模型突然变得像是能够理解我们在说什么一样,能够真正地输出一些能让人看懂的话了.
+
 
 ## LLaMA: Open and Efficient Foundation Language Models(2023)
 ![首页](PixPin_2026-05-10_20-30-42.webp)
 
 ### 概览与总结
->
+
 ## Instruction Pre-Training: Language Models are Supervised Multitask Learners(2024)
 - 很明显,这个标题是对GPT-2的一个强力反击
 
