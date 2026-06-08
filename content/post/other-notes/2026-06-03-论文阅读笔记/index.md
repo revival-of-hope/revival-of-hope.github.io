@@ -1,7 +1,7 @@
 ---
 title: "论文阅读笔记"
 date: 2026-06-03T09:30:22+08:00
-image: 
+image: 28876767_p0-＼ ハッピーバースデイ ／.webp
 math: true
 ---
 # 深度学习论文
@@ -790,13 +790,36 @@ $q(x) = \text{BERT}_q(x)$
 
 ## LLaMA: Open and Efficient Foundation Language Models(2023)
 ![首页](PixPin_2026-05-10_20-30-42.webp)
-
 ### 概览与总结
+>该论文发现,就算使用参数量更少的模型,如果训练足够长的时间,提供足够多的语料,那么它的表现可以比参数量更大的模型还要好,比如LLaMA-13B(Large Language Model Meta AI,为什么不叫LLMMA肯定是因为太难看了,而llama又是美洲驼的意思,所以就改成了llama)就在大多数领域超过了175B的GPT-3
+
+用于预训练LLaMA的语料数量是非常可怕的:
+![示意图](PixPin_2026-06-08_14-17-47.webp)
+
+LLaMA参考了之前几篇了论文提出的解码器优化结构,如GPT-3,PaLM,GPTNeo,并在反向传播中使用了Adam的优化版本AdamW,基本的超参数如下:
+
+![参数图](PixPin_2026-06-08_14-24-37.webp)
+
+这篇论文非常负责任的调研了模型训练过程中的环境污染问题,揭示了大模型训练的艰难与可怕的算力消耗:
+
+![示意图](PixPin_2026-06-08_14-27-37.webp)
+
 
 ## Instruction Pre-Training: Language Models are Supervised Multitask Learners(2024)
-- 很明显,这个标题是对GPT-2的一个强力反击
+- 很明显,这个标题是对GPT-2标题的一个用典
 
 ![首页](PixPin_2026-06-01_21-05-56.webp)
+### 概览与总结
+该论文提出两种预训练方式:
+1. Vanilla Pre-Training(普通预训练): GPT-3,GPT-2对应的预训练方式
+2. Instruction Pre-Training(指令预训练): 该论文提出的新型预训练方式
+
+![架构图](PixPin_2026-06-08_14-48-28.webp)
+
+实际效果也是不错的,训练出来的Llama3-8B在某些领域甚至可以超过Llama3-70B.
+
+## From Local to Global: A GraphRAG Approach to Query-Focused Summarization(2024)
+![首页](PixPin_2026-06-08_14-51-17.webp)
 
 ## DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning(2025)
 # 计算机视觉论文
