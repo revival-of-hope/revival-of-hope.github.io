@@ -787,6 +787,15 @@ $q(x) = \text{BERT}_q(x)$
 
 很明显,即便是175B的GPT-3输出的答案实际上也是惨不忍睹的,但经过RLHF后,大模型突然变得像是能够理解我们在说什么一样,能够真正地输出一些能让人看懂的话了.
 
+## GPT-4 Technical Report(2023)
+
+![首页](PixPin_2026-06-09_14-31-09.webp)
+
+### 概览与总结
+没有谈到任何关于模型架构的细节,连训练成本和参数数量也没提到,只是讲了一些GPT-4的训练过程和改进,不过效果还是不错的,只是不知道到底是怎么实现的:
+
+![对比图](PixPin_2026-06-09_14-58-20.webp)
+
 
 ## LLaMA: Open and Efficient Foundation Language Models(2023)
 ![首页](PixPin_2026-05-10_20-30-42.webp)
@@ -804,6 +813,7 @@ LLaMA参考了之前几篇了论文提出的解码器优化结构,如GPT-3,PaLM,
 
 ![示意图](PixPin_2026-06-08_14-27-37.webp)
 
+## QWEN TECHNICAL REPORT(2023)
 
 ## Instruction Pre-Training: Language Models are Supervised Multitask Learners(2024)
 - 很明显,这个标题是对GPT-2标题的一个用典
@@ -820,6 +830,30 @@ LLaMA参考了之前几篇了论文提出的解码器优化结构,如GPT-3,PaLM,
 
 ## From Local to Global: A GraphRAG Approach to Query-Focused Summarization(2024)
 ![首页](PixPin_2026-06-08_14-51-17.webp)
+## DeepSeek-V3 Technical Report(2024)
 
 ## DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning(2025)
+![首页](PixPin_2026-06-09_15-01-49.webp)
+- 近五年来最令人震撼的突破,不过由于开源,所以被御三家全学过去了,不过确实是好事,毕竟它们的输出质量上也有了质的飞跃
+### 引入
+先前的研究发现,链式思考(chain-of-thought,CoT)可以极大地增强LLM的表现,这可以简单的通过经过微调的预训练语料或者诸如“Let’s think step by step”的提示词来实现.但这些实现方法都引入了人类的干扰,不可避免地带入了一些偏见.
+
+为了解决这个问题,DeepSeek提出可以让模型通过强化学习框架和自我演变,自己学会思考,这样可以大幅度减少所需要的人类标注.
+
+具体来说,该论文是在24年的DeepSeek-V3-Base模型上,使用了Group Relative Policy Optimization (GRPO)强化学习框架,训练目标只针对模式的最终输出和真实答案的偏差,而不干扰模型过程中的推理过程.
+
+- 这个想法确实非常大胆,很难想象是怎样的天才才能从如此多的论文中提炼出如此精妙的架构.
+
+为了尽可能减少人类的干扰,在预训练后跳过了微调阶段,直接开始用强化学习,而效果也是很惊人的:
+
+> Although we do not explicitly teach the model how to reason, it successfully learns improved reasoning strategies through reinforcement learning.
+
+![思考中的涌现](PixPin_2026-06-09_15-43-11.webp)
+### 架构
+尽管最初版DeepSeek-R1-Zero模型的思考能力已经很不错了,但它的输出是破碎的,而且有时候会在回答中将中文和英文混合在一起输出.为了解决这个问题,又实现了改进版的DeepSeek-R1,这次重新引入了RLHF来让模型的输出更为合理.
+
+具体过程是这样的:
+![架构](PixPin_2026-06-09_15-41-15.webp)
+### 训练细节
+
 # 计算机视觉论文

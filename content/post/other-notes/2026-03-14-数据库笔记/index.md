@@ -2541,201 +2541,40 @@ $$P[j] = \delta / N + (1 - \delta) * \sum_{i=1}^{N} (T[i, j] * P[i])$$
 
 应该就三道大题30分.
 
-# Application Development(过)
-# Big Data
->当数据的数量和种类多到一定程度时,传统的关系型数据库就无能为力了,需要采用更为复杂的数据结构来处理.
-## The MapReduce Paradigm(待补充)
-# Data Analytics(过)
->The term **data analytics** refers broadly to the processing of data to infer patterns,
-correlations, or models for **prediction**.
-# Physical Storage Systems
-## Overview of Physical Storage Media(物理存储介质概述)
-* **高速缓存 (Cache)**：速度最快且成本最高的存储形式。容量较小，由计算机系统硬件管理。数据库系统实现者在设计查询处理数据结构和算法时会关注高速缓存效应。
-* **主存储器 (Main memory)**：用于存放可被操作数据的存储介质，通用机器指令在主存上运行。主存容量在个人电脑上通常为几十 GB，大型服务器可达数百至数千 GB。主存具有**易失性 (volatile)**，电源故障或系统崩溃时内容会丢失。
-* **闪存 (Flash memory)**：与主存不同，闪存是**非易失性 (non-volatile)** 的。其单位字节成本低于主存，但高于磁带。
-    * 广泛用于照相机、手机和 USB 闪存盘。
-    * **固态硬盘 (Solid State Drive,SSD)** 内部使用闪存存储数据，提供类似于磁碟的**面向块的接口 (block-oriented interface)**，典型块大小为 512 字节至 8 KB。
-* **磁碟存储 (Magnetic-disk storage)**：长期在线存储数据的主要介质，也称为硬盘驱动器 (Hard Disk Drive,HDD)。磁碟是非易失性的。访问磁碟数据时，系统必须先将数据从磁碟移至主存。虽然比 SSD 便宜，但在每秒支持的数据访问操作次数上性能较低。
-  * 俗称为机械硬盘
-* **光存储 (Optical storage)**：包括 DVD 和蓝光光盘，使用激光读写。虽然可用于存储备份，但不适合存储活动数据库数据，因为其访问时间远长于磁碟。存在只读、单次写入 (WORM) 和多次擦写版本。
-* **磁带存储 (Tape storage)**：主要用于备份和归档数据（如出于法律原因需长期安全存储的数据）。
-    * 磁带比磁盘便宜且可拆卸，但访问速度极慢，因为必须从头开始**顺序访问 (sequential-access)**。
-    * 磁碟和 SSD 被称为**直接访问存储 (direct-access storage)**。
-    * 常用于存储海量科学数据（可达 PB 级）或大型视频文件。
 
-## Storage Interfaces
-### 接口标准
-* **SATA (Serial ATA)**：常用接口。SATA-3 版本理论带宽 6 Gbps，实际数据传输速率可达 600 MB/s。
-* **SAS (Serial Attached SCSI)**：通常仅用于服务器。SAS-3 版本支持 12 Gbps 的传输速率。
-* **NVMe (Non-Volatile Memory Express)**：专门为 SSD 优化的逻辑接口标准，通常运行在 **PCIe** 总线上。
+# 第三次小测复习(6/9)
+## 小测内容
+- 这次小测考第九章之后的部分
+* Chapter 9: Application Design
+  * 中文版完全对应
+* Chapter 10: Big Data
+  * 无对应
+* Chapter 11: Data Analytics
+  * 无对应
+* Chapter 12: Physical Storage Systems (Sections 12.5 (RAID) omitted)
+  * 刚好对应第十章前四节
+* Chapter 13: Storage and File Structure
+  * 刚好对应第十章第四节后面的内容
+* **Chapter 14: Indexing and Hashing**
+  * 基本完全对应11章
+* Chapter 15: Query Processing (Section 15.1, 15.2)
+  * 刚好对应12章1,2节
+* Chapter 17: Transactions
+  * 完全对应13章
 
-### 存储网络架构
-* **SAN (Storage Area Network)**：
-    * **定义**：通过高速网络将大量磁盘连接到多台服务器。
-* **NAS (Network Attached Storage)**：
-    * **定义**：与 SAN 类似，但不对外呈现为裸磁盘，而是通过 **NFS** 或 **CIFS** 等网络文件系统协议提供**文件系统接口**。
+我现在可以完全确定了,英文班的提纲完全是按照中文版教材来的,所以只看中文版就够了,那些改版后没提到的直接不管就行了,反正也不会考,这也是上次小测带来的血的教训
+
+## ch9: 应用程序开发
+- 非常无敌的一章,真考就没慕了
 
 
-
-### 云存储 (Cloud Storage)
-* **特征**：数据存储在云端，通过 API 访问。
-* **限制**：若数据未与数据库同地部署，延迟高达数十至数百毫秒，因此不适合作为数据库的基础存储。
-* **应用**：常用于存储对象（Object Storage）。
-# Data Storage Structures(过)
-# Indexing(索引)
-## 前置概念
->使用索引可以在不深入查询数据库的情况下快速找到数据
-
-有两种基本的索引类型:
-1. 顺序索引(ordered index): 基于值的顺序排序
-2. 哈希索引(hash index): 通过哈希函数映射
-
-被索引标记的,用来查找记录的属性或属性集被称为搜索码(search key).
-## Ordered Indices(顺序索引)
-
->The records in the indexed ﬁle may themselves be stored in **some sorted order**. A ﬁle may have several indices, on diﬀerent **search keys**. If the ﬁle containing
-the records is **sequentially ordered**, a **clustering index** is an index whose search key
-**also deﬁnes the sequential order of the ﬁle**. 
-- Clustering indices are also called **primary indices**
-
->Indices whose search key speciﬁes an order diﬀerent from the sequential order of the ﬁle are called **nonclustering indices**, or **secondary indices**. 
-
-也就是说,与文件顺序相同就是聚集索引,不同就是非聚集索引.
-### 顺序索引的类别
-顺序索引可以细分为两类:
-1. 稠密索引(dense index): 对于文件中的每个搜索码值都有一个索引项
-2. 稀疏索引(sparse index): 只为某些搜索码值建立索引项.
-
-自然,稠密索引更容易定位一条记录,但稀疏索引占用的空间和维护开销更小.
-### 索引更新
-在以下两种情况下需要更新索引:插入和删除
-#### 插入
-1. 如果是稠密索引:
-   1. 如果插入项的搜索码值未出现在索引中,则插入一个新的索引项
-   2. 如果该搜索码值出现在索引中,则根据不同的索引结构来插入:
-      1. 如果是每个索引项对应一个指针列表或一个桶的结构,那么就将该值指向该索引项的指针队列末端即可.
-      2. 如果是索引项仅存储一个指针的结构,那么只需要把新纪录插入到该索引项对应记录的末端,不需要改动索引项
-2. 如果是稀疏索引(将记录分成块):
-   1. 如果新记录创建了新块,那么就需要插入一个新索引,选择该块中搜索键序号最小的键值作为索引键
-   2. 如果新记录插入到现有块中,并且键值比该块的所有记录都要小,那么就将旧键值替换成新的键值;否则不做任何改动
-
-#### 删除
-1. 如果是稠密索引:
-   1. 如果被删记录是该搜索码值的唯一记录, 则直接从索引中删除对应的索引项。
-   2. 如果该搜索码值在索引中仍有其他记录, 则根据索引结构处理:
-      1. 如果是每个索引项对应一个指针列表或桶的结构, 则仅从该列表中删除指向被删记录的指针。
-      2. 如果是索引项仅存储一个指针的结构（指向首条记录）:
-         * 如果被删的是该键值的首条记录, 则更新索引项, 使其指向下一条具有相同键值的记录。
-         * 如果被删的不是首条记录, 则无需改动索引项。
-
-
-
-2. 如果是稀疏索引 (以块为基准):
-   1. 如果索引中不存在该被删记录的搜索码值, 则无需对索引做任何改动。
-   2. 如果索引中存在该搜索码值, 则根据记录余留情况处理:
-      1. 如果被删记录是该搜索码值的唯一记录:
-         * 用数据文件中下一个出现的搜索码值替换当前的索引项。
-         * 如果下一个搜索码值已经拥有索引项（即它已经是某块的块首）, 则直接删除当前索引项即可。
-      2. 如果该键值仍有其他记录存在（即被删者是块首但不是唯一记录）:
-         * 如果索引项正指向该被删记录, 则更新索引项, 使其指向该键值的下一条记录（新的块首）。
-## B+-Tree Index Files(待补充)
-## B+-Tree Extensions
-## Hash Indices(哈希索引)(过)
-## Multiple-Key Access(过)
-## Creation of Indices(创建索引)
-```sql
--- 就某个关系的某个属性创建索引
-create index <index-name> on <relation-name> (<attribute-list>);
-
--- 删除索引
-drop index <index-name>;
-```
-
-**例子**
-```sql
-create index dept index on instructor (dept name);
-```
-## Bitmap Indices(位图索引)
-书上讲的特别烂,所以让AI写了一份:
-
-为了透彻理解位图索引，我们直接通过一个**教职员工数据表**的完整流程来拆解。
-
-### 1. 原始数据表 (Relation)
-假设有 5 名员工，我们要对“性别”和“收入等级”建立位图索引：
-
-| 记录编号 (ID) | 姓名 | 性别 (Gender) | 收入等级 (Income) |
-| :------------ | :--- | :------------ | :---------------- |
-| **0**         | 张三 | 男 (m)        | L1                |
-| **1**         | 李四 | 女 (f)        | L2                |
-| **2**         | 王五 | 女 (f)        | L1                |
-| **3**         | 赵六 | 男 (m)        | L4                |
-| **4**         | 孙七 | 女 (f)        | L3                |
-
----
-
-### 2. 索引的物理构造
-系统会为每个属性的**每一个可能取值**生成一个位图。
-
-#### 性别属性 (Gender)
-由于性别只有 `m` 和 `f`，产生两个位图：
-* **性别=m** 的位图：`1 0 0 1 0`（第0、3位是男，填1）
-* **性别=f** 的位图：`0 1 1 0 1`（第1、2、4位是女，填1）
-
-#### 收入等级属性 (Income)
-收入等级有 `L1, L2, L3, L4`，产生四个位图：
-* **L1** 位图：`1 0 1 0 0`（记录0和2是L1）
-* **L2** 位图：`0 1 0 0 0`（记录1是L2）
-* **L3** 位图：`0 0 0 0 1`（记录4是L3）
-* **L4** 位图：`0 0 0 1 0`（记录3是L4）
-
-
-
----
-
-### 3. 为什么它在多条件查询时极快？
-假设我们要找：**“收入等级为 L1 的男性”**。
-SQL 语句：`SELECT * FROM table WHERE Gender='m' AND Income='L1';`
-
-**数据库的操作步骤：**
-1.  **加载 `Gender=m` 的位图**：`1 0 0 1 0`
-2.  **加载 `Income=L1` 的位图**：`1 0 1 0 0`
-3.  **进行“与”运算 (AND)**：
-    $$
-    \begin{array}{r@{\quad}l}
-      & 1 \ 0 \ 0 \ 1 \ 0 \\
-    \text{AND} & 1 \ 0 \ 1 \ 0 \ 0 \\
-    \hline
-      & 1 \ 0 \ 0 \ 0 \ 0
-    \end{array}
-    $$
-4.  **读取结果**：结果位图只有**第 0 位**是 1，系统直接去磁盘取 `record 0` 的数据。
-
-
-
----
-
-### 4. 关键点总结：到底好在哪里？
-
-* **对比 B+ 树**：
-    如果你用 B+ 树找“男性”，它会给你一堆指针列表；如果你再找“L1”，它又给你一堆指针。要把这两堆指针取交集，CPU 需要进行复杂的列表比对。而位图索引将这个问题简化成了**计算机最擅长的位运算**。
-* **对比全表扫描**：
-    如果不建索引，数据库必须把每条记录的姓名、性别、收入等所有字段都读进内存再判断。而位图索引非常小，通常可以全部塞进内存，在不碰磁盘的情况下就已经把目标行号算出来了。
-* **空间压缩**：
-    在实际工程中，如果数据量巨大，这些 `000001` 会经过特殊的压缩算法（如 WAH 压缩），占用的空间微乎其微。
-
-### 5. 什么时候**不能**用？
-如果一个属性的取值非常多（高基数），比如“身份证号”：
-* 如果有 1 亿条记录，身份证号就有 1 亿种。
-* 你需要建立 1 亿个位图，每个位图 1 亿比特。
-* **结果**：索引的大小会远超数据表本身，查询效率崩塌。
 # 复习要点
->仔细想想,中文班和英文班的卷子除了语言不同外应该没有什么区别,由于中英文版本教材的编排不同,所以只需要把内容更少的中文版教材搞定就行了!
+
 
 1. 全部的关系代数
 2. 全部的sql语法
 3. 索引
 
-# Query Processing(只要看1,2小节)(过)
 
 # Transactions
 ## Transaction Concept
@@ -2751,7 +2590,7 @@ SQL 语句：`SELECT * FROM table WHERE Gender='m' AND Income='L1';`
 - volatile storage: 易失性存储器,包括cache和main memory,存储的信息在系统崩溃后即丢失
 - non-volatile storage: 非易失性存储器,包括SSD,HDD和磁带等存储设备,尽管不会在系统崩溃时丢失数据,但是容易受到故障的影响导致信息丢失.
 - stable storage: 稳定存储器,将数据备份到多个非易失性存储器中
-## Transaction Atomicity and Durability
+
 
 # 补充
 ## Outline Of The Course
