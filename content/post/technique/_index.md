@@ -1,6 +1,6 @@
 ---
-title: "语言学习笔记"
-description: "语言笔记合集,时不时会更新"
+title: "技术笔记"
+description: "动态更新ing"
 image: 58231596_p0-暑中見舞い.webp
 
 menu:

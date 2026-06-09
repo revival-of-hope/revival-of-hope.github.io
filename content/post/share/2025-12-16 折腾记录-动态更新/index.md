@@ -6,9 +6,9 @@ image: 86800864_p0-no title.webp
 
 ---
 
-# 折腾博客
-## hexo管理
-### hexo图片管理困难,帖子多了很难阅读
+## 折腾博客
+### hexo管理
+#### hexo图片管理困难,帖子多了很难阅读
 解决方法就是在config_yml里修改:
 
 `new_post_name: :year-:month-:day-:title.md`
@@ -17,7 +17,7 @@ image: 86800864_p0-no title.webp
 
 ![](tmpDAFA.png)
 
-### 还是图片问题,每次复制images子文件夹路径太麻烦
+#### 还是图片问题,每次复制images子文件夹路径太麻烦
 根据[](https://www.hwpo.top/posts/d87f7e0c/index.html)教程在post文件夹里设置同名文件夹没解决
 ```yml
 post_asset_folder: true
@@ -47,24 +47,24 @@ hexo.on('new', function(data) {
 在同级目录下生成图像文件夹来管理,麻烦的是每次都要删去相对路径里的''
 
 
-### 改用butterfly主题
+#### 改用butterfly主题
 这个主题确实好用了不少
 
-### 增加评论系统
+#### 增加评论系统
 [参考文章](https://tech.yemengstar.com/vercel-twikoo-comment-your-hexo/)
 
-### 尝试新部署方式
+#### 尝试新部署方式
 
 [](https://tech.yemengstar.com/github-actions-auto-hexo/)
 
-### 增加了category条目,tag条目和背景图片 
+#### 增加了category条目,tag条目和背景图片 
 原来要用`hexo new page tag`才能在hexo里显示tag页和category页
 
-### 发现md只要在posts下都能被直接解析(25/12/21)
+#### 发现md只要在posts下都能被直接解析(25/12/21)
 于是我将不会再修改的文章都移动到了archives文件夹,图片路径也做了对应的修改,
 之前我还想文章多了要怎么处理呢.
 
-### 还是图片问题,hexo本地无法正确解析相对路径
+#### 还是图片问题,hexo本地无法正确解析相对路径
 例如`images/archives/2025/2025-11-26/image.png`
 需要改为'images/archives/2025/2025-11-26/image.png',每次改就很麻烦了
 于是找ai弄了脚本
@@ -83,11 +83,11 @@ hexo.extend.filter.register('before_post_render', function (data) {
 ```
 完美解决,以后只要复制相对路径就可以了,不用再删删减减了.
 
-### 增加rss订阅图标
+#### 增加rss订阅图标
 [参考文章](https://mitpoppy.github.io/posts/fe13d434.html)
 发现了RSS订阅方式,于是增加了这一功能
 
-### 更改了图像文件夹创建方式(25/12/26)
+#### 更改了图像文件夹创建方式(25/12/26)
 ```JavaScript
 const fs = require('fs');
 const path = require('path');
@@ -116,7 +116,7 @@ hexo.on('new', function (data) {
 `new_post_name: :year-:month-:day-:title.md`
 故可以根据日期直接找到对应的图片,这样图片管理起来更加方便了,但原来的几十个文件夹我是真不想再改了.
 
-### 突然发现没必要用file utils粘贴相对路径,直接复制图片就好了(12/27)
+#### 突然发现没必要用file utils粘贴相对路径,直接复制图片就好了(12/27)
 
 在settings.json里加上
 ```json
@@ -127,7 +127,7 @@ hexo.on('new', function (data) {
 就可以在md里直接复制图片而不是自己写了![]()这些东西了,
 甚至会根据图片复制的位置智能选择是插入相对路径还是插入整个图片链接格式,又能偷一点懒了.
 
-### 每次hexo d的时候都要报warning(2026/1/1)
+#### 每次hexo d的时候都要报warning(2026/1/1)
 
 ```bash
 warning: in the working copy of 'tags/离散数学/index.html', LF will be replaced by CRLF the next time Git touches it
@@ -150,20 +150,20 @@ Carriage n.马车,火车车厢;运输费用 在carriage return中,carriage译为
 + [扔掉CRLF](https://www.163.com/dy/article/JEG01TL50511FQO9.html)
 
 
-### 嵌入数学公式(unsolved)
+#### 嵌入数学公式(unsolved)
 按照[官方文档](https://butterfly.js.org/posts/4aa8abbe/)的步骤进行操作并没有解决,尝试了[这个教程](https://nickxu.me/2022/04/17/Hexo-Butterfly-%E5%BB%BA%E7%AB%99%E6%8C%87%E5%8D%97%EF%BC%88%E5%85%AB%EF%BC%89%E4%BD%BF%E7%94%A8-KaTeX-%E6%95%B0%E5%AD%A6%E5%85%AC%E5%BC%8F/)也没有解决
 
-### 图片路径又出问题了
+#### 图片路径又出问题了
 待我期末周回来再搞,毕竟本地看图片还是正常的
 (2026/1/18)
 修好了,只要保证都是相对路径的格式就能正常渲染,尽管我也不知道为什么
 `![示意图](../images/archives/2026/2026-01-18/PixPin_2026-01-18_14-18-42.webp)`
 >这大概是图片路径的最终解决方案了
-### 觉得'hexo g -d'还是太长了
+#### 觉得'hexo g -d'还是太长了
 写一个bat脚本,命名为d.bat,每次只要输一个d就可以了,完美解决懒癌,自然我还写了一个s脚本,作用是什么不言而喻
-### 将twikoo改为giscus(2026/1/24)
+#### 将twikoo改为giscus(2026/1/24)
 发现twikoo还是太麻烦了,于是改成不要动脑子操作的giscus
-### 将busuanzi换成Vercount(1/30)
+#### 将busuanzi换成Vercount(1/30)
 busuanzi现在天天转圈,于是换成[别人推荐的](https://youyeyejie.github.io/_posts/Hexo%E4%BD%BF%E7%94%A8Vercount%E7%BB%9F%E8%AE%A1%E8%AE%BF%E9%97%AE%E6%95%B0%E6%8D%AE/)Vercount,由于busuanzi写在了源代码pug里,因此不太好直接改,问了问ai,提前**存档**,改了之后发现立刻就不转圈了.
 
 只要在以下两个地方中改一下就行了
@@ -220,14 +220,14 @@ if theme.aside.card_webinfo.enable
             i.fa-solid.fa-spinner.fa-spin
 ```
 
-### 增加google-analytics
+#### 增加google-analytics
 - [参考教程](https://lizhening.github.io/posts/b467327c/)
 vercount也出问题了,显示一堆乱码,这次换个大杀器.
 google_analytics 是免费的,给自己网站注册一下获得一串以G打头的神秘数字-tag,再填入butterfly的config.yml就可以了,当然网站上是看不到访客数据的,只能去后台看.
 ![美滋滋](image.png)
 
 - (2/13)发现之前的vercount乱码只是因为我把同名压缩包放到脚本里面所以出错了
-### 加入live2d(2/22)
+#### 加入live2d(2/22)
 看大家都有那么帅的看板娘,我也试试整一个,在butterfly的_config.yml里对应的bottom注入js就可以了
 ```yml
 inject:
@@ -240,7 +240,7 @@ inject:
     # - <script src="xxxx"></script>
 ```
 确实可爱😄
-### 尝试加密文章(4/7)
+#### 尝试加密文章(4/7)
 - [参考文章](https://insectmk.cn/posts/ca85c64c/#%E6%A0%B9%E6%8D%AE%E6%A0%87%E7%AD%BE%E5%AF%B9%E6%96%87%E7%AB%A0%E8%BF%9B%E8%A1%8C%E5%8A%A0%E5%AF%86)
 
 ```md
@@ -257,10 +257,10 @@ message: 这里是密码提示语（可选）
 
 这里是加密后的正文内容，只有输入正确密码才能看到。
 ```
-## 将博客从hexo迁移到hugo-stack(4/24)
+### 将博客从hexo迁移到hugo-stack(4/24)
 由于hexo有很多地方是我不满意的,而且当时创建博客的时候还不太懂编程,用AI魔改了很多地方,修复起来很难.
 所以就想着换一下博客框架,顺便整理以往的所有文章,把魔改的地方全部清空.
-### 整理原仓库
+#### 整理原仓库
 - 正常人的博客不会像我一样混乱的
 
 因为我的图片路径弄得特别混乱,而hugo默认只支持文章md与图片在同一文件夹下时,才能识别图片,所以还得去整一些脚本来帮助我快速转换:
@@ -399,7 +399,7 @@ function hugo {
 ```
 
 光是处理这些前前后后也花了差不多两个小时,可知处理糟糕的架构设计确实很累人.
-### 初始化hugo仓库
+#### 初始化hugo仓库
 - 将原博客仓库名字改成随便的其他名字,预留`username.github.io`仓库名字
 先fork[stack仓库](https://github.com/CaiJimmy/hugo-theme-stack)命名为`username.github.io`后,`git clone`到本地.
 
@@ -412,11 +412,11 @@ function hugo {
 
 然后将原仓库整理好的文档一键复制到hugo仓库的content/post文件夹中,除了`cover`字段需要改成`image`字段外,其他的frontmatter都是兼容的.
 - 至于其他的初始化操作由于[官方文档](https://hugo.opendocs.io/)都写的很明白我就不加上了
-### 加入vercount访客统计
+#### 加入vercount访客统计
 - [参考链接](https://blog.farb.top/p/hugo_stack_vercount/)
-### 加入gisgus评论系统
+#### 加入gisgus评论系统
 - [参考链接](https://www.lixueduan.com/posts/blog/02-add-giscus-comment/)
-### 配置tags界面
+#### 配置tags界面
 ![示意图](PixPin_2026-04-24_19-40-42.webp)
 在pages目录里新增该tags文件夹即可,可以这么写从而启用内置的tag-cloud样式:
 ```md
@@ -434,7 +434,7 @@ menu:
 ```
 - 但实际效果不是很好,能用就行
 
-### 修改目录属性保证一级标题和五级标题可以被识别
+#### 修改目录属性保证一级标题和五级标题可以被识别
 在markup.toml里修改下列字段即可:
 ```toml
 [tableOfContents]
@@ -442,7 +442,7 @@ menu:
     ordered    = true
     startLevel = 1
 ```
-### 修改刺眼的白色背景
+#### 修改刺眼的白色背景
 在项目根目录下编辑或创建 assets/scss/custom.scss,添加以下代码:
 ```css
 :root {
@@ -481,9 +481,9 @@ menu:
 
 ```
 - 比默认配置柔和了不少
-### 总结
+#### 总结
 不得不说,hugo的部署比起hexo快了好几倍,而且界面更加现代流畅.
-## hugo增加专栏
+### hugo增加专栏
 例如,我想要将python相关的笔记放在一起:
 ![示意图](PixPin_2026-04-24_21-31-58.webp)
 可以将笔记放在**python**文件夹里,并设置_index.md和封面图片:
@@ -504,44 +504,44 @@ menu:
 
 这就是效果了:
 ![示意图](PixPin_2026-04-24_21-36-51.webp)
-## 配置Google Analytics
+### 配置Google Analytics
 
-### 1. 获取 Measurement ID
+#### 1. 获取 Measurement ID
 1. 登录 [Google Analytics 控制台](https://analytics.google.com/)。
 2. 进入 **管理 (Admin)** -> **数据流 (Data Streams)**。
 3. 选择你的网站数据流，找到右侧以 **G-** 开头的 **衡量 ID (Measurement ID)**。
 
-### 2. 修改配置文件
+#### 2. 修改配置文件
 在 Hugo Stack 项目根目录下，根据你的配置文件格式进行修改：
 
-#### 若使用 `hugo.yaml` 或 `config.yaml`：
+##### 若使用 `hugo.yaml` 或 `config.yaml`：
 ```yaml
 services:
   googleAnalytics:
     ID: G-XXXXXXXXXX  # 替换为你的 G- 开头的 ID
 ```
 
-#### 若使用 `hugo.toml` 或 `config.toml`：
+##### 若使用 `hugo.toml` 或 `config.toml`：
 ```toml
 [services]
   [services.googleAnalytics]
     ID = "G-XXXXXXXXXX"
 ```
 
-### 验证生效
+#### 验证生效
 1. 运行 `hugo` 命令生成静态文件。
 2. 检查生成的 `index.html` 的 `<head>` 部分，确认包含如下特征的代码：
    `https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX`
 3. 访问你的线上网站，在 Google Analytics 的 **实时 (Real-time)** 报告中查看是否有活跃用户。
-# 折腾环境问题
+## 折腾环境问题
 
-## vscode powershell终端打字缺字漏字
+### vscode powershell终端打字缺字漏字
 解决方法:
 >搜索设置
 Terminal > Integrated > Default Profile: Windows
 换为cmd
 
-## 左斜线和右斜线问题
+### 左斜线和右斜线问题
 
 windows路径都是\,转义符是\,而网页链接,linux都是/
 解决方法:
@@ -549,18 +549,18 @@ windows路径都是\,转义符是\,而网页链接,linux都是/
 将\改为正斜杠/
 [参考链接](https://blog.csdn.net/kdz6511/article/details/148712726)
 
-## gpt废话太多
+### gpt废话太多
 解决方法
 >在设置里可以加入自定义提示词,这样就不用每次都提示让他精简输出了
 
-## cmd输入python弹出微软应用商店
+### cmd输入python弹出微软应用商店
 解决方法
 >进入设置里的应用执行别名,去掉跟python有关的别名(很好奇为什么要把这玩意加进来)
-## path环境变量变成一行
+### path环境变量变成一行
 解决方法
 >由于Windows的无敌bug,第一个如果是带有%开头的变量会把path变成一行,把带有盘符的变量放到第一行即可
 
-## 右键菜单中用vscode打开消失
+### 右键菜单中用vscode打开消失
 - [参考链接](https://jishuzhan.net/article/1954427652328173570)
 ```bash
 Windows Registry Editor Version 5.00
@@ -582,7 +582,7 @@ Windows Registry Editor Version 5.00
 - 更改注册表后不必重启电脑,重启文件浏览器就能生效
 
 - 很久以后我发现其实重新安装一次vscode就行了,不用先卸载😅
-## 右键菜单去除系统自带压缩选项
+### 右键菜单去除系统自带压缩选项
 - [参考链接](https://www.bilibili.com/read/cv37179594/?opus_fallback=1)
 ```bash
 Windows Registry Editor Version 5.00
@@ -592,7 +592,7 @@ Windows Registry Editor Version 5.00
 "{EE07CEF5-3441-4CFB-870A-4002C724783A}"="Compressed Archive Folder Context Menu" 
 ```
 
-## VMware装载32位win10虚拟机
+### VMware装载32位win10虚拟机
 
 - [参考链接](https://www.reddit.com/r/vmware/comments/171pf4m/windows_10_virtual_machine_wont_install_in_vmware/?tl=zh-hans)
 
@@ -614,7 +614,7 @@ Here are the steps to build Windows 10 x86 on VMWare Workstation Player 17:
 * **Play virtual machine** and continue your build
 
 
-## 设置vscode对所有语言自动格式化
+### 设置vscode对所有语言自动格式化
 ```json
 //  格式化部分
   "editor.formatOnSave": true,
@@ -638,7 +638,7 @@ Here are the steps to build Windows 10 x86 on VMWare Workstation Player 17:
 ```
 尽管全局设定了自动格式化,但是对于对应的语言,vscode是没办法自动识别的,需要单独安装对应的格式化插件
 
-## What is the difference between Windows Terminal, Powershell and Cmd?
+### What is the difference between Windows Terminal, Powershell and Cmd?
 - [来源](https://www.reddit.com/r/windows/comments/1b11hzf/what_is_the_difference_between_windows_terminal/?tl=zh-hans)
 
 1. CMD是Windows命令处理器——Windows的命令行界面。它存在了几乎永远的时间，并且可以说是DOS的残留物。

@@ -5,7 +5,7 @@ tags:
 - 前端
 image: 60155475_p0-ゆき.webp
 math: true
-weight: 2
+
 ---
 # 前端概览
 - [W3schools](https://www.w3schools.com/css/css_intro.asp)
