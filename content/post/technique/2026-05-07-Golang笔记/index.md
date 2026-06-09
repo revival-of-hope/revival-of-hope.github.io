@@ -2,7 +2,7 @@
 title: "Golang笔记"
 date: 2026-05-23T19:09:06+08:00
 description: 
-image: 
+image: 38431299_p0-式さん.webp
 math: 
 ---
 
