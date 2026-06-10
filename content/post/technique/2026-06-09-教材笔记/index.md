@@ -43,14 +43,41 @@ weight: 2
 2. 监听式(snooping): 所有Cache通过总线来监听共享数据的状态变化
 ## ch12: 机群系统
 没有任何内容,美美结束.
-
 # 算法设计与分析
+## outline
+>尽管用的是算法导论那本教材,但我不打算移过来,因为这门课的教学简直是在侮辱这本书.
 
+![大纲](image.png)
+大致来说,涉及了以下知识点:
+1. 算法效率分析
+2. 主方法计算
+3. 分治法与减治法
+4. 回溯法与分支限界法
+5. 动态规划
+6. 贪心
+
+非常好奇这么点知识点是怎么能掰扯上一整个学期的,根据学长笔记来看的话,ppt中涉及的经典算法如下:
+- 分治: 大整数乘法,Strassen算法,二分搜索,归并排序与快速排序,棋盘覆盖
+- 减治: 拓扑排序,假币问题,俄罗斯农民乘法,欧几里得算法
+- 变治法: 预排序,高斯消元,堆排序,霍纳法则
+- 回溯与分治限界法: 暴力搜索,旅行商问题,0-1背包,N皇后问题
+- 动态规划: 计算二项式系数,最长公共子序列（LCS）、动态矩阵乘法、0-1背包问题、多阶段决
+策过程、Warshall传递闭包算法、Floyed算法
+- 贪心：找零问题、背包问题、单源最短路径Dijkstra算法、最小生成树Kruskal算法
+
+根据作业来看的话,确实是需要把这些知识点全部过一遍的,不过好在都不是很难的题目,大部分都属于leetcode中等题,只有一两个leetcode困难题.
 
 # 计算机网络
-- 计算机网络: 自底向上方法
-  - 我发现这本书比自顶向下方法更适合这门课
+## outline
+- 计算机网络: 自底向上方法(第五版)
+  - 我发现这本书比自顶向下方法更适合这门课,后来发现这确实是这门课的参考教科书
 
+![syllabus](PixPin_2026-06-10_18-28-28.webp)
+
+按照大纲来的话,传输层和网络层都是重点了,链路层则是稍微次要的.
+## ppt阅读
+后来发现ppt做的还是挺用心的,可以说是我见过做的最用心的教学ppt了.所以就还是看看吧,顺便刷点习题
+###
 ## 概览
 - 第5节的互联网历史讲的不错.
 
@@ -91,10 +118,46 @@ $$C = B \log_2 (1 + S/N)$$
 #### 无线传输详解
 
 # 操作系统
-- 操作系统概念
+## outline
+- 操作系统概念(第九版)
+
+基本对应1-13章,看完后再翻翻ppt即可,实际来说,这本书写的确实非常烂,但也没办法,就当是复习吧.
+
+## 
 
 # 数据库
-- 数据库系统概念
+## outline
+- 数据库系统概念(第7版)
+
+* Chapter 1: Introduction
+* *Chapter 2: Introduction to Relational Model*
+* **Chapter 3: Introduction to SQL**
+* *Chapter 4: Intermediate SQL*
+* Chapter 5: Advanced SQL (只要求前三节)
+* **Chapter 6: Entity-Relationship Model**
+* **Chapter 7: Relational Database Design**
+* Chapter 8: Complex Data Types
+* Chapter 9: Application Design
+* Chapter 10: Big Data
+* Chapter 11: Data Analytics
+* Chapter 12: Physical Storage Systems (Sections 12.5 (RAID) omitted)
+* Chapter 13: Storage and File Structure
+* **Chapter 14: Indexing and Hashing**
+* Chapter 15: Query Processing (Section 15.1, 15.2)
+* Chapter 17: Transactions
+
+基本对应中文版的1-13章,由于我的笔记记得很早,所以都挺稚嫩的,只好重构一次了.好在这门课最后一天考,所以时间倒是有的是.
+
+- 斜体的为需要熟练的部分,黑体的为非常重要的部分
+
+
+实际来说的话,这本书的内容确实很丰富,但架不住授课的老师不太拟人
+### 吐槽
+教材详细过头了,而ppt基本是原封不动的搬运了整本书1300多页的内容,一个ppt最少五六十张,而总共有20多个ppt.
+要说他敬业呢,ppt上的内容破碎无比,速览一遍发现不如看书完整,要说他不敬业呢,好歹有这么大的工作量.
+
+- (3/26)这本书真的是又臭又长...
+- (3/28)我服了原来这个ppt是[官网](https://db-book.com/slides-dir/index.html)上的,而我们老师实际啥都没干...
 
 ## Introduction to the Relational Model
 ### Structure of Relational Databases
@@ -2650,15 +2713,32 @@ $$P[j] = \delta / N + (1 - \delta) * \sum_{i=1}^{N} (T[i, j] * P[i])$$
 我现在可以完全确定了,英文班的提纲完全是按照中文版教材来的,所以只看中文版就够了,那些改版后没提到的直接不管就行了,反正也不会考,这也是上次小测带来的血的教训
 
 ### ch9: 应用程序开发
-- 非常无敌的一章,真考就没慕了
+- 尽管这章确实没有任何能用的内容,但是由于后面的章节能考的部分太少了,我开始理解为什么会考Java了
+- 好的,在看了后面的内容后,我确定这次会考Java了.
 
+#### Java Servlet速通
 
-## 复习要点
+### ch10: 存储管理(过)
+这章没有任何能考的内容.
+### ch11: 索引
+有两种基本的索引类型: 顺序索引(ordered index)和散列索引(hash index).
 
+其中,用于在文件中查找某项记录的属性或者属性集被称为**搜索码(search key)**
+#### 顺序索引
+顺序索引按照一定的顺序存储搜索码的映射表,分为两种结构:
+1. 聚集索引(clustering index): 也被称为主索引(primary index),搜索码的顺序与记录的排列顺序相同
 
-1. 全部的关系代数
-2. 全部的sql语法
-3. 索引
+#### B+树索引
+#### 散列索引(过)
+#### 多码索引
+#### sql中的索引
+#### 位图索引(过)
+### ch12: 查询处理与查询优化(过)
+- 只要看1,2节,不太理解为什么,无所谓,反正没有任何内容
+### ch13: 事务管理
+- 事务(transactions): 对数据库中部分数据的一次操作,需要满足ACID特性,即原子性(atomicity),一致性(consistency),隔离性(isolation),持久性(durability).
+  - 分别表示,事务要么发生要么就不发生,满足所有的数据库依赖,并发执行的事务不会相互影响,事务被打断后可以再次恢复.
+#### 一个简单的事务模型
 
 
 ## Transactions
@@ -2678,31 +2758,6 @@ $$P[j] = \delta / N + (1 - \delta) * \sum_{i=1}^{N} (T[i, j] * P[i])$$
 
 
 ## 补充
-### Outline Of The Course
-* Chapter 1: Introduction
-* *Chapter 2: Introduction to Relational Model*
-* **Chapter 3: Introduction to SQL**
-* *Chapter 4: Intermediate SQL*
-* Chapter 5: Advanced SQL (只要求前三节)
-* **Chapter 6: Entity-Relationship Model**
-* **Chapter 7: Relational Database Design**
-* Chapter 8: Complex Data Types
-* Chapter 9: Application Design
-* Chapter 10: Big Data
-* Chapter 11: Data Analytics
-* Chapter 12: Physical Storage Systems (Sections 12.5 (RAID) omitted)
-* Chapter 13: Storage and File Structure
-* **Chapter 14: Indexing and Hashing**
-* Chapter 15: Query Processing (Section 15.1, 15.2)
-* Chapter 17: Transactions
-
-- 斜体的为需要熟练的部分,黑体的为非常重要的部分
-##### 吐槽
-教材详细过头了,而ppt基本是原封不动的搬运了整本书1300多页的内容,一个ppt最少五六十张,而总共有20多个ppt.
-要说他敬业呢,ppt上的内容破碎无比,速览一遍发现不如看书完整,要说他不敬业呢,好歹有这么大的工作量.
-
-- (3/26)这本书真的是又臭又长...
-- (3/28)我服了原来这个ppt是[官网](https://db-book.com/slides-dir/index.html)上的,而我们老师实际啥都没干...
 
 ### 本教材核心: 大学数据库
 - keys used

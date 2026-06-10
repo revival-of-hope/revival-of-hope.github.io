@@ -627,6 +627,14 @@ CodeBERT的训练语料为Github上6种主流编程语言的仓库:
 - 尽管GLM的新架构确实很引人注目,但实际效果确实不如解码器架构好
 
 ### 概览与总结
+>GLM使用的是整个Transformer架构,并做了一些简单的微调(每次看到论文里对架构做微调时,我都默认是试出来的,不然你倒是把为什么这么做效果更好列出来啊,不愿意列出来的话那只能说明你自己也不知道为什么会这样).
+
+由于使用的是完整的编码器-解码器架构,所以预训练阶段需要做一些相当大的调整,具体来说就是像BERT一样在文本中加入MASK来进行训练,但是在输出部分却像GPT一样逐个token生成对于MASK的猜测,这种架构适配的任务不是文本生成任务,也不是简单的文本理解任务,更像是二者的结合,或许可以称为文本填充任务.
+
+在实际使用时,我们只要把MASK加到最末尾,就可以让文本填充变得像文本生成一样,这也是ChatGLM的做法.
+
+
+- GLM只是对先前的一些模型和训练方法做了一些调整而已,并非完全是自己想出来的.由于这条路子不太适合大语言模型,所以我就不追根溯源了.
 
 ## Evaluating Large Language Models Trained on Code(2021)
 ![首页](PixPin_2026-06-03_14-39-27.webp)
@@ -856,6 +864,24 @@ LLaMA参考了之前几篇了论文提出的解码器优化结构,如GPT-3,PaLM,
 ## From Local to Global: A GraphRAG Approach to Query-Focused Summarization(2024)
 ![首页](PixPin_2026-06-08_14-51-17.webp)
 ## DeepSeek-V3 Technical Report(2024)
+![首页](PixPin_2026-06-10_20-52-27.webp)
+### 概览
+训练总费用:
+![费用图](PixPin_2026-06-10_20-53-15.webp)
+>尽管DeppSeek-V3只有671B的参数,训练费用就达到了可怕的550万美元,那些参数接近万亿甚至超过万亿的模型的训练成本恐怕得再翻上几番吧.
+
+模型效果:
+>We evaluate DeepSeek-V3 on a comprehensive array of benchmarks. Despite its economical training costs, comprehensive evaluations reveal that DeepSeek-V3-Base has emerged as the strongest open-source base model currently available, especially in code and math. Its chat version also **outperforms other open-source models** and achieves performance **comparable to leading closed-source models, including GPT-4o and Claude-3.5-Sonnet**, on a series of standard and open-ended benchmarks.
+
+![效果图](PixPin_2026-06-10_21-12-16.webp)
+### 模型架构
+![模型架构图](PixPin_2026-06-10_21-01-57.webp)
+
+简单来说就是几种新型架构的混合,之所以效果这么好主要是参数足够大,而且用于训练的语料非常充分,如文中所说:
+>the training corpus for DeepSeek-V3 consists of **14.8T high-quality and diverse tokens in our tokenizer.**
+
+- 这实际上表明了,在没能力改动模型架构的前提下,堆砌语料是一个不错的选择
+
 
 ## DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning(2025)
 ![首页](PixPin_2026-06-09_15-01-49.webp)
