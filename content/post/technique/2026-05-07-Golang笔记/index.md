@@ -1024,9 +1024,101 @@ Go是一个非常有特点的语言,一方面,他继承了多门语言的精华,
 ## Go进阶知识
 
 ### Go编译与模块
+- [官方文档](https://go.dev/ref/mod#modules-overview)
 
+>Go最让人开心的地方就在于不需要使用第三方编写的包管理库或者编译器,无论是包的下载,环境配置还是编译,都已经内置在了下载的Go语言包中
+
+- [go mod的来历](https://colobu.com/2021/06/28/dive-into-go-module-1/)
+
+长话短说,当我们新建一个Go项目时,只要做这几步就可以了:
+1. `go mod init project_name`: 指定自己的项目名字,最好是独一无二的,不然容易与第三方库冲突
+2. `go mod tidy`: 让编译器根据项目里用到的go包来自动导入
+3. `go get xxx`: 导入新的第三方库
+4. `go run xxx.go`: 运行go文件
+
+需要注意的是,由于Go不支持相对路径的写法,每次跨包导入时,只能在包名前加上全名,比如说你的mod名字叫做`xk`那么导入`writer`包就要写成`import xk/writer`.
 # Go实战
 
 ## Go网络框架
 
 ### Gin
+
+#### 简单入门
+
+```go
+package main
+
+import "github.com/gin-gonic/gin"
+
+func main() {
+  router := gin.Default()
+  router.GET("/ping", func(c *gin.Context) {
+    c.JSON(200, gin.H{
+      "message": "pong",
+    })
+  })
+  router.Run() // listens on 0.0.0.0:8080 by default
+}
+```
+创建初始项目后运行该文件,访问http://localhost:8080/ping即可看到以下消息:
+```json
+{"message":"pong"}
+```
+
+使用多种HTTP方法:
+```go
+package main
+
+import (
+  "net/http"
+
+  "github.com/gin-gonic/gin"
+)
+
+func getting(c *gin.Context) {
+  c.JSON(http.StatusOK, gin.H{"method": "GET"})
+}
+
+func posting(c *gin.Context) {
+  c.JSON(http.StatusOK, gin.H{"method": "POST"})
+}
+
+func putting(c *gin.Context) {
+  c.JSON(http.StatusOK, gin.H{"method": "PUT"})
+}
+
+func deleting(c *gin.Context) {
+  c.JSON(http.StatusOK, gin.H{"method": "DELETE"})
+}
+
+func patching(c *gin.Context) {
+  c.JSON(http.StatusOK, gin.H{"method": "PATCH"})
+}
+
+func head(c *gin.Context) {
+  c.Status(http.StatusOK)
+}
+
+func options(c *gin.Context) {
+  c.Status(http.StatusOK)
+}
+
+func main() {
+  // Creates a gin router with default middleware:
+  // logger and recovery (crash-free) middleware
+  router := gin.Default()
+
+  router.GET("/someGet", getting)
+  router.POST("/somePost", posting)
+  router.PUT("/somePut", putting)
+  router.DELETE("/someDelete", deleting)
+  router.PATCH("/somePatch", patching)
+  router.HEAD("/someHead", head)
+  router.OPTIONS("/someOptions", options)
+
+  // By default it serves on :8080 unless a
+  // PORT environment variable was defined.
+  router.Run()
+  // router.Run(":3000") for a hard coded port
+}
+```

@@ -267,6 +267,21 @@ $$P(y_t \mid y_1, ..., y_{t-1}, c)$$
 
 - 这篇论文基本贡献只是把上一篇论文中的RNN隐藏层换成了LSTM单元,彻底脱离了SMT system,尽管如此,它的影响力还是比较大的,后续论文尊称该论文的模型架构为seq2seq模型.
 
+## Distilling the Knowledge in a Neural Network(2015)
+![首页](PixPin_2026-06-10_15-55-49.webp)
+- 该论文提出了后续被广泛使用的蒸馏(distillation)方法
+
+### 概览与总结
+尽管大型模型的输出正确率更高,但所需要的输出时间和算力也随之变高,如果我们能够将大型模型的参数"压缩"到一个小模型上,实现基本相同的输出效果,那就很完美了.
+
+我们将原始的大型模型称为教师模型(teacher),要用到的小模型称为学生模型(student),我们的训练目标就是: 对于同一批输入数据,小模型的目标损失函数就是大模型的损失函数加上自身的损失函数.
+
+实际来说我们需要引入温度参数,通过非常玄学的炼丹让小模型能够尽可能地接近大模型的性能.
+
+由于原文讲的不怎么清晰,所以移步[讲的很好的知乎回答](https://zhuanlan.zhihu.com/p/273378905)可以大致了解蒸馏的全部原理.
+
+尽管如此,直接构造一个小模型未必就会比蒸馏得到的小模型差,所以实际的用途还是比较有限,当然如果自己没有足够的算力用来训练,直接复用别人的开源模型拿来蒸馏,就可以得到一个规模相当的"新模型",这是一个非常值当的买卖,很多"科创公司"实际上也正是这样做的.
+
 
 ## ADAM: A METHOD FOR STOCHASTIC OPTIMIZATION(2015)
 ![示意图](PixPin_2026-05-08_17-07-53.webp)
@@ -607,6 +622,12 @@ CodeBERT的训练语料为Github上6种主流编程语言的仓库:
 这篇论文证明了,即便不使用监督数据进行处理,具有大量参数的模型光依靠高质量的数据集就足够实现各种各样的文本任务了.
 
 也是因为这篇论文,后续的大参数语言模型都被称为**大语言模型(large language model).**
+## GLM: General Language Model Pretraining with Autoregressive Blank Infilling(2021)
+![首页](PixPin_2026-06-10_16-30-44.webp)
+- 尽管GLM的新架构确实很引人注目,但实际效果确实不如解码器架构好
+
+### 概览与总结
+
 ## Evaluating Large Language Models Trained on Code(2021)
 ![首页](PixPin_2026-06-03_14-39-27.webp)
 - 该论文提出了对GPT-3进行微调后的Codex,这与现在所说的Codex并不是同一个概念,这个Codex在2020年就接入了Github Copilot,在后来的几年中,GPT都是Copilot的默认模型.
@@ -800,7 +821,9 @@ $q(x) = \text{BERT}_q(x)$
 ## LLaMA: Open and Efficient Foundation Language Models(2023)
 ![首页](PixPin_2026-05-10_20-30-42.webp)
 ### 概览与总结
->该论文发现,就算使用参数量更少的模型,如果训练足够长的时间,提供足够多的语料,那么它的表现可以比参数量更大的模型还要好,比如LLaMA-13B(Large Language Model Meta AI,为什么不叫LLMMA肯定是因为太难看了,而llama又是美洲驼的意思,所以就改成了llama)就在大多数领域超过了175B的GPT-3
+>该论文发现,就算使用参数量更少的模型,如果训练足够长的时间,提供足够多的语料,那么它的表现可以比参数量更大的模型还要好,比如LLaMA-13B就在大多数领域超过了175B的GPT-3
+
+- llama: Large Language Model Meta AI,为什么不叫LLMMA肯定是因为太难看了,而llama又是美洲驼的意思,所以就改成了llama
 
 用于预训练LLaMA的语料数量是非常可怕的:
 ![示意图](PixPin_2026-06-08_14-17-47.webp)
@@ -814,6 +837,8 @@ LLaMA参考了之前几篇了论文提出的解码器优化结构,如GPT-3,PaLM,
 ![示意图](PixPin_2026-06-08_14-27-37.webp)
 
 ## QWEN TECHNICAL REPORT(2023)
+![首页](PixPin_2026-06-09_21-29-04.webp)
+### 概览与总结
 
 ## Instruction Pre-Training: Language Models are Supervised Multitask Learners(2024)
 - 很明显,这个标题是对GPT-2标题的一个用典
@@ -855,5 +880,15 @@ LLaMA参考了之前几篇了论文提出的解码器优化结构,如GPT-3,PaLM,
 具体过程是这样的:
 ![架构](PixPin_2026-06-09_15-41-15.webp)
 ### 训练细节
+强化学习过程中,设定了两种奖励机制:
+1. Accuracy rewards: 比对输出结果与正确结果即可
+2. Format rewards: 要求模型必须将思考过程放入`<think>`和`</think>`之间
+
+至于模型是如何学会先输出思考再输出回答的呢,是通过强制设定了强化学习阶段的语料实现的:
+
+![语料图](PixPin_2026-06-10_15-52-25.webp)
+
+- 只要一直喂下去,模型因为发现没有按照格式来就会被打低分,自然就会先输出思考再输出回答了
+
 
 # 计算机视觉论文
