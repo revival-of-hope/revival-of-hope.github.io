@@ -846,7 +846,10 @@ LLaMA参考了之前几篇了论文提出的解码器优化结构,如GPT-3,PaLM,
 
 ## QWEN TECHNICAL REPORT(2023)
 ![首页](PixPin_2026-06-09_21-29-04.webp)
+- 非常遗憾的是,尽管阿里是比较早开始搭建大模型的中国公司,但它在开放模型权重的同时并没有开放训练数据集,对于独立研究者来说,这就跟去拉蒂娜只吃自取台一样.这无疑给中国大模型研究界开了一个不太好的头.
+
 ### 概览与总结
+QWEN的架构基本照搬了LLaMA的架构,移植了一些其他论文中提到的改进方法,实际的产出模型在某些方面可以与GPT3.5相比.
 
 ## Instruction Pre-Training: Language Models are Supervised Multitask Learners(2024)
 - 很明显,这个标题是对GPT-2标题的一个用典
@@ -863,6 +866,10 @@ LLaMA参考了之前几篇了论文提出的解码器优化结构,如GPT-3,PaLM,
 
 ## From Local to Global: A GraphRAG Approach to Query-Focused Summarization(2024)
 ![首页](PixPin_2026-06-08_14-51-17.webp)
+- GraphRAG是由微软提出来的RAG改进版
+### 概览与总结
+
+
 ## DeepSeek-V3 Technical Report(2024)
 ![首页](PixPin_2026-06-10_20-52-27.webp)
 ### 概览
@@ -916,5 +923,16 @@ LLaMA参考了之前几篇了论文提出的解码器优化结构,如GPT-3,PaLM,
 
 - 只要一直喂下去,模型因为发现没有按照格式来就会被打低分,自然就会先输出思考再输出回答了
 
+## KIMI K2: OPEN AGENTIC INTELLIGENCE(2025)
+![首页](PixPin_2026-06-11_16-47-50.webp)
+### 概览与总结
+KIMI K2基本照搬了DeepSeek-V3的的架构,参数量提高到了一千亿,然后做了一点自己的优化,所以比DeepSeek-V3的表现还是要强不少的.
+## KIMI K2.5: VISUAL AGENTIC INTELLIGENCE(2026)
+![首页](PixPin_2026-06-11_16-48-03.webp)
+
+这个对比图就很迷啊,比别人差劲的地方还把自己显著标明的话就很容易看花眼好不好.
+![对比图](PixPin_2026-06-11_16-50-48.webp)
+### 概览与总结
+KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智能体集群,实际效果还不错,但由于涉及的专业术语太多,不太适合我这种门外汉理解,就不过多深入了.
 
 # 计算机视觉论文

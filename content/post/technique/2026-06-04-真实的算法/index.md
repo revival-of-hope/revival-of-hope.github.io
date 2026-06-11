@@ -6,7 +6,7 @@ image: 59128984_p0-秋天的神明大人們.webp
 tags: 
     - 算法
     - 调研
-math: 
+math: true
 ---
 ## 引子
 期末也快靠近了,随便翻了翻算法课的课件,发现都是一些非常初级的算法问题,但是课件的布局非常烂,让人没有看下去的欲望,自然也就没有动力去认真学习.
@@ -471,6 +471,86 @@ if (nx >= 1 && nx <= n && ny >= 1 && ny <= m && a[nx][ny] != -1 &&
 ### 压缩算法: ZIP与PNG
 
 ### 蒙特卡洛算法: 游戏图像处理
+
+
+
+## 刷题笔记
+### 二叉树和堆
+#### luogu P4715
+
+有 $2^n$（$n\le7$）个国家参加世界杯决赛圈且进入淘汰赛环节。已经知道各个国家的能力值，且都不相等。能力值高的国家和能力值低的国家踢比赛时高者获胜。1 号国家和 2 号国家踢一场比赛，胜者晋级。3 号国家和 4 号国家也踢一场，胜者晋级……晋级后的国家用相同的方法继续完成赛程，直到决出冠军。给出各个国家的能力值，请问亚军是哪个国家？
+
+第一行一个整数 $n$，表示一共 $2^n$ 个国家参赛。
+
+第二行 $2^n$ 个整数，第 $i$ 个整数表示编号为 $i$ 的国家的能力值（$1\leq i \leq 2^n$，能力值在 int 范围内）。
+
+数据保证不存在平局。
+
+一个非常简单的想法是构建一个二维数组`match[n+2][2<<n+1]`,一开始从最下端开始比较,每次合并两个编号,移动到上一级数组.
+
+但是,在处理过程中我们可以发现,同一轮中,后面的比赛并不会覆盖前面的比赛结果,那么我们可以直接用两个一维数组来解决,一个存储编号,一个存储能力值,进行n轮比赛即可.
+
+- 当然,用结构体数组也可以,不过实际效果是一样的.
+#### P1030 [NOIP 2001 普及组] 求先序排列
+
+给出一棵二叉树的中序与后序排列。求出它的先序排列。（约定树结点用不同的大写字母表示，且二叉树的节点个数 $ \le 8$）。
+
+共两行，均为大写字母组成的字符串，表示一棵二叉树的中序与后序排列。
+
+先看看二叉树的三种遍历结构:
+- 前序遍历: 根左右
+- 中序遍历: 左根右
+- 后序遍历: 左右根
+
+后序遍历帮助我们判断根节点,中序遍历帮助我们判断左子树和右子树对应的字符串.由于这道题不需要我们进行重构,而是输出前序遍历字符串即可,那么只要看到根节点就可以直接输出.
+
+如果不写代码的话直接上手是很简单的,但是用语言来表达的话就有点难办了,我们可以分解成三个步骤:
+1. 根据后序遍历找到字符串中的根节点
+2. 拆分中序遍历和后序遍历的字符串
+3. 不断遍历输出根节点
+
+具体代码如下:
+```cpp
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+void getPreOrder(string inorder, string postorder) {
+    if (inorder.empty()) {
+        return;
+    }
+
+    // 1. 后序遍历的最后一个字符即为当前子树的根节点
+    char root = postorder.back();
+    cout << root; // 先序遍历先输出根节点
+
+    // 2. 在中序遍历中找到根节点的位置，借此切分左右子树
+    size_t root_idx = inorder.find(root);
+
+    // 3. 切割左子树的中序与后序字符串
+    string left_in = inorder.substr(0, root_idx);
+    string left_post = postorder.substr(0, left_in.length());
+
+    // 4. 切割右子树的中序与后序字符串
+    string right_in = inorder.substr(root_idx + 1);
+    string right_post = postorder.substr(left_in.length(), right_in.length());
+
+    // 5. 递归求解左子树与右子树
+    getPreOrder(left_in, left_post);
+    getPreOrder(right_in, right_post);
+}
+
+int main() {
+    string inorder, postorder;
+    if (cin >> inorder >> postorder) {
+        getPreOrder(inorder, postorder);
+        cout << endl;
+    }
+    return 0;
+}
+```
+
 
 
 
