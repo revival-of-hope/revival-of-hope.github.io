@@ -1062,7 +1062,7 @@ mvn archetype:generate '-DgroupId=com.example' '-DartifactId=my-first-app' '-Dar
 
 ![示意图](PixPin_2026-05-01_16-26-33.webp)
 
-为了运行这个jar
+
 #### pom.xml
 ## Gradle
 ### Gradle历史
@@ -1098,4 +1098,4 @@ mvn archetype:generate '-DgroupId=com.example' '-DartifactId=my-first-app' '-Dar
 
 # spring
 # spring boot
-# 使用Docker开发Java
+

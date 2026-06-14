@@ -971,5 +971,22 @@ KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智
 ## 总结
 近两年的大模型架构已经变得非常复杂了,不在这个领域深耕个几年是不太可能看懂的.而光凭借上述这些论文,我就已经对大模型的整个历史发展有了一个非常深入的认识了,以后应该只会随缘更新一点以前的论文,至于最新的论文我看也没必要研究,说不定几年后,又会有一篇天才论文横空出世,彻底简化这种臃肿的堆叠架构,回到纯朴的数学之美.
 # 计算机视觉与多模态论文
+# 算法论文
+## 图算法
+### On the Shortest Spanning Subtree of a Graph and the Traveling Salesman Problem(1956)
+- Kruskal算法
 
+
+### Shortest connection networks and some generalizations(1957)
+- PRIM算法
+
+
+### A Note on Two Problems in Connexion with Graphs(1959)
+- DIJKSTRA算法
+
+该论文提出了两个问题:
+1. n个节点的最小生成树
+2. 节点P和Q之间的最短距离
+
+之后就是围绕这两个问题的相当随意的证明了,没有严格的公式证明,而是只用直白的英语不断地论述,整篇论文的正式内容只有两页,所以没什么看头.
 

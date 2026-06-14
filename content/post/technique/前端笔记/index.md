@@ -328,8 +328,8 @@ button最强大的地方在于可以通过onclick属性绑定js:
 ```
 
 <iframe 
-    src="//player.bilibili.com/player.html?bvid=BV1yVQFBNEPn&page=1&high_quality=1&danmaku=0" 
-    allow="autoplay; fullscreen; encrypted-media" 
+    src="//player.bilibili.com/player.html?bvid=BV1yVQFBNEPn&page=1&high_quality=1&danmaku=0&autoplay=0" 
+    allow="fullscreen; encrypted-media" 
     allowfullscreen="true" 
     width="100%" 
     height="500" 
