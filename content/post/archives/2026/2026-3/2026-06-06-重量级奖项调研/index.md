@@ -23,9 +23,23 @@ math:
 ### Edsger W. Dijkstra(1972)
 - [wiki](https://en.wikipedia.org/wiki/Edsger_W._Dijkstra)
 
-他最出名的贡献就是同名的Dijkstra算法了,除此之外,他还协助开发了THE操作系统和ALGOL 60的编译器
+他最出名的贡献就是同名的Dijkstra算法了,除此之外,他还协助开发了THE操作系统和ALGOL 60的编译器.
 
-###
+### Robert W. Floyd(1978)
+- [wiki](https://en.wikipedia.org/wiki/Robert_W._Floyd)
+
+最知名的贡献就是图算法中的Floyd-Warshall算法了.
+
+### 姚期智(2000)
+- [wiki](https://en.wikipedia.org/wiki/Andrew_Yao)
+
+>2015年,姚期智和杨振宁一同放弃美国国籍,加入中国国籍
+
+姚期智的主要研究方向是量子计算和密码学领域,这更偏向于数学,但他就任的岗位却是清华大学人工智能学院,额,那我就不理解了.
+
+
+## 诺贝尔物理学奖
+
 ## 诺贝尔化学奖
 
 ## 诺贝尔文学奖
