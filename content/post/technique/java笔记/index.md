@@ -2,98 +2,36 @@
 title: Java笔记
 image: 55474959_p0-式さん.webp
 date: 2026-04-26 08:00:00
+description: 重构中...
 ---
 
-# Java历史
+# Java基础学习
+
+## Java历史
 - [wiki](https://en.wikipedia.org/wiki/Java_(programming_language))
 
-之所以把Java历史摆在最前面,是因为我们需要知道Java的生态为何如此混乱.
+Java由Sun公司于1995年发布,出于营销的目的,将Java分成了三个主要版本: 
+1. Java Platform, Micro Edition(Java ME): 用于嵌入式等内存有限的环境
+2. Java Platform, Standard Edition (Java SE): 标准版本
+3. Java Platform, Enterprise Edition (Java EE): 企业版本
 
-## 整体历史
-* **1991年06月：项目启动**
-  * James Gosling、Mike Sheridan 与 Patrick Naughton 发起 Java 语言项目，最初命名为 **Oak**，随后曾更名为 **Green**，最终定名为 **Java**。
-* **1995年05月：初次亮相**
-  * Sun Microsystems 在 SunWorld 大会上正式发布 Java 语言及其浏览器插件 HotJava，其口号“Write Once, Run Anywhere”直击跨平台痛点。
-* **1996年：正式发布**
-  * Sun Microsystems 发布 **Java 1.0** 实现。该版本确立了核心理念，并因其安全特性和浏览器对 Java Applet 的支持迅速普及。
-* **1997年：标准化博弈**
-  * Sun 曾尝试通过 ISO/IEC JTC 1 和 Ecma International 推动 Java 标准化，但随后撤出，转而通过 **Java Community Process (JCP)** 维持控制。
-* **1998年12月：架构分化**
-  * **Java 2 (J2SE 1.2)** 发布。Java 体系被正式划分为三个方向：面向企业级的 **J2EE**、面向桌面的 **J2SE** 以及面向移动设备的 **J2ME**。
-* **2004年09月：泛型与元数据**
-  * **J2SE 5.0** 发布。引入泛型、注解、自动装箱、可变参数及枚举，这是 Java 语法层面的一次重大演进。
-* **2006年：更名与开源启动**
-  * 出于市场营销考虑，Sun 将版本重新命名为 **Java EE**、**Java SE** 和 **Java ME**。同年 11 月，Sun 开始基于 **GPL-2.0** 协议发布 JVM 开源软件。
-* **2007年：完成开源**
-  * 除了极少数不持有版权的代码外，Sun 完成了 JVM 核心代码的开源分发，OpenJDK 社区开始形成。
-* **2009年-2010年：所有权更迭**
-  * **Oracle 收购 Sun Microsystems**。随后不久，Oracle 就 Android SDK 中使用 Java 的问题对 Google 发起长期法律诉讼。
-* **2010年04月：核心人物离职**
-  * Java 之父 James Gosling 从 Oracle 辞职。
-* **2011年07月：Oracle 时代首个大版本**
-  * **Java SE 7** 发布。引入 try-with-resources、动态语言支持（invokedynamic）以及 Fork/Join 框架。
-* **2014年03月：函数式编程**
-  * **Java SE 8** 发布。引入 Lambda 表达式、Stream API 和 Optional 类，标志着 Java 向函数式编程风格转型。
-* **2017年09月：模块化革命**
-  * **Java SE 9** 发布。历经多次推迟的 Project Jigsaw（模块化系统）正式落地，同时 Oracle 宣布改为每六个月发布一个新版本。
-* **2018年09月：付费策略调整**
-  * **Java 11 (LTS)** 发布。Oracle 调整了 JDK 的授权协议，商用版开始收费，推动了 OpenJDK 发行版的多元化（如 Amazon Corretto, Alibaba Dragonwell）。
-* **2021年09月：LTS 周期加速**
-  * **Java 17 (LTS)** 发布。Oracle 将长期支持版本的发布周期从三年缩短为两年。
+简单来说,就是包含的库上有一些区别而已,其他的差别并不大.
 
+由于Java依靠JVM运行,而早期的JVM是不开源的,所以引发了很多争议和诉讼案件,也是微软自己开发C#语言(与Java高度相似)的原因.
 
+07年的时候,JVM的所有核心代码都正式开源,从而诞生了大量的第三方JDK,最著名的就是OpenJDK了,不管如何,现在我们可以随便下载JDK而不用担心被诉讼了.
 
-## 版本历史
->我们经常说Java 8,Java 21,但实际上指的是JDK 8,JDK 21,也就是说,是Oracle发布的JDK版本决定了对应版本的Java语法.
+10年Oracle收购Sun后,Java的所有权转入了Oracle公司,之后Java的演进速度趋于稳定,现在的Java SE是半年更新一版,迭代速度还是很快的.
+### Kotlin,Groovy与Java
 
-### 起源时代（1995–1999）
-
-- **1995年5月** · Java语言正式发布
-- **1996年1月** · **JDK 1.0**（代号Oak）——首个正式开发工具包，包含基础类库、Applet支持和图形用户界面功能。
-- **1997年2月** · **JDK 1.1**——引入内部类（Inner Class）、JavaBeans、JDBC（数据库连接）、RMI（远程方法调用）和反射API。
-- **1998年12月** · **JDK 1.2（Java 2）**——平台更名为Java 2，拆分为标准版J2SE、企业版J2EE和微型版J2ME三大平台；引入Swing图形组件、集合框架、JIT编译器。
-
-### 成熟时代（2000–2010）
-
-- **2000年5月** · **JDK 1.3**——增强AWT和Swing用户界面，优化底层类库。
-- **2002年2月** · **JDK 1.4（LTS）**——引入NIO（New I/O）、断言（assert）、内置XML解析器（SAX/DOM）、Java管理扩展（JMX）。
-- **2004年9月** · **JDK 5.0（Java SE 5）**——一次里程碑式升级：引入泛型、枚举类型、自动装箱/拆箱、注解、增强for循环和并发编程API（Java.util.concurrent）。版本号从1.x跃升至5.0。
-- **2006年12月** · **JDK 6（Java SE 6）**——引入JDBC 4.0、Java监视与管理控制台（JConsole）、动态语言支持与性能提升。
-
-### 现代转型时代（2011–2017）
-
-- **2011年7月** · **JDK 7（Java SE 7）**——引入**G1垃圾回收器**、**NIO.2新文件系统API**、**InvokeDynamic指令**（支持动态类型语言）；Project Coin带来一系列语言简化特性：字符串switch、try-with-resources自动资源管理、“钻石”泛型推断、多异常捕获等。
-- **2014年3月** · **JDK 8（LTS，历史性版本）**——被誉为Java史上最具革命性的版本：引入**Lambda表达式、方法引用、函数式接口、Stream API、Optional类、新日期时间API（Java.time）**、Nashorn JavaScript引擎、接口默认方法和静态方法；JVM用Metaspace替代永久代。
-
-### 加速迭代时代（2017–2020）
-
-
-- **2017年9月** · **JDK 9**——引入**模块化系统（Project Jigsaw/JPMS）**、**G1成为默认垃圾收集器**、HTTP/2客户端API（孵化）、JShell交互式编程工具、私有接口方法、响应式流API。
-- **2018年3月** · **JDK 10**——引入**局部变量类型推断（`var`关键字）**、G1支持并行全GC以降低停顿时间。
-- **2018年9月** · **JDK 11（LTS）**——标准化**HTTP Client API**（原孵化API转正）、引入**ZGC低延迟垃圾回收器（实验性）**、Epsilon空操作垃圾回收器、Flight Recorder飞行记录仪、直接在命令行运行单文件源码程序功能。
-- **2019年3月** · **JDK 12**——引入**Switch表达式（预览）**、G1垃圾回收器改进。
-- **2019年9月** · **JDK 13**——引入**文本块（预览）**，多行字符串处理更便捷。
-- **2020年3月** · **JDK 14**——引入**Records数据类（预览）**、Pattern Matching for instanceof（预览）、**NullPointerException增强信息**。
-- **2020年9月** · **JDK 15**——引入**密封类（sealed classes，预览）**、文本块正式转正、空指针异常信息改进、ZGC正式转正。
-- **2021年3月** · **JDK 16**——Records正式转正、Pattern Matching for instanceof正式转正、Vector API（孵化）。
-
-### 2021至今
-
-- **2021年9月** · **JDK 17（LTS，第三个长期支持版本）**——**密封类正式转正、`switch`模式匹配（预览）**、改进伪随机数生成器（统一API）、macOS Metal渲染管线。
-- **2022年3月** · **JDK 18**——默认UTF-8编码、简易Web服务器、外部函数与内存API（第二轮孵化）、向量API（第三轮孵化）。
-- **2022年9月** · **JDK 19**——**虚拟线程（预览）**、Record模式（预览）、结构化并发（孵化）。
-- **2023年3月** · **JDK 20**——虚拟线程、作用域值、Record模式、结构化并发等持续预览迭代。
-
-
-
-# 环境配置
-## 编译器下载
+## 环境配置
+### 编译器下载
 与Cpp运行需要MSVC等编译器,python运行需要python虚拟环境一样,Java运行需要的是JDK(Java Development Kit).
 如前面所说,尽管Java版权归Oracle公司所有,但也有开源的社区版本和基于开源版本制作的第三方JDK,性能上的差别非常小.
 为了省事,我们直接上[微软官网](https://www.oracle.com/Java/technologies/downloads/#Java21)下载JDK21即可,这样可以**跳过烦人的环境变量配置环节**.
 - 至于为什么不选最新的25版本是因为体积更大也没必要.
 
-## 配置环境变量(可跳过)
+### 配置环境变量(可跳过)
 与cpp类似,如果不配置编译器的环境变量的话,系统是无法识别你的命令的:
 ```bash
 Java --version
@@ -116,14 +54,12 @@ OpenJDK 64-Bit Server VM Microsoft-13106404 (build 21.0.10+7-LTS, mixed mode, sh
 但如果你铁着头选择了Oracle官方版本的话,那么还是需要自己配置的...**预先警告这很麻烦**
 
 
-## VScode配置Java环境
+### VScode配置Java环境
 当你第一次创建`.Java`文件时,VScode会自动为你推荐所需的扩展并配置好环境,所以无需额外操作.
 
-# Java语法学习
-- [W3schools](https://www.w3schools.com/Java/)
-  - 不要看廖雪峰教程...写的并不是很好,而且很枯燥,搞不懂为什么流量这么大.
-- 建议先学好cpp后再学Java,本部分经常会拿cpp来跟Java做比较
 ## 基础语法
+- 参考教程: [W3schools](https://www.w3schools.com/Java/)
+
 ### 学习前的要点
 我们首先需要知道Java的面向对象特性:
 1. 所有函数和变量都写在类里面,因此函数都变成了`方法`,变量都变成了`属性`
@@ -936,9 +872,9 @@ method.invoke(object, 4);
 #### 反射用到了哪些库
 
 #### 实战
-# Java构建与打包
+## Java构建与打包
 
-## JDK
+### JDK
 - [参考博文](https://www.wdbyte.com/java/jdk-jre-jvm/)
 
 JDK（Java Development Kit）、JRE（Java Runtime Environment）、JVM （Java Virtual Machine）是 Java 开发中的三个重要概念，**JDK 包含了 JRE 和开发工具，JRE 包含了 JVM 和类库，JVM 是 Java 程序的运行环境**。
@@ -951,27 +887,13 @@ JDK（Java Development Kit）、JRE（Java Runtime Environment）、JVM （Java 
    1. 如果自己不需要开发Java项目,只用JRE就足够运行已经被javac编译器编译出的class文件.
 3. JVM负责执行class文件,从而运行java程序,在需要时由JRE帮助导入系统库和第三方库.
 
->这样看来,底层根本就不存在所谓的java到c/cpp的转换,就算JVM是用cpp写的,但实际上来说根本不需要将java转换成cpp,而是让JVM逐个执行class文件即可.所以java比起cpp慢的主要原因在于多了一个从.java文件到.class文件的转换构建,而cpp程序编译得到的可执行文件由于更贴近底层,程序改动后的即时编译构建不需要做很大的改动即可运行,所以速度更快.
-## JVM
->我们总说Java"一次编写,处处运行",靠的就是JVM实现的.要想更好的理解这句话,可以这么说,不同操作系统使用的JVM不同,但是我们可以编写同一份java代码,无需像Cpp那样需要适配不同的平台来编写不同的代码.
-
-推荐阅读: 深入理解Java虚拟机
-## Class文件
-- [参考博客](https://www.cnblogs.com/zsql/p/12907120.html)
-
-class文件是java文件被javac等编译器编译后得到的平台无关的**中间文件**,其地位类似于cpp/c中的目标文件(尽管cpp中的目标文件是平台相关的).
-
-一张非常简洁明了的示意图如下:
-![示意图](PixPin_2026-05-01_16-30-53.webp)
-
-
-## Java打包(待补充)
+### Java打包(待补充)
 我们时常能够看到java项目中的.jar(Java Archive)文件
 
 # Java测试: JUnit
 - 由于JUnit库在Java的测试库中占据了绝对主流,所以就只讲JUnit了.
 - [官方文档](https://docs.junit.org/6.0.3/overview.html)
-- 为什么先讲测试再讲构建框架呢,是因为我运行maven教程项目的时候会自己引入测试框架...
+
 
 ## 概览
 JUnit is composed of several different modules from **three different sub-projects**:
@@ -1011,24 +933,10 @@ class MyFirstJUnitJupiterTests {
 - @BeforeEach
   - 注明
 # Java构建工具
-与Cpp有Make,ninja,CMake类似,Java也有自己的构建工具,早期的构建工具为Ant,目前由Maven和Gradle两款工具统治,它俩也同时承担了包管理器的责任,功能基本等价于Python中的uv.
-## Maven
-### Maven历史
-#### 1. 概念起源与孵化 (2002 - 2003)
-* **2002年**：由 Jason van Zyl 创建，最初作为 Apache Turbine 的子项目，旨在解决该项目极其复杂的构建过程。
-* **2003年**：正式被接纳为 Apache 软件基金会的顶级项目。
+与Cpp有Make,ninja,CMake类似,Java也有自己的构建工具,早期的构建工具为Ant,目前由Maven和Gradle两款工具统治,它俩也承担了包管理器的责任.
 
-#### 2. 标准确立与快速普及 (2004 - 2005)
-* **2004年7月 (Version 1.0)**：第一个里程碑版本发布。确立了“约定优于配置”的核心理念。
-* **2005年10月 (Version 2.0)**：重大架构升级版本。
-    * **核心贡献**：确立了 **Maven 中央仓库** (Central Repository) 机制，支持动态下载依赖。
-    * **插件架构**：采用基于插件的架构，使其具备了跨语言构建（如 C/C++）的潜力。
-
-#### 3. 架构优化与并行化 (2010)
-* **2010年10月 (Version 3.0)**：
-    * **解耦与兼容**：在保持与 2.x 项目兼容的同时，重构了核心项目构建器。
-    * **性能提升**：引入**并行构建**特性，能够利用多核 CPU 处理大型多模块项目。
-    * **非 XML 尝试**：开始支持非 XML 的项目定义文件（如 Ruby、YAML、Groovy），解耦了内存表示与文件格式。
+由于Gradle更轻量现代一点,所以更推荐使用Gradle而非Maven.
+## Maven(待补充)
 ### 安装方法
 [官网](https://maven.apache.org/install.html)下载压缩包后解压,将解压路径的bin目录添加到环境变量:
 ![示意图](PixPin_2026-05-01_12-50-48.webp)
@@ -1065,25 +973,6 @@ mvn archetype:generate '-DgroupId=com.example' '-DartifactId=my-first-app' '-Dar
 
 #### pom.xml
 ## Gradle
-### Gradle历史
-#### 1. 概念孵化与 Groovy 基因 (2007 - 2008)
-* **2007年**：Hans Dockter 开始构思一种结合 Ant 的灵活性与 Maven 的依赖管理能力的新工具。
-* **2008年4月 (Version 0.1)**：首个版本发布。创始人最初想命名为“Cradle”，但为了使其更具独特性，取 **Groovy** 语言的首字母 **G**，更名为 **Gradle**。其核心特征是使用基于 Groovy 的 DSL 取代繁琐的 XML 配置。
-
-#### 2. 核心架构确立 (2012 - 2014)
-* **2012年6月 (Version 1.0)**：历经四年迭代，首个正式稳定版发布。确立了有向无环图 (DAG) 任务模型，解决了复杂构建流程的编排问题。
-* **2013年**：**Google 宣布 Android Studio 采用 Gradle 作为官方构建系统**。这一决策直接将 Gradle 推向了顶级构建工具的地位。
-* **2014年7月 (Version 2.0)**：提升了构建性能，并正式引入了对原生语言（C/C++）构建的初步支持，展示了其跨语言构建的野心。
-
-#### 3. 性能突破与 Kotlin 引入 (2016 - 2018)
-* **2016年8月 (Version 3.0)**：引入 **Gradle Daemon**（守护进程）并默认开启，极大地缩短了短周期任务的启动时间。
-* **2017年6月 (Version 4.0)**：引入 **Build Cache**（构建缓存）技术，允许跨机器共享编译产物，大幅减少了大型项目的重复编译时间。
-* **2018年11月 (Version 5.0)**：正式支持 **Kotlin DSL**。开发者可以使用类型安全的 Kotlin 编写构建脚本，解决了 Groovy 脚本缺乏 IDE 智能补全和编译时检查的痛点。
-
-#### 4. 现代化与大规模构建优化 (2019 - 2025)
-* **2021年4月 (Version 7.0)**：引入 **Version Catalogs**（版本目录），实现了多项目之间依赖版本的集中管理，正式统一了大型项目的依赖规范。
-* **2023年2月 (Version 8.0)**：针对配置阶段进行了深度优化，支持 **Configuration Cache**，使得复杂项目的构建配置速度提升数倍。
-* **2025年7月 (Version 9.0)**：最新里程碑版本。进一步强化了云端构建能力和对现代 JDK 特性的深度适配，确立了其在高复杂度、高性能要求构建场景下的统治地位。
 ### 安装方法
 [官网](https://docs.gradle.org/current/userguide/installation.html#installation)下载二进制版本,解压后将bin目录添加到环境变量,命令行输入`gradle -v`,成功:
 
@@ -1095,7 +984,31 @@ mvn archetype:generate '-DgroupId=com.example' '-DartifactId=my-first-app' '-Dar
 ### 使用方法
 - [官网教程](https://docs.gradle.org/current/userguide/part1_gradle_init.html#part1_begin)
 
+Gradle提供了一个类似`npm create`的方式初始化项目,也就是`gradle init`,在终端输入该命令后,我们也需要像`npm create`一样选择想要的参数和构建方式,之后就会在当前目录生成以下文件:
 
-# spring
-# spring boot
+![示意图](PixPin_2026-06-16_17-11-14.webp)
+
+如果想要立刻看到输出,运行`.\gradlew.bat run`或者`gradle run`即可:
+
+![结果](PixPin_2026-06-16_17-19-10.webp)
+
+运行`.\gradlew.bat build`即可构建项目,分别在app目录和根目录下生成一个build文件夹.
+
+>如果运行`gradle build`的话,那就是使用全局安装的gradle来构建了,有可能会出现版本不兼容问题.不过由于我们这个项目本身用的就是同一个版本的gradle初始化的,所以问题不大.也可以这么用.
+
+在app的build文件夹的libs文件夹中,我们可以看到打包好的`app.jar`文件,这就是我们的构建产物:
+
+![jar](PixPin_2026-06-16_17-17-15.webp)
+
+# Spring与Spring Boot
+## 概览
+- [官网](https://docs.spring.io/spring-framework/reference/overview.html)
+- [wiki](https://zh.wikipedia.org/wiki/Spring_Framework)
+- [Spring Boot](https://zh.wikipedia.org/wiki/Spring_Boot)
+
+Spring框架诞生于03年,主要的原因就是官方的Java EE太过于臃肿了.Spring框架由于特别好用高效,又是开源的,所以迅速占领了原本的Java EE市场.
+
+由于Spring的配置非常麻烦,后来Spring内部又于2014年发布了Spring Boot框架,简化了原本的复杂配置
+## 入门
+
 
