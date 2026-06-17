@@ -3761,11 +3761,13 @@ if there are one or more threads waiting, wake one
 ### 磁盘驱动器
 - 这一部分讲的是磁盘类的机械硬盘,可以适当的了解一下
 
-### RAID
+### RAID(待补充)
 #### 前置概念
 廉价冗余磁盘阵列(Redundant Array of Inexpensive Disks,RAID)使用多个磁盘构建一个更大,更快,更可靠的存储系统.
 
-#### 不同的RAID level
+#### RAID 0级
+
+### 文件系统
 
 
 # 深入浅出密码学
