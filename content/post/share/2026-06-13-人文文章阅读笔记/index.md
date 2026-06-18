@@ -4,7 +4,7 @@ date: 2026-06-13T11:19:14+08:00
 description: 
 image: 
 math: 
-
+draft: true
 ---
 
 # Men of Mathematics
