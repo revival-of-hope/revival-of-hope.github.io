@@ -9,7 +9,10 @@ draft: true
 ## W3C
 ## IEEE
 ## ISO
-
+## NIST
+## ACM
+## Bell实验室
+## Berkeley实验室
 ## GNU(4/2)
 - [GNU官网](https://www.gnu.org/)
 
