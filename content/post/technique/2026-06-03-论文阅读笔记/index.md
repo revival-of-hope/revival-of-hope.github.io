@@ -996,8 +996,8 @@ KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智
 
 ### 概览与总结
 
-# 算法论文
-## 图算法
+# 算法与数据结构论文
+## 图
 ### On the Shortest Spanning Subtree of a Graph and the Traveling Salesman Problem(1956)
 - Kruskal算法
 
@@ -1014,4 +1014,24 @@ KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智
 2. 节点P和Q之间的最短距离
 
 之后就是围绕这两个问题的相当随意的证明了,没有严格的公式证明,而是只用直白的英语不断地论述,整篇论文的正式内容只有两页,所以没什么看头.
+
+
+## 数据结构
+### An algorithm for the organization of information(1962)
+- AVL树
+
+### Organization and Maintenance of Large Ordered Indices(1970)
+- B树
+
+### A Dichromatic Framework for Balanced Trees(1978)
+
+### The Ubiquitous B-Tree(1979)
+- B+树
+
+
+### Skip Lists: A Probabilistic Alternative to Balanced Trees(1990)
+- 跳表
+
+
+### Log-Structured Merge-tree(1996)
 

@@ -6,6 +6,8 @@ image:
 math: 
 draft: true
 ---
+# The idea factory : the Bell Labs and the great age of American innovation
+
 
 # Men of Mathematics
 - [wiki](https://en.wikipedia.org/wiki/Men_of_Mathematics)
