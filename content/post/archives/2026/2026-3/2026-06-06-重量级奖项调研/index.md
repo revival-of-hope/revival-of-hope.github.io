@@ -6,7 +6,7 @@ image: 60350538_p0-ＦＧＯ沖田さん.webp
 tags: 
     - 调研
 math: 
-
+draft: true
 ---
 ## 图灵奖
 ### 图灵奖介绍
@@ -57,10 +57,3 @@ Geoffrey Hinton是公认的AI教父,著名的论文有1986年的"Learning repres
 Yann LeCun是Geoffrey Hinton在多伦多大学的博士后,也有着相当不俗的成就,最突出的贡献就是发明了卷积神经网络.
 
 
-## 诺贝尔物理学奖
-
-## 诺贝尔化学奖
-
-## 诺贝尔文学奖
-
-## 诺贝尔经济学奖
