@@ -6365,6 +6365,7 @@ async def chat(request: ChatMessage):
         },
     )
 ```
+
 显然,health路由可以用来检查数据库是否成功启动,auth路由可以查看数据库来验证用户,chat路由在返回消息的时候还需要把聊天记录存入数据库.
 
 第一个比较好办,启动一个空查询,如果返回true的话就说明数据库启动了;
@@ -6373,7 +6374,7 @@ async def chat(request: ChatMessage):
 
 第三个比较难办,怎么存储聊天记录? 非流式输出的话我们只需要一次性把消息存入数据库即可,但我们使用的是流式输出,一个简单的想法是把对话累加起来再存入,实现起来确实也很简单.
 
-- 暂时先不加入多轮对话,我们只需保存用户的最新对话及结果,在展示在前端页面即可,不然项目就会一下子变得太复杂了
+- 暂时先不加入多轮对话,我们只需保存用户的最新对话及结果,再展示在前端页面即可,不然项目就会一下子变得太复杂了
 
 ##### 要点2: 设计表格
 设计数据库如果真的去一个个使用BCNF和3NF来检查表的话那就太离谱了,我们先按照上述的路由想法给出两个初始的表格,后续慢慢优化即可.
@@ -6476,7 +6477,7 @@ class Settings(BaseSettings):
         )
 ```
 
-了解了这些知识后,令人痛苦的重构就要开始了.
+- (26/6/22): 了解了这些知识后,令人痛苦的重构就要开始了,说实话,很多时候重构比全部推翻重做还要难.但这是一个菜鸟项目进阶成为工程项目的必经之路.
 #### 后端重构阶段
 >重构的要点是,让系统不能正常运行的时间尽可能短,否则你做的就不是重构
 ##### 第一步: 环境变量文件和config.py
@@ -6490,6 +6491,7 @@ POSTGRES_PASSWORD=123456
 ```
 然后按照之前的示例处理Settings类即可:
 
+**app/utils/config.py**
 ```py
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import (
@@ -6529,7 +6531,8 @@ class Settings(BaseSettings):
 settings = Settings()  # type: ignore
 ```
 ##### 第二步: 设计模型
-在app文件夹下新建一个model.py文件:
+
+**app/models.py**
 ```py
 from sqlmodel import Relationship, SQLModel, Field
 
@@ -6560,8 +6563,9 @@ class ChatMessage(SQLModel, table=True):
     user_id: int | None = Field(default=None, foreign_key="user.id")
     user: User | None = Relationship(back_populates="chat")
 ```
-- 尽管UserBase只有一个属性,看上去很蠢,但这却是实现OOP的必要损失.
+- 尽管UserBase只有一个属性,看上去很蠢,但这却是实现OOP的必要损失.在后面的几章或许我们可以看到为什么需要这么做.
 ##### 第三步: 加入数据库依赖
+**app/utils/deps.py**
 ```py
 from collections.abc import Generator
 from typing import Annotated
@@ -6589,11 +6593,12 @@ def fake_get_current_user(session: SessionDep) -> User:
 
 CurrentUser = Annotated[User, Depends(fake_get_current_user)]
 ```
-1. `get_db`,用于打开与数据库的连接,将其放进依赖可以有效避免每次显式调用get_db函数的麻烦.
+- `get_db`,用于打开与数据库的连接,将其放进依赖可以有效避免每次显式调用get_db函数的麻烦.
 
 >在目前这个阶段,我们只能实现**虚假的**获取当前用户,主要原因就在于如果不使用token/cookie,那么就无法知道这个用户是谁,一个容易想到的方法就是让用户在前端自己选择id并通过post请求发送给后端,但在现代的工程中不可能使用这种极其危险的方式,所以就不这么做了.
 
 ##### 第四步: 加入哈希部分
+**app/utils/security.py**
 ```py
 from pwdlib import PasswordHash
 
