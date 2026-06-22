@@ -3,6 +3,8 @@ baseurl      = "https://revival-of-hope.github.io"
 languageCode = "zh"
 title        = "Revival-of-hope"
 
+timeout = "300s"
+
 # Theme i18n support
 # See all available values at https://github.com/CaiJimmy/hugo-theme-stack/tree/master/i18n
 defaultContentLanguage = "zh"
@@ -16,7 +18,7 @@ disqusShortname = "aitianpai"
 
 
 [pagination]
-    pagerSize = 8
+    pagerSize = 10
 
 # google analytics
 [services]
