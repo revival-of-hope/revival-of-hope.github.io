@@ -154,7 +154,8 @@ ELF格式的可重定位目标文件格式如下:
 
 
 
-
+# The Garbage Collection Handbook(第一版)
+# 逆向工程核心原理
 
 # On Java 8(待补充)
 - [中文翻译版链接](https://zyb0408.github.io/gitbooks/onjava8/)
@@ -292,7 +293,7 @@ Lambda 表达式是使用最小可能语法编写的函数定义：
 ## 并发编程
 # [设计数据密集型应用](https://ddia.vonng.com/v1/)(待补充)
 
-# The Garbage Collection Handbook
+
 
 
 # 事务处理: 概念与技术(待补充)
