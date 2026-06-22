@@ -108,7 +108,7 @@ WPF 应用程序      wpf       [C#],VB     Common/WPF
 类库              classlib  [C#],F#,VB  Common/Library
 ```
 2. 再输入`dotnet run`即可运行项目,实现与VS中相同的效果
-3. 但要在VScode中进行C#和Oracle开发的话我们还需要下载.NET相关的插件以及`Oracle SQL Developer Extension for VSCode`,然后就可以用VScode开始开发了...
+3. 但要在VScode中进行C#和Oracle开发的话我们还需要下载.NET相关的插件以及`Oracle SQL Developer Extension for VSCode`,然后就可以用VScode开始开发了
 
 # C#学习
 - 根据[w3schools](https://www.w3schools.com/cs/)速览

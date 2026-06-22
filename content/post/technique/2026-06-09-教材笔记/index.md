@@ -185,18 +185,18 @@ $Q_i$：寄存器状态表。每个寄存器在该表中都有对应的一项，
 3. LRU: 选择最近使用次数最少的块,由于难以实现,所以实际都是选择最久没被访问的块
 
 ### 写策略
-- 写命中: 所需写入的块刚好在cache中
+- 写命中: 所需写入的块刚好在Cache中
 
 发生写命中时主要有两种方法:
-1. 写直达法(Write Through): 写入时将数据同时写入cache和下一级存储器
+1. 写直达法(Write Through): 写入时将数据同时写入Cache和下一级存储器
 2. 写回法(Write Back):只将数据写入Cache中,等待该块被替换时才写入下一级存储器
 
 发生写不命中时也有两种方法:
-1. 按写分配: 先从主存调入cache,再写入cache
+1. 按写分配: 先从主存调入Cache,再写入Cache
 2. 不按照\写分配: 直接写入主存
 
-### cache优化
-#### 伪相联cache
+### Cache优化
+#### 伪相联Cache
 这种相联方案首先按照与直接映像相同的方式进行访问,如果命中就直接读取即可,如果不命中,就将索引字段的最高位取反,再访问对应的块,如果命中就成为"伪命中".如果还不命中,就只好到主存中去找了.
 ## ch8: 输入输出系统
 ### RAID(待补充)
@@ -217,7 +217,7 @@ $Q_i$：寄存器状态表。每个寄存器在该表中都有对应的一项，
 ## ch10: 多处理机
 - 怎么看都应该叫多处理器...
 ### Cache一致性
-如果使用共享存储器,就需要解决cache一致性的问题,这本书认为,如果一个存储器满足以下三点则实现了一致性:
+如果使用共享存储器,就需要解决Cache一致性的问题,这本书认为,如果一个存储器满足以下三点则实现了一致性:
 1. 处理器P在对存储单元X进行写操作后再读取,没有其他处理器在中途写入了存储单元X
 2. P在写入X后,处理器Q读取了X,没有其他处理器在中途写入了X
 3. 串行化写入: 任意两个处理器的写入顺序是固定的,不会随意打乱顺序,也就是说,P和Q先后写入X,那么其他处理器会先读到P的写入数据,再读到Q的写入数据.
@@ -227,11 +227,11 @@ $Q_i$：寄存器状态表。每个寄存器在该表中都有对应的一项，
 2. 监听式(snooping): 所有Cache通过总线来监听共享数据的状态变化
 
 监听式协议有两种实现方式:
-1. 写更新协议(Write Update): 一个CPU写入新数据时就广播给所有CPU的cache
-2. 写作废协议(Write Invalidate): CPU写入某个数据时,把其他cache中关于该数据的副本全部作废.
+1. 写更新协议(Write Update): 一个CPU写入新数据时就广播给所有CPU的Cache
+2. 写作废协议(Write Invalidate): CPU写入某个数据时,把其他Cache中关于该数据的副本全部作废.
    1. 写作废协议的应用更为广泛,因为它需要的操作更少
 
-目录式协议采用位图索引的方式来记录哪些cache中有该共享数据的副本,有三种格式:
+目录式协议采用位图索引的方式来记录哪些Cache中有该共享数据的副本,有三种格式:
 1. 全映像目录(full-mapped): 每个目录项都包含对所有CPU的映射
 
 ![结构图](PixPin_2026-06-12_14-29-09.webp)
@@ -248,8 +248,106 @@ $Q_i$：寄存器状态表。每个寄存器在该表中都有对应的一项，
 3. Handler分类法
 
 耦合度: 处理机之间联系的紧密程度
-并行性: 计算机在同一时间内完成多个操作的能力
 
+并行性: 计算机在同一时间内完成多个操作的能力
+### ch2
+三种通用寄存器型的指令系统的优缺点:
+![示意图](PixPin_2026-06-21_12-33-11.webp)
+
+
+### ch3
+流水线: 将一个重复的过程分解为若干个子过程,每个子过程用专门的功能部件实现,把多个处理过程在时间上错开,以此通过各功能段.流水线的段数被称为**深度**
+
+吞吐率: 单位时间内流水线完成的任务数量
+
+加速比: 顺序处理完成一批任务所用时间与流水线处理完成同一批任务所用时间之比
+
+效率: 流水线中设备实际使用时间和整个运行时间的比值
+
+
+MIPS 5段流水线:
+
+1. IF(取指令): 以PC中的值为地址从存储器中取指令放入IR(指令寄存器),同时PC+4,放入NPC中
+2. ID(指令译码): 对指令进行译码,将指令中的rs和rt作为地址访问通用寄存器组,并将读出的操作数放入A和B中,并对IR的低16位进行符号位扩展后存入Imm中
+3. EX(执行): ALU对操作数进行运算,将结果存入ALU0
+4. MEM(存储器访问)
+
+![示意图](PixPin_2026-06-21_13-04-13.webp)
+
+5. WB: 通用寄存器组
+
+### ch5
+- 指令级并行: 若干机器指令之间重叠执行
+- IPC: 每个时钟周期内平均完成的指令条数
+- 循环级并行: 程序循环的迭代中可以并行计算
+- 指令动态调度: 硬件在程序运行时动态决定指令的执行顺序,通过Tomasulo算法,记分牌算法,ROB等实现.
+- CDB: Common Data Bus,公共数据总线
+- 动态分支预测: 预测某个分支指令是否跳转,减少控制冲突
+- BHT: 分支历史表,记录分支指令过去的跳转情况
+- BTB: 分支目标缓冲,保存分支指令的目标地址
+- 前瞻执行: 处理器提前执行预测路径上的指令
+- ROB: Reorder Buffer,重排序缓冲区,用于支持乱序执行中的按序提交.
+### ch7
+写策略有两种:
+1. 写直达: 在写入时把数据写入Cache和主存
+2. 写回法: 只写入Cache,在被替换时才写入主存
+
+发生写不命中时,有两种选择:
+1. 按写分配: 先从主存调入Cache,再写入
+2. 不按写分配: 直接写入主存,而不调入Cache
+
+不命中有三种:
+1. 强制性不命中: 第一次访问某个块时一定不命中
+2. 容量不命中: 程序执行时所需的块不能全部调入Cache中,那么必然会不命中
+3. 冲突不命中: 太多的块映射到同一组中,那么就会发生大量的替换,也会不命中
+
+降低不命中率:
+1. 增加Cache块大小,不是越大越好,过大时由于容纳的块过少会降低命中率
+2. 增加Cache容量
+3. 伪相联Cache,设计比较复杂
+4. 硬件预取,提前取回可能被访问的块
+5. 编译优化
+
+减少命中时间:
+1. 使用容量小的Cache
+2. 使用虚拟Cache
+3. Cache访问流水化
+### ch10
+#### 监听协议
+实现监听协议的关键有以下三个方面:
+（1）处理器之间通过一个可以实现广播的互连机制相连，通常采用的是总线。
+（2）当一个处理器的 Cache 响应本地 CPU 的访问时，如果它涉及全局操作，例如需要访问共享的存储器或需要其他处理器中的 Cache 进行相应的操作（例如作废等），其 Cache 控制器就要在获得总线的控制权后，在总线上发出消息（如图 10.4 中的 Cache A 所示）。
+（3）所有处理器都一直在监听总线，它们检测总线上的地址在它们的 Cache 中是否有副本。若有，则响应该消息，并进行相应的操作（如图 10.4 中的 Cache B 所示）。
+
+Cache发送到总线的消息有三种:
+1. RdMiss,读不命中
+2. WtMiss,写不命中
+3. Invalidate,作废其他Cache中的副本
+
+
+每个数据块有三种状态:
+1. 无效(Invalid,I): 要访问的块还不在Cache中
+2. 共享(Shared,S): 多个处理器中都有相同的副本
+3. 已修改(Modified,M): 该块已经被修改,是整个系统中唯一的最新副本
+
+
+#### 目录协议
+
+
+目录协议中主存块的状态有三种:
+1. 未缓冲(UnCached,U): 该块尚未调入Cache
+2. 共享(Shared,S): 该块由多个Cache共享
+3. 独占(Exclusive,E): 只有一个处理器有这个块的副本,而且已经进行了写入操作
+
+目录协议将Cache视为节点,有三种节点:
+1. 本地节点: 发出访问请求的节点
+2. 宿主节点: 包含被访问的数据块的节点,对于给定的物理地址,宿主节点是唯一的
+3. 远程节点: 拥有数据块的副本
+
+![例题](PixPin_2026-06-21_19-22-57.webp)
+
+### ch12
+机群: 多台独立计算机通过高速网络连接起来形成一个计算系统
 # 算法设计与分析
 ## outline
 >尽管用的是算法导论那本教材,但我不打算移过来,因为这门课的教学简直是在侮辱这本书.
@@ -436,11 +534,15 @@ v_n &= v_{n-1} x + a_0
 
 - 0-1背包和旅行商问题的例子需要在考前再看一遍.
 ### 动态规划法
-* [ ] 计算二项式系数
+* [x] 计算二项式系数
 * [x] 最长公共子序列（LCS）
-* [ ] 动态矩阵乘法
+
+![代码](image-6.png)
+
+
+* [x] 矩阵链算法
 * [x] 0-1背包问题
-* [ ] 多阶段决策过程
+
 * [ ] Warshall传递闭包算法
 * [ ] Floyd算法求最短路径
 
@@ -613,6 +715,8 @@ $$\text{0000000000},\quad \text{0000011111},\quad \text{1111100000},\quad \text{
 ### 滑动窗口协议
 ## 介质访问控制(MAC,Medium Access Control)子层
 
+## 传输层
+### 传输服务
 
 ## 应用层
 - 这一章能考的内容非常少
@@ -733,7 +837,144 @@ Domain_name Time_to_live Class Type Value
 
 - (3/26)这本书真的是又臭又长...
 - (3/28)我服了原来这个ppt是[官网](https://db-book.com/slides-dir/index.html)上的,而我们老师实际啥都没干...
+## 
+## 本教材核心: 大学数据库
+- keys used
+![示意图](PixPin_2026-03-26_08-23-16.webp)
 
+![示意图](PixPin_2026-03-26_08-24-59.webp)
+- schema diagram
+
+## 关系表解析
+```sql
+create table classroom
+  (building		varchar(15),
+   room_number		varchar(7),
+   capacity		numeric(4,0),
+   primary key (building, room_number)
+  );
+
+create table department
+  (dept_name		varchar(20), 
+   building		varchar(15), 
+   budget		        numeric(12,2) check (budget > 0),
+   primary key (dept_name)
+  );
+
+create table course
+  (course_id		varchar(8), 
+   title			varchar(50), 
+   dept_name		varchar(20),
+   credits		numeric(2,0) check (credits > 0),
+   primary key (course_id),
+   foreign key (dept_name) references department (dept_name)
+    on delete set null
+  );
+
+create table instructor
+  (ID			varchar(5), 
+   name			varchar(20) not null, 
+   dept_name		varchar(20), 
+   salary			numeric(8,2) check (salary > 29000),
+   primary key (ID),
+   foreign key (dept_name) references department (dept_name)
+    on delete set null
+  );
+
+create table section
+  (course_id		varchar(8), 
+         sec_id			varchar(8),
+   semester		varchar(6)
+    check (semester in ('Fall', 'Winter', 'Spring', 'Summer')), 
+   year			numeric(4,0) check (year > 1701 and year < 2100), 
+   building		varchar(15),
+   room_number		varchar(7),
+   time_slot_id		varchar(4),
+   primary key (course_id, sec_id, semester, year),
+   foreign key (course_id) references course (course_id)
+    on delete cascade,
+   foreign key (building, room_number) references classroom (building, room_number)
+    on delete set null
+  );
+
+create table teaches
+  (ID			varchar(5), 
+   course_id		varchar(8),
+   sec_id			varchar(8), 
+   semester		varchar(6),
+   year			numeric(4,0),
+   primary key (ID, course_id, sec_id, semester, year),
+   foreign key (course_id, sec_id, semester, year) references section (course_id, sec_id, semester, year)
+    on delete cascade,
+   foreign key (ID) references instructor (ID)
+    on delete cascade
+  );
+
+create table student
+  (ID			varchar(5), 
+   name			varchar(20) not null, 
+   dept_name		varchar(20), 
+   tot_cred		numeric(3,0) check (tot_cred >= 0),
+   primary key (ID),
+   foreign key (dept_name) references department (dept_name)
+    on delete set null
+  );
+
+create table takes
+  (ID			varchar(5), 
+   course_id		varchar(8),
+   sec_id			varchar(8), 
+   semester		varchar(6),
+   year			numeric(4,0),
+   grade		        varchar(2),
+   primary key (ID, course_id, sec_id, semester, year),
+   foreign key (course_id, sec_id, semester, year) references section (course_id, sec_id, semester, year)
+    on delete cascade,
+   foreign key (ID) references student (ID)
+    on delete cascade
+  );
+
+create table advisor
+  (s_ID			varchar(5),
+   i_ID			varchar(5),
+   primary key (s_ID),
+   foreign key (i_ID) references instructor (ID)
+    on delete set null,
+   foreign key (s_ID) references student (ID)
+    on delete cascade
+  );
+
+create table time_slot
+  (time_slot_id		varchar(4),
+   day			varchar(1),
+   start_hr		numeric(2) check (start_hr >= 0 and start_hr < 24),
+   start_min		numeric(2) check (start_min >= 0 and start_min < 60),
+   end_hr			numeric(2) check (end_hr >= 0 and end_hr < 24),
+   end_min		numeric(2) check (end_min >= 0 and end_min < 60),
+   primary key (time_slot_id, day, start_hr, start_min)
+  );
+
+create table prereq
+  (course_id		varchar(8), 
+   prereq_id		varchar(8),
+   primary key (course_id, prereq_id),
+   foreign key (course_id) references course (course_id)
+    on delete cascade,
+   foreign key (prereq_id) references course (course_id)
+  );
+```
+
+- departname: 部门的办公地点和预算
+- course: 培养计划中的课程
+- instructor: 教师的信息
+- section: 课表中的真实课程
+  - section是course在某一学期的映射
+- teaches: 教师教授的课程信息
+- student: 学生的信息
+- takes: 学生所选的真实课表
+
+
+# archive
 ## Introduction to the Relational Model
 
 ### Database Schema
@@ -3398,140 +3639,4 @@ create/drop index <index-name> on <relation-name> (attribute-name);
 
 
 
-
-
-## 本教材核心: 大学数据库
-- keys used
-![示意图](PixPin_2026-03-26_08-23-16.webp)
-
-![示意图](PixPin_2026-03-26_08-24-59.webp)
-- schema diagram
-
-## 关系表解析
-```sql
-create table classroom
-  (building		varchar(15),
-   room_number		varchar(7),
-   capacity		numeric(4,0),
-   primary key (building, room_number)
-  );
-
-create table department
-  (dept_name		varchar(20), 
-   building		varchar(15), 
-   budget		        numeric(12,2) check (budget > 0),
-   primary key (dept_name)
-  );
-
-create table course
-  (course_id		varchar(8), 
-   title			varchar(50), 
-   dept_name		varchar(20),
-   credits		numeric(2,0) check (credits > 0),
-   primary key (course_id),
-   foreign key (dept_name) references department (dept_name)
-    on delete set null
-  );
-
-create table instructor
-  (ID			varchar(5), 
-   name			varchar(20) not null, 
-   dept_name		varchar(20), 
-   salary			numeric(8,2) check (salary > 29000),
-   primary key (ID),
-   foreign key (dept_name) references department (dept_name)
-    on delete set null
-  );
-
-create table section
-  (course_id		varchar(8), 
-         sec_id			varchar(8),
-   semester		varchar(6)
-    check (semester in ('Fall', 'Winter', 'Spring', 'Summer')), 
-   year			numeric(4,0) check (year > 1701 and year < 2100), 
-   building		varchar(15),
-   room_number		varchar(7),
-   time_slot_id		varchar(4),
-   primary key (course_id, sec_id, semester, year),
-   foreign key (course_id) references course (course_id)
-    on delete cascade,
-   foreign key (building, room_number) references classroom (building, room_number)
-    on delete set null
-  );
-
-create table teaches
-  (ID			varchar(5), 
-   course_id		varchar(8),
-   sec_id			varchar(8), 
-   semester		varchar(6),
-   year			numeric(4,0),
-   primary key (ID, course_id, sec_id, semester, year),
-   foreign key (course_id, sec_id, semester, year) references section (course_id, sec_id, semester, year)
-    on delete cascade,
-   foreign key (ID) references instructor (ID)
-    on delete cascade
-  );
-
-create table student
-  (ID			varchar(5), 
-   name			varchar(20) not null, 
-   dept_name		varchar(20), 
-   tot_cred		numeric(3,0) check (tot_cred >= 0),
-   primary key (ID),
-   foreign key (dept_name) references department (dept_name)
-    on delete set null
-  );
-
-create table takes
-  (ID			varchar(5), 
-   course_id		varchar(8),
-   sec_id			varchar(8), 
-   semester		varchar(6),
-   year			numeric(4,0),
-   grade		        varchar(2),
-   primary key (ID, course_id, sec_id, semester, year),
-   foreign key (course_id, sec_id, semester, year) references section (course_id, sec_id, semester, year)
-    on delete cascade,
-   foreign key (ID) references student (ID)
-    on delete cascade
-  );
-
-create table advisor
-  (s_ID			varchar(5),
-   i_ID			varchar(5),
-   primary key (s_ID),
-   foreign key (i_ID) references instructor (ID)
-    on delete set null,
-   foreign key (s_ID) references student (ID)
-    on delete cascade
-  );
-
-create table time_slot
-  (time_slot_id		varchar(4),
-   day			varchar(1),
-   start_hr		numeric(2) check (start_hr >= 0 and start_hr < 24),
-   start_min		numeric(2) check (start_min >= 0 and start_min < 60),
-   end_hr			numeric(2) check (end_hr >= 0 and end_hr < 24),
-   end_min		numeric(2) check (end_min >= 0 and end_min < 60),
-   primary key (time_slot_id, day, start_hr, start_min)
-  );
-
-create table prereq
-  (course_id		varchar(8), 
-   prereq_id		varchar(8),
-   primary key (course_id, prereq_id),
-   foreign key (course_id) references course (course_id)
-    on delete cascade,
-   foreign key (prereq_id) references course (course_id)
-  );
-```
-
-- departname: 部门的办公地点和预算
-- course: 培养计划中的课程
-- instructor: 教师的信息
-- section: 课表中的真实课程
-  - section是course在某一学期的映射
-- teaches: 教师教授的课程信息
-- student: 学生的信息
-- takes: 学生所选的真实课表
 
