@@ -851,7 +851,7 @@ if __name__ == "__main__":
 ```
 不需要写`__init__`,也不需要写打印函数,就可以直接实现上述的效果.
 
-# 包管理器: uv
+# uv介绍
 uv将虚拟环境和包管理两个功能集成在了一起,从而彻底解决了Python的环境问题.
 ## 管理Python版本
 >如果系统上已经安装了 Python，uv 将无需配置即可检测并使用它。但是，uv 也可以安装和管理 Python 版本。uv 会根据需要自动安装缺失的 Python 版本——你无需为了开始使用而预先安装 Python。
@@ -6738,14 +6738,29 @@ def stream_agent(
             yield delta.content
 ```
 先解决一下除了`stream_agent`函数外的边角料问题:
-- 显然,这个DEFAULT_MODEL字段放在这不太合适,我们虽然可以移入`settings.py`,但这样的话每次我们对Agent动刀子就要来回修改了,所以我们可以直接把它放到未来的`Agents`类里面,对于系统提示词,我们也是做一样的处理.
-- 至于这个通过`OpenAI`创建的client类,出于以后会整出更多智能体的先见之明,我们可以把它移入`Clients`类里面.
+- 显然,这个DEFAULT_MODEL字段放在这不太合适,我们虽然可以移入`settings.py`,但这样的话每次我们对Agent动刀子就要来回修改了,所以我们可以直接把它放到`DeepSeekClient`类里面,对于系统提示词和通过OpenAI创建的类,我们也是做一样的处理.
+
 
 那么我们可以先写出这样的代码:
 
 ```py
+from app.utils.config import settings
+from openai import OpenAI  # type: ignore[import]
+from typing import Generator
 
 
+class DeepSeekClient:
+    DEFAULT_MODEL = "deepseek-v4-pro"
+
+    DEFAULT_SYSTEM_PROMPT = """
+    以后的回答都要称呼我为李华,优先输出"你好,李华!"
+    """
+
+    def __init__(self):
+        self.client: OpenAI = OpenAI(
+            api_key=settings.DEEPSEEK_API_KEY,
+            base_url=settings.DEEPSEEK_URL,
+        )
 ```
 
 

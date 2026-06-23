@@ -150,13 +150,62 @@ ELF格式的可重定位目标文件格式如下:
 ## 跨站脚本攻击(XSS)
 >跨站脚本攻击，英文全称是 Cross Site Script，本来缩写是 CSS，但是为了和层叠样式表（Cascading Style Sheet，CSS）有所区别，所以在安全领域叫做“XSS”
 
+文章中讲的XSS攻击方案在如今的现代前端框架下已经不太可能出现了,所以我们现在没有听过像零几年Samy Worm那样的大规模攻击事件了.
+## 跨站点请求伪造（CSRF）
+CSRF的全名为Cross Site Request Forgery,通过恶意网站向正常网站发送带有Cookie或者Token的请求,从而引发破坏性的影响,现在这种攻击基本绝迹了.
+## 点击劫持（ClickJacking）
+这种方法将恶意的透明图片或者按钮覆盖在原网页上方,当用户浏览网页时,会不经意地被导向另外一个伪装的恶意网站,这种攻击现在也绝迹了.
 
+## 注入攻击
+通过ORM和数据库的内置防御,SQL等注入攻击现在也绝迹了
 
+## 应用层拒绝服务攻击
+分布式拒绝服务(Distributed Denial of Service,DDOS)通过大量的合理请求造成资源过载,服务器不得不停止运行,拒绝新的请求.
 
+## 总结
+尽管文章谈到的Web安全原理很多,但可惜的是在当今这个时代下都不太适用了,唯独DDOS还有着些微的活跃度.
 
+纵览全文,可以发现的是,大多数Web安全方案都是被各种网络攻击逼出来的,如果没有这些网络攻击,或许人们永远不会意识到存在这些漏洞.
+
+或许,网络安全这个行业将会逐渐式微下去吧,毕竟在现代的前后端框架下,传统的网络攻击方案都不太管作用了,cracker想要发起攻击只有两条道路,从内部突破,例如诱导下载恶意软件或者U盘攻击,或者付出高昂的代价从外部侵入,例如DDOS或者攻击防火墙.也就是说,SRE这类岗位做的才是传统的网络安全的活儿,而我如今看到的网络安全行业,更多的是去挖漏洞和找病毒,也就是和网络本身关系并不大了,叫做软件安全反而更为恰当
 # The Garbage Collection Handbook(第一版)
+## 前置概念
+- 堆: 一段或连续几段连续内存组成的空间集合,内存颗粒(granule)是堆内存分配的最小单位,通常是一个字(word)或者双字.内存单元(cell)是由数个连续的颗粒组成的内存块.
+- 对象(object): 为应用程序分配的内存单元
+- 赋值器: 分配新的对象,并修改对象之间的引用关系,从而改变对象图.
+  - 赋值器有三种操作: New,从堆分配器获得一个新的堆对象;Read,访问某个对象;Write,修改某个对象
+- 回收器(collector): 执行垃圾回收代码,找到不可达对象并将其回收
+- 分配器(allocator): 分配或者释放存储空间
+
+标记-清扫（mark-sweep）、标记-复制（mark-copy）、标记-整理（mark-compact）、引用计数（reference counting）是4种最基本的垃圾回收策略。大多数回收器会以不同的组合方式来应用这些策略.
+
+## 标记-清扫算法
+- 这是一种间接回收算法,并非直接检测垃圾本身,而是先确定所有的存活对象,再反过来判定其他对象都是垃圾.
+
 # 逆向工程核心原理
 
+
+# Spring Start Here
+## 前言
+>The reality is that **despite being so popular**, it's pretty **hard to find quality introductory material**. The reference documentation is thousands of pages long, describing all the subtleties and details that could be helpful in very specific scenarios, so it's not an option for a newcomer. While online videos and tutorials typically fail to engage the student, **very few books capture the essence of Spring framework**, often spending long pages debating topics that prove to be **irrelevant to the problems faced in modern application development**. With this book, however, it's very hard to find anything to remove; all the concepts covered are recurring topics in the development of any Spring application.
+
+>This book is for developers who understand basic object-oriented programming and Java concepts and want to learn Spring or refresh their Spring fundamentals knowledge.
+
+>如果对 Spring 完全没有（或仅有极少）了解，最佳读法是从第一章开始，按顺序通读全书。
+
+- (6/23): 希望这本书能够如前言所说的那样好.
+## 介绍
+Spring框架由以下部分组成:
+1. Spring Core: 包含Spring context,The Spring Expression Language等核心功能.
+2. Spring model-view-controller (MVC): 用于开发Web应用程序
+3. Spring Data Access: 用于连接数据库
+4. Spring testing: 用于测试
+
+Spring Boot引入了`convention over configuration`这一概念,也就是说,开发者无需自行完成框架的全套配置，Spring Boot会提供一套默认配置方案，用户可根据需求进行个性化调整.
+
+## 
+
+# 设计数据密集型应用(第二版)
 # On Java 8(待补充)
 - [中文翻译版链接](https://zyb0408.github.io/gitbooks/onjava8/)
 
@@ -291,7 +340,7 @@ Lambda 表达式是使用最小可能语法编写的函数定义：
 ## 异常
 ## 泛型
 ## 并发编程
-# [设计数据密集型应用](https://ddia.vonng.com/v1/)(待补充)
+
 
 
 
