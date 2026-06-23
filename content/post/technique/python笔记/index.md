@@ -3,7 +3,6 @@ title: "Python笔记"
 date: 2026-04-25T09:56:06+08:00
 description: 
 image: 12904418_p0-夏の日の昼下がり.webp
-weight: 1
 ---
 Python在目前是最值得学的语言,没有之一,它依靠简单好用的语法和各种各样的第三方库,被广泛用于以下领域:
 1. 数据挖掘: Python爬虫库
@@ -6613,21 +6612,155 @@ def hashing_password(plain_password: str):
     return hash_method.hash(plain_password)
 ```
 两个函数,一个用于验证,一个用于加密
-##### 第五步: 实现crud.py
+##### 第五步: 初步实现crud.py
 先考虑一下要实现之前的三个路由我们要做些什么:
-1. 用户注册: 传入`UserRegister`并加密成`User`存入数据库即可
+1. 用户注册: 传入`UserRegister`并加密成`User`存入数据库即可,对于这种常见的CRUD操作,pydantic提供了一个魔法般的实现`model_validate`
 2. 用户登录: 传入`UserLogin`并与数据库中存储的`User`进行比对,也就是通过id选取数据库中的特定行
-   1. 等会,我们并不知道当前用户的id!没有办法,这里也只能做一个伪装登录了,那么这样一来,创建用户也不用真的创建了,因为读取不了啊
+   1. 等会,我们并不知道当前用户的id! 没有办法,这里也只能做一个伪装登录了,那么这样一来,创建用户也不用真的创建了,因为读取不了啊
    2. 不过,出于完整性的考虑,我们可以用名字来选取数据库,尽管并非主键,但在我们这个项目里也够用了
 3. 用户验证: 如果使用token的话就没必要进行额外验证了,而不使用token的话我们也不知道他是谁,所以这一部分可以直接跳过了
 4. 健康检查: 执行一次空查询,检查数据库是否正常.
+5. 存储对话数据: 这一步很难想呢,我们如何才能将stream_agent这个流式输出放进数据库呢,不过我们先把这个问题放在一边,先实现上面的4个功能.
 
-##### 第六步: 修改路由实现
+最终的代码长这样:
+
+**app/crud.py**
+```py
+from app.utils.security import (
+    verify_password,
+    hashing_password,
+)
+from fastapi import HTTPException
+from sqlmodel import Session, select
+from app.models import User, UserLogin, UserRegister, ChatMessage
+
+
+def healthchecker(session: Session):
+    result = session.exec(select(1)).one()
+    return result == 1
+
+
+def register_user(session: Session, user_create: UserRegister) -> User:
+    user_store = User.model_validate(
+        user_create, update={"hashed_password": hashing_password(user_create.password)}
+    )
+    # 数据库存储
+    session.add(user_store)
+    session.commit()
+    session.refresh(user_store)
+
+    # 返回信息供路由函数处理
+    return user_store
+
+
+def check_user(session: Session, user_login: UserLogin, user_db: User):
+    user = session.exec(select(User).where(user_login.name == user_db.name)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not verify_password(UserLogin.password, User.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    return user
+
+```
+
+
+回到上面的问题,答案很明显,放不进去,所以我们现在要把`client.py`也重构一遍,最好是设计成一个好用的工具类,不仅方便现在的重构,更方便我们以后新增功能.
+
+##### 第六步: 重构client.py
+先把原本代码搬过来:
+
+**app/core/client.py**
+```py
+from app.utils.config import settings
+from openai import OpenAI  # type: ignore[import]
+from typing import Generator
+
+client = OpenAI(
+    api_key=settings.DEEPSEEK_API_KEY,
+    base_url=settings.DEEPSEEK_URL,
+)
+
+DEFAULT_MODEL = "deepseek-v4-pro"
+
+DEFAULT_SYSTEM_PROMPT = """
+以后的回答都要称呼我为李华,优先输出"你好,李华!"
+"""
+
+
+def stream_agent(
+    user_message: str,
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    model: str = DEFAULT_MODEL,
+) -> Generator[str, None, None]:
+    """
+    流式调用。
+
+    适合场景：
+    - 前端像 ChatGPT 一样，一个字一个字显示；
+    - FastAPI StreamingResponse；
+    - SSE 流式接口。
+
+    这个函数不会一次性 return 完整内容，
+    而是不断 yield 模型新生成的小片段。
+    """
+
+    # 创建流式请求。
+    stream = client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "system",
+                "content": system_prompt,
+            },
+            {
+                "role": "user",
+                "content": user_message,
+            },
+        ],
+        # stream=True 是流式输出的关键。
+        stream=True,
+        reasoning_effort="high",
+    )
+
+    # stream 是一个可迭代对象。
+    # 模型每生成一点内容，就会返回一个 chunk。
+    for chunk in stream:
+        # 某些 chunk 可能没有 choices，保险起见先判断。
+        if not chunk.choices:
+            continue
+
+        # delta 表示“这一次新增的内容”。
+        delta = chunk.choices[0].delta
+
+        # delta.content 可能是 None。
+        # 只有真的有文本内容时，才 yield 给外部。
+        if delta.content:
+            yield delta.content
+```
+先解决一下除了`stream_agent`函数外的边角料问题:
+- 显然,这个DEFAULT_MODEL字段放在这不太合适,我们虽然可以移入`settings.py`,但这样的话每次我们对Agent动刀子就要来回修改了,所以我们可以直接把它放到未来的`Agents`类里面,对于系统提示词,我们也是做一样的处理.
+- 至于这个通过`OpenAI`创建的client类,出于以后会整出更多智能体的先见之明,我们可以把它移入`Clients`类里面.
+
+那么我们可以先写出这样的代码:
+
+```py
+
+
+```
+
+
+##### 第七步: 修改路由实现
+>接下来就是最激动人心的时刻了,前面的所有更改在这里终于能够一一派上用场了,总体来说,非常的烧脑,但我会尽量讲明白.
+
 
 #### 前端重构阶段
 
+
+<!-- 记得做一些beginner分支保留最初版 -->
 ### ch7: 实现token验证
-现在最大的问题是,即便有了注册+登录的流程,后端还是无法记住当前用户,那么也就不可能真正的给用户传递数据库的信息,也就是说,数据库基本没被用上! 因此,我们需要加入token功能,在用户的每次数据库请求中加上token依赖,这样我们才能知道这是哪个用户,我们又应该返回哪条消息.
+>现在最大的问题是,即便有了注册+登录的流程,后端还是无法记住当前用户,那么也就不可能真正的给用户传递数据库的信息,也就是说,数据库基本没被用上! 因此,我们需要加入token功能,在用户的每次数据库请求中加上token依赖,这样我们才能知道这是哪个用户,我们又应该返回哪条消息.
+
+
 ### ch8: 实现多轮对话
 ### ch9: 加入管理员账户
 
