@@ -3,6 +3,7 @@ title: "Python笔记"
 date: 2026-04-25T09:56:06+08:00
 description: 
 image: 12904418_p0-夏の日の昼下がり.webp
+weight: 1
 ---
 Python在目前是最值得学的语言,没有之一,它依靠简单好用的语法和各种各样的第三方库,被广泛用于以下领域:
 1. 数据挖掘: Python爬虫库
@@ -4353,7 +4354,7 @@ async def read_item(item_id):
 
 好了,接下来开始正式学习fastapi.
 ### ch1: 使用fastapi响应普通的网络请求
-#### 一个非常长的前提(如果对前端很了解的话可以直接跳过)
+#### 一个非常长的前提(如果对CORS很了解的话可以直接跳过)
 为了更好的理解前后端通信的过程,我推荐自己写一个或者拿AI写一个网页,通过这个页面来访问fastapi端口,而非直接通过命令行触发默认的前端页面,可以有一个更好的学习效果.
 
 比如我拿AI生成了一个网页代码:
@@ -4570,9 +4571,10 @@ async def create_item(item: Item):
     return item
 ```
 get请求中的函数参数一般都是路由变量和查询参数变量,而post等处理数据的请求中的函数参数可以是用户传来的请求体.具体规则如下,优先级从高到低:
-1. 如果该参数也在路径中声明了，它就是路径参数。
+1. **如果该参数也在路径中声明了，它就是路径参数**。
 2. 如果该参数是（int、float、str、bool 等）单一类型，它会被当作查询参数。
 3. 如果该参数的类型声明为 Pydantic 模型，它会被当作请求体。
+4. 如果这三点它都不满足,那么就是普通的参数了.
 
 **一个比较完整的示例**
 ```py
@@ -6564,13 +6566,34 @@ class ChatMessage(SQLModel, table=True):
 ```
 - 尽管UserBase只有一个属性,看上去很蠢,但这却是实现OOP的必要损失.在后面的几章或许我们可以看到为什么需要这么做.
 ##### 第三步: 加入数据库依赖
+首先先创建一个数据库初始化函数`init_db`,由于这个函数很重要,所以单独放在db.py中:
+
+**app/utils/db.py**
+```py
+from sqlmodel import (
+    create_engine,
+    SQLModel,
+)
+from app import models
+from app.utils.config import settings
+
+engine = create_engine(str(settings.DATABASE_URI))
+
+
+def init_db() -> None:
+    SQLModel.metadata.create_all(engine)
+```
+>如果你对SQLModel掌握的比较好的话,你可能会知道调用`create_all`的时候需要在当前文件导入所有的SQLModel表,不过,`from app import models`这里通过巧妙的隐式导入实现了这一点
+
+接着,我们需要实现几个依赖函数,从而避免在每次验证用户和与数据库通信时都要反复调用.
+
 **app/utils/deps.py**
 ```py
 from collections.abc import Generator
 from typing import Annotated
 
 from sqlmodel import Session
-from app.core.db import init_db, engine
+from app.utils.db import engine
 from fastapi import Depends, HTTPException
 from app.models import User
 
@@ -6737,31 +6760,74 @@ def stream_agent(
         if delta.content:
             yield delta.content
 ```
-先解决一下除了`stream_agent`函数外的边角料问题:
-- 显然,这个DEFAULT_MODEL字段放在这不太合适,我们虽然可以移入`settings.py`,但这样的话每次我们对Agent动刀子就要来回修改了,所以我们可以直接把它放到`DeepSeekClient`类里面,对于系统提示词和通过OpenAI创建的类,我们也是做一样的处理.
+首先我们看一下最关键的`stream_agent`函数,可以发现,stream和后面的输出部分完全可以拆分成两个函数,实际上,只要修改`model`和`messages`这两个字段,我们就可以导入各种各样的api和提示词了,因此,我们可以单独把这两个函数提出来,放在utils文件夹的`chat.py`中,并加上一个额外的工具函数`messages`.
+
+还需要说明的是,考虑到创建client要走一遍OpenAI库,这还是不太清晰,我们可以复用一遍封装成自己的函数,也放入`chat.py`中,这样可以让代码更好分析一点.
 
 
-那么我们可以先写出这样的代码:
-
+**app/utils/chat.py**
 ```py
-from app.utils.config import settings
-from openai import OpenAI  # type: ignore[import]
 from typing import Generator
+from openai import Stream, OpenAI
+from openai.types.chat import ChatCompletionChunk
 
 
-class DeepSeekClient:
-    DEFAULT_MODEL = "deepseek-v4-pro"
+def messages(user_message: str, system_prompt: str) -> list[dict]:
+    return [
+        {
+            "role": "system",
+            "content": system_prompt,
+        },
+        {
+            "role": "user",
+            "content": user_message,
+        },
+    ]
 
-    DEFAULT_SYSTEM_PROMPT = """
-    以后的回答都要称呼我为李华,优先输出"你好,李华!"
-    """
 
-    def __init__(self):
-        self.client: OpenAI = OpenAI(
-            api_key=settings.DEEPSEEK_API_KEY,
-            base_url=settings.DEEPSEEK_URL,
-        )
+def create_client(api_key: str, url: str):
+    return OpenAI(api_key=api_key, base_url=url)
+
+
+def stream_response(
+    stream: Stream[ChatCompletionChunk],
+) -> Generator[str, None, None]:
+    for chunk in stream:
+        # 某些 chunk 可能没有 choices
+        if not chunk.choices:
+            continue
+
+        # delta 表示“这一次新增的内容”。
+        delta = chunk.choices[0].delta
+
+        # delta.content 可能是 None。
+        # 只有真的有文本内容时，才 yield 给外部。
+        if delta.content:
+            yield delta.content
+
+
+def create_stream(
+    client,
+    model: str,
+    user_message: str,
+    system_prompt: str,
+):
+    stream = client.chat.completions.create(
+        model=model,
+        messages=messages(user_message, system_prompt),
+        stream=True,
+        reasoning_effort="high",
+    )
+    return stream
+
 ```
+
+
+>以防你不知道,光是函数的名字我就足足想了十几分钟,或许重构最难的地方就是起一个足够恰当的名字了.
+
+- 看到那串冗长的类型就知道我第一版为什么没有给stream参数加上类型注释吧,而我没有给client参数加上类型注释是因为它的类型注释更加的可怕,等之后项目更成熟了再加上比较好
+
+现在我们可以回到client.把这些工具函数用上了:
 
 
 ##### 第七步: 修改路由实现
