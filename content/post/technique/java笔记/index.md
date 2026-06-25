@@ -936,7 +936,7 @@ class MyFirstJUnitJupiterTests {
 与Cpp有Make,ninja,CMake类似,Java也有自己的构建工具,早期的构建工具为Ant,目前由Maven和Gradle两款工具统治,它俩也承担了包管理器的责任.
 
 由于Gradle更轻量现代一点,所以更推荐使用Gradle而非Maven.
-## Maven(待补充)
+## Maven
 ### 安装方法
 [官网](https://maven.apache.org/install.html)下载压缩包后解压,将解压路径的bin目录添加到环境变量:
 ![示意图](PixPin_2026-05-01_12-50-48.webp)
@@ -972,6 +972,35 @@ mvn archetype:generate '-DgroupId=com.example' '-DartifactId=my-first-app' '-Dar
 
 
 #### pom.xml
+`pom.xml`是maven项目的唯一配置文件,比起gradle项目要清爽不少.看一下刚刚创建的项目中的xml内容:
+
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.example</groupId>
+  <artifactId>my-first-app</artifactId>
+  <packaging>jar</packaging>
+  <version>1.0-SNAPSHOT</version>
+  <name>my-first-app</name>
+  <url>http://maven.apache.org</url>
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
+```
+- `project`: 标识整个项目和所用的maven版本
+- `groupId`: 项目的包名
+- `artifactId`: 该项目的文件夹名称
+- `version`: 标识这个项目的当前版本
+- `dependencies`: 声明使用的依赖,要增加新的依赖就要在这里做修改.
+
+如此看来还是非常简单明了的.
 ## Gradle
 ### 安装方法
 [官网](https://docs.gradle.org/current/userguide/installation.html#installation)下载二进制版本,解压后将bin目录添加到环境变量,命令行输入`gradle -v`,成功:
@@ -1000,7 +1029,7 @@ Gradle提供了一个类似`npm create`的方式初始化项目,也就是`gradle
 
 ![jar](PixPin_2026-06-16_17-17-15.webp)
 
-# Spring与Spring Boot
+# Spring与Spring Boot(待补充)
 ## 概览
 - [官网](https://docs.spring.io/spring-framework/reference/overview.html)
 - [wiki](https://zh.wikipedia.org/wiki/Spring_Framework)
