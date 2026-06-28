@@ -9,6 +9,7 @@ date: 2026-04-27T21:40:47+08:00
 - [wiki](https://en.wikipedia.org/wiki/Domain_name)
 >domain name identifies a **network domain** or an **Internet Protocol** (IP) resource, such as a **personal computer** used to access the Internet, or a server computer.
 - 也就是说domain name是用来标识电脑和服务器的.
+
 A **fully qualified domain name** (FQDN) is a domain name that is completely specified with all labels in the hierarchy of the DNS, having no parts omitted.
 - 比如`en.wikipedia.org`就由被两个点分开的三个部分组成,每一部分都是一个域名.
 
@@ -35,7 +36,7 @@ A **fully qualified domain name** (FQDN) is a domain name that is completely spe
 使用docker运行以下命令:
 `docker run -d -p 8080:80 nginx:alpine`
 
-![示意图](.PixPin_2026-04-15_12-22-23.webp)
+![示意图](PixPin_2026-04-15_12-22-23.webp)
 通过以下四(~~1600万~~)种方式都可以成功访问上图页面
 1. `http://[::1]:8080/`: 少见
 2. `http://localhost:8080/`: 最为常用

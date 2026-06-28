@@ -626,24 +626,6 @@ $$T(n) = aT(n/b) + f(n)$$
 
 - 仔细看下来的话,内容确实很简单,教科书和ppt过一遍就结束了.
 - (6/22): 不得不说,这本书关于底层原理讲的可比自顶向下清楚多了,很好奇为什么这本书却没有那么有名,或者说简直是默默无名.
-## ppt阅读
-后来发现ppt做的还是挺用心的,可以说是我见过做的最用心的教学ppt了.所以就还是看看吧,顺便刷点习题
-### ch1
-#### Circuit Switching and Packet Switching
-- Circuit Switching: 数据通过线路传播,不进行拆分.
-- Packet Switching: 数据拆分成packet,通过多级跳转传播.
-### ch4
-#### 海明编码
-![ppt](PixPin_2026-06-18_15-15-19.webp)
-- 这页ppt特别精华
-
-
-
-#### 香农定律和时延计算
-![ppt介绍](PixPin_2026-06-14_20-57-52.webp)
-- 香农定律中的信噪比用的是普通的单位,而不是分贝,所以需要看题目是怎么说的
-
-
 
 ## 概览
 - 第5节的互联网历史讲的不错.
@@ -782,7 +764,7 @@ $$\text{0000000000},\quad \text{0000011111},\quad \text{1111100000},\quad \text{
 
 CRC将k位的帧看做是一个k-1次多项式的系数列表的系数，例如，`110001` 有 6 位，因此代表了一个有 6 项的多项式，其系数分别为 1、1、0、0、0 和 1：即 $1x^5+1x^4+0x^3+0x^2+0x^1+1x^0$。
 
-发送方和接收方预先商定一个生成多项式(generator polynomial)G(x).该多项式的最高位和最低位系数都必须是1,假如一各数据帧有m位,对应了多项式M(x),为了计算它的CRC,该帧需要比生成多项式长.
+发送方和接收方预先商定一个生成多项式(generator polynomial)G(x).该多项式的最高位和最低位系数都必须是1,假如一个数据帧有m位,对应了多项式M(x),为了计算它的CRC,该帧需要比生成多项式长.
 
 CRC的基本思想是,在帧的尾部附加一个校验和,使得附加之后的多项式能够被G(x)除尽.当接收方收到帧之后,会用G(x)去除该帧,**如果有余数则说明传输过程中发生了错误.**
 
@@ -959,7 +941,29 @@ IP数据报的头部有20字节的定长部分和一个可选的变长部分(很
 - 生存期(Time to live): 该数据报的生存时间.
 - 校验和: 只计算头部的校验和,至于数据部分由传输协议负责校验.
 
-#### IP地址(待补充)
+#### IP地址
+IP地址为32位,分为4个字节,每个字节取值范围为0-255,不同字节用`.`分隔开来.
+
+同一网络中的所有主机具有相同的前缀,如128.255.255.0/24表示前24位都用于网络地址,只有后8位是自由分配的.
+
+我们使用子网掩码(subnet mask)来快速标识IP地址的网络部分,如255.255.255.0表示前24位为网络地址.
+
+网络地址转换(NAT,Network Address Translation)的基本思想是,ISP为每个公司/家庭只分配一个**公共IP地址**,即便这个家庭/公司内部有多台主机,它们都有通过DHCP分配的不同**内部IP地址**,但在这些主机向外发送信息时,必须**将自己的内部IP地址转换成公共IP地址.**
+
+这种地址转换使用了 IP 地址的三个范围, 这些地址已经被声明为私有化。任何网络可以在内部随意地使用这些地址。仅有的规则是不允许包含这些地址的数据包出现在 Internet上。这 3 个保留的地址范围为:
+
+- 10.0.0.0～10.255.255.255/8                （16 777 216 个主机）
+- 172.16.0.0～172.31.255.255/12          （1 048 576 个主机）
+- 192.168.0.0～192.168.255.255/16      （65 536 个主机）
+
+如果在终端输入`ipconfig`的话,一般就能看到这些地址中的某一个被用作了该电脑的IPv4地址.
+
+现在的问题是,NAT如何知道从远方发来的数据包要交给哪个内部主机?
+
+唯一的解决方案是,NAT盒记录内部主机的TCP连接端口号,并将端口号与该主机的内部IP地址关联起来,如果有冲突就再做一次映射,转移到另一个没被占用的端口号.
+
+如此一来,NAT就破坏了网络的分层性质,将魔爪伸向了传输层,尽管如此,它还是得到了广泛应用,因为这确实比配置DHCP要简单多了,不需要动脑子,最主要的优点是,可以提前截获流量,从而可以作为防火墙阻挡攻击.
+
 #### IPv6
 ![示意图](PixPin_2026-06-27_14-15-37.webp)
 
@@ -981,6 +985,7 @@ IPv6最明显的改动就是去掉了校验和,将所有的校验都留给传输
 
 ##### 动态主机配置协议(DHCP,Dynamic Host Configuration Protocol)
 每个网络都有一个DHCP服务器负责IP地址的配置.当计算机启动时,它广播一个DHCP请求,DHCP服务器接收到该请求时就会为计算机分配一个空闲的IP地址,计算机也由此得知默认网关的IP地址.
+
 
 
 ## 传输层
@@ -1138,6 +1143,46 @@ Domain_name Time_to_live Class Type Value
 ## 网络安全(过)
 - 基本上全都是深入浅出密码学中覆盖的内容,遗憾的是基本都是浅尝辄止的,没有深入讲解,所以没什么看头
 
+## ppt阅读
+
+### ch1
+#### Circuit Switching and Packet Switching
+- Circuit Switching: 数据通过线路传播,不进行拆分.
+- Packet Switching: 数据拆分成packet,通过多级跳转传播.
+### ch2
+#### 香农定律
+![ppt介绍](PixPin_2026-06-14_20-57-52.webp)
+- 香农定律中的信噪比用的是普通的单位,而不是分贝,所以需要看题目是怎么说的
+
+### ch3(过)
+### ch4
+#### 海明编码
+![ppt](PixPin_2026-06-18_15-15-19.webp)
+
+
+海明码只能找出2位错误,或者纠正1位错误,所以基本没有用处.
+
+具体的编码方案很麻烦,但ppt中还是给了完整的实现出来,那还是得学习:
+1. 将1,2,4,8,...等位数作为纠错码的位置,每个纠错码分别纠正和在它的最高位是1的位置.例如第1位是检错码,那么1,3(11),5(101),7(111)等奇数对应第一位的最高位都是1;第二位则对应了2,3(11),6(110),7(111)位.
+2. 如果是偶校验(even),就让这些位中1的总个数为偶数,如果发现1的个数为奇数,那么就说明这组出错,校验结果记为1
+3. 将出错的几个组取交集,再除去没出错的组,就可以知道哪个码出错了.
+
+
+![例题](PixPin_2026-06-28_11-29-14.webp)
+
+
+### ch5
+#### Bellman-Ford
+### ch6,7,8(过)
+## 总结
+能拿来计算的大题如下:
+1. 香农定律
+2. 时延计算
+3. CRC/海明码计算
+4. Dijkstra路由
+5. Bellman-Ford路由
+
+看了一下简答题有5道,总共40分,而且肯定有一道概念题,那么上面5个应该都会考了,鉴于Bellman-Ford更不常用,所以考Dijkstra的概率更大.
 
 # 操作系统
 ## outline
@@ -1260,8 +1305,46 @@ CPU调度的主要算法如下:
 4. 循环等待
 
 ## ch9: 内存管理基础
-### 常用分区算法
+### 分区
+常用的分区算法如下:
+1. 最先适配: 按照分区先后顺序,找到符合要求的第一个分区
+2. 循环最先适配: 从上次分配的分区起开始查找符合要求的第一个分区,到地址末端时再回到第一个分区
+3. 最佳适配: 在所有的可用空闲分区中找一个最小的分区,从而尽可能保留较大的空闲分区.
+4. 最坏适配: 选择空闲分区中最大的
+
+分区会产生大量的内存碎片,所以不推荐使用
+### 段页式
+将用户程序按照段划分,而将内存空间按照页来划分,就可以实现内存的灵活分配
+
 ## ch10: 虚拟内存管理
+### 页面置换
+页面置换有如下算法:
+1.  先进先出算法(FIFO): 选择最先调入的页面
+2.  最佳算法（OPT-optimal）: 选择未来不再使用的页面来置换,是LRU的理想情况
+3.  最近最久未使用算法(LRU-Least Recently Used): 选择最近最久未被访问的页面来置换
+4.  最不常用算法(LFU-Least Frequently Used): 选择累计访问次数最少的页面来置换
+5.  轮转算法(clock): 置换时采用一个指针，从当前指针位置开始按地址先后检查各页，寻找user=0的页面作为被置换页，并将指针经过的页修改为user=0 ，最后指针停留在被置换页的下一个页。而每次有新页面调入时user都被置为1.
+
+
+>刚被淘汰出去的页很快又被访问，需要重新调入；但是，调入不久又再次被淘汰出去。如此反复，使得整个系统的页面替换非常频繁，使大部分机器时间都用在来回进行的页面调度上，这种局面称为**系统颠簸(thrashing)**
+
+后果:
+- 缺页率急剧增加；
+- 内存有效存取时间加长；
+- 系统吞吐量骤减；
+- 系统已基本不能完成什么任务
+
+解决方案:
+- 采用局部置换策略：如果一个进程出现抖动，它不能从另外的进程取帧，不会引发其它进程出现抖动，使抖动局限于一个小范围内。
+- 利用工作集策略防止抖动
+- 挂起某些进程：优先级低、缺页进程、最大的进程等
+
+## ch11: 文件系统
+
+## ch12: 设备管理
+
+## ch13: 磁盘结构(过)
+
 
 # 数据库
 ## outline
@@ -1580,9 +1663,9 @@ group by dept_name;
 
 而`having`子句用于过滤掉不符合要求的分组:
 ```sql
-select dept name, avg (salary) as avg_salary
+select dept_name, avg (salary) as avg_salary
 from instructor
-group by dept name
+group by dept_name
 having avg (salary) > 42000;
 ```
 
@@ -1633,11 +1716,139 @@ R.year = 2017);
 ```
 
 ##### from中的子查询
+```sql
+select dept_name, avg_salary
+from (select dept name, avg (salary)
+      from instructor
+      group by dept name)
+      as dept avg (dept_name, avg_salary)
+where avg_salary > 42000;
+```
+但由于写在from中太过晦涩难懂了,所以我们又引入了with从句,用于将子查询单独分离出来.
+##### with从句
+```sql
+with max_budget (value) as
+    (select max(budget)
+    from department)
+select budget
+from department, max_budget
+where department.budget = max_budget.value;
+```
+with后跟着该查询的结果表名和表中的属性,再用as连接查询.
 
 ### Table处理汇总
+#### 创建
+```sql
+create table department
+(
+  dept_name varchar(20),
+  building  varchar(15),
+  budget    numeric(12,2),
+  primary key(dept_name)
+);
+```
+创建一个表的格式如上,首先是属性和属性的定义域,接着是完整性约束,共有三种: primary key,foreign key和not null.
+
+一个比较详尽的例子如下:
+```sql
+create table department
+  (dept_name		varchar(20), 
+   building		varchar(15), 
+   budget		        numeric(12,2) check (budget > 0),
+   primary key (dept_name)
+  );
+
+create table course
+  (course_id		varchar(8), 
+   title			varchar(50), 
+   dept_name		varchar(20),
+   credits		numeric(2,0) check (credits > 0),
+   primary key (course_id),
+   foreign key (dept_name) references department (dept_name)
+    on delete set null
+  );
+
+create table instructor
+  (ID			varchar(5), 
+   name			varchar(20) not null, 
+   dept_name		varchar(20), 
+   salary			numeric(8,2) check (salary > 29000),
+   primary key (ID),
+   foreign key (dept_name) references department (dept_name)
+    on delete set null
+  );
+```
+
+#### 删除
+1. 删除表中的某些元组
+```sql
+delete from r
+where P;
+```
+
+#### 插入
+往表中插入一对元组:
+```sql
+insert into course
+values ('CS-437', 'Database Systems', 'Comp. Sci.', 4);
+
+-- 如果忘记了表的顺序,那么可以具体写出属性名来插入
+-- 这三种写法的结果完全相同
+
+insert into course (course id, title, dept_name, credits)
+values ('CS-437', 'Database Systems', 'Comp. Sci.', 4);
+
+insert into course (title, course id, credits, dept name)
+values ('Database Systems', 'CS-437', 4, 'Comp. Sci.');
+```
+
+#### 更新
+```sql
+update instructor
+set salary= salary * 1.05;
+-- 我们可以对某一列属性整体生效
+
+update instructor
+set salary = salary * 1.05
+where salary < 70000;
+-- 也可以对该列属性的部分值生效
+
+update instructor
+set salary = salary * 1.05
+where salary < (select avg (salary)
+from instructor);
+-- 还可以对满足子查询的属性值生效
+```
+
+
 ### 中级语法
-#### 连接表达式
+#### 连接表达式(待补充)
+一个个比较属性太麻烦了,连接表达式可以快速得出两个表中在所有共同的属性上取值相同的元组.
+
+>这通常作用于联系集和实体集之间,因为二者具有相同的主键,否则就没什么意义了.
+
+
+
 #### 视图
+视图(view)用来向不具有完整权限的第三方展示必要的内容:
+```sql
+create view v as <query expression>;
+```
+
+例子:
+```sql
+create view faculty as
+select ID, name, dept_name
+from instructor;
+```
+
+当然,还可以更改视图的默认属性名:
+```sql
+create view departments_total_salary(dept_name, total_salary) as
+    select dept_name, sum (salary)
+    from instructor
+    group by dept_name;
+```
 
 ### 高级语法
 #### Procedure
