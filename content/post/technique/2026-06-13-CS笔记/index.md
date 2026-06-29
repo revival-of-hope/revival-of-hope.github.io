@@ -572,10 +572,70 @@ using System.ComponentModel.DataAnnotations;
 using RetailSystem.API.Models;
 
 namespace RetailSystem.API.DTOs;
-
 ```
-## 总结
-C#本质就是Cpp和Java的结合版,但是自己又做了很多魔改,主要是C#的定位比较奇怪,身为强类型的语言,只能作为脚本语言存在于一些不是那么广泛的应用领域上,所以如果不是必须要用的话没必要去学.
+## 高级特性
+### 箭头表达式
+- C# 3.0引入了箭头表达式
+
+```cs
+public int Add(int a, int b) => a + b;
+
+// 等价于
+
+public int Add(int a, int b)
+{
+    return a + b;
+}
+```
+
+### 自动属性
+在c#中常常可以看到这两种写法:
+```cs
+public string Name { get; set; }
+
+public string Name;
+```
+前者叫做属性(Property),后者叫做字段(Field),最大的区别在于属性使用构造器声明,不用写`;`,而字段使用普通的声明方式.
+
+属性比起字段多了读写的权限控制和其他的自定义方法,尽管我们可以额外编写方法来修改字段,但就不如属性的自定义方法来得规范和便捷了.
+
+get表示可以读取这个属性,set表示可以更改这个属性,使用变量的时候则跟普通的字段调用相同.例如,如果要强调这个属性只读,外部方法不可修改,就可以写成:
+```cs
+public string Name { get; }
+
+user.Name = ""; // 错误
+```
+
+
+
+### 主构造函数
+- C# 12(23年11月,对应.NET 8)引入了主构造函数的语法.
+
+```cs
+public class PhoneProduct
+{
+    public string Brand { get; }
+    public string Model { get; }
+    public decimal Price { get; }
+
+    public PhoneProduct(string brand, string model, decimal price)
+    {
+        Brand = brand;
+        Model = model;
+        Price = price;
+    }
+}
+```
+很多时候这么写构造函数太麻烦了,而主构造函数提供了一个更加便捷和清晰的语法糖:
+```cs
+public class PhoneProduct(string brand, string model, decimal price)
+{
+    public string Brand { get; } = brand;
+    public string Model { get; } = model;
+    public decimal Price { get; } = price;
+}
+```
+
 
 # C#框架学习
 类似python有很多库一样, C#也有很多库和框架:
@@ -585,7 +645,7 @@ C#本质就是Cpp和Java的结合版,但是自己又做了很多魔改,主要是
 4. `Unity`: 游戏开发框架
 5. `ADO.NET`: .NET应用程序与数据库的通信框架
 
-不管怎样,本项目主要用到的库是`Entity Framework Core`和`ASP.NET Core`,分别对应数据库处理和网页接口处理
+最长被用到的库是`Entity Framework Core`和`ASP.NET Core`,分别对应数据库处理和网页接口处理
 
 ## ASP.NET Core
 ### 历史
