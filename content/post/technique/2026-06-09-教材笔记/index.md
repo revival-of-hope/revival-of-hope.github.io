@@ -1173,6 +1173,9 @@ Domain_name Time_to_live Class Type Value
 
 ### ch5
 #### Bellman-Ford
+![例题](PixPin_2026-06-28_14-49-34.webp)
+
+重要的是按照更新顺序来,第0轮的时候不做任何操作,第1轮开始,如果邻近节点就是目标节点或者有目标节点的路径,就开始更新.
 ### ch6,7,8(过)
 ## 总结
 能拿来计算的大题如下:
@@ -1194,8 +1197,8 @@ Domain_name Time_to_live Class Type Value
 1. 进程同步中的信号量问题
 2. 进程的状态转换
 3. 请求调页的存储管理机制
-4. 物理地址转换
-5. 文件索引
+4. 物理地址转换计算
+5. 文件索引计算
 
 
 ## 教材
@@ -1291,7 +1294,7 @@ CPU调度的主要算法如下:
 - S<0 则|S|表示S等待队列中的进程个数
 
 信号量中有两个操作P和V(荷兰语的缩写):
-1. P操作: 用于申请资源,S减去1,如果S变为负数,那么就阻塞这个线程并加入等待队列,否则就继续运行该线程
+1. P操作(假设P为Please的缩写可以方便记忆): 用于申请资源,S减去1,如果S变为负数,那么就阻塞这个线程并加入等待队列,否则就继续运行该线程
 2. V操作: 用于在线程执行完毕后释放资源,S加上1,如果S仍然为负数,那么就从队列中唤醒一个线程
 
 ![例题](PixPin_2026-06-26_14-05-50.webp)
@@ -1340,11 +1343,19 @@ CPU调度的主要算法如下:
 - 挂起某些进程：优先级低、缺页进程、最大的进程等
 
 ## ch11: 文件系统
+### 文件结构
+文件有两种逻辑结构,与存储设备的特性无关:
+1. 流式文件: 构成文件的基本单位是字符,是现代操作系统的文件结构
+2. 记录文件: 文件由若干个记录组成,每个记录保留一部分的文件信息,主要用在老式的机器中.
 
-## ch12: 设备管理
-
+### 文件存储
+有三种文件存储方式:
+1. 连续(顺序)结构: 简单,支持随机存取;不利于文件的插入和删除,文件不能动态增长
+2. 链接结构: 文件块之间通过指针链接;提高了磁盘空间的利用率,有利于文件的插入和删除;存取速度慢,不能随机存取
+3. 索引结构: 文件块使用索引表来管理;充分利用了磁盘空间,还可以实现随机存取;索引表本身有存储开销
+## ch12: 设备管理(过)
 ## ch13: 磁盘结构(过)
-
+## 总结
 
 # 数据库
 ## outline
@@ -1822,11 +1833,31 @@ from instructor);
 
 
 ### 中级语法
-#### 连接表达式(待补充)
-一个个比较属性太麻烦了,连接表达式可以快速得出两个表中在所有共同的属性上取值相同的元组.
+#### from中的连接表达式
+一个个比较属性太麻烦了,连接表达式可以快速得出两个表中在所有共同的属性上取值相同的元组,并得到合并后的表.
 
 >这通常作用于联系集和实体集之间,因为二者具有相同的主键,否则就没什么意义了.
 
+join有三种基本格式:
+1. natural join: 如名字所说,是自然的join,会自动去重,也就是说,对于参与比较的所有属性,都只会保持其中的一列,毕竟保留两列完全相同的属性并没有任何意义.
+2. `表1 join 表2 using (共同属性)`: 只在给定的属性上合并,自动去重,如果有没有涉及的共同属性,就全部保留
+3. `表1 join 表2 on (条件)`: 基本完全等同于where,所以不会自动去重.
+
+```sql
+select name, course_id
+from student natural join takes;
+```
+##### 外连接
+很多时候我们希望保留只在一个关系中出现的元组,那么就需要用到外连接(outer join),相对的,所有没有直接写outer join的连接都默认为inner join.
+
+outer join有三种写法:
+1. left outer join: 保留左边关系的所有元组
+2. right outer join: 保留右边关系的所有元组
+3. full outer join: 保留两边的所有元组
+
+join时,如果该元组只在一边出现,另一边关系所有的属性都置为null.
+
+![示例](PixPin_2026-06-28_17-01-44.webp)
 
 
 #### 视图
@@ -1850,10 +1881,63 @@ create view departments_total_salary(dept_name, total_salary) as
     group by dept_name;
 ```
 
-### 高级语法
-#### Procedure
+### 高级语法(可看可不看)
+#### Procedure and function
+说真的,也不是那么有必要去了解.
+
+```sql
+create function dept_count(dept_name varchar(20))
+    returns integer
+    begin
+    declare d_count integer;
+
+        select count(*) into d_count
+        from instructor
+        where instructor.dept_name = dept_name;
+
+        return d_count;
+    end
+```
+上述函数可以改写成一个过程,效果没有任何区别,之所以会有两种类型是因为这些语法在被标准化之前就存在了:
+
+```sql
+create procedure dept_count_proc(in dept_name varchar(20),out d_count integer)
+begin
+    select count(*) into d_count
+    from instructor
+    where instructor.dept_name = dept_count_proc.dept_name
+end
+```
+仔细来看的话,还是很好理解的...
 
 #### Trigger
+触发器(trigger)在满足某个条件时自动执行,从而确保数据库的完整性.它可以在事件(插入,删除或更新)之前激活,而不仅仅是在事件之后被激活,一个例子如下:
+
+```sql
+create trigger timeslot_check1 after insert on section
+referencing new row as nrow
+for each row
+when (nrow.time_slot_id not in (
+        select time_slot_id
+        from time_slot)) /* 在time_slot中不存在该time_slot_id */
+begin
+    rollback
+end;
+
+create trigger timeslot_check2 after delete on timeslot
+referencing old row as orow
+for each row
+when (orow.time_slot_id not in (
+        select time_slot_id
+        from time_slot) /* 从time_slot中删除了对应于该time_slot_id的最后一个元组 */
+    and orow.time_slot_id in (
+        select time_slot_id
+        from section)) /* 并且仍然存在section对该time_slot_id的引用 */
+begin
+    rollback
+end;
+```
+
 ## ch6: 关系代数
 ### 基本语法
 
@@ -1862,9 +1946,61 @@ create view departments_total_salary(dept_name, total_salary) as
 ### 实体集与联系集
 ### 画图
 ## ch8: 范式
+>范式(Normal Form)用来测试某个关系的设计是否合理,并对不好的设计进行拆分,而却不能用来建立一个合理的关系,如此看来,是非常鸡肋的.
+
+### 概念
+- 函数依赖: 关系表中任意两个或者多个元组之间的关系
+- 闭包(closure): 可以从给定的集合F中推导出的所有函数依赖的集合.
+- 平凡的(trival): 某个函数依赖可以被所有关系满足,**如果 β ⊆ α,则形如 α → β 的函数依赖是平凡的**.
+  - 平凡的函数依赖一定会满足,所以可以直接忽略
+- 无损的(lossless): 将一个表拆分成两个表后没有信息丢失.
+  - 确保可以在拆分出的表中保留主码即可.
+
+![例子](PixPin_2026-06-29_14-19-41.webp)
+
+关系设计中有三种key: superkey,candidate key,primary key.
+
+三种key存在一个递进关系,superkey可以唯一标识一个元组,但允许用多余的属性,candidate key一旦删去任何一个属性都不可以唯一标识元组,primary key是从candidate key中选取的最终主键.
+
+
+### Boyce-Codd范式(BCNF)
+检查方法如下:
+1. 找到平凡的函数依赖并忽略它
+2. 非平凡的函数依赖`α → β`中α 需要是该关系表的一个超码(superkey),即包含了该关系表的`candidate key`.
+
+### 3NF(Third Normal Form)
+
+3NF放松了一点点要求,满足BCNF的一定满足3NF,反过来就不一定.
+
+检查方法如下:
+1. 找到平凡的函数依赖并忽略它
+2. 非平凡的函数依赖`α → β`中α 需要是该关系表的一个超码(superkey)
+3. `β - α`中的每个属性A都被包含于R的一个候选码(candidate key)中,但可以是不同的候选码.
+
+也就是说,只要这个β足够特殊,也可以视为满足3NF.
+
+### 4NF(Fourth Normal Form)
+
+### BCNF分解
 
 ## ch11: 索引和B+树
+### 补充: B-树
+B-树分为内部节点和外部节点(叶节点): 本身是一个二叉搜索树,所有叶节点在同一层,m阶B树中的所有节点最多有m个分支,也就是`m-1`个元素.
 
+对于根节点: 最少有2个分支,一个元素,其他的内部节点和叶节点最少有(m/2)个分支,也就是(m/2)-1个元素,向上取整.
+
+### B+树
+由于B-树遍历所有元素的效率很低,需要来回在子树之间穿梭.所以B+树诞生了,用于方便遍历所有的元素.
+
+B+树的改进地方有以下几点(m阶):
+1. 内部节点的要求不变,最多有m个指针,即(m-1)个搜索码,最少有(m/2)个指针,即(m/2)-1个搜索码,例如5阶B+树的内部节点最多有4个搜索码,最少有2个搜索码
+2. 而叶节点不同,最多有(m-1)个值,最少有(m-1)/2个值,例如5阶B+树的叶节点最多有4个值,最少有2个值
+3. 根节点仍然是最少可以有2个指针,即1个节点.
+
+>如果仔细思考的话,就是奇数阶中内部节点和叶子节点的容纳范围相同,偶数阶中叶子节点的最少容纳量要多1个.
+
+
+### B+树的插入与删除
 
 # archive
 ## Introduction to the Relational Model
