@@ -1397,11 +1397,22 @@ CPU调度的主要算法如下:
 - (3/26)这本书真的是又臭又长...
 - (3/28)我服了原来这个ppt是[官网](https://db-book.com/slides-dir/index.html)上的,而我们老师实际啥都没干...
 ## 本教材核心: 大学数据库
-- keys used
+keys used:
+| 关系名     | 关系模式                                                                                                                               |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| classroom  | $classroom(\underline{building}, \underline{room\_number}, capacity)$                                                                  |
+| department | $department(\underline{dept\_name}, building, budget)$                                                                                 |
+| course     | $course(\underline{course\_id}, title, dept\_name, credits)$                                                                           |
+| instructor | $instructor(\underline{ID}, name, dept\_name, salary)$                                                                                 |
+| section    | $section(\underline{course\_id}, \underline{sec\_id}, \underline{semester}, \underline{year}, building, room\_number, time\_slot\_id)$ |
+| teaches    | $teaches(\underline{ID}, \underline{course\_id}, \underline{sec\_id}, \underline{semester}, \underline{year})$                         |
+| student    | $student(\underline{ID}, name, dept\_name, tot\_cred)$                                                                                 |
+| takes      | $takes(\underline{ID}, \underline{course\_id}, \underline{sec\_id}, \underline{semester}, \underline{year}, grade)$                    |
+| advisor    | $advisor(\underline{s\_ID}, i\_ID)$                                                                                                    |
+| time_slot  | $time\_slot(\underline{time\_slot\_id}, \underline{day}, \underline{start\_time}, end\_time)$                                          |
+| prereq     | $prereq(\underline{course\_id}, \underline{prereq\_id})$                                                                               |
 
-![示意图](PixPin_2026-03-26_08-23-16.webp)
-
-- schema diagram
+schema diagram: 
 
 ![示意图](PixPin_2026-03-26_08-24-59.webp)
 
@@ -1833,7 +1844,7 @@ from instructor);
 
 
 ### 中级语法
-#### from中的连接表达式
+#### 连接表达式
 一个个比较属性太麻烦了,连接表达式可以快速得出两个表中在所有共同的属性上取值相同的元组,并得到合并后的表.
 
 >这通常作用于联系集和实体集之间,因为二者具有相同的主键,否则就没什么意义了.
@@ -1937,9 +1948,77 @@ begin
     rollback
 end;
 ```
+### 例题
+#### 第一题
+使用教材中的大学数据库模式，用sql来找出多于一个教师授课的课程段，分别用以下两种方式来
+表达：
+1. 不使用聚集函数
+2. 使用聚集函数
+
+```sql
+SELECT course_id, sec_id, semester, year
+FROM teaches
+GROUP BY course_id, sec_id, semester, year
+HAVING COUNT(DISTINCT ID) > 1;
+```
+
+```sql
+SELECT DISTINCT T1.course_id, T1.sec_id, T1.semester, T1.year
+FROM teaches AS T1, teaches AS T2
+WHERE T1.course_id = T2.course_id
+  AND T1.sec_id = T2.sec_id
+  AND T1.semester = T2.semester
+  AND T1.year = T2.year
+  AND T1.ID <> T2.ID;
+```
+
 
 ## ch6: 关系代数
-### 基本语法
+1. 选择(select)运算,使用σ来标识,作为`where`的谓词写在下标中,作为`from`的关系写在后面的括号中:
+
+$$\sigma_{dept\_name = "Physics"} (instructor)$$
+
+上述关系代数就等价于:
+```sql
+select *
+from instructor
+where dept_name="Physics";
+```
+如果要使用多个谓词,就要用∩来连接:
+
+$$\Pi_{course\_id}(\sigma_{semester = "Fall" \wedge year = 2017}(section))$$
+
+2. 投影(project)运算,使用Π来标识,获取关系中所需的属性,实质上就是`select`.
+
+![效果图](PixPin_2026-06-30_14-05-15.webp)
+
+要想实现完整功能的sql,就需要吧选择运算和投影运算结合起来:
+
+$$\Pi_{name}(\sigma_{dept\_name = "Physics"}(instructor))$$
+
+3. 笛卡尔积(Cartesian Product)运算,使用`X`来标识,关系代数中的 $r_1 \times r_2$ 不是将来自动 $r_1$ 和 $r_2$ 的元组生成元组对 $(t_1, t_2)$，而是将 $t_1$ 和 $t_2$ 拼接成单个元组
+
+
+$$\sigma_{instructor.ID = teaches.ID}(instructor \times teaches)$$
+
+在选择运算中使用笛卡尔积,就可以实现`join...on...`的效果,不会自动去重,所以需要再套一层投影.另一种写法是使用连接运算.
+
+4. 连接(join)运算,请考虑关系 $r(R)$ 和 $s(S)$，并令 $\theta$ 为 $R \cup S$ 模式的属性上的一个谓词。连接（join）运算 $r \bowtie_\theta s$ 定义如下：
+
+$$r \bowtie_\theta s = \sigma_\theta (r \times s)$$
+
+因此，$\sigma_{instructor.ID = teaches.ID} (instructor \times teaches)$ 可以等价地写为 $instructor \bowtie_{instructor.ID = teaches.ID} teaches$。
+
+对于sql中的`union`,`intersect`,`except`三个关键字,同样有对应的三个关系代数,分别用`∪,∩,-`来表示.
+
+如果要存储关系代数的结果,就要使用变量+左箭头的形式:
+
+$$courses\_fall\_2017 \leftarrow \Pi_{course\_id}(\sigma_{semester = "Fall" \wedge year = 2017}(section))$$
+
+$$courses\_spring\_2018 \leftarrow \Pi_{course\_id}(\sigma_{semester = "Spring" \wedge year = 2018}(section))$$
+
+$$courses\_fall\_2017 \cap courses\_spring\_2018$$
+
 
 ## ch7: E-R图
 ### 映射基数
@@ -2091,6 +2170,7 @@ B+树的改进地方有以下几点(m阶):
 
 
 ### B+树的插入与删除
+
 
 # archive
 ## Introduction to the Relational Model
