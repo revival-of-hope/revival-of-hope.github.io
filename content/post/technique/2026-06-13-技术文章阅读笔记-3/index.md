@@ -223,6 +223,8 @@ Spring Boot引入了`convention over configuration`这一概念,也就是说,开
 ![示意图](PixPin_2026-06-29_21-50-12.webp)
 
 >该图展示了 EF Core 如何依据你映射的类构建数据库模型。首先它通过`DbSet<T>` 属性检查你定义的类，随后会扫描这些类所引用的其他类。借助这些类，EF Core 能够推导出数据库的默认模型。接着它会执行应用程序中 DbContext 的 `OnModelCreating` 方法，你可以重写该方法并添加具体指令，以按你的需求配置数据库。
+## 查询数据库
+
 # On Java 8(待补充)
 - [中文翻译版链接](https://zyb0408.github.io/gitbooks/onjava8/)
 
