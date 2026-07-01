@@ -397,7 +397,7 @@ Lambda 表达式是使用最小可能语法编写的函数定义：
 
 8086 内部有 4 个段寄存器。其中，CS 是代码段寄存器，DS 是数据段寄存器，ES 是附加段（Extra Segment）寄存器,SS 是栈段（Stack Segment）寄存器
 
-IP是指令指针（Instruction Pointer）寄存器,只和CS一起使用
+IP是指令指针（Instruction Pointer）寄存器,只和CS一起使用,当一段代码开始执行时
 
 # Python源码剖析
 # 推荐系统实践
