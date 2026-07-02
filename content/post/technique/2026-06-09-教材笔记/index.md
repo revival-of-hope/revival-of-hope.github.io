@@ -1829,7 +1829,7 @@ values ('CS-437', 'Database Systems', 'Comp. Sci.', 4);
 insert into course (course id, title, dept_name, credits)
 values ('CS-437', 'Database Systems', 'Comp. Sci.', 4);
 
-insert into course (title, course id, credits, dept name)
+insert into course (title, course id, credits, dept_name)
 values ('Database Systems', 'CS-437', 4, 'Comp. Sci.');
 ```
 
@@ -1861,7 +1861,7 @@ from instructor);
 join有三种基本格式:
 1. natural join: 如名字所说,是自然的join,会自动去重,也就是说,对于参与比较的所有属性,都只会保持其中的一列,毕竟保留两列完全相同的属性并没有任何意义.
 2. `表1 join 表2 using (共同属性)`: 只在给定的属性上合并,自动去重,如果有没有涉及的共同属性,就全部保留
-3. `表1 join 表2 on (条件)`: 基本完全等同于where,所以不会自动去重.
+3. `表1 join 表2 on (条件)`: 基本完全等同于where,不会自动去重.
 
 ```sql
 select name, course_id
@@ -2220,10 +2220,8 @@ B+树的改进地方有以下几点(m阶):
 ### B+树的插入与删除
 
 
-# archive
-
-## 第三次小测复习(6/9)
-
+## archive
+以前又臭又长的笔记都删掉了,但索引部分还是留着吧.
 ### ch11: 索引
 有两种基本的索引类型: 顺序索引(ordered index)和散列索引(hash index).
 
