@@ -605,9 +605,24 @@ public string Name { get; }
 
 user.Name = ""; // 错误
 ```
+### Record类型
+- C# 9.0引入了该类型
 
+它是一种轻量级的,不可变的只读class,因此可以用来存储ORM映射中的数据库表,如:
+```cs
+public record Person(string FirstName, string LastName);
+```
+这会自动生成构造函数,引入自动解构机制,非常的强大,常见于ASP.NET Core框架中.
 
+用法如下:
+```cs
+var a = new Person("John", "Smith");
+var b = new Person(FirstName: "John", LastName: "Smith");
+var c = new Person(LastName: "Smith", FirstName: "John");
+var d = new Person("John", LastName: "Smith");
+```
 
+- [更详细的讲解](https://www.cnblogs.com/markkang/p/14111990.html)
 ### 主构造函数
 - C# 12(23年11月,对应.NET 8)引入了主构造函数的语法.
 
@@ -634,6 +649,11 @@ public class PhoneProduct(string brand, string model, decimal price)
     public string Model { get; } = model;
     public decimal Price { get; } = price;
 }
+```
+
+如果还想简化,就可以使用Record一步到位,变成:
+```cs
+public record PhoneProduct(string Brand, string Model, decimal Price);
 ```
 
 

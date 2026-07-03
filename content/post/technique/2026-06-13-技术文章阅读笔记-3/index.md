@@ -369,8 +369,119 @@ Lambda 表达式是使用最小可能语法编写的函数定义：
 - Cypher是图数据库的标准查询语言,而不少图数据库还支持RDF的查询语言SPARQL.
 
 很遗憾的是,书中对Cypher的介绍非常浅显,所以需要专门找其他的书来看了.至于剩下的内容就都是扯淡了,这也看得出来图数据库本身还没有那么成熟.
-# ASP.NET Core开发实战(第三版)
+# ASP.NET Core in Action(第三版)
 - 之前看了老版本的,直接被劝退了,现在这个版本是2023年出版的.
+## 入门
+ASP.NET Core是一个C#框架,用于构建Web应用程序,可实现的应用程序如下:
+1. 后端API
+2. MVC控制器
+3. Blazor WebAssembly用来做前端
+
+总的来说,就是一个后端的网页框架而已.
+
+ASP.NET Core的默认Web服务器是Kestrel,其地位基本等于python中的uvicorn,在接受请求时会传给应用程序一个HttpContext对象,它是一个用来存储单个请求的容器,这等价于fastapi中的`app=Fastapi()`.
+
+### 补充: 使用VSCode创建项目
+书中使用Visual Studio 中的 ASP.NET Core Empty 项目模板来初始化项目,这等价于在VSCode终端输入`dotnet new web`.
+
+运行`dotnet run`即可在给定端口看到欢迎界面:
+
+![端口](PixPin_2026-07-03_14-41-45.webp)
+
+### 项目介绍
+![示意图](PixPin_2026-07-03_14-43-19.webp)
+
+1. 文件夹Properties中存放了launchSettings.json文件,只用于本地开发和调试,在部署时不生效.
+2. 核心的配置文件是`appsettings.json`和`appsettings.Development.json`,用来在运行时调控应用.
+3. `.csproj`后缀的文件是.NET应用程序的项目文件,定义了.NET的版本和项目用到的依赖,为xml风格,内容如下:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
+```
+
+要导入新的包可以使用`dotnet add package <包名>`命令,这会同步更新`.csproj`文件,反过来也可以,导入其他项目的`.csproj`文件就可以实现一键导入.
+
+
+4. `Program.cs`: .NET项目的默认入口文件,可以不叫这个名字,但容易引起混淆,而且根目录下一般只有这一个cs文件
+
+从.NET 6开始,`Program.cs`文件不需要再显式写`static void Main`以标明主函数,如:
+
+```cs
+using System;
+namespace MyApp
+{
+public class Program
+  {
+    public static void Main(string[] args)
+      {
+      Console.WriteLine("Hello World!");
+      }
+    }
+}
+```
+而现在可以直接这么写:
+```cs
+Console.WriteLine("Hello World!");
+```
+>看起来确实清晰多了,建议Java也学习一下.
+
+然后我们的初始`Program.cs`文件是这样的:
+```cs
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.MapGet("/", () => "Hello World!");
+
+app.Run();
+```
+>这已经可以比得上fastapi的简洁语法了,开发效率这不就一下子上来了.
+
+`builder`会按顺序加载 appsettings.json、appsettings.Development.json、系统环境变量,并注入builder中,然后再通过`app`来锁定这个配置并创建Web服务器.
+
+
+MapGet函数用来定义如何处理一个使用GET方法的请求。还有其他`Map*`函数用于其他HTTP方法，例如MapPost。
+
+- 说真的,那就没必要加上Map这个前缀啊,估计是有命名冲突吧.
+
+### 进阶项目
+```cs
+using Microsoft.AspNetCore.HttpLogging;
+
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddHttpLogging(opts => 
+    opts.LoggingFields = HttpLoggingFields.RequestProperties);
+
+builder.Logging.AddFilter(
+    "Microsoft.AspNetCore.HttpLogging", LogLevel.Information);
+
+WebApplication app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpLogging();
+}
+
+app.MapGet("/", () => "Hello World!");
+app.MapGet("/person", () => new Person("Andrew", "Lock"));
+// 自动转换成json格式
+
+app.Run();
+
+public record Person(string FirstName, string LastName);
+```
+
+上述代码中往builder内额外注册了两个配置,用于在生产环境下向控制台输出日志.
+## 中间件
+
 
 
 # Entity Framework Core in Action Second Edition
@@ -382,7 +493,8 @@ Lambda 表达式是使用最小可能语法编写的函数定义：
 ## 查询数据库
 # C# 12 in a Nutshell
 - 2024年出版,还是非常新鲜的
-##
+## C#基础
+
 
 
 
