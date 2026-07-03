@@ -4,7 +4,7 @@ tags:
 date: 2026-03-14 08:00:00
 image: 53031871_p0-黄昏的宴会.webp
 math: true
-weight: 1
+
 ---
 
 # 计算机系统结构
