@@ -403,6 +403,21 @@ ObjectId 的 12 字节是按照如下方式生成的：
 >因为时间戳在前，所以 ObjectId 将大致按照插入的顺序进行排列。这并不是一个很强的保证，但是确实在某些方面很有用，比如可以使 ObjectId 的索引效率更高
 ## 总结
 后面都是一些终端操作和不痛不痒的通用数据库常识了,不过我们肯定是用Python或者Java来操作MongoDB,所以也没必要去学这些终端操作了
+# 操作系统: 设计与实现(第三版)
+- MINIX配套教材,也是一切开始的地方.
+- 一开始我在想这本书的中文版为什么要分成上下两册,后来发现下册只有300多页,里面是接近3w行的MINIX源码,说实话真没必要😅
+## 引言
+![示意图](PixPin_2026-07-03_12-21-48.webp)
+大多数操作系统书也确实是这样的,这也是这本书与众不同的地方,从头设计了一个全新的操作系统.
+### 操作系统的发展历史
+- 这一部分很值得看.
+
+### 与Linux的关系
+> 有些读者可能对 MINIX 和 Linux 之间的关系比较感兴趣。在 MINIX 发布后不久，便出现了一个相应的 USENET 新闻组 *comp.os.minix*，在数周内便有多达 40 000 个用户订阅。其中多数人都想往 MINIX 中加入一些新的特性以使它更大、更好（嗯，至少是更大吧）。每天都有数百人提出自己的建议、想法甚至是代码。而 MINIX 的作者在几年内始终坚持不采纳这些建议，目的是使 MINIX 保持足够的简洁，以便于学生理解；同时保持规模的小巧，使它能运行在一些低档的、学生可以买得起的计算机上。事实上，对于一些看不上 MS-DOS 的人来说，MINIX 系统及其源代码的存在，甚至是促使他们去购买一台 PC 机的动因。
+> 在这些提建议的人中，有一个芬兰学生 Linus Torvalds。Torvalds 在他的 PC 机上安装了 MINIX 系统，并且认真钻研了它的源代码。后来，Torvalds 想在他自己的 PC 机上阅读 USENET 新闻组（如 *comp.os.minix* ），免得每次都得跑到学校去。但是他需要的一些特性在 MINIX 中没有，于是他就写了一个程序来完成这些功能。但不久他又需要一个不同的终端驱动程序，于是他又写了一个相应的程序。接下来，他想要下载和保存新闻组中的文章，于是又写了一个磁盘驱动程序和一个文件系统。到 1991 年 8 月，他已经完成了一个基本的内核。在 1991 年 8 月 25 日，他把这个消息公布在 *comp.os.minix* 上。这个公告吸引了其他人来帮助他，在 1994 年 3 月 13 日，Linux 1.0 正式发布了，这标志着 Linux 的诞生。
+
+## 总结
+由于我看这本书是想学MINIX,奈何大部分内容都是在抛开MINIX谈论操作系统的共性,尽管讲的不错,但这些内容我都还比较熟悉,等待以后要背八股时或许会再来看一遍吧.
 
 # 推荐系统实践
 ## 推荐系统概述
@@ -535,9 +550,92 @@ public record Person(string FirstName, string LastName);
 
 上述代码中往builder内额外注册了两个配置,用于在生产环境下向控制台输出日志.
 ## 中间件
+![示意图](PixPin_2026-07-04_14-31-54.webp)
+中间件以`Use`开头的方法来调用.
 
+这些中间件与通常意义上能够均衡负载,处理路由的middleware不同,只是用来调试和作为模板页面而已,很难想象有必要把这种东西加入到核心库中而不是作为扩展包.
+## 状态码
+```cs
+using System.Collections.Concurrent;
 
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+WebApplication app = builder.Build();
 
+var _fruit = new ConcurrentDictionary<string, Fruit>();
+
+// #A
+app.MapGet("/fruit", () => _fruit);
+
+// #B
+app.MapGet("/fruit/{id}", (string id) =>
+    _fruit.TryGetValue(id, out var fruit)
+        // #C
+        ? TypedResults.Ok(fruit)
+        // #D
+        : Results.NotFound());
+
+// #D
+app.MapPost("/fruit/{id}", (string id, Fruit fruit) =>
+    _fruit.TryAdd(id, fruit)
+        // #E
+        ? TypedResults.Created($"/fruit/{id}", fruit)
+        // #F
+        : Results.BadRequest(new // #G
+        { 
+            id = "A fruit with this id already exists" 
+        })); // #G
+
+// #H
+app.MapPut("/fruit/{id}", (string id, Fruit fruit) =>
+{
+    _fruit[id] = fruit;
+    return Results.NoContent();
+});
+
+// #H
+app.MapDelete("/fruit/{id}", (string id) =>
+{
+    _fruit.TryRemove(id, out _); // #I
+    return Results.NoContent(); // #I
+});
+
+app.Run();
+
+record Fruit(string Name, int stock);
+```
+- ConcurrentDictionary是一个线程安全的字典,支持`TryAdd`,`TryGetValue`等方法
+- Results和TypedResults用起来没有区别,但在生成OpenAPI文档时TypedResults可以提供更好的具体类型说明,所以推荐无脑使用TypedResults
+
+## 两种路由
+>在 ASP.NET Core 中，路由写法主要分为 Minimal APIs（极简 API / 终结点路由） 和 Controllers（控制器路由 / 传统 MVC）。
+
+**Minimal API 路由写法**
+| 写法           | 示例                                                    | 匹配 URL                   | 含义                               |
+| -------------- | ------------------------------------------------------- | -------------------------- | ---------------------------------- |
+| 根路径         | `app.MapGet("/", () => "Hello");`                       | `/`                        | 访问网站根地址                     |
+| 固定路径       | `app.MapGet("/fruit", () => ...);`                      | `/fruit`                   | 路径必须完全匹配 `/fruit`          |
+| 路径参数       | `app.MapGet("/fruit/{id}", (string id) => ...);`        | `/fruit/apple`             | `{id}` 会绑定为 `"apple"`          |
+| 多个路径参数   | `app.MapGet("/users/{userId}/orders/{orderId}", ...)`   | `/users/1/orders/99`       | 同时接收多个参数                   |
+| 指定参数类型   | `app.MapGet("/fruit/{id:int}", (int id) => ...);`       | `/fruit/123`               | 只匹配整数 id                      |
+| 可选参数       | `app.MapGet("/fruit/{id?}", (string? id) => ...);`      | `/fruit` 或 `/fruit/apple` | `id` 可以没有                      |
+| 默认值参数     | `app.MapGet("/page/{num=1}", (int num) => ...);`        | `/page`                    | 没传时 `num = 1`                   |
+| catch-all 路由 | `app.MapGet("/files/{*path}", (string path) => ...);`   | `/files/a/b/c.txt`         | 捕获 `/files/` 后面的剩余路径      |
+| 双星 catch-all | `app.MapGet("/files/{**path}", (string path) => ...);`  | `/files/a/b/c.txt`         | 和 `*` 类似，但生成 URL 时保留 `/` |
+| 正则约束       | `app.MapGet("/posts/{slug:regex(^[a-z0-9_-]+$)}", ...)` | `/posts/hello-1`           | 只匹配符合正则的 slug              |
+| 路由分组       | `app.MapGroup("/api").MapGet("/fruit", ...)`            | `/api/fruit`               | 给一组接口统一加前缀               |
+
+**Controller 路由写法**
+| 类型                | 写法                          | 示例 URL           | 说明                            |
+| ------------------- | ----------------------------- | ------------------ | ------------------------------- |
+| Controller 统一前缀 | `[Route("api/[controller]")]` | `/api/fruit`       | `[controller]` 会替换成控制器名 |
+| GET Action          | `[HttpGet]`                   | `/api/fruit`       | 匹配 GET `/api/fruit`           |
+| GET 带参数          | `[HttpGet("{id}")]`           | `/api/fruit/apple` | 匹配 GET `/api/fruit/{id}`      |
+| POST                | `[HttpPost]`                  | `/api/fruit`       | 新增资源                        |
+| PUT                 | `[HttpPut("{id}")]`           | `/api/fruit/apple` | 更新资源                        |
+| DELETE              | `[HttpDelete("{id}")]`        | `/api/fruit/apple` | 删除资源                        |
+| 指定完整路由        | `[HttpGet("/health")]`        | `/health`          | 以 `/` 开头时通常表示绝对路径   |
+
+由于Controller路由比较古老,写法也比较复杂,所以现在都推荐使用Minimal API写法了.
 # Entity Framework Core in Action Second Edition
 ## 概览
 ### EF core原理
@@ -550,41 +648,15 @@ public record Person(string FirstName, string LastName);
 ## C#基础
 
 
+# [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice)- 深入篇
+- 之前只看了入门篇和进阶篇,现在想学习一下kubernetes,所以又翻出来学习了
 
 
 
 # x86汇编语言：从实模式到保护模式(第二版)
 这本书的前半部分围绕8086处理器,后半部分围绕80386处理器.
 ## 基础知识
-### 8086处理器架构
-- 8086处理器是INTEL的第一款16位处理器,诞生于1978年
 
-8086中有8个16位(两个字节)的通用寄存器,结构如下:
-
-![示意图](PixPin_2026-06-29_17-48-33.webp)
-
-由于x86中指令的长度不定,短的只有1字节,长的有15字节,所以需要将指令和数据分开存放在内存中.
-
-内存的结构如下:
-
-![结构图](PixPin_2026-06-29_18-06-29.webp)
-
-内存的最小访问单元是1字节,每一位地址对应1个字节.
-
-关于8086架构的一个详细示意图如下:
-
-![示意图](PixPin_2026-06-30_20-01-58.webp)
-
-8086 内部有 4 个段寄存器。其中，CS 是代码段寄存器，DS 是数据段寄存器，ES 是附加段（Extra Segment）寄存器,SS 是栈段（Stack Segment）寄存器
-
-IP是指令指针（Instruction Pointer）寄存器,只和CS一起使用,当一段代码开始执行时,CS 保存代码段的段地址，IP 则指向段内偏移。这样，由 CS 和 IP 共同形成逻辑地址.
-### 汇编语言
-16进制的英文是Hexadecimal,比如125H后面的“H”用于表明这是一个十六进制数,但在很多高级语言中，如果要指示一个数是十六进制数，通常不采用在后面加“H”的做法，而是为它添加一个“0x”前缀，如:
-```asm
-mov ax,0x3f
-```
-
->你可能想问一下，为什么会是这样，为什么会是“0x”？答案是不知道，不知道在什么时候，为什么就这样用了。这不得不让人怀疑，它肯定是一个非常随意的决定，并在以后形成了惯例
 ### ROM
 >8086 有 20 根地址线，但并非全都用来访问 DRAM，也就是内存条。事实上，这些地址线经过分配，大部分用于访问 DRAM，剩余的部分给了只读存储器（Read Only Memory，ROM）和外围的板卡，如图所示。
 
@@ -623,6 +695,36 @@ mov ax,0x3f
 
 
 ## 实模式
+### 8086处理器架构
+- 8086处理器是INTEL的第一款16位处理器,诞生于1978年
+
+8086中有8个16位(两个字节)的通用寄存器,结构如下:
+
+![示意图](PixPin_2026-06-29_17-48-33.webp)
+
+由于x86中指令的长度不定,短的只有1字节,长的有15字节,所以需要将指令和数据分开存放在内存中.
+
+内存的结构如下:
+
+![结构图](PixPin_2026-06-29_18-06-29.webp)
+
+内存的最小访问单元是1字节,每一位地址对应1个字节.
+
+关于8086架构的一个详细示意图如下:
+
+![示意图](PixPin_2026-06-30_20-01-58.webp)
+
+8086 内部有 4 个段寄存器。其中，CS 是代码段寄存器，DS 是数据段寄存器，ES 是附加段（Extra Segment）寄存器,SS 是栈段（Stack Segment）寄存器
+
+IP是指令指针（Instruction Pointer）寄存器,只和CS一起使用,当一段代码开始执行时,CS 保存代码段的段地址，IP 则指向段内偏移。这样，由 CS 和 IP 共同形成逻辑地址.
+### 汇编语言
+16进制的英文是Hexadecimal,比如125H后面的“H”用于表明这是一个十六进制数,但在很多高级语言中，如果要指示一个数是十六进制数，通常不采用在后面加“H”的做法，而是为它添加一个“0x”前缀，如:
+```asm
+mov ax,0x3f
+```
+
+>你可能想问一下，为什么会是这样，为什么会是“0x”？答案是不知道，不知道在什么时候，为什么就这样用了。这不得不让人怀疑，它肯定是一个非常随意的决定，并在以后形成了惯例
+
 ### 运算指令
 - neg: 将寄存器/内存中的数据变成负数,如`neg al`
 - ：cbw:（Convert Byte to Word）,将8位(Byte)的有符号数扩展为16位(Word),即补上全0或者全1.
@@ -662,26 +764,37 @@ inc ah
    2. 基址寻址: 将要寻址的内存地址放在寄存器中,如`mov [bx], dx`
    3. 变址寻址: 使用变址寄存器来存储内存地址,如`mov [si + 0x100], al`
    4. 基址变址寻址: 如`mov ax, [bx + si]`
+### 中断
+Intel处理器使用两根信号线来处理中断:
+- NMI: 对应电池耗尽,内存读取错误等严重事件,需要立即处理,称为不可屏蔽中断
+- INTR: 对应键盘输入等不着急处理的中断信号,称为可屏蔽中断
+
+我们使用中断号来区分不同类型的中断信号,对于不可屏蔽中断,我们使用固定的中断号2,然后再由特定的软件来进行分别的处理;对于可屏蔽中断,由于可能会同时发生多个,所以需要用多个中断号来区分,Intel处理器中用8259芯片来处理(或者说缓存)这些中断.
+
+### 时钟
+ICH(I/O Controller Hub)芯片用于处理所有的I/O,内置了实时时钟电路（Real Time Clock，RTC）和两
+小块由互补金属氧化物（CMOS）材料组成的静态存储器（CMOS RAM）.
+
+RTS的频率为1秒,用于显示电脑的时间,而日期和时间信息保存在 CMOS RAM 中,通常有 128 字节，而日期和时间信息只占了一小部分容量，其他空间则用于保存整机的配置信息，比如各种硬件的类型和工作参数、开机密码和辅助存储设备的启动顺序等
 
 
+## 保护模式
+### 32位x86处理器架构
+32位处理器扩展了8086中8个通用寄存器的长度,用一个前缀`E`来表示,如`eax,ebx`等:
+![示意图](PixPin_2026-07-06_10-09-06.webp)
 
-# 操作系统: 设计与实现(第三版)
-- MINIX配套教材,也是一切开始的地方.
-## 引言
-![示意图](PixPin_2026-07-03_12-21-48.webp)
-大多数操作系统书也确实是这样的,这也是这本书与众不同的地方,从头设计了一个全新的操作系统.
-### 操作系统的发展历史
-- 这一部分很值得看.
+低16位可以兼容16位处理器上的软件,而高16位则作为32位模式下的扩展.
 
-### 与Linux的关系
-> 有些读者可能对 MINIX 和 Linux 之间的关系比较感兴趣。在 MINIX 发布后不久，便出现了一个相应的 USENET 新闻组 *comp.os.minix*，在数周内便有多达 40 000 个用户订阅。其中多数人都想往 MINIX 中加入一些新的特性以使它更大、更好（嗯，至少是更大吧）。每天都有数百人提出自己的建议、想法甚至是代码。而 MINIX 的作者在几年内始终坚持不采纳这些建议，目的是使 MINIX 保持足够的简洁，以便于学生理解；同时保持规模的小巧，使它能运行在一些低档的、学生可以买得起的计算机上。事实上，对于一些看不上 MS-DOS 的人来说，MINIX 系统及其源代码的存在，甚至是促使他们去购买一台 PC 机的动因。
-> 在这些提建议的人中，有一个芬兰学生 Linus Torvalds。Torvalds 在他的 PC 机上安装了 MINIX 系统，并且认真钻研了它的源代码。后来，Torvalds 想在他自己的 PC 机上阅读 USENET 新闻组（如 *comp.os.minix* ），免得每次都得跑到学校去。但是他需要的一些特性在 MINIX 中没有，于是他就写了一个程序来完成这些功能。但不久他又需要一个不同的终端驱动程序，于是他又写了一个相应的程序。接下来，他想要下载和保存新闻组中的文章，于是又写了一个磁盘驱动程序和一个文件系统。到 1991 年 8 月，他已经完成了一个基本的内核。在 1991 年 8 月 25 日，他把这个消息公布在 *comp.os.minix* 上。这个公告吸引了其他人来帮助他，在 1994 年 3 月 13 日，Linux 1.0 正式发布了，这标志着 Linux 的诞生。
+- 其余的部件也都进行了从16位到32位的扩展
 
+### 保护模式介绍
+>一般来说，操作系统负责整个计算机软、硬件的管理，它做任何事情都是可以的。但是，用户程序却应当有所限制，只允许它访问属于自己的数据，即使是转移，也只允许在自己的各个代码段之间进行。
 
-## 进程
+* **实模式：** Real Mode,用户程序可以绕过操作系统,随意访问内存并进行修改
+* **保护模式：** Protected Mode,用户程序无法访问不属于自己的内存
 
+#### 全局描述符表(GDT)
 
-## 基本操作
 # Python源码剖析
 ## 概览
 Python的整体架构如下:
@@ -855,10 +968,27 @@ Python中的整数对象PyIntObject会根据整数的大小来进行适配管理
 而大整数会放入一块共享的内存空间,通过一个单向链表来管理其中所有的空闲内存
 
 ### 字符串对象
+PyStringObject是一个有着可变长度内存的对象,定义如下:
+```c
+typedef struct {
+  PyObject_VAR_HEAD
+  long ob_shash;
+  int ob_sstate;
+  char ob_sval[1];
+} PyStringObject;
+```
 
+>同 C 中的字符串一样，PyStringObject 内部维护的字符串在末尾必须以’\0’结尾，
+
+与对待小整数的方式一样,Python为一个字节的字符也设置了一个对象缓冲池.
+
+由于PyStringObject是一个不可变对象,所以每次用`+`进行字符串拼接时都要创建一个新对象,这会极大地降低python运行效率,官方的做法是在需要在一个循环中进行多次拼接时,就统一获取后再进行唯一的一次拼接.这样就可以提高运行的效率.
 ### List对象
-
+类似于cpp中的vector机制,不多赘述.
 ### Dict对象
+PyDictObject对搜索的效率要求极其苛刻,这是因为 PyDictObject 对象在Python 本身的实现中被大量地采用。比如 Python 会通过 PyDictObject 来建立执行 Python字节码的运行环境，其中会存放变量名和变量值的元素对，通过查找变量名获得变量值。
+
+因此，PyDictObject 没有如cpp STL中的 map 一样采用红黑树，而是采用了散列表（hash table），因为理论上，在最优情况下，散列表能提供 O（1）复杂度的搜索效率。
 
 
 # Powerful Python: Patterns and Strategies with Modern Python

@@ -573,10 +573,12 @@ using RetailSystem.API.Models;
 
 namespace RetailSystem.API.DTOs;
 ```
+
 ## 高级特性
 ### 箭头表达式
-- C# 3.0引入了箭头表达式
+- C# 3.0引入了箭头表达式,用于实现诸如匿名函数,函数简写等功能
 
+**函数简写**
 ```cs
 public int Add(int a, int b) => a + b;
 
@@ -587,6 +589,49 @@ public int Add(int a, int b)
     return a + b;
 }
 ```
+### Object Initializers(对象初始化)
+
+### 匿名对象
+
+
+### out参数与out变量声明
+- C#1.0就有out参数了,然后C#7.0引入了out变量声明
+- [官方文档](https://learn.microsoft.com/zh-cn/dotnet/csharp/language-reference/keywords/out)
+
+**官方示例**
+```cs
+public void Main()
+    {
+        double radiusValue = 3.92781;
+        //Calculate the circumference and area of a circle, returning the results to Main().
+        CalculateCircumferenceAndArea(radiusValue, out double circumferenceResult, out var areaResult);
+        System.Console.WriteLine($"Circumference of a circle with a radius of {radiusValue} is {circumferenceResult}.");
+        System.Console.WriteLine($"Area of a circle with a radius of {radiusValue} is {areaResult}.");
+        Console.ReadLine();
+    }
+
+    //The calculation worker method.
+    public static void CalculateCircumferenceAndArea(double radius, out double circumference, out double area)
+    {
+        circumference = 2 * Math.PI * radius;
+        area = Math.PI * (radius * radius);
+    }
+```
+
+在C#7.0后,我们不需要额外在函数外面声明变量来存储返回值,而是可以直接在函数参数中用out声明,并指定类型(一般会直接用var来自动推导),就可以直接使用了.
+
+例如在ASP.NET core中,我们可以见到这样的路由:
+```cs
+app.MapGet("/fruit/{id}", (string id) =>
+    _fruit.TryGetValue(id, out var fruit)
+        // #C
+        ? TypedResults.Ok(fruit)
+        // #D
+        : Results.NotFound());
+
+record Fruit(string Name, int stock);
+```
+为了在响应中返回该record,我们需要在`TryGetValue`中声明fruit变量.
 
 ### 自动属性
 在c#中常常可以看到这两种写法:
@@ -605,6 +650,22 @@ public string Name { get; }
 
 user.Name = ""; // 错误
 ```
+### 目标类型推导
+- C#9.0引入了该语法,是一种比较有用的语法糖
+
+一般我们实例化一个对象时要这么写:
+```cs
+// C# 9.0 之前
+Handlers handlers = new Handlers();
+// 或者
+var handlers = new Handlers();
+```
+
+但现在我们只要这么写,编译器就会自动推导出要调用的是哪个类的初始化方法.
+```cs
+Handlers handlers = new();
+```
+
 ### Record类型
 - C# 9.0引入了该类型
 
@@ -656,7 +717,8 @@ public class PhoneProduct(string brand, string model, decimal price)
 public record PhoneProduct(string Brand, string Model, decimal Price);
 ```
 
-
+## 总结
+一开始以为C#只是一个普通的Java改版,后来发现它为了提高开发效率额外引入很多的语法糖,努力向动态类型的语言靠拢,不过即便如此,开发效率也没有Python和React高,因为这是静态类型语言的通病.
 # C#框架学习
 类似python有很多库一样, C#也有很多库和框架:
 1. `ASP.NET Core`: 用于构建 Web 接口 (API) 和 Web 应用程序
@@ -694,6 +756,7 @@ ASP.NET Core这个奇怪的名字是有来头的:
 * **2020年及以后**：随着 .NET 5.0 的统一命名，**Blazor** 成为核心组件，实现了利用 WebAssembly 在浏览器端运行 C#。框架进入稳定迭代期，支持 side-by-side 多版本并存，彻底解决了旧版 ASP.NET 全局版本冲突的问题。
 
 ### 基本用法
+#### Http库
 
 
 ## Entity Framework Core
