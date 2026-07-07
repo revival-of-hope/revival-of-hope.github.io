@@ -711,6 +711,15 @@ public class PhoneProduct(string brand, string model, decimal price)
     public decimal Price { get; } = price;
 }
 ```
+就算是这样,也可以用箭头表达式来简化成:
+```cs
+public class PhoneProduct(string brand, string model, decimal price)
+{
+    public string Brand => brand;
+    public string Model => model;
+    public decimal Price => price;
+}
+```
 
 如果还想简化,就可以使用Record一步到位,变成:
 ```cs
