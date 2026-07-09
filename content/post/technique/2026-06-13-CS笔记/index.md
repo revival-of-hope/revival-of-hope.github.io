@@ -764,8 +764,12 @@ ASP.NET Core这个奇怪的名字是有来头的:
 * **2019年**：**ASP.NET Core 3.0** 发布。这是一个分水岭，框架停止支持 Windows-only 的 .NET Framework，强制迁移至跨平台的 .NET Core 运行时。
 * **2020年及以后**：随着 .NET 5.0 的统一命名，**Blazor** 成为核心组件，实现了利用 WebAssembly 在浏览器端运行 C#。框架进入稳定迭代期，支持 side-by-side 多版本并存，彻底解决了旧版 ASP.NET 全局版本冲突的问题。
 
-### 基本用法
-#### Http库
+
+
+
+### 官方文档笔记
+- [官网](https://learn.microsoft.com/zh-cn/aspnet/core/fundamentals/minimal-apis/route-handlers?view=aspnetcore-10.0)
+  - 把真正核心的部分藏得这么深,真有你的微软
 
 
 ## Entity Framework Core
