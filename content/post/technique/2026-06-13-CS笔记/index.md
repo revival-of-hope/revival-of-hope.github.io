@@ -770,6 +770,45 @@ ASP.NET Core这个奇怪的名字是有来头的:
 ### 官方文档笔记
 - [官网](https://learn.microsoft.com/zh-cn/aspnet/core/fundamentals/minimal-apis/route-handlers?view=aspnetcore-10.0)
   - 把真正核心的部分藏得这么深,真有你的微软
+#### 标准写法
+第一种写法是这样的,把路由函数全部写在拆分的文件中,然后只在主文件中映射,不告诉具体的路由,想想我在fastapi中也是这么写的吧.
+
+**Program.cs**
+```cs
+using MinAPISeparateFile;
+
+var builder = WebApplication.CreateSlimBuilder(args);
+
+var app = builder.Build();
+
+TodoEndpoints.Map(app);
+
+app.Run();
+```
+**TodoEndpoints.cs**
+```cs
+namespace MinAPISeparateFile;
+
+public static class TodoEndpoints
+{
+    public static void Map(WebApplication app)
+    {
+        app.MapGet("/", async context =>
+        {
+            // Get all todo items
+            await context.Response.WriteAsJsonAsync(new { Message = "All todo items" });
+        });
+
+        app.MapGet("/{id}", async context =>
+        {
+            // Get one todo item
+            await context.Response.WriteAsJsonAsync(new { Message = "One todo item" });
+        });
+    }
+}
+```
+
+第二种写法是把路由的处理函数放在拆分文件中,把路由映射留在主文件里,管理起来确实更加麻烦.
 
 
 ## Entity Framework Core
