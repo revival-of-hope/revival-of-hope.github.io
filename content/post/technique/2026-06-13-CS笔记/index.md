@@ -844,7 +844,261 @@ public static class TodoEndpoints
 * **2022年 (EF Core 7.0)**：引入 **JSON 列映射** 和 **批量更新 (Bulk Updates)** 等开发者急需的物理层操作功能。
 * **2023年 (EF Core 8.0)**：引入 **复杂类型 (Complex Types)** 和原始集合支持，进一步增强了领域建模的灵活性。
 
-### 基本用法
+### 官方文档阅读
+- [官网](https://learn.microsoft.com/zh-cn/ef/core/dbcontext-configuration/)
+#### DbContext
+一般一个后端应用只需要创建一个DbContext 实例,该实例只能与一个数据库进行连接.
+#### 配置模型
+EFCore支持两种模型配置方法,一个是用语法糖`[]`形式的数据注释类型,一个是非常繁琐难看的`Fluent API`类型(我自然不会去学).
+##### 使用数据注释
+
+```cs
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
+
+namespace EFModeling.EntityProperties.DataAnnotations.Annotations;
+
+internal class MyContext : DbContext
+{
+    public DbSet<Blog> Blogs { get; set; }
+}
+
+[Table("Blogs")]
+public class Blog
+{
+    public int BlogId { get; set; }
+
+    [Required]
+    public string Url { get; set; }
+}
+```
+
+- `[Required]`对应的库是`using System.ComponentModel.DataAnnotations;`,表示该字段是必填的
+- `[Table("Blogs")]`对应的是`using System.ComponentModel.DataAnnotations.Schema;`,表示该Blog类对应的数据库表是Blogs,相当于设置了一个别名.
+- `public DbSet<Blog> Blogs { get; set; }`在该DbContext种注册了该表,表示该表可以进行修改和读取
+
+##### 在模型中包含其他模型:
+
+```cs
+internal class MyContext : DbContext
+{
+    public DbSet<Blog> Blogs { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AuditEntry>();
+    }
+}
+
+public class Blog
+{
+    public int BlogId { get; set; }
+    public string Url { get; set; }
+
+    public List<Post> Posts { get; set; }
+}
+
+public class Post
+{
+    public int PostId { get; set; }
+    public string Title { get; set; }
+    public string Content { get; set; }
+
+    public Blog Blog { get; set; }
+}
+
+public class AuditEntry
+{
+    public int AuditEntryId { get; set; }
+    public string Username { get; set; }
+    public string Action { get; set; }
+}
+```
+
+##### 处理实体中的属性
+**设置列名**
+```cs
+public class Blog
+{
+    [Column("blog_id")]
+    public int BlogId { get; set; }
+
+    public string Url { get; set; }
+}
+```
+**给属性下限制**
+```cs
+public class Blog
+{
+    public int BlogId { get; set; }
+
+    [Column(TypeName = "varchar(200)")]
+    public string Url { get; set; }
+
+    [Column(TypeName = "decimal(5, 2)")]
+    public decimal Rating { get; set; }
+}
+```
+
+**使用?表示可选属性**
+```cs
+public class Customer
+{
+    public int Id { get; set; }
+    public string FirstName { get; set; } // Required by convention
+    public string LastName { get; set; } // Required by convention
+    public string? MiddleName { get; set; } // Optional by convention
+
+    public Customer(string firstName, string lastName, string? middleName = null)
+    {
+        FirstName = firstName;
+        LastName = lastName;
+        MiddleName = middleName;
+    }
+}
+```
+
+##### 配置主键
+>根据约定，名为 `Id` 或 `<type name>Id` 的属性将被配置为实体的主键。
+```cs
+public class Car
+{
+    public string Id { get; set; }
+
+    public string Make { get; set; }
+    public string Model { get; set; }
+}
+
+public class Truck
+{
+    public string TruckId { get; set; }
+
+    public string Make { get; set; }
+    public string Model { get; set; }
+}
+```
+
+还可以使用数据注释来声明主键:
+```cs
+public class Car
+{
+    [Key]
+    public string LicensePlate { get; set; }
+
+    public string Make { get; set; }
+    public string Model { get; set; }
+}
+```
+
+##### 配置外键
+```cs
+public class Blog
+{
+    public int Id { get; set; }
+
+    public string Name { get; set; }
+
+    public IList<Post> Posts { get; } = new List<Post>();
+}
+
+public class Post
+{
+    public int Id { get; set; }
+
+    public string Title { get; set; }
+    public string Content { get; set; }
+
+    public int BlogId { get; set; }
+    public Blog Blog { get; set; }
+}
+```
+也就是说,当我们在已经有主键的类中再写一个`BlogId`这样的其他类中的主键时,就会被自动识别为外键.
+
+#### 管理数据库
+当模型发生更改后,我们就需要对数据库进行迁移,分为两步:创建本次迁移的名称和文件夹,更新/创建实际存储数据的数据库
+
+创建名为 InitialCreate 的迁移：
+
+```bash
+dotnet ef migrations add InitialCreate
+```
+
+在此次迁移中创建数据库:
+```bash
+dotnet ef database update
+```
+#### 数据操作
+EFCore使用Language Integrated Query (LINQ)语法从数据库中操作数据.
+##### 基本操作
+添加数据:
+```cs
+using (var context = new BloggingContext())
+{
+    var blog = new Blog { Url = "http://example.com" };
+    context.Blogs.Add(blog);
+    await context.SaveChangesAsync();
+}
+```
+
+**更新数据**
+```cs
+using (var context = new BloggingContext())
+{
+    var blog = await context.Blogs.SingleAsync(b => b.Url == "http://example.com");
+    blog.Url = "http://example.com/blog";
+    await context.SaveChangesAsync();
+}
+```
+- EF会自动检测所有的更改.
+
+**删除数据**:
+```cs
+using (var context = new BloggingContext())
+{
+    var blog = await context.Blogs.SingleAsync(b => b.Url == "http://example.com/blog");
+    context.Blogs.Remove(blog);
+    await context.SaveChangesAsync();
+}
+```
+
+总览
+```cs
+using (var context = new BloggingContext())
+{
+    // seeding database
+    context.Blogs.Add(new Blog { Url = "http://example.com/blog" });
+    context.Blogs.Add(new Blog { Url = "http://example.com/another_blog" });
+    await context.SaveChangesAsync();
+}
+
+using (var context = new BloggingContext())
+{
+    // add
+    context.Blogs.Add(new Blog { Url = "http://example.com/blog_one" });
+    context.Blogs.Add(new Blog { Url = "http://example.com/blog_two" });
+
+    // update
+    var firstBlog = await context.Blogs.FirstAsync();
+    firstBlog.Url = "";
+
+    // remove
+    var lastBlog = await context.Blogs.OrderBy(e => e.BlogId).LastAsync();
+    context.Blogs.Remove(lastBlog);
+
+    await context.SaveChangesAsync();
+}
+```
+##### 进阶操作
+
+**读取所有数据**:
+```cs
+using (var context = new BloggingContext())
+{
+    var blogs = await context.Blogs.ToListAsync();
+}
+```
+
 
 ## ADO.NET的历史
 ADO.NET是EF Core 或 Dapper的底层通信协议,现在做项目不太需要直接用了,但是很有必要了解
