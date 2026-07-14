@@ -1139,6 +1139,8 @@ x86 处理器的机器指令大体上可由五大部分组成:
 非常不错的书呢,不过实战的部分由于不太可能复刻,所以都直接跳过了,但收获是很大的,姑且能看懂一点汇编代码了吧.
 # Build AI-Enhanced Web Apps
 - 拉完了
+# Kubernetes Up and Running
+- 不如in action详细,不推荐阅读
 # Python源码剖析
 ## 概览
 Python的整体架构如下:
@@ -1460,10 +1462,70 @@ Python虚拟机中的线程仍然使用操作系统的原生线程。用PyThread
 ![图示](PixPin_2026-07-12_11-56-32.webp)
 
 ![图示](PixPin_2026-07-12_11-56-50.webp)
+### 具体实现
+所有的python代码都会被编译成类似汇编代码的字节码,然后虚拟机就使用C语言来执行这些指令,从而完成整个编译过程.
+## Python高级
+
+# 深入剖析Nginx
+
+# Powershell Cookbook
+- 这本书是21年出版的,所以用的还是PowerShell Core,不推荐,不过拿来学习基本命令还可以
+## 前言
+Windows早期的shell用的是`cmd.exe`,于93年发布,到了02年,微软设立了一个内部项目Monad,是06年发布的Windows Powershell的前身,在16年,随着.NET Framework变成.NET Core,微软发布了开源跨平台的Powershell Core来取代原先的Windows Powershell,再后来,随着.NET Core更名为`.NET`,Powershell Core于20年也变成了Powershell,在这几年一直停留在7.x版本.
 
 
+- 这也可以看得出来,微软的底层架构到了现在也没有完全成熟.
+
+而操作系统默认安装的甚至不是Powershell Core,而是Windows Powershell:
+
+```bash
+$PSVersionTable
+
+Name                           Value
+----                           -----
+PSVersion                      5.1.26100.8655
+```
+而更为古老的cmd也一直留在Windows中,没有被删除.
+## 语法
+### 基本语法
+要在包含空格的命令名称中运行命令，请将其文件名用单引号（'）括起来，并在命令前加上和号（&）:
+```bash
+& 'C:\Program Files\Program\Program.exe' arguments
+```
+要在当前目录下运行一个命令，请在文件名前加上.\:
+```bash
+.\Program.exe arguments
+```
+- 如果PowerShell能在系统路径中找到某个脚本或工具，则无需显式指定其位置
+
+#### cmdlet命令
+Cmdlet 是PowerShell中使用的轻量型单一功能命令,采用“动词-名词”（Verb-Noun）的结构命名，中间以短划线分隔（例如 Get-Process）.
+
+![例子](PixPin_2026-07-13_13-49-10.webp)
+### 管道
+- ps中最强的命令
+
+在 PowerShell 中，我们使用管道符（|）来分隔管线的每个阶段:
+```bash
+Get-Process | Where-Object WorkingSet -gt 500kb | Sort-Object - Descending Name
+```
+- Where-Object是一个非常方便的从列表/终端输出中筛选符合要求的变量的工具,更为简短的别名为`where`和`?`
+
+
+&& and ||同样也属于管道运算符,可用于输出调试信息:
+
+```bash
+PS > Invoke-Command localhost { "Some output" } && "Connection successful!"
+Some command output
+Connection successful!
+```
+## 脚本
+cmd时代的脚本名字为`.bat`,对应的英文为batch,通常称为批处理文件,而powershell的脚本名字为`.ps1`
+## 总结
+都说是Cookbook了,自然没有一丁点的可读性,真要学的时候再来翻吧.
 # Pro git
 - [官网](https://git-scm.com/book/zh/v2)
+  - 非常好的教程,比所有的二手资料都齐全.
 
 ## 起步
 >Git 和其它版本控制系统（包括 Subversion 和近似工具）的主要差别在于 Git 对待数据的方式。 从概念上来说，其它大部分系统以文件变更列表的方式存储信息，这类系统（CVS、Subversion、Perforce 等等） 将它们存储的信息看作是一组基本文件和每个文件随时间逐步累积的差异 （它们通常称作 基于差异（delta-based） 的版本控制）。
@@ -1647,8 +1709,9 @@ refs/
 
 >config 文件包含项目特有的配置选项。 info 目录包含一个全局性排除（global exclude）文件， 用以放置那些不希望被记录在 .gitignore 文件中的忽略模式（ignored patterns）。
 
->剩下的四个条目很重要：HEAD 文件、（尚待创建的）index 文件，和 objects 目录、refs 目录。 它们都是 Git 的核心组成部分。 objects 目录存储所有数据内容；refs 目录存储指向数据（分支、远程仓库和标签等）的提交对象的指针； HEAD 文件指向目前被检出的分支；index 文件保存暂存区信息。 我们将详细地逐一检视这四部分，来理解 Git 是如何运转的。
+>剩下的四个条目很重要：HEAD 文件、（尚待创建的）index 文件，和 objects 目录、refs 目录。 它们都是 Git 的核心组成部分。 objects 目录存储所有数据内容；refs 目录存储指向数据（分支、远程仓库和标签等）的提交对象的指针； HEAD 文件指向目前被检出的分支；index 文件保存暂存区信息。 
 
+由于这部分讲的不是很详细,只好另外找方法来学习git的内部原理了.
 # Kubernetes in Action, Second Edition
 ## 入门
 ### Introducing Kubernetes
@@ -1666,7 +1729,55 @@ Kubernetes 集群包含分为两个组的节点:
 ### 容器介绍(过)
 每个容器都有着独立的文件系统和进程ID,如果是有Shell的Linux镜像的话,还可以使用bash命令.
 
-### 使用Kubernetes
+### 容器管理
+Kubernetes部署的单位称为deployment对象,该对象对应了一个或者多个Pod,每个Pod由一个或者多个紧密相关的容器组成,他们共享相同的网络接口和命名空间:
+
+![示意图](PixPin_2026-07-14_17-59-51.webp)
+
+>每个 Pod 都有自己的 IP、主机名、进程、网络接口及其他资源。同
+一 Pod 内的容器会认为它们是计算机中唯一运行的程序，即使与其它
+Pod 位于同一节点，也不会感知到这些 Pod 中的进程。
+
+```shell
+$ kubectl get pods
+NAME                     READY   STATUS    RESTARTS   AGE
+kiada-9d785b578-p449x    0/1     Pending   0          1m     #1
+
+```
+
+
+#### 暴露应用程序
+我们使用create deployment命令创建一个deployment对象,但要使得这个对象暴露在主机端口,则需要使用expose deployment命令创建一个Service对象,从而可以被外界访问
+
+```bash
+kubectl expose deployment kiada --type=LoadBalancer --port 8080
+```
+#### 扩展容器
+```bash
+$ kubectl scale deployment kiada --replicas=3
+deployment.apps/kiada scaled
+```
+- `--replicas=3`参数会创建三个完全相同的容器,这就是我们所说的`横向扩展`
+
+
+```shell
+$ kubectl get deploy
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+kiada   3/3     3            3           18m
+
+```
+可以看到我们创建了三个Pod,每个Pod都包含了一个Kiada容器.
+
+当有多个通过`replicas`创建的相同Pod时,Pod之间便会自动进行负载均衡,每次由一个随机的Pod来处理到来的请求
+
+>严格来说，Deployment 对象的用途仅仅是创建特定数量的 Pod 对
+象。您可能会想，是否可以直接创建 Pod，而不通过 Deployment
+来代劳。当然可以这么做，但如果需要运行多个副本，您就必须手动
+逐个创建每个 Pod，并确保为其分配唯一的名称。此后，您还需要持
+续监控这些 Pod，一旦它们突然消失或所在节点发生故障，就得立即
+替换它们。这正是几乎从不直接创建 Pod、而是使用 Deployment
+的根本原因。
+
 
 # AI Agents in Action(待补充)
 
@@ -1767,7 +1878,25 @@ components:
 
 ```
 ![图示](PixPin_2026-07-13_09-25-52.webp)
+## 设计
+### ch9
+这一章很有意思,详细描述了设计数据库的完整过程.
+## 总结
+这本书还是很不错的,完美体现了OpenAPI在前后端开发中的必要性.
 
+# 从零开始学架构(待补充)
+- 确实很详细,待日后有需求再来学.
+
+# Powerful Python: Patterns and Strategies with Modern Python
+
+# Python3网络爬虫开发实战
+## 爬虫基础
+讲的还不错,基本涉及了爬虫所需的所有知识,尤其是关于session,cookie的地方讲的很好,帮我扫清了一点疑惑
+
+
+## 数据的存储
+## Ajax数据爬取
+## 异步爬虫
 
 # Redis in action
 ## 介绍
@@ -1799,15 +1928,7 @@ set类型支持`sadd`,`srem`等命令
 ![hash](PixPin_2026-07-13_10-16-55.webp)
 
 ![zset](PixPin_2026-07-13_10-16-41.webp)
+
+
+
 # Redis设计与实现
-# Powerful Python: Patterns and Strategies with Modern Python
-
-# Python3网络爬虫开发实战
-## 爬虫基础
-讲的还不错,基本涉及了爬虫所需的所有知识,尤其是关于session,cookie的地方讲的很好,帮我扫清了一点疑惑
-
-
-## 数据的存储
-## Ajax数据爬取
-## 异步爬虫
-
