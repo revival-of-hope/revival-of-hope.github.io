@@ -5608,10 +5608,35 @@ def delete_team(*, session: Session = Depends(get_session), team_id: int):
 - 如果认真学习过fastapi和sqlmodel的话,看到这段代码应该不会有什么难点了
 
 
-### ch4: 使用fastapi进行测试(待补充)
+### ch4: 使用fastapi进行测试
+- [参考文档](https://fastapi.tiangolo.com/zh/tutorial/testing/#using-testclient)
 >没有测试的代码不是好代码
 
+#### 基本用法
+需要先导入`httpx2`库才可以使用.
+```py
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
+app = FastAPI()
+
+
+@app.get("/")
+async def read_main():
+    return {"msg": "Hello World"}
+
+
+client = TestClient(app)
+
+
+def test_read_main():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json() == {"msg": "Hello World"}
+```
+创建一个客户端后,使用pytest的方式来测试对应的接口即可.
+
+用法其实很简单,创建了一个client就可以跟平常的测试文件一样来写了.
 ### ch5: 使用fastapi+nextjs搭建简单智能体
 >本部分主要会使用fastapi处理deepseek api,这并不需要用到数据库来存储任何信息,所有的信息都在运行时处理.至于前端部分我会大致介绍路由操作,UI等布局细节就由组件库和AI帮我搞定了.
 
@@ -5884,7 +5909,7 @@ async def chat(request: ChatMessage) -> StreamingResponse:
 
 
 #### 路由构想
->如果不靠ai的话,初学者是很难自己设计出一个能用的路由的,建议不断阅读优秀项目的api设计来学习怎么写路由.
+>如果不靠ai的话,初学者是很难自己设计出一个好看实用的路由的,建议不断阅读优秀项目的api设计来学习怎么写路由.
 
 我最简化了项目的路由操作,只保留了两个前端路由: `auth`和`chat`,一个对应从数据库中获取用户数据并认证,另一个对应了从API调用信息并返回.前端通过调用后端的api来模拟数据库交互,并调用大模型输出流.
 
@@ -6406,7 +6431,7 @@ create table User(
     user_id numeric,
     user_name varchar,
     password numeric,
-    primary key id,
+    primary key user_id,
     foreign key chat_id from ChatMessage
 );
 ```
@@ -6552,16 +6577,18 @@ class UserLogin(UserBase):
 class User(UserBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     hashed_password: str
-    chat: "ChatMessage" = Relationship(
+    chat: list["ChatMessage"] = Relationship(
         back_populates="user",
         cascade_delete=True,
     )
 
+
 class ChatMessage(SQLModel, table=True):
     chat_id: int | None = Field(default=None, primary_key=True)
     content: str | None = None
-    user_id: int | None = Field(default=None, foreign_key="user.id")
+    user_id: int | None = Field(foreign_key="user.id")
     user: User | None = Relationship(back_populates="chat")
+
 ```
 - 尽管UserBase只有一个属性,看上去很蠢,但这却是实现OOP的必要损失.在后面的几章或许我们可以看到为什么需要这么做.
 ##### 第三步: 加入数据库依赖
@@ -6636,7 +6663,7 @@ def hashing_password(plain_password: str):
 两个函数,一个用于验证,一个用于加密
 ##### 第五步: 初步实现crud.py
 先考虑一下要实现之前的三个路由我们要做些什么:
-1. 用户注册: 传入`UserRegister`并加密成`User`存入数据库即可,对于这种常见的CRUD操作,pydantic提供了一个魔法般的实现`model_validate`
+1. 用户注册: 传入`UserRegister`并加密成`User`存入数据库即可,对于这种常见的CRUD操作,pydantic提供了一个魔法: `model_validate`
 2. 用户登录: 传入`UserLogin`并与数据库中存储的`User`进行比对,也就是通过id选取数据库中的特定行
    1. 等会,我们并不知道当前用户的id! 没有办法,这里也只能做一个伪装登录了,那么这样一来,创建用户也不用真的创建了,因为读取不了啊
    2. 不过,出于完整性的考虑,我们可以用名字来选取数据库,尽管并非主键,但在我们这个项目里也够用了
@@ -6714,17 +6741,6 @@ def stream_agent(
     system_prompt: str = DEFAULT_SYSTEM_PROMPT,
     model: str = DEFAULT_MODEL,
 ) -> Generator[str, None, None]:
-    """
-    流式调用。
-
-    适合场景：
-    - 前端像 ChatGPT 一样，一个字一个字显示；
-    - FastAPI StreamingResponse；
-    - SSE 流式接口。
-
-    这个函数不会一次性 return 完整内容，
-    而是不断 yield 模型新生成的小片段。
-    """
 
     # 创建流式请求。
     stream = client.chat.completions.create(
@@ -6761,7 +6777,7 @@ def stream_agent(
 ```
 首先我们看一下最关键的`stream_agent`函数,可以发现,stream和后面的输出部分完全可以拆分成两个函数,实际上,只要修改`model`和`messages`这两个字段,我们就可以导入各种各样的api和提示词了,因此,我们可以单独把这两个函数提出来,放在utils文件夹的`chat.py`中,并加上一个额外的工具函数`messages`.
 
-还需要说明的是,考虑到创建client要走一遍OpenAI库,这还是不太清晰,我们可以复用一遍封装成自己的函数,也放入`chat.py`中,这样可以让代码更好分析一点.
+还需要说明的是,考虑到创建client要走一遍OpenAI库,这还是不太清晰,我们可以复用一遍封装成自己的函数,也放入`chat.py`中,这样可以让代码的职责界限更加分明一点.
 
 
 **app/utils/chat.py**
@@ -6828,17 +6844,337 @@ def create_stream(
 
 现在我们可以回到client.把这些工具函数用上了:
 
+```py
+from app.utils.chat import stream_response, create_stream, create_client
+from typing import Generator
+from app.utils.config import settings
 
+client = create_client(settings.DEEPSEEK_API_KEY, settings.DEEPSEEK_URL)
+
+DEFAULT_MODEL = "deepseek-v4-pro"
+
+DEFAULT_SYSTEM_PROMPT = "以后的回答都要优先输出一句话,我是deepseek-v4-pro."
+
+
+def stream_agent(
+    user_message: str,
+    model: str = DEFAULT_MODEL,
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+) -> Generator[str, None, None]:
+
+    # 创建流式请求。
+    stream = create_stream(client, model, user_message, system_prompt)
+    return stream_response(stream)
+```
+之前那么长的代码被压缩到这个长度还是很有成就感的.
+
+现在我们基本实现了除了route.py之外的所有重构,却没有影响到route.py,还是很成功的,接下来就是要把消息存入数据库中.
+
+说是存入数据库,但流式消息还是不好下手,唯一的方法就是创建一个列表来收集,所以我们可以在crud.py中这么写:
+
+```py
+from app.utils.security import (
+    verify_password,
+    hashing_password,
+)
+from fastapi import HTTPException
+from sqlmodel import Session, select
+from app.models import User, UserLogin, UserRegister, ChatMessage
+
+
+def healthchecker(session: Session):
+    result = session.exec(select(1)).one()
+    return result == 1
+
+
+def register_user(session: Session, user_create: UserRegister) -> User:
+    user_store = User.model_validate(
+        user_create, update={"hashed_password": hashing_password(user_create.password)}
+    )
+    # 数据库存储
+    session.add(user_store)
+    session.commit()
+    session.refresh(user_store)
+
+    # 返回信息供路由函数处理
+    return user_store
+
+
+def check_user(session: Session, user_login: UserLogin, user_db: User):
+    user = session.exec(select(User).where(user_login.name == user_db.name)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not verify_password(UserLogin.password, User.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    return user
+
+
+def save_chat_message(session: Session, user_id: int, content: str) -> ChatMessage:
+    message = ChatMessage(
+        user_id=user_id,
+        content=content,
+    )
+    session.add(message)
+    session.commit()
+    session.refresh(message)
+
+    return message
+
+
+def stream_and_save(chunks, user_id: int, session: Session):
+    collected_chunks: list[str] = []
+    for chunk in chunks:
+        if not chunk:
+            continue
+        collected_chunks.append(chunk)
+        yield chunk
+    full_content = "".join(collected_chunks)
+    if full_content:
+        save_chat_message(
+            user_id=user_id,
+            content=full_content,
+            session=session,
+        )
+```
+- 最后两个函数即为新增的函数,第一个函数将message表进行更新,第二个函数用于处理chunk并组装出完整的消息.
+
+这样一来,client.py也要适配着做出更改:
+```py
+from app.utils.chat import stream_response, create_stream, create_client
+from typing import Generator
+from app.utils.config import settings
+from app.crud import stream_and_save
+from sqlmodel import Session
+
+client = create_client(settings.DEEPSEEK_API_KEY, settings.DEEPSEEK_URL)
+
+DEFAULT_MODEL = "deepseek-v4-pro"
+
+DEFAULT_SYSTEM_PROMPT = "以后的回答都要优先输出一句话,我是deepseek-v4-pro."
+
+
+def stream_agent(
+    user_id: int,
+    user_message: str,
+    session: Session,
+    model: str = DEFAULT_MODEL,
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+) -> Generator[str, None, None]:
+
+    # 创建流式请求。
+    stream = create_stream(client, model, user_message, system_prompt)
+    chunks = stream_response(stream)
+    yield from stream_and_save(
+        chunks=chunks,
+        user_id=user_id,
+        session=session,
+    )
+```
+唯一值得说明的就是`yield from`这个关键字了,简单来说就是将stream_agent的输出委托给stream_and_save函数来输出,例子如下:
+
+```py
+def outer():
+    yield from inner()
+# 等价于
+def outer():
+    for item in inner():
+        yield item
+```
+这样一来,我们成功地在返回流式消息的同时,实现了消息的存储.
 ##### 第七步: 修改路由实现
->接下来就是最激动人心的时刻了,前面的所有更改在这里终于能够一一派上用场了,总体来说,非常的烧脑,但我会尽量讲明白.
+>接下来就是最激动人心的时刻了,前面的所有更改在这里终于能够一一派上用场了
+
+
+**原始文件(更名为router.py以更适配路由的语义)**
+```py
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from app.core.client import stream_agent
+
+app = FastAPI()
+
+
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+
+class ChatMessage(BaseModel):
+    message: str
+
+
+@app.get("/api/health")
+async def homepage() -> dict:
+    return {"message": "Hello,World!"}
+
+
+@app.get("/api/auth")
+async def check() -> dict:
+    return {
+        "message": "我懒得写验证了,你直接进来吧",
+        "ok": True,
+    }
+
+
+@app.post("/api/chat/", response_class=StreamingResponse)
+async def chat(request: ChatMessage):
+    # return stream_agent(request.message)
+
+    return StreamingResponse(
+        stream_agent(request.message),
+        headers={
+            "Cache-Control": "no-cache",
+        },
+    )
+```
+上面的路由中,第一个health很好实现,至于第二个路由,由于我们没有Token验证机制,所以实现了也没啥震撼的效果,不如就放着算了,至于第三个,才是重头戏,由于我们需要针对不同的用户返回不同的消息体,所以肯定要把路由写成`chat/[user_id]`的形式,最后实现的效果如下:
+
+
+
+
+**引入router**
+
+显然,当项目变大之后,所有的路由都写在一个route.py文件中就不太合适了,更好的方法是,使用次一级的APIrouter类,大多数用法与Fastapi类别无二致,它主要用于收集路由,我们只需要在主应用中的app中导入该路由即可,说了这么多,还是先来实战看看吧.
+
+上述文件可以拆分成两个子文件加上一个主文件:
+
+**app/core/routers/utils.py**
+```py
+from fastapi import APIRouter
+from app.crud import healthchecker
+from app.utils.deps import SessionDep
+
+router = APIRouter(prefix="/utils", tags=["utils"])
+
+
+@router.get("/health")
+async def health_check(session: SessionDep) -> bool:
+    return healthchecker(session)
+
+
+@router.get("/auth")
+async def check() -> dict:
+    return {
+        "message": "我懒得写验证了,你直接进来吧",
+        "ok": True,
+    }
+```
+
+**app/core/routers/user.py**
+```py
+from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
+
+from app.utils.deps import SessionDep
+from app.core.client import stream_agent
+
+router = APIRouter(prefix="/user", tags=["user"])
+
+
+@router.post("[user_id]/chat")
+async def chat(
+    user_message: str,
+    user_id: int,
+    session: SessionDep,
+) -> StreamingResponse:
+    # return stream_agent(request.message)
+
+    return StreamingResponse(
+        stream_agent(user_id, user_message, session),
+        headers={
+            "Cache-Control": "no-cache",
+        },
+    )
+```
+**app/core/main.py**
+```py
+from ctypes import util
+
+from fastapi import APIRouter
+from app.core.routers import user, utils
+
+api_router = APIRouter()
+api_router.include_router(user.router)
+api_router.include_router(utils.router)
+```
+
+最后再在根目录的main.py中获取路由信息:
+```py
+import uvicorn
+from fastapi import FastAPI
+from app.core.main import api_router
+from starlette.middleware.cors import CORSMiddleware
+
+# 后三个参数均为openapi参数
+app = FastAPI(
+    title="demo",
+    openapi_url="/api/openapi.json",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+)
+
+app.include_router(api_router, prefix="/api")
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+def main():
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        workers=1,
+    )
+
+
+if __name__ == "__main__":
+    main()
+
+```
+#### 总结
+如此一来我们就实现了所有的重构目标,只不过还没能真正地实现用户验证功能.
+
+另一个更加严重的问题就是,由于我们还没引入docker,而本地启动postgre数据库又比较麻烦,所以这里的数据库操作也都是模拟的,无法真正实现.
+
+置于前端界面,由于后续的路由变化太大,这一步就没必要重构了,看一下`openapi`文档即可大致了解我们的开发效果.
+
+运行`uv run main.py`后,访问http://localhost:8000/api/docs即可看到以下界面:
+
+![效果图](PixPin_2026-07-17_17-51-01.webp)
+
+### ch7: 实现token验证
+>现在最大的问题是,即便有了注册+登录的流程,后端还是无法记住当前用户,那么也就不可能真正的给用户传递数据库的信息,也就是说,数据库基本没被用上! 因此,我们需要加入token功能,在用户的每次数据库请求中加上token依赖,这样我们才能知道这是哪个用户,我们又应该返回哪条消息.
+
 
 
 #### 前端重构阶段
+我们之前的前端用的是非常拉跨的编写方式,甚至把api全部写在api.ts中一个个保存,这种写法显然不利于后期的扩展.
 
+好在我们有hey-api库,能够自动根据后端生成的openapi json来生成优美的前端api调用组件.
 
-<!-- 记得做一些beginner分支保留最初版 -->
-### ch7: 实现token验证
->现在最大的问题是,即便有了注册+登录的流程,后端还是无法记住当前用户,那么也就不可能真正的给用户传递数据库的信息,也就是说,数据库基本没被用上! 因此,我们需要加入token功能,在用户的每次数据库请求中加上token依赖,这样我们才能知道这是哪个用户,我们又应该返回哪条消息.
+##### hey-api库使用
 
 
 ### ch8: 实现多轮对话
