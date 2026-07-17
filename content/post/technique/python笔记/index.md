@@ -1063,9 +1063,8 @@ CUDA version: 13.0
 
 
 
-# Python编译(待补充)
-- python是如何编译的?Cpython是什么?pyc文件又是什么?这几个问题会在这一章得到解决
-
+# Python编译
+推荐阅读书籍: python源码剖析,一本就够了.
 
 # Python类型注释
 类型注释在PEP484也就是2015年的Python3.5中引入,从而在很大程度上解决了Python动态类型带来的混乱.

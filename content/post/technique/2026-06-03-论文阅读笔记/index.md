@@ -231,7 +231,7 @@ $$\text{king} - \text{man} + \text{woman} \approx \text{queen}$$
 
 
 
-## Dropout: A Simple Way to Prevent Neural Networks from Overfitting(2014)(待补充)
+## Dropout: A Simple Way to Prevent Neural Networks from Overfitting(2014)()
 ![首页](PixPin_2026-05-29_12-15-41.webp)
 - 在一大堆公司冠名的论文中突然冒出来一个多伦多大学还是很惊艳的
 

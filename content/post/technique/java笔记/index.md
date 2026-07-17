@@ -2,7 +2,7 @@
 title: Java笔记
 image: 55474959_p0-式さん.webp
 date: 2026-04-26 08:00:00
-description: 重构中...
+description: 弃坑中...
 ---
 
 # Java基础学习
