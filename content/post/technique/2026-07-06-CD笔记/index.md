@@ -2,7 +2,7 @@
 title: "CI/CD笔记"
 date: 2026-07-06T12:34:42+08:00
 description: 
-image: 
+image: 57793944_p0-浴衣とお面.webp
 tags: 
     - 调研
 math: 
@@ -83,88 +83,14 @@ In computer networking, a proxy server is a server application that acts as an i
 
 现在,我们可以开始正式学习nginx和traefik了.
 ## nginx
-### 简短介绍
-- [wiki](https://en.wikipedia.org/wiki/Nginx)
-nginx是一个被用作反向代理的开源网页服务器应用(web server),于2004年发布,是目前应用最为广泛的反向代理(超过了Apache,另一个开源的反向代理应用).
-### 命令行使用
-- [官网](https://nginx.org/en/docs/beginners_guide.html)
-  - 官方教程写的很烂
-
-首先我们需要在官网上[下载](https://nginx.org/en/download.html)windows版本的nginx压缩包,解压后根目录下有一个nginx.exe,打开后访问`http://localhost/`出现如下页面说明运行成功:
-![示意图](PixPin_2026-04-17_12-47-41.webp)
-
-当然,输入`http://127.0.0.1/`和`http://127.0.0.1:80/`都会出现上面这个页面,换句话说,现代浏览器在不指定端口时都**默认**进入80端口,而nginx的**默认部署端口**就是80端口.
-
-自然,我们这里没有把nginx注册到环境变量,故以下的所有命令都需要在解压得到的nginx根目录下运行,并且需要加上`.\`前缀指明使用`nginx.exe`.
-
-- `start nginx`: 命令行启动nginx.exe
-- `.\nginx -s signal`: signal可以是以下四个参数:
-  - stop — fast shutdown
-  - quit — graceful shutdown
-  - reload — reloading the configuration file
-  - reopen — reopening the log files
-
-一般来说,nginx需要**时刻不停**的运行,才能让用户稳定进入网站,所以我们不需要学习nginx的具体命令行操作,只需要把它启动就可以了.
-
-### nginx.conf编写
-打开nginx安装目录下的conf文件夹,可以看到标准nginx配置文件`nginx.conf`,过滤掉注释后的默认内容如下:
-```toml
-# 全局块：配置影响nginx全局的指令
-worker_processes  1;
-
-events {
-    # events块：配置影响nginx服务器或与用户的网络连接
-    worker_connections  1024;
-}
-
-http {
-    # http块：可以嵌套多个server，配置代理，缓存，日志定义等绝大多数功能
-    include       mime.types;
-    default_type  application/octet-stream;
-
-    sendfile        on;
-    keepalive_timeout  65;
-
-    server {
-        # server块：配置虚拟主机的相关参数
-        listen       80;
-        server_name  localhost;
-
-        location / {
-            # location块：配置请求的路由，以及各种页面的处理情况
-            root   html;
-            index  index.html index.htm;
-        }
-
-        # 错误页面配置
-        error_page   500 502 503 504  /50x.html;
-        location = /50x.html {
-            root   html;
-        }
-    }
-}
-```
-以下是关键字的解释
-1.  **`worker_processes 1;`**
-    * 定义工作进程数,一般为1
-2.  **`include mime.types;`**
-    * 引入外部文件，该文件定义了各种文件扩展名对应的 MIME 类型（如 `.html` 对应 `text/html`），否则浏览器可能无法正确渲染样式表或图片。
-3.  **`listen 80;`**
-    * 监听的端口号。
-4.  **`server_name localhost;`**
-    * 定义服务器响应的域名或主机名。
-5.  **`location / { ... }`**
-    * 匹配根路径请求。
-    * **`root html;`**：指定静态资源所在的根目录（相对于 nginx 安装目录的 `html` 文件夹）。
-    * **`index index.html index.htm;`**：默认主页文件搜索顺序。
-6.  **`error_page`**
-    * 定义当服务器发生特定错误（如 500 系列）时转向的静态页面。
 
 ## traefik
 
 # 容器
-
+## Docker 
+推荐阅读: [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice)
 # 自动部署与自动构建
 ## git
-在我刚接触编程的时候,git对我来说一直都是一个很神奇的东西,但我一直都没能找到一篇足够清晰,足够简练的文章来讲解git的原理,所以就只好
+推荐阅读: Pro git
 ## GitHub Actions
+推荐阅读: GitHub Actions in action

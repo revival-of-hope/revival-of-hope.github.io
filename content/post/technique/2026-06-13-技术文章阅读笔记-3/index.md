@@ -1141,6 +1141,357 @@ x86 处理器的机器指令大体上可由五大部分组成:
 - 拉完了
 # Kubernetes Up and Running
 - 不如in action详细,不推荐阅读
+# Designing APIs with Swagger and OpenAPI
+## Describing APIs
+### Introducing APIs and OpenAPI
+OpenAPI 是一种基于HTTP协议的API,采用Yaml或者Json形式来描述API的输入输出.
+
+- Yaml是Json的完全超集,所以可以自由地在Yaml中使用Json的`{}`和`[]`语法,分别对应map和list的写法.
+
+一开始我们使用Swagger UI来大致描述API的写法,后来越来越多的工具附着在Swagger UI上,最终被称为Swagger,由Linux基金会管理,更名为OpenAPI规范,而Swagger则用来称呼将OpenAPI文档转变成可视化网页的工具.
+### 使用OpenAPI
+**核心部件**
+```yaml
+/reviews:
+  get:
+    description: Gets a bunch of reviews.
+    responses:
+      200:
+        description: A bunch of reviews
+```
+上述yaml包含了路由,请求方法和对请求方法的响应,一定的描述.
+
+**加上请求参数**
+```yaml
+/reviews:
+  get:
+    description: Get a bunch of reviews.
+    parameters:
+      - name: maxRating
+        description: Filter reviews by the maximum rating
+        in: query # 参数的位置.
+        schema:
+          type: number
+    responses:
+      '200':
+        description: A bunch of reviews
+```
+### Describing API responses
+```yaml
+responses:
+  200:
+    description: A human description
+    content:
+      application/json:
+        schema:
+          type: object
+          items:
+            type: object
+            properties:
+              # ...
+
+```
+- content: 必须声明一个Media types (aka MIME),常用的有`text/html`,`image/png`,`application/json`等类型.
+- properties: 存放所有的查询参数
+
+### 创建资源
+部分http方法(如POST,PATCH)可以声明请求体:
+```yaml
+paths:
+  /reviews:
+    get: #...
+    post:
+      description: Create a new Review
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: An awesome time for the whole family.
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 5
+
+```
+
+### 身份验证
+```yaml
+paths:
+  /reviews:
+    post:
+      #...
+      security:
+        - MyUserToken: []
+        # 列表表示该scheme的作用域,不适用于apikey类型,所以留空.
+#...
+components:
+  securitySchemes:
+    MyUserToken:
+      type: apiKey
+      in: header
+      name: Authorization
+
+```
+![图示](PixPin_2026-07-13_09-25-52.webp)
+## 设计
+### ch9
+这一章很有意思,详细描述了设计数据库的完整过程.
+## 总结
+这本书还是很不错的,完美体现了OpenAPI在前后端开发中的必要性.
+# Powershell Cookbook
+- 这本书是21年出版的,所以用的还是PowerShell Core,不推荐,不过拿来学习基本命令还可以
+## 前言
+Windows早期的shell用的是`cmd.exe`,于93年发布,到了02年,微软设立了一个内部项目Monad,是06年发布的Windows Powershell的前身,在16年,随着.NET Framework变成.NET Core,微软发布了开源跨平台的Powershell Core来取代原先的Windows Powershell,再后来,随着.NET Core更名为`.NET`,Powershell Core于20年也变成了Powershell,在这几年一直停留在7.x版本.
+
+
+- 这也可以看得出来,微软的底层架构到了现在也没有完全成熟.
+
+而操作系统默认安装的甚至不是Powershell Core,而是Windows Powershell:
+
+```bash
+$PSVersionTable
+
+Name                           Value
+----                           -----
+PSVersion                      5.1.26100.8655
+```
+而更为古老的cmd也一直留在Windows中,没有被删除.
+## 语法
+### 基本语法
+要在包含空格的命令名称中运行命令，请将其文件名用单引号（'）括起来，并在命令前加上和号（&）:
+```bash
+& 'C:\Program Files\Program\Program.exe' arguments
+```
+要在当前目录下运行一个命令，请在文件名前加上.\:
+```bash
+.\Program.exe arguments
+```
+- 如果PowerShell能在系统路径中找到某个脚本或工具，则无需显式指定其位置
+
+#### cmdlet命令
+Cmdlet 是PowerShell中使用的轻量型单一功能命令,采用“动词-名词”（Verb-Noun）的结构命名，中间以短划线分隔（例如 Get-Process）.
+
+![例子](PixPin_2026-07-13_13-49-10.webp)
+### 管道
+- ps中最强的命令
+
+在 PowerShell 中，我们使用管道符（|）来分隔管线的每个阶段:
+```bash
+Get-Process | Where-Object WorkingSet -gt 500kb | Sort-Object - Descending Name
+```
+- Where-Object是一个非常方便的从列表/终端输出中筛选符合要求的变量的工具,更为简短的别名为`where`和`?`
+
+
+&& and ||同样也属于管道运算符,可用于输出调试信息:
+
+```bash
+PS > Invoke-Command localhost { "Some output" } && "Connection successful!"
+Some command output
+Connection successful!
+```
+## 脚本
+cmd时代的脚本名字为`.bat`,对应的英文为batch,通常称为批处理文件,而powershell的脚本名字为`.ps1`
+## 总结
+都说是Cookbook了,自然没有一丁点的可读性,真要学的时候再来翻吧.
+# Pro git
+- [官网](https://git-scm.com/book/zh/v2)
+  - 非常好的教程,比所有的二手资料都齐全.
+
+## 起步
+>Git 和其它版本控制系统（包括 Subversion 和近似工具）的主要差别在于 Git 对待数据的方式。 从概念上来说，其它大部分系统以文件变更列表的方式存储信息，这类系统（CVS、Subversion、Perforce 等等） 将它们存储的信息看作是一组基本文件和每个文件随时间逐步累积的差异 （它们通常称作 基于差异（delta-based） 的版本控制）。
+
+Git 不按照以上方式对待或保存数据。反之，Git 更像是把数据看作是对小型文件系统的一系列快照。 在 Git 中，每当你提交更新或保存项目状态时，它基本上就会对当时的全部文件创建一个快照并保存这个快照的索引。 为了效率，如果文件没有修改，Git 不再重新存储该文件，而是只保留一个链接指向之前存储的文件。 Git 对待数据更像是一个 快照流。
+
+>在 Git 中的绝大多数操作都只需要访问本地文件和资源，一般不需要来自网络上其它计算机的信息。 如果你习惯于所有操作都有网络延时开销的集中式版本控制系统，Git 在这方面会让你感到速度之神赐给了 Git 超凡的能量。 因为你在本地磁盘上就有项目的完整历史，所以大部分操作看起来瞬间完成。
+
+Git 中所有的数据在存储前都计算校验和，然后以校验和来引用。 这意味着不可能在 Git 不知情时更改任何文件内容或目录内容。 这个功能建构在 Git 底层，是构成 Git 哲学不可或缺的部分。 若你在传送过程中丢失信息或损坏文件，Git 就能发现。
+
+你执行的 Git 操作，几乎只往 Git 数据库中 添加 数据。 你很难使用 Git 从数据库中删除数据，也就是说 Git 几乎不会执行任何可能导致文件不可恢复的操作。 同别的 VCS 一样，未提交更新时有可能丢失或弄乱修改的内容。但是一旦你提交快照到 Git 中， 就难以再丢失数据，特别是如果你定期的推送数据库到其它仓库的话。
+
+现在请注意，如果你希望后面的学习更顺利，请记住下面这些关于 Git 的概念。 Git 有三种状态，你的文件可能处于其中之一： 已提交（committed）、已修改（modified） 和 已暂存（staged）。
+
+- 已修改表示修改了文件，但还没保存到数据库中。
+- 已暂存表示对一个已修改文件的当前版本做了标记，使之包含在下次提交的快照中。
+- 已提交表示数据已经安全地保存在本地数据库中。
+
+![示意图](PixPin_2026-07-06_14-41-02.webp)
+
+也就是说,直接改系统目录下的`.gitconfig`文件也可以更新全局代理.
+
+![示意图](PixPin_2026-07-06_14-51-43.webp)
+
+## Git基础
+- `git init`: 初始化git仓库
+- `git add`: 追踪新文件
+- `git commmit`: 提交新文件
+- `git clone url`: 从远程的仓库拉取文件和git记录
+
+文件 `.gitignore` 的格式规范如下：
+
+* 所有空行或者以 `#` 开头的行都会被 Git 忽略。
+* 可以使用标准的 glob 模式匹配，它会递归地应用在整个工作区中。
+* 匹配模式可以以（`/`）开头防止递归。
+* 匹配模式可以以（`/`）结尾指定目录。
+* 要忽略指定模式以外的文件或目录，可以在模式前加上叹号（`!`）取反。
+
+>尽管使用暂存区域的方式可以精心准备要提交的细节，但有时候这么做略显繁琐。 Git 提供了一个跳过使用暂存区域的方式， 只要在提交的时候，给 git commit 加上 -a 选项，Git 就会自动把所有已经跟踪过的文件暂存起来一并提交，从而跳过 git add 步骤：
+
+```bash
+$ git status
+On branch master
+Your branch is up-to-date with 'origin/master'.
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git checkout -- <file>..." to discard changes in working directory)
+
+    modified:   CONTRIBUTING.md
+
+no changes added to commit (use "git add" and/or "git commit -a")
+$ git commit -a -m 'added new benchmarks'
+[master 83e38c7] added new benchmarks
+1 file changed, 5 insertions(+), 0 deletions(-)
+```
+
+```bash
+git commit -a -m 'added new benchmarks'
+```
+- 这种写法确实不错,又能偷点懒了
+
+
+例如，你提交后发现忘记了暂存某些需要的修改，可以像下面这样操作：
+```bash
+$ git commit -m 'initial commit'
+$ git add forgotten_file
+$ git commit --amend
+```
+最终你只会有一个提交——第二次提交将代替第一次提交的结果。
+
+>修补提交最明显的价值是可以稍微改进你最后的提交，而不会让“啊，忘了添加一个文件”或者 “小修补，修正笔误”这种提交信息弄乱你的仓库历史。
+
+
+git checkout 用于撤销之前所做的修改.
+
+>请务必记得 `git checkout — <file>` 是一个危险的命令。 你对那个文件在本地的任何修改都会消失——Git 会用最近提交的版本覆盖掉它。 除非你确实清楚不想要对那个文件的本地修改了，否则请不要使用这个命令。
+
+### 远程仓库
+```bash
+$ git clone https://github.com/schacon/ticgit
+Cloning into 'ticgit'...
+remote: Reusing existing pack: 1857, done.
+remote: Total 1857 (delta 0), reused 0 (delta 0)
+Receiving objects: 100% (1857/1857), 374.35 KiB | 268.00 KiB/s, done.
+Resolving deltas: 100% (772/772), done.
+Checking connectivity... done.
+$ cd ticgit
+$ git remote
+origin
+```
+### git别名
+Git 并不会在你输入部分命令时自动推断出你想要的命令。 如果不想每次都输入完整的 Git 命令，可以通过 git config 文件来轻松地为每一个命令设置一个别名。 这里有一些例子你可以试试：
+
+```bash
+$ git config --global alias.co checkout
+$ git config --global alias.br branch
+$ git config --global alias.ci commit
+$ git config --global alias.st status
+```
+这意味着，当要输入 git commit 时，只需要输入 git ci
+
+## Git分支
+- `git branch`用于确认有哪些分支,`git branch 分支名`用于创建分支,这只不过是创建了一个新的git指针,并不需要复制文件的内容.
+- `git checkout`用于切换分支,这是通过git指针的移动实现的.
+
+>在19年,Git引入了git switch和git restore命令,将功能过于繁杂的git checkout拆分成了两个命令.
+
+
+`git checkout -b 分支名`是两条命令的结合,可以快速创建一个新分支.等价命令就是`git switch -c <branch>`
+
+- `git merge 分支名`用于将某个分支合并到当前分支上, 如果顺着一个分支走下去能够到达另一个分支,那么合并时只需要简单地将旧分支的指针往前面移动就可以了,这被称为快进(fast-forward).
+
+![图1](PixPin_2026-07-08_14-20-38.webp)
+
+![图2](PixPin_2026-07-08_14-20-51.webp)
+
+- `git branch -d 分支名`用于删除不需要的分支
+
+```bash
+$ git branch -d hotfix
+Deleted branch hotfix (3a0874c).
+```
+
+>假设你已经修正了 #53 问题，并且打算将你的工作合并入 master 分支。 为此，你需要合并 iss53 分支到 master 分支，这和之前你合并 hotfix 分支所做的工作差不多。 你只需要检出到你想合并入的分支，然后运行 git merge 命令：
+
+```bash
+$ git checkout master
+Switched to branch 'master'
+$ git merge iss53
+Merge made by the 'recursive' strategy.
+index.html |    1 +
+1 file changed, 1 insertion(+)
+```
+
+>这和你之前合并 hotfix 分支的时候看起来有一点不一样。 在这种情况下，你的开发历史从一个更早的地方开始分叉开来（diverged）。 因为，master 分支所在提交并不是 iss53 分支所在提交的直接祖先，Git 不得不做一些额外的工作。 出现这种情况的时候，Git 会使用**两个分支的末端**所指的快照（C4 和 C5）以及**这两个分支的公共祖先**（C2），做一个简单的**三方合并**。
+
+![图1](PixPin_2026-07-08_14-26-42.webp)
+
+![图2](PixPin_2026-07-08_14-26-53.webp)
+
+如果你在两个不同的分支中，对同一个文件的同一个部分进行了不同的修改，Git 就没法干净的合并它们。 如果你对 #53 问题的修改和有关 hotfix 分支的修改都涉及到同一个文件的同一处，在合并它们的时候就会产生合并冲突：
+
+```bash
+$ git merge iss53
+Auto-merging index.html
+CONFLICT (content): Merge conflict in index.html
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+```bash
+$ git status
+On branch master
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+
+    both modified:      index.html
+
+no changes added to commit (use "git add" and/or "git commit -a")
+```
+## 服务器上的git(过)
+Git 可以使用四种不同的协议来传输资料：本地协议（Local），HTTP 协议，SSH（Secure Shell）协议及 Git 协议。
+## Github
+>现在，你完全可以使用 https:// 协议，通过你刚刚创建的用户名和密码访问 Git 版本库。 但是，如果仅仅克隆公有项目，你甚至不需要注册——刚刚我们创建的账户是为了以后 fork 其它项目，以及推送我们自己的修改。
+
+我现在才知道原来用http协议甚至不需要注册ssh公钥,那么这样来看那些教新手入门Git的教程全都在扯淡了,直接让新人用http协议clone不就可以了,也就没有那么劝退了.
+
+>如果你想要参与某个项目，但是并没有推送权限，这时可以对这个项目进行“派生（Fork）”。 当你“派生”一个项目时，GitHub 会在你的空间中创建一个完全属于你的项目副本，且你对其具有推送权限。
+## Git内部原理
+>当在一个新目录或已有目录执行 git init 时，Git 会创建一个 .git 目录。 这个目录包含了几乎所有 Git 存储和操作的东西。 如若想备份或复制一个版本库，只需把这个目录拷贝至另一处即可。 本章探讨的所有内容，均位于这个目录内。 新初始化的 .git 目录的典型结构如下：
+
+```bash
+$ ls -F1
+config
+description
+HEAD
+hooks/
+info/
+objects/
+refs/
+```
+
+>config 文件包含项目特有的配置选项。 info 目录包含一个全局性排除（global exclude）文件， 用以放置那些不希望被记录在 .gitignore 文件中的忽略模式（ignored patterns）。
+
+>剩下的四个条目很重要：HEAD 文件、（尚待创建的）index 文件，和 objects 目录、refs 目录。 它们都是 Git 的核心组成部分。 objects 目录存储所有数据内容；refs 目录存储指向数据（分支、远程仓库和标签等）的提交对象的指针； HEAD 文件指向目前被检出的分支；index 文件保存暂存区信息。 
+
+由于这部分讲的不是很详细,只好另外找方法来学习git的内部原理了.
+# 从零开始学架构(待补充)
+- 确实很详细,待日后有需求再来学.
 # Python源码剖析
 ## 概览
 Python的整体架构如下:
@@ -1465,254 +1816,169 @@ Python虚拟机中的线程仍然使用操作系统的原生线程。用PyThread
 ### 具体实现
 所有的python代码都会被编译成类似汇编代码的字节码,然后虚拟机就使用C语言来执行这些指令,从而完成整个编译过程.
 ## Python高级
+### Python多线程
+>为了支持多线程机制，一个基本的要求就是需要实现不同线程对共享资源访问的互斥，Python 也不例外，这正是引入 GIL 的根源所在。Python 中的 GIL 是一个非常霸道的互斥实现，正如它的名字所暗示的，GIL 是一个解释器（Interpreter）级的互斥机制，也就是说，在一个线程拥有了解释器的访问权之后，其他的所有线程都必须等待它释放解释器的访问权，即使这些线程的下一条指令并不会互相影响。初看上去，这样的保护机制粒度太大了，我们似乎只需要将可能被多个线程共享的资源保护起来即可，对于不会被多个线程共享的资源，完全可以不用保护。实际上，在 Python 的发展历史中，确实出现过这样的解决方案，但是令人惊奇的，这样的方案在单处理器上的多线程实现的效率上却没有 GIL 的方案好。所以现在 Python 中的多线程机制是在 GIL 的基础上实现的。
 
-# 深入剖析Nginx
+单处理器的本质是不可能并行的，但是对于多处理器，情形就完全不同了，同一时间，确实可以有多个线程独立运行，然而 Python 的 GIL 限制了这样的情形，使得多处理器最终退化为单处理器，性能大打折扣
 
-# Powershell Cookbook
-- 这本书是21年出版的,所以用的还是PowerShell Core,不推荐,不过拿来学习基本命令还可以
-## 前言
-Windows早期的shell用的是`cmd.exe`,于93年发布,到了02年,微软设立了一个内部项目Monad,是06年发布的Windows Powershell的前身,在16年,随着.NET Framework变成.NET Core,微软发布了开源跨平台的Powershell Core来取代原先的Windows Powershell,再后来,随着.NET Core更名为`.NET`,Powershell Core于20年也变成了Powershell,在这几年一直停留在7.x版本.
+与操作系统一样,Python虚拟机也需要进行多线程的调度,根据线程执行的指令数量和内置时钟来决定是否要切换线程,但对于切换后将解释器交给哪个进程,Python并没有插手,而是交给了操作系统的线程调度机制来解决.
 
-
-- 这也可以看得出来,微软的底层架构到了现在也没有完全成熟.
-
-而操作系统默认安装的甚至不是Powershell Core,而是Windows Powershell:
-
-```bash
-$PSVersionTable
-
-Name                           Value
-----                           -----
-PSVersion                      5.1.26100.8655
-```
-而更为古老的cmd也一直留在Windows中,没有被删除.
-## 语法
-### 基本语法
-要在包含空格的命令名称中运行命令，请将其文件名用单引号（'）括起来，并在命令前加上和号（&）:
-```bash
-& 'C:\Program Files\Program\Program.exe' arguments
-```
-要在当前目录下运行一个命令，请在文件名前加上.\:
-```bash
-.\Program.exe arguments
-```
-- 如果PowerShell能在系统路径中找到某个脚本或工具，则无需显式指定其位置
-
-#### cmdlet命令
-Cmdlet 是PowerShell中使用的轻量型单一功能命令,采用“动词-名词”（Verb-Noun）的结构命名，中间以短划线分隔（例如 Get-Process）.
-
-![例子](PixPin_2026-07-13_13-49-10.webp)
-### 管道
-- ps中最强的命令
-
-在 PowerShell 中，我们使用管道符（|）来分隔管线的每个阶段:
-```bash
-Get-Process | Where-Object WorkingSet -gt 500kb | Sort-Object - Descending Name
-```
-- Where-Object是一个非常方便的从列表/终端输出中筛选符合要求的变量的工具,更为简短的别名为`where`和`?`
-
-
-&& and ||同样也属于管道运算符,可用于输出调试信息:
-
-```bash
-PS > Invoke-Command localhost { "Some output" } && "Connection successful!"
-Some command output
-Connection successful!
-```
-## 脚本
-cmd时代的脚本名字为`.bat`,对应的英文为batch,通常称为批处理文件,而powershell的脚本名字为`.ps1`
 ## 总结
-都说是Cookbook了,自然没有一丁点的可读性,真要学的时候再来翻吧.
-# Pro git
-- [官网](https://git-scm.com/book/zh/v2)
-  - 非常好的教程,比所有的二手资料都齐全.
+书读的越多,越能发现自己的无知,这本书对Python2.5源码的分析确实非常不错,或许有朝一日我能对现在的Python源码也做一点分析呢.
+# 深入剖析Nginx
+- 这种深入剖析的书都能让人不得不佩服作者的毅力,枯燥的源码是很难看得下去的.
+## 进程模型
+![图示](PixPin_2026-07-16_10-19-49.webp)
 
-## 起步
->Git 和其它版本控制系统（包括 Subversion 和近似工具）的主要差别在于 Git 对待数据的方式。 从概念上来说，其它大部分系统以文件变更列表的方式存储信息，这类系统（CVS、Subversion、Perforce 等等） 将它们存储的信息看作是一组基本文件和每个文件随时间逐步累积的差异 （它们通常称作 基于差异（delta-based） 的版本控制）。
+Nginx的进程有监控进程和工作进程两类,各有一个无限for ( ;;)循环，以便进程持续的等待和处理自己负责的事务，直到进程退出。
 
-Git 不按照以上方式对待或保存数据。反之，Git 更像是把数据看作是对小型文件系统的一系列快照。 在 Git 中，每当你提交更新或保存项目状态时，它基本上就会对当时的全部文件创建一个快照并保存这个快照的索引。 为了效率，如果文件没有修改，Git 不再重新存储该文件，而是只保留一个链接指向之前存储的文件。 Git 对待数据更像是一个 快照流。
+为了实现多进程,Nginx效仿Linux实现了Slab机制,用于在多个进程之间共享内存,而不需要向操作系统进行额外的申请,这也是Nginx能够实现高并发的原因.
+## 数据结构
+Nginx内置了内存池机制,按照页数来分配内存
+## 总结
+源码固然枯燥,分析也很枯燥,不太推荐阅读.
+# Learning Domain-Driven Design
+- 基本都是泛泛而谈的空话,没看头.
+# NGINX完全指南
+- 不推荐
+## 配置命令
+### 拆分nginx
+使用 include 指令来引用配置文件、目录或掩码：
+```yml
+http {
+  include conf.d/compression.conf;
+  include ssl_config/*.conf
+}
+```
+>通过使用 include 语句，您可以保持 NGINX 配置清晰简洁。您可以对配置进行逻辑分组，以避免配置文件达到数百行。
+### 负载均衡
+#### HTTP
+在 NGINX 的 HTTP 模块内使用 upstream 代码块对 HTTP 服务器实施负载均衡：
 
->在 Git 中的绝大多数操作都只需要访问本地文件和资源，一般不需要来自网络上其它计算机的信息。 如果你习惯于所有操作都有网络延时开销的集中式版本控制系统，Git 在这方面会让你感到速度之神赐给了 Git 超凡的能量。 因为你在本地磁盘上就有项目的完整历史，所以大部分操作看起来瞬间完成。
+```nginx
+upstream backend {
+    server 10.10.12.45:80 weight=1;
+    server app.example.com:80 weight=2;
+    server spare.example.com:80 backup;
+}
+server {
+    location / {
+        proxy_pass http://backend;
+    }
+}
+```
+>HTTP 的 upstream 模块控制着 HTTP 请求负载均衡。该模块定义了一个目标池,每个上游目标都通过 server 指令在上游池中进行定义
+#### TCP
+在 NGINX 的 stream 模块内使用 upstream 代码块对 TCP 服务器实施负载均衡：
 
-Git 中所有的数据在存储前都计算校验和，然后以校验和来引用。 这意味着不可能在 Git 不知情时更改任何文件内容或目录内容。 这个功能建构在 Git 底层，是构成 Git 哲学不可或缺的部分。 若你在传送过程中丢失信息或损坏文件，Git 就能发现。
+在 `/etc/nginx/nginx.conf` 配置文件中：
 
-你执行的 Git 操作，几乎只往 Git 数据库中 添加 数据。 你很难使用 Git 从数据库中删除数据，也就是说 Git 几乎不会执行任何可能导致文件不可恢复的操作。 同别的 VCS 一样，未提交更新时有可能丢失或弄乱修改的内容。但是一旦你提交快照到 Git 中， 就难以再丢失数据，特别是如果你定期的推送数据库到其它仓库的话。
+```nginx
+user nginx;
+worker_processes auto;
+pid /run/nginx.pid;
 
-现在请注意，如果你希望后面的学习更顺利，请记住下面这些关于 Git 的概念。 Git 有三种状态，你的文件可能处于其中之一： 已提交（committed）、已修改（modified） 和 已暂存（staged）。
+stream {
+    include /etc/nginx/stream.conf.d/*.conf;
+}
 
-- 已修改表示修改了文件，但还没保存到数据库中。
-- 已暂存表示对一个已修改文件的当前版本做了标记，使之包含在下次提交的快照中。
-- 已提交表示数据已经安全地保存在本地数据库中。
-
-![示意图](PixPin_2026-07-06_14-41-02.webp)
-
-也就是说,直接改系统目录下的`.gitconfig`文件也可以更新全局代理.
-
-![示意图](PixPin_2026-07-06_14-51-43.webp)
-
-## Git基础
-- `git init`: 初始化git仓库
-- `git add`: 追踪新文件
-- `git commmit`: 提交新文件
-- `git clone url`: 从远程的仓库拉取文件和git记录
-
-文件 `.gitignore` 的格式规范如下：
-
-* 所有空行或者以 `#` 开头的行都会被 Git 忽略。
-* 可以使用标准的 glob 模式匹配，它会递归地应用在整个工作区中。
-* 匹配模式可以以（`/`）开头防止递归。
-* 匹配模式可以以（`/`）结尾指定目录。
-* 要忽略指定模式以外的文件或目录，可以在模式前加上叹号（`!`）取反。
-
->尽管使用暂存区域的方式可以精心准备要提交的细节，但有时候这么做略显繁琐。 Git 提供了一个跳过使用暂存区域的方式， 只要在提交的时候，给 git commit 加上 -a 选项，Git 就会自动把所有已经跟踪过的文件暂存起来一并提交，从而跳过 git add 步骤：
-
-```bash
-$ git status
-On branch master
-Your branch is up-to-date with 'origin/master'.
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  (use "git checkout -- <file>..." to discard changes in working directory)
-
-    modified:   CONTRIBUTING.md
-
-no changes added to commit (use "git add" and/or "git commit -a")
-$ git commit -a -m 'added new benchmarks'
-[master 83e38c7] added new benchmarks
-1 file changed, 5 insertions(+), 0 deletions(-)
 ```
 
-```bash
-git commit -a -m 'added new benchmarks'
+名为 `/etc/nginx/stream.conf.d/mysql_reads.conf` 的文件可能包含以下配置：
+```nginx
+stream {
+    upstream mysql_read {
+        server read1.example.com:3306 weight=5;
+        server read2.example.com:3306;
+        server 10.10.12.34:3306 backup;
+    }
+
+    server {
+        listen 3306;
+        proxy_pass mysql_read;
+    }
+}
 ```
-- 这种写法确实不错,又能偷点懒了
+>http 和 stream 上下文之间的主要区别在于它们在 OSI 模型的不同层上运行。http 上下文在应用层（七层）运行，stream 在传输层（四层）运行。这并不意味着 stream 上下文不能通过一些巧妙的脚本获得应用感知能力，而是说 http 上下文是专门为了完全理解 HTTP 协议而设计的，stream 上下文默认情况下只能对数据包进行路由和负载均衡。
 
+#### UDP
+在 NGINX 的 stream 模块内使用 upstream 代码块（定义为 udp）对 UDP 服务器实施负载均衡:
 
-例如，你提交后发现忘记了暂存某些需要的修改，可以像下面这样操作：
-```bash
-$ git commit -m 'initial commit'
-$ git add forgotten_file
-$ git commit --amend
+```nginx
+stream {
+    upstream ntp {
+        server ntp1.example.com:123 weight=2;
+        server ntp2.example.com:123;
+    }
+
+    server {
+        listen 123 udp;
+        proxy_pass ntp;
+    }
+}
+
 ```
-最终你只会有一个提交——第二次提交将代替第一次提交的结果。
+## 总结
+受不了了,这本书一直在给Nginx Plus打广告,而且讲的一点也不完全.
+# 恶意代码分析实战
+## 静态分析
 
->修补提交最明显的价值是可以稍微改进你最后的提交，而不会让“啊，忘了添加一个文件”或者 “小修补，修正笔误”这种提交信息弄乱你的仓库历史。
+# CPython Internals
+# Database Design for Mere Mortals
 
 
-git checkout 用于撤销之前所做的修改.
+# AI Agents in Action(待补充)
 
->请务必记得 `git checkout — <file>` 是一个危险的命令。 你对那个文件在本地的任何修改都会消失——Git 会用最近提交的版本覆盖掉它。 除非你确实清楚不想要对那个文件的本地修改了，否则请不要使用这个命令。
 
-### 远程仓库
-```bash
-$ git clone https://github.com/schacon/ticgit
-Cloning into 'ticgit'...
-remote: Reusing existing pack: 1857, done.
-remote: Total 1857 (delta 0), reused 0 (delta 0)
-Receiving objects: 100% (1857/1857), 374.35 KiB | 268.00 KiB/s, done.
-Resolving deltas: 100% (772/772), done.
-Checking connectivity... done.
-$ cd ticgit
-$ git remote
-origin
-```
-### git别名
-Git 并不会在你输入部分命令时自动推断出你想要的命令。 如果不想每次都输入完整的 Git 命令，可以通过 git config 文件来轻松地为每一个命令设置一个别名。 这里有一些例子你可以试试：
 
-```bash
-$ git config --global alias.co checkout
-$ git config --global alias.br branch
-$ git config --global alias.ci commit
-$ git config --global alias.st status
-```
-这意味着，当要输入 git commit 时，只需要输入 git ci
 
-## Git分支
-- `git baranch`用于确认有哪些分支,`git branch 分支名`用于创建分支,这只不过是创建了一个新的git指针,并不需要复制文件的内容.
-- `git checkout`用于切换分支,这是通过git指针的移动实现的.
+# Powerful Python: Patterns and Strategies with Modern Python
 
-`git checkout -b 分支名`是两条命令的结合,可以快速创建一个新分支.
+# Python3网络爬虫开发实战
+## 爬虫基础
+讲的还不错,基本涉及了爬虫所需的所有知识,尤其是关于session,cookie的地方讲的很好,帮我扫清了一点疑惑
 
-- `git merge 分支名`用于将某个分支合并到当前分支上, 如果顺着一个分支走下去能够到达另一个分支,那么合并时只需要简单地将旧分支的指针往前面移动就可以了,这被称为快进(fast-forward).
 
-![图1](PixPin_2026-07-08_14-20-38.webp)
+## 数据的存储
+## Ajax数据爬取
+## 异步爬虫
 
-![图2](PixPin_2026-07-08_14-20-51.webp)
+# Redis in action
+## 介绍
+Redis有5种基础数据类型:
+1. string: 支持字符串,整数和浮点数
+2. list: 链表,每个节点包含一个元素,元素可重复
+3. set: 无序的字符串集合,元素不可重复
+4. hash: 哈希表,存储键值对
+5. zset: 有序字典,存储键值对
 
-- `git branch -d 分支名`用于删除不需要的分支
 
-```bash
-$ git branch -d hotfix
-Deleted branch hotfix (3a0874c).
-```
+string类型支持get,set,del三种方法:
+![使用示例](PixPin_2026-07-13_10-06-47.webp)
 
->假设你已经修正了 #53 问题，并且打算将你的工作合并入 master 分支。 为此，你需要合并 iss53 分支到 master 分支，这和之前你合并 hotfix 分支所做的工作差不多。 你只需要检出到你想合并入的分支，然后运行 git merge 命令：
+list类型支持以下命令:
+| 命令     | 行为                                     |
+| -------- | ---------------------------------------- |
+| `RPUSH`  | 将给定值推入列表的右端                   |
+| `LRANGE` | 获取列表在给定范围上的所有值             |
+| `LINDEX` | 获取列表在给定位置上的单个元素           |
+| `LPOP`   | 从列表的左端弹出一个值，并返回被弹出的值 |
 
-```bash
-$ git checkout master
-Switched to branch 'master'
-$ git merge iss53
-Merge made by the 'recursive' strategy.
-index.html |    1 +
-1 file changed, 1 insertion(+)
-```
+- 左右端都可以进行操作,前缀分别是`L`,`R`.
 
->这和你之前合并 hotfix 分支的时候看起来有一点不一样。 在这种情况下，你的开发历史从一个更早的地方开始分叉开来（diverged）。 因为，master 分支所在提交并不是 iss53 分支所在提交的直接祖先，Git 不得不做一些额外的工作。 出现这种情况的时候，Git 会使用**两个分支的末端**所指的快照（C4 和 C5）以及**这两个分支的公共祖先**（C2），做一个简单的**三方合并**。
+set类型支持`sadd`,`srem`等命令
 
-![图1](PixPin_2026-07-08_14-26-42.webp)
+![示例](PixPin_2026-07-13_10-14-46.webp)
 
-![图2](PixPin_2026-07-08_14-26-53.webp)
+![hash](PixPin_2026-07-13_10-16-55.webp)
 
-如果你在两个不同的分支中，对同一个文件的同一个部分进行了不同的修改，Git 就没法干净的合并它们。 如果你对 #53 问题的修改和有关 hotfix 分支的修改都涉及到同一个文件的同一处，在合并它们的时候就会产生合并冲突：
+![zset](PixPin_2026-07-13_10-16-41.webp)
 
-```bash
-$ git merge iss53
-Auto-merging index.html
-CONFLICT (content): Merge conflict in index.html
-Automatic merge failed; fix conflicts and then commit the result.
-```
 
-```bash
-$ git status
-On branch master
-You have unmerged paths.
-  (fix conflicts and run "git commit")
 
-Unmerged paths:
-  (use "git add <file>..." to mark resolution)
+# Redis设计与实现
 
-    both modified:      index.html
-
-no changes added to commit (use "git add" and/or "git commit -a")
-```
-## 服务器上的git(过)
-Git 可以使用四种不同的协议来传输资料：本地协议（Local），HTTP 协议，SSH（Secure Shell）协议及 Git 协议。
-## Github
->现在，你完全可以使用 https:// 协议，通过你刚刚创建的用户名和密码访问 Git 版本库。 但是，如果仅仅克隆公有项目，你甚至不需要注册——刚刚我们创建的账户是为了以后 fork 其它项目，以及推送我们自己的修改。
-
-我现在才知道原来用http协议甚至不需要注册ssh公钥,那么这样来看那些教新手入门Git的教程全都在扯淡了,直接让新人用http协议clone不就可以了,也就没有那么劝退了.
-
->如果你想要参与某个项目，但是并没有推送权限，这时可以对这个项目进行“派生（Fork）”。 当你“派生”一个项目时，GitHub 会在你的空间中创建一个完全属于你的项目副本，且你对其具有推送权限。
-## Git内部原理
->当在一个新目录或已有目录执行 git init 时，Git 会创建一个 .git 目录。 这个目录包含了几乎所有 Git 存储和操作的东西。 如若想备份或复制一个版本库，只需把这个目录拷贝至另一处即可。 本章探讨的所有内容，均位于这个目录内。 新初始化的 .git 目录的典型结构如下：
-
-```bash
-$ ls -F1
-config
-description
-HEAD
-hooks/
-info/
-objects/
-refs/
-```
-
->config 文件包含项目特有的配置选项。 info 目录包含一个全局性排除（global exclude）文件， 用以放置那些不希望被记录在 .gitignore 文件中的忽略模式（ignored patterns）。
-
->剩下的四个条目很重要：HEAD 文件、（尚待创建的）index 文件，和 objects 目录、refs 目录。 它们都是 Git 的核心组成部分。 objects 目录存储所有数据内容；refs 目录存储指向数据（分支、远程仓库和标签等）的提交对象的指针； HEAD 文件指向目前被检出的分支；index 文件保存暂存区信息。 
-
-由于这部分讲的不是很详细,只好另外找方法来学习git的内部原理了.
-# Kubernetes in Action, Second Edition
+# Kubernetes in Action, Second Edition(待补充)
 ## 入门
 ### Introducing Kubernetes
 >Kubernetes 一词源自希腊语，意为“领航员”或“舵手”,最初由Google开发.
@@ -1777,158 +2043,3 @@ kiada   3/3     3            3           18m
 续监控这些 Pod，一旦它们突然消失或所在节点发生故障，就得立即
 替换它们。这正是几乎从不直接创建 Pod、而是使用 Deployment
 的根本原因。
-
-
-# AI Agents in Action(待补充)
-
-# Designing APIs with Swagger and OpenAPI
-## Describing APIs
-### Introducing APIs and OpenAPI
-OpenAPI 是一种基于HTTP协议的API,采用Yaml或者Json形式来描述API的输入输出.
-
-- Yaml是Json的完全超集,所以可以自由地在Yaml中使用Json的`{}`和`[]`语法,分别对应map和list的写法.
-
-一开始我们使用Swagger UI来大致描述API的写法,后来越来越多的工具附着在Swagger UI上,最终被称为Swagger,由Linux基金会管理,更名为OpenAPI规范,而Swagger则用来称呼将OpenAPI文档转变成可视化网页的工具.
-### 使用OpenAPI
-**核心部件**
-```yaml
-/reviews:
-  get:
-    description: Gets a bunch of reviews.
-    responses:
-      200:
-        description: A bunch of reviews
-```
-上述yaml包含了路由,请求方法和对请求方法的响应,一定的描述.
-
-**加上请求参数**
-```yaml
-/reviews:
-  get:
-    description: Get a bunch of reviews.
-    parameters:
-      - name: maxRating
-        description: Filter reviews by the maximum rating
-        in: query # 参数的位置.
-        schema:
-          type: number
-    responses:
-      '200':
-        description: A bunch of reviews
-```
-### Describing API responses
-```yaml
-responses:
-  200:
-    description: A human description
-    content:
-      application/json:
-        schema:
-          type: object
-          items:
-            type: object
-            properties:
-              # ...
-
-```
-- content: 必须声明一个Media types (aka MIME),常用的有`text/html`,`image/png`,`application/json`等类型.
-- properties: 存放所有的查询参数
-
-### 创建资源
-部分http方法(如POST,PATCH)可以声明请求体:
-```yaml
-paths:
-  /reviews:
-    get: #...
-    post:
-      description: Create a new Review
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
-                  example: An awesome time for the whole family.
-                rating:
-                  type: integer
-                  minimum: 1
-                  maximum: 5
-                  example: 5
-
-```
-
-### 身份验证
-```yaml
-paths:
-  /reviews:
-    post:
-      #...
-      security:
-        - MyUserToken: []
-        # 列表表示该scheme的作用域,不适用于apikey类型,所以留空.
-#...
-components:
-  securitySchemes:
-    MyUserToken:
-      type: apiKey
-      in: header
-      name: Authorization
-
-```
-![图示](PixPin_2026-07-13_09-25-52.webp)
-## 设计
-### ch9
-这一章很有意思,详细描述了设计数据库的完整过程.
-## 总结
-这本书还是很不错的,完美体现了OpenAPI在前后端开发中的必要性.
-
-# 从零开始学架构(待补充)
-- 确实很详细,待日后有需求再来学.
-
-# Powerful Python: Patterns and Strategies with Modern Python
-
-# Python3网络爬虫开发实战
-## 爬虫基础
-讲的还不错,基本涉及了爬虫所需的所有知识,尤其是关于session,cookie的地方讲的很好,帮我扫清了一点疑惑
-
-
-## 数据的存储
-## Ajax数据爬取
-## 异步爬虫
-
-# Redis in action
-## 介绍
-Redis有5种基础数据类型:
-1. string: 支持字符串,整数和浮点数
-2. list: 链表,每个节点包含一个元素,元素可重复
-3. set: 无序的字符串集合,元素不可重复
-4. hash: 哈希表,存储键值对
-5. zset: 有序字典,存储键值对
-
-
-string类型支持get,set,del三种方法:
-![使用示例](PixPin_2026-07-13_10-06-47.webp)
-
-list类型支持以下命令:
-| 命令     | 行为                                     |
-| -------- | ---------------------------------------- |
-| `RPUSH`  | 将给定值推入列表的右端                   |
-| `LRANGE` | 获取列表在给定范围上的所有值             |
-| `LINDEX` | 获取列表在给定位置上的单个元素           |
-| `LPOP`   | 从列表的左端弹出一个值，并返回被弹出的值 |
-
-- 左右端都可以进行操作,前缀分别是`L`,`R`.
-
-set类型支持`sadd`,`srem`等命令
-
-![示例](PixPin_2026-07-13_10-14-46.webp)
-
-![hash](PixPin_2026-07-13_10-16-55.webp)
-
-![zset](PixPin_2026-07-13_10-16-41.webp)
-
-
-
-# Redis设计与实现
