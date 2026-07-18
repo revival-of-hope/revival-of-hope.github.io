@@ -32,6 +32,6 @@ image:
 The term **algorithmic trading** is often used synonymously with automated trading system. These encompass a variety of trading strategies, some of which are based on formulas and results from mathematical finance, and often rely on specialized software.
 - A study in 2019 showed that around **92%** of trading in the Forex market was performed by trading algorithms rather than humans.
 
-无论怎样,经过精确训练的算法模型通常都能比人类做出更合理的决策,这也是那些量化公司这么火爆的原因.
+经过精确训练的算法模型通常都能比人类做出更合理的决策,这也是那些量化公司这么火爆的原因.
 
 ## 

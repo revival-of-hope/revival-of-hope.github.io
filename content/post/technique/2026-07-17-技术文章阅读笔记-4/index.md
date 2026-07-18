@@ -2,15 +2,13 @@
 title: "技术文章阅读笔记-4"
 date: 2026-07-17T11:07:48+08:00
 description: 
-image: 
-tags: 
-    - 调研
+image: 62549331_p0-フランちゃんとチェス.webp
 math: 
-draft: true
 ---
 # High Performance Python 3rd edition
 - 25年5月出版的,新鲜的很
 
+# Powerful Python
 
 
 
