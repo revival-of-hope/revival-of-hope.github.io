@@ -998,13 +998,18 @@ KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智
 ### 概览与总结
 # 会议论文
 ## ALGOL 58
-- 梦开始的地方
+梦开始的地方,毫不客气的说,从Fortran到ALGOL(ALGOrithmic Language)的演进是计算机科学开始走向辉煌的开始.
 
 ![标题](PixPin_2026-07-14_22-35-43.webp)
 
+这篇论文远没有达到完善的程度,所以经过两年的激烈讨论和研究,ALGOL 60诞生了
 
 ## ALGOL 60
 ![标题](PixPin_2026-07-14_22-16-55.webp)
+
+- 群星汇聚,那才是计算机科学的黄金时代啊
+
+整个文档非常的简洁,只列出了所有的必要语法,在其中可以看到现代高级语言的大多数基本思想.撰写人员们也并没有很清晰的意识到这篇文档的重要性.
 
 
 # 算法与数据结构论文
@@ -1012,6 +1017,7 @@ KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智
 ### On the Shortest Spanning Subtree of a Graph and the Traveling Salesman Problem(1956)
 - Kruskal算法
 
+![标题](PixPin_2026-07-17_20-06-20.webp)
 
 ### Shortest connection networks and some generalizations(1957)
 - PRIM算法
@@ -1026,6 +1032,7 @@ KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智
 
 之后就是围绕这两个问题的相当随意的证明了,没有严格的公式证明,而是只用直白的英语不断地论述,整篇论文的正式内容只有两页,所以没什么看头.
 
+至于为什么现在这个算法这么出名,我想还是因为太好用的缘故.
 
 ## 数据结构
 ### An algorithm for the organization of information(1962)

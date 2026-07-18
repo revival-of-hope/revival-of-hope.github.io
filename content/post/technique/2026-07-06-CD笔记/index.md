@@ -1,6 +1,6 @@
 ---
 title: "CI/CD笔记"
-date: 2026-07-06T12:34:42+08:00
+date: 2026-07-20T12:34:42+08:00
 description: 
 image: 57793944_p0-浴衣とお面.webp
 tags: 
@@ -10,7 +10,16 @@ draft: true
 ---
 CI/CD的内容实际上相当广泛,所以值得专门来进行学习,为了方便写文章,我把所有能跟CI/CD扯上关系的技术都放进来了.
 
-# 反向代理
+# 容器
+## Docker 
+推荐阅读: [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice)
+# 自动部署与自动构建
+## git
+推荐阅读: Pro git
+## GitHub Actions
+推荐阅读: GitHub Actions in action
+
+# 反向代理(待补充)
 ## 前置知识
 - 早期的文章,日后可能会重构
 ### domain name(域名)
@@ -86,11 +95,3 @@ In computer networking, a proxy server is a server application that acts as an i
 
 ## traefik
 
-# 容器
-## Docker 
-推荐阅读: [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice)
-# 自动部署与自动构建
-## git
-推荐阅读: Pro git
-## GitHub Actions
-推荐阅读: GitHub Actions in action
