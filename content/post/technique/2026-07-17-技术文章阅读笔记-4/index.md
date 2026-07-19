@@ -8,6 +8,7 @@ math:
 # High Performance Python 3rd edition
 - 25年5月出版的,新鲜的很
 
+讲的一般般,大多数内容我都已经学过了.
 # Powerful Python
 
 

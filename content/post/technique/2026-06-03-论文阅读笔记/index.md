@@ -2,7 +2,7 @@
 title: "论文阅读笔记"
 date: 2026-06-03T09:30:22+08:00
 image: 28876767_p0-＼ ハッピーバースデイ ／.webp
-description: 科研之路
+description: 科研固然枯燥,却是文明进步的基石
 math: true
 ---
 # 深度学习论文
