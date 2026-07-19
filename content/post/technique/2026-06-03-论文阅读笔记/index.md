@@ -1017,11 +1017,16 @@ KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智
 ### On the Shortest Spanning Subtree of a Graph and the Traveling Salesman Problem(1956)
 - Kruskal算法
 
+整篇论文的实际内容只有2页,基本思想也很简单.
+
+
 ![标题](PixPin_2026-07-17_20-06-20.webp)
+
 
 ### Shortest connection networks and some generalizations(1957)
 - PRIM算法
 
+尽管思想也很简单,但论文却花了很大的篇幅来讲一些特殊情况和偏差情况
 
 ### A Note on Two Problems in Connexion with Graphs(1959)
 - DIJKSTRA算法
@@ -1037,19 +1042,73 @@ KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智
 ## 数据结构
 ### An algorithm for the organization of information(1962)
 - AVL树
+![标题](PixPin_2026-07-19_10-31-27.webp)
+
+整篇论文只有5页,论述过程非常简明,但这种数据结构确实不是一般人能想出来的.
+
 
 ### Organization and Maintenance of Large Ordered Indices(1970)
 - B树
 
-### A Dichromatic Framework for Balanced Trees(1978)
+整篇论文讲的就是B树的原理,插入/删除操作,光是这些部分就花了二十多页...
+
+### A Dichromatic(双色的) Framework for Balanced Trees(1978)
+- 红黑树
+
+![标题](PixPin_2026-07-19_10-23-59.webp)
+
+整篇论文包含了对红黑树的原理介绍和与B树的比较,所以没什么可读性
 
 ### The Ubiquitous B-Tree(1979)
 - B+树
 
+>B+树不像AVL树或B树那样存在一篇公认的唯一“发明论文”。相关思想在B树变体和IBM的VSAM等系统中逐渐形成，至少在1973年已经投入使用
+
+而这篇论文也仅仅是对B树家族的综述而已,对于B+树的介绍也比较少.
+
+![标题](PixPin_2026-07-19_10-50-36.webp)
+
+由于数据存取有两种常见的方法,顺序存取和随机存取,而直到B+树诞生前,没有一个比较好的数据结构能够以比较优秀的性能同时实现这两种功能.
 
 ### Skip Lists: A Probabilistic Alternative to Balanced Trees(1990)
 - 跳表
 
+![标题](PixPin_2026-07-19_11-29-05.webp)
 
 ### Log-Structured Merge-tree(1996)
+- LSM树
+![图示](PixPin_2026-07-19_10-36-47.webp)
+
+## 逻辑算法
+
+### Optimization by Simulated Annealing
+- 模拟退火
+
+![标题](PixPin_2026-07-19_11-16-20.webp)
+- 发布在Science上我是没想到的
+
+
+## 分布式算法
+### Self-stabilizing Systems in Spite of Distributed Control(1974)
+- 早期思想
+### Time, Clocks, and the Ordering of Events in a Distributed System(1978)
+- 早期思想
+### The Byzantine Generals Problem(1980)
+- 拜占庭问题
+
+### Consistent Hashing and Random Trees(1997)
+- 一致性哈希
+
+### The Part-Time Parliament(1998)
+- Paxos算法
+
+### MapReduce: Simplified Data Processing on Large Clusters(2004)
+- MapReduce
+
+### Bitcoin: A Peer-to-Peer Electronic Cash System(2008)
+- Bitcoin
+### Kafka: a Distributed Messaging System for Log Processing(2011)
+- Kafka
+### In Search of an Understandable Consensus Algorithm(2014)
+- Raft
 
