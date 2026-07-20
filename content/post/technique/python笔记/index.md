@@ -7163,8 +7163,183 @@ if __name__ == "__main__":
 运行`uv run main.py`后,访问http://localhost:8000/api/docs即可看到以下界面:
 
 ![效果图](PixPin_2026-07-17_17-51-01.webp)
+### ch7: docker构建和加入数据库
+#### 示例1
+由于docker官方关于python的dockerfile构建文档还用的是`pip`,一个比较权威的参考文档就是fastapi模板项目中的dockerfile写法了:
 
-### ch7: 实现token验证
+```dockerfile
+FROM python:3.10
+
+ENV PYTHONUNBUFFERED=1
+
+# Install uv
+# Ref: https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
+COPY --from=ghcr.io/astral-sh/uv:0.9.26 /uv /uvx /bin/
+
+# Compile bytecode
+# Ref: https://docs.astral.sh/uv/guides/integration/docker/#compiling-bytecode
+ENV UV_COMPILE_BYTECODE=1
+
+# uv Cache
+# Ref: https://docs.astral.sh/uv/guides/integration/docker/#caching
+ENV UV_LINK_MODE=copy
+
+WORKDIR /app/
+
+# Place executables in the environment at the front of the path
+# Ref: https://docs.astral.sh/uv/guides/integration/docker/#using-the-environment
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Install dependencies
+# Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-workspace --package app
+
+COPY ./backend/scripts /app/backend/scripts
+
+COPY ./backend/pyproject.toml ./backend/alembic.ini /app/backend/
+
+COPY ./backend/app /app/backend/app
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --package app
+
+WORKDIR /app/backend/
+
+CMD ["fastapi", "run", "--workers", "4", "app/main.py"]
+```
+- `COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/`: 将uv和uvx下载到环境变量目录bin下.
+- `ENV PYTHONUNBUFFERED=1`: python在控制台输出调试信息时会先存入缓冲区,设置该环境变量可以让Python直接输出调试信息,减少等待时间
+- `ENV UV_COMPILE_BYTECODE=1`: python文件在第一次运行时会被编译为字节码,而在docker中,如果直接将纯文件包装成镜像的话,那么每一次启动镜像都要进行重新编译,非常麻烦,该配置选项会在使用uv命令时自动帮所有涉及的python文件构建字节码文件.
+  - 优点是可以缩减镜像启动时间,缺点是会增大镜像体积,但还是利大于弊.
+- `ENV UV_LINK_MODE=copy`: 该环境变量用于静默一些警告信息,打开就对了.
+- `ENV PATH="/app/.venv/bin:$PATH"`: 一般来说,Linux系统的PATH中会有多个值,用`:`分隔,为了让uv能够直接通过命令行运行而不用带上路径,所以我们用一个新的PATH值来覆盖原来的PATH,
+
+至于这个长长的命令,是通过三个绑定挂载来缩减构建时间和减少冗余的,因为是官方推荐的写法,所以就无脑使用即可:
+```dockerfile
+# Install dependencies
+# Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-workspace --package app
+```
+
+
+#### 示例2
+uv官方也给了非常详细的示例: [参考链接](https://docs.astral.sh/uv/guides/integration/docker/)
+
+```dockerfile
+# Install uv
+FROM python:3.12-slim AS builder
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Use the system Python across both stages
+ENV UV_PYTHON_DOWNLOADS=0
+
+# Change the working directory to the `app` directory
+WORKDIR /app
+
+# Install dependencies
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --no-editable
+
+# Copy the project into the intermediate image
+COPY . /app
+
+# Sync the project
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-editable
+
+FROM python:3.12-slim
+
+# Copy the environment, but not the source code
+COPY --from=builder /app/.venv /app/.venv
+
+# Run the application
+CMD ["/app/.venv/bin/hello"]
+```
+
+该实例引入了两层构建的写法,显然比fastapi模板项目的写法更加专业.
+#### 将后端放入dockerfile
+我们之前的`main.py`是放在根目录的,因为这样好直接从命令行操作,现在可以直接用docker,所以就把main.py放入app文件夹中,项目结构现在长这样:
+
+![示意图](PixPin_2026-07-19_14-07-25.webp)
+
+首先,填写`.dockerignore`,防止带入一些奇奇怪怪的东西:
+
+```ignore
+# Python
+__pycache__
+app.egg-info
+*.pyc
+.mypy_cache
+.venv
+```
+
+对于dockerfile,我们采用两层构建的写法,大多数指令都是直接从上述的实例中复制而来:
+```dockerfile
+FROM python:3.14-slim AS builder
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+ENV UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project
+
+FROM python:3.14-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:$PATH"
+
+COPY --from=builder /app/.venv /app/.venv
+
+COPY . .
+
+CMD ["fastapi", "run", "app/main.py"]
+```
+要直接构建镜像并运行的话,可以在backend目录中运行:
+```bash
+docker build -t backend .
+docker run backend 
+```
+如果不出意外的话,镜像能够构建成功,但是运行时却会报错.原因就是缺失了环境变量文件,通过`docker run -e`参数来注入固然可以,但实在是太麻烦了.
+
+因此,我们需要引入docker compose,用docker compose一键启动.
+
+由于我们目前的功能很简单,所以这个compose文件写的也很简单:
+```yml
+services:
+  backend:
+    restart: always
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+```
+访问`http://localhost:8000/api/docs`,成功出现openapi文档,大功告成!
+#### 将数据库加入compose文档
+有了后端,没有数据库可不行
+
+### ch8: 实现token验证
 >现在最大的问题是,即便有了注册+登录的流程,后端还是无法记住当前用户,那么也就不可能真正的给用户传递数据库的信息,也就是说,数据库基本没被用上! 因此,我们需要加入token功能,在用户的每次数据库请求中加上token依赖,这样我们才能知道这是哪个用户,我们又应该返回哪条消息.
 
 
@@ -7177,10 +7352,10 @@ if __name__ == "__main__":
 ##### hey-api库使用
 
 
-### ch8: 实现多轮对话
-### ch9: 加入管理员账户
+### ch9: 实现多轮对话
+### ch10: 加入管理员账户
 
-### ch10: 使用docker+traefik部署智能体
+
 # Python机器学习
 ## 前言
 说到机器学习的python库,大多数人第一个会接触和学习的可能都是pytorch,但是pytorch实际上是机器学习中的底层框架,这和学cpp一样,如果你一上来就奔着STL库实现和Make编写,是不太可能看得懂的.

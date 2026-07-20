@@ -1039,11 +1039,11 @@ Go是一个非常有特点的语言,一方面,他继承了多门语言的精华,
 需要注意的是,由于Go不支持相对路径的写法,每次跨包导入时,只能在包名前加上全名,比如说你的mod名字叫做`xk`那么导入`writer`包就要写成`import xk/writer`.
 # Go实战
 
-## Go网络框架
-
+## Go网络库
+### net/http
 ### Gin
 
-#### 简单入门
+#### 路由
 
 ```go
 package main
@@ -1060,12 +1060,12 @@ func main() {
   router.Run() // listens on 0.0.0.0:8080 by default
 }
 ```
-创建初始项目后运行该文件,访问http://localhost:8080/ping即可看到以下消息:
+通过`go mod init test`创建初始项目后运行该文件,访问 http://localhost:8080/ping 即可看到以下消息:
 ```json
 {"message":"pong"}
 ```
 
-使用多种HTTP方法:
+##### 使用多种HTTP方法
 ```go
 package main
 
@@ -1122,3 +1122,50 @@ func main() {
   // router.Run(":3000") for a hard coded port
 }
 ```
+##### 使用路径参数
+
+Gin支持两种路径参数写法:
+- `:name` —— 匹配单个路径段。例如，/user/:name 匹配 /user/john，但不匹配 /user/ 或 /user。
+- `*action` —— 匹配前缀之后的所有内容，包括斜杠。例如，/user/:name/*action 匹配 /user/john/send 和 /user/john/。捕获的值包含前导 /。
+
+在处理函数内使用 c.Param("name") 来获取路径参数的值。
+```go
+package main
+
+import (
+  "net/http"
+
+  "github.com/gin-gonic/gin"
+)
+
+func main() {
+  router := gin.Default()
+
+  router.GET("/user/:name", func(c *gin.Context) {
+    name := c.Param("name")
+    c.String(http.StatusOK, "Hello %s", name)
+  })
+
+  router.GET("/user/:name/*action", func(c *gin.Context) {
+    name := c.Param("name")
+    action := c.Param("action")
+    message := name + " is " + action
+    c.String(http.StatusOK, message)
+  })
+
+  router.Run(":8080")
+}
+```
+第二种路径参数写法显然不正常,要匹配前导`/`最好的写法肯定是单独写一个函数,哪能这样胡闹,所以只需要记得使用`:`标识路径参数就可以了.
+
+##### 查询参数
+Gin提供了两种参数获取方法:
+- c.Query("key") 返回查询参数的值，如果键不存在则返回空字符串。
+- c.DefaultQuery("key", "default") 返回值，如果键不存在则返回指定的默认值。
+
+显然,第一种写法就够了,如果要特别处理空字符串,那么就多写几行反而更明确一点.
+
+
+## Go数据库框架
+
+### Gorm
