@@ -51,6 +51,14 @@ Elasticsearch是使用Lucene作为底层引擎的开源搜索引擎.
 讲的一般般,大多数内容我都已经学过了.
 
 # Kafka: The Definitive Guide,2rd edition
+# Full Stack Testing,2rd edition
+- July/9 2026: Second Edition
+  - 我读这本书的日期为7/19,而zlib上就已经有资源了,确实离谱
+
+## ch1
+>Starting testing early in the delivery cycle to provide faster feedback is referred to as **shift-left testing**, and it’s a key principle of full stack testing.
+
+![图示](PixPin_2026-07-21_17-39-07.webp)
 
 # AI-Powered Search
 

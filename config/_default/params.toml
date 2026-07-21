@@ -7,20 +7,21 @@ favicon        = "img/topbar.webp"
 # Accepted values: "default", "lastmod"
 # default = see https://gohugo.io/quick-reference/glossary/#default-sort-order
 # lastmod = sort by last modified date, in descending order
-SortBy              = "default"
+SortBy              = "lastUpdated"
 
 [footer]
     since      = 2025
-    customText = """网站总访客数：<span id='busuanzi_value_site_uv'>Loading</span><br/>
-      网站总访问量：<span id='busuanzi_value_site_pv'>Loading</span>
-     """
+    customText = "😇"
+    # customText = """网站总访客数：<span id='busuanzi_value_site_uv'>Loading</span><br/>
+    #   网站总访问量：<span id='busuanzi_value_site_pv'>Loading</span>
+    #  """
 
 [dateFormat]
     published   = ":date_full"
     lastUpdated = ":date_full"
 
 [sidebar]
-    emoji    = "🌊"
+    emoji    = "😇"
     subtitle = "仰天大笑出门去,谁想门槛撞到头"
     avatar   = "img/avatar.png"
 
@@ -37,7 +38,7 @@ SortBy              = "default"
     homepage = [
         { type = "search" },
         { type = "archives", params = { limit = 5 } },
-        { type = "categories", params = { limit = 10 } },
+        # { type = "categories", params = { limit = 10 } },
         { type = "tag-cloud", params = { limit = 10 } },
     ]
     page = [{ type = "toc" }]
