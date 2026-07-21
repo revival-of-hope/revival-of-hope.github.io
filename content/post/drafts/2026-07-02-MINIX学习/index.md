@@ -1,17 +1,12 @@
 ---
 title: "操作系统笔记"
 date: 2026-07-02T15:05:31+08:00
-description: 
-image: 
-tags: 
-math: 
+description: 动态更新ing
+image: 64529008_p0-紅魔館傳達室.webp
+math: true
 draft: true
 ---
 # 基本概念
-## 操作系统历史
-- [wiki](https://en.wikipedia.org/wiki/History_of_operating_systems)
-  - 以前我都是把内容直接丢给AI让它来总结的,但现在我还是想自己来总结,或许会更有趣一点.
-
 
 ## 常用终端命令
 ### 文件操作

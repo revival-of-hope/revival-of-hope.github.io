@@ -7337,11 +7337,86 @@ services:
 ```
 访问`http://localhost:8000/api/docs`,成功出现openapi文档,大功告成!
 #### 将数据库加入compose文档
-有了后端,没有数据库可不行
+有了后端,没有数据库可不行,我们这个项目用的数据库是PostgreSQL,主要原因就是fastapi模板项目用的就是它,而且性能非常好.
 
+[官方](https://hub.docker.com/_/postgres)最新的镜像为19的beta版本,那我们用18-alpine版本就够了,写法如下:
+
+```yml
+  db:
+    image: postgres:18-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+
+volumes:
+  db-data:
+```
+上述的healthcheck字段是标准写法,所以无脑照抄就可以了,不过这需要预先在.env文件中声明了环境变量才可以.
+
+volume挂载的路径也是标准路径,与镜像内置的环境变量相关联,所以最好不要改.
+
+显然,如果后端比数据库先启动,那么也无法执行任何的数据操作,所以,需要用`depends_on`关键字来强制后端滞后启动,完整的yml文件如下:
+```yml
+services:
+  db:
+    image: postgres:18-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+  backend:
+    restart: always
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+
+volumes:
+  db-data:
+
+```
+运行下述命令:
+```bash
+docker compose up --build -d
+```
+可以看到所有服务都正常启动了,非常好!
+
+![图示](PixPin_2026-07-20_21-52-23.webp)
+
+现在我们可以真正的对数据库进行操作了,但是,这需要我们先完善用户验证功能,不然就没办法有效的存储数据了.
 ### ch8: 实现token验证
+#### 预处理
 >现在最大的问题是,即便有了注册+登录的流程,后端还是无法记住当前用户,那么也就不可能真正的给用户传递数据库的信息,也就是说,数据库基本没被用上! 因此,我们需要加入token功能,在用户的每次数据库请求中加上token依赖,这样我们才能知道这是哪个用户,我们又应该返回哪条消息.
 
+为了让重构更简单,我们就需要再次进行文件的重新放置和安排,确保文件彼此的职责边界清晰,最后得到的目录架构如下:
+
+![图示](PixPin_2026-07-20_22-28-23.webp)
+
+- 文件内容除了导入路径外没有任何改变
+
+考虑到我们需要先启动数据库驱动再运行asgi服务器,所以最好
 
 
 #### 前端重构阶段

@@ -6,6 +6,56 @@ image: 62549331_p0-フランちゃんとチェス.webp
 math: 
 ---
 
+
+# Python3网络爬虫开发实战
+## 爬虫基础
+讲的还不错,基本涉及了爬虫所需的所有知识,尤其是关于session,cookie的地方讲的很好,帮我扫清了一点疑惑
+
+
+## 数据的存储
+### Elasticsearch
+- 这部分的简短介绍比官网讲的好得多
+
+Elasticsearch是使用Lucene作为底层引擎的开源搜索引擎.
+- Es本质上是一个分布式数据库,每台服务器可以运行多个Es实例,一个实例被称为一个节点(Node),一组节点构成一个集群
+- Es会索引所有的字段,根据索引来查找数据,所以Es管理的顶层单位就是索引,对应MySQL中数据库的概念,索引的名字必须小写
+- 索引中的单条记录称为文档(document)
+- ~~文档可以进行分组,这种分组被称为类型(type),用于过滤文档,~~,已在8.x版本后被废除
+- 每个文档都类似一个Json结构,与MongoDB中的结构非常相似.
+
+这么来看,Es展现出来的确实就是一个数据库而已.
+### RabbitMQ
+>爬取数据时,我们需要用到一些进程间的通信机制,例如一个进程负责构造爬取请求,另一个负责执行爬取请求,或者一个进程爬取完毕后通知另一个进程来处理数据,尽管yield,async,await等关键字能够解决部分的问题,但用起来还是不太顺手
+
+## Ajax数据爬取
+## 异步爬虫
+
+# React in Depth
+## 介绍
+![图示](PixPin_2026-07-18_10-27-51.webp)
+
+前端的技术栈比起后端要可怕的多,这也是为什么资深前端这么少的原因.
+## 总结
+不推荐,看来前端还是要以文档和实战为主,因为技术栈的变化太快了,几年前的经验到现在就根本不适用了.
+## Advanced component patterns
+
+### The Provider pattern
+
+# Node.js in Action, Second Edition
+- 十年前写的,用的还是CommonJS的写法
+不推荐,太老了,涉及的技术栈也都非常老旧,基本都死透了.
+
+# High Performance Python 3rd edition
+- 25年5月出版的,新鲜的很
+
+讲的一般般,大多数内容我都已经学过了.
+
+# Kafka: The Definitive Guide,2rd edition
+
+# AI-Powered Search
+
+# Fluent Python ,second edition
+## Python 数据模型
 # Flutter实战 第二版
 ## 入门
 ### 起步
@@ -133,48 +183,55 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 ```
-对于学过Java和Js的人来说,Dart语法确实很容易掌握
-
-# Python3网络爬虫开发实战
-## 爬虫基础
-讲的还不错,基本涉及了爬虫所需的所有知识,尤其是关于session,cookie的地方讲的很好,帮我扫清了一点疑惑
-
-
-## 数据的存储
-### Elasticsearch
-- 这部分的简短介绍比官网讲的好得多
-
-Elasticsearch是使用Lucene作为底层引擎的开源搜索引擎.
-- Es本质上是一个分布式数据库,每台服务器可以运行多个Es实例,一个实例被称为一个节点(Node),一组节点构成一个集群
-- Es会索引所有的字段,根据索引来查找数据,所以Es管理的顶层单位就是索引,对应MySQL中数据库的概念,索引的名字必须小写
-- 索引中的单条记录称为文档(document)
-- ~~文档可以进行分组,这种分组被称为类型(type),用于过滤文档,~~,已在8.x版本后被废除
-- 每个文档都类似一个Json结构,与MongoDB中的结构非常相似.
-
-这么来看,Es展现出来的确实就是一个数据库而已.
-### RabbitMQ
->爬取数据时,我们需要用到一些进程间的通信机制,例如一个进程负责构造爬取请求,另一个负责执行爬取请求,或者一个进程爬取完毕后通知另一个进程来处理数据,尽管yield,async,await等关键字能够解决部分的问题,但用起来还是不太顺手
-
-## Ajax数据爬取
-## 异步爬虫
-
-# React in Depth
-## 介绍
-![图示](PixPin_2026-07-18_10-27-51.webp)
-
-前端的技术栈比起后端要可怕的多,这也是为什么资深前端这么少的原因.
+对于学过Java和Js的人来说,Dart语法确实很容易掌握,但这种乱糟糟的写法开发效率显然弗如JSX远甚.
 ## 总结
-不推荐,看来前端还是要以文档和实战为主,因为技术栈的变化太快了,几年前的经验到现在就根本不适用了.
-## Advanced component patterns
+越看越头痛呢,虽然知道这种跨平台框架到头来还是写前端样式,但是静态类型和杂糅的语法让Dart的样式函数变得面目可憎:
+```dart
+import 'package:flutter/material.dart';
 
-### The Provider pattern
+class ClipTestRoute extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    // 头像  
+    Widget avatar = Image.asset("imgs/avatar.png", width: 60.0);
+    return Center(
+      child: Column(
+        children: <Widget>[
+          avatar, //不剪裁
+          ClipOval(child: avatar), //剪裁为圆形
+          ClipRRect( //剪裁为圆角矩形
+            borderRadius: BorderRadius.circular(5.0),
+            child: avatar,
+          ), 
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Align(
+                alignment: Alignment.topLeft,
+                widthFactor: .5,//宽度设为原来宽度一半，另一半会溢出
+                child: avatar,
+              ),
+              Text("你好世界", style: TextStyle(color: Colors.green),)
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              ClipRect(//将溢出部分剪裁
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  widthFactor: .5,//宽度设为原来宽度一半
+                  child: avatar,
+                ),
+              ),
+              Text("你好世界",style: TextStyle(color: Colors.green))
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
 
-# Node.js in Action, Second Edition
-- 十年前写的,用的还是CommonJS的写法
-不推荐,太老了,涉及的技术栈也都非常老旧,基本都死透了.
-
-# High Performance Python 3rd edition
-- 25年5月出版的,新鲜的很
-
-讲的一般般,大多数内容我都已经学过了.
-
+如果以后有机会的话,我会再来学习的...
