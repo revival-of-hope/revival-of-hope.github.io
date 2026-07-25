@@ -7416,7 +7416,97 @@ docker compose up --build -d
 
 - 文件内容除了导入路径外没有任何改变
 
-考虑到我们需要先启动数据库驱动再运行asgi服务器,所以最好
+考虑到我们需要先启动数据库驱动再运行asgi服务器,所以最好把数据库初始化函数预先调动,因此,有必要先在根目录单独创建一个**db_pre_start.py**文件:
+
+```py
+from app.core.db import init_db
+
+
+def main() -> None:
+    init_db()
+
+
+if __name__ == "__main__":
+    main()
+```
+- 另一个原因是后续需要在prestart中加入数据库迁移,管理员账户初始化等功能,所以需要尽早拆分.
+
+考虑到手动启动该函数的麻烦,我们需要将这个文件放入脚本来启动,再封装在compose.yml中:
+
+**prestart.sh**
+```bash
+#! /usr/bin/env bash
+
+set -e
+set -x
+
+# Let the DB start
+python app/db_pre_start.py
+```
+
+现在,我们就可以把这个脚本放入compose里了:
+```yml
+  prestart:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    command: bash scripts/prestart.sh
+    env_file:
+      - .env
+```
+prestart服务与backend服务共用一个dockerfile进行构建,运行完command中指示的脚本后就会主动退出并终止.让位给backend服务.
+
+最终的compose.yml格式如下:
+```yml
+services:
+  db:
+    image: postgres:18-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+  prestart:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    command: bash scripts/prestart.sh
+    env_file:
+      - .env
+  backend:
+    restart: always
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      prestart:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+
+volumes:
+  db-data:
+```
+
 
 
 #### 前端重构阶段
