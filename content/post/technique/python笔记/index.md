@@ -7283,7 +7283,7 @@ app.egg-info
 .venv
 ```
 
-对于dockerfile,我们采用两层构建的写法,大多数指令都是直接从上述的实例中复制而来:
+对于dockerfile,我们采用两层构建的写法,大多数指令都是直接从上述的示例中复制而来:
 ```dockerfile
 FROM python:3.14-slim AS builder
 
@@ -7335,6 +7335,11 @@ services:
     ports:
       - "8000:8000"
 ```
+根目录下运行命令:
+```bash
+docker compose up --build -d
+```
+
 访问`http://localhost:8000/api/docs`,成功出现openapi文档,大功告成!
 #### 将数据库加入compose文档
 有了后端,没有数据库可不行,我们这个项目用的数据库是PostgreSQL,主要原因就是fastapi模板项目用的就是它,而且性能非常好.
@@ -7359,7 +7364,7 @@ services:
 volumes:
   db-data:
 ```
-上述的healthcheck字段是标准写法,所以无脑照抄就可以了,不过这需要预先在.env文件中声明了环境变量才可以.
+上述的healthcheck字段是标准写法,所以无脑照抄就可以了,不过这需要预先在.env文件中声明了`{}`所包裹的两个环境变量才可以.
 
 volume挂载的路径也是标准路径,与镜像内置的环境变量相关联,所以最好不要改.
 
@@ -7406,7 +7411,7 @@ docker compose up --build -d
 ![图示](PixPin_2026-07-20_21-52-23.webp)
 
 现在我们可以真正的对数据库进行操作了,但是,这需要我们先完善用户验证功能,不然就没办法有效的存储数据了.
-### ch8: 实现token验证
+### ch8: 实现Token验证
 #### 预处理
 >现在最大的问题是,即便有了注册+登录的流程,后端还是无法记住当前用户,那么也就不可能真正的给用户传递数据库的信息,也就是说,数据库基本没被用上! 因此,我们需要加入token功能,在用户的每次数据库请求中加上token依赖,这样我们才能知道这是哪个用户,我们又应该返回哪条消息.
 
@@ -7506,8 +7511,538 @@ services:
 volumes:
   db-data:
 ```
+#### 生成Token与提取Token
+首先,先在models.py创建关于token的两个SQLModel模型:
+```py
+class Token(SQLModel):
+    access_token: str
+    token_type: str = "bearer"
 
 
+class TokenPayload(SQLModel):
+    sub: str | None = None
+```
+
+一个用来存放返回给用户的token,一个用来存放用户提供的token,分别用于分发和校验token.而至于为什么放的是这三个字段,请看下面的深入解释:
+##### token原理再探
+在token往来中,服务器和客户端存放token的方式自然有所不同,当用户登录时,服务器的返回内容如下:
+
+```yml
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+
+{
+    "access_token":
+    "xxxxx.yyyyy.zzzzz",
+
+    "token_type":
+    "bearer"
+}
+```
+
+而用户在之后请求信息时,都会在头部带上这个"xxxxx.yyyyy.zzzzz"token,服务器只需要再次用密钥和对应的算法来解析token,就可以知道该token的格式是否正常,token是否过期.
+
+而sub字段(subject)则是用于区分不同的用户,唯一具有该功能的键自然就是主键了,也就是说sub字段存储的就是用户数据库的主键id,自然,该id需要具有随机性,不然就容易被cracker攻击或者破坏,不过我们这个项目显然没这个烦恼,就依靠SQLModel的自动生成特性来实现也足够了.
+
+而标准的设计中,数据库最起码要提供的token字段(也就是payload)如下:
+```json
+{
+    "sub":"1001",
+
+    "iat":1720000000,
+
+    "exp":1720003600,
+
+}
+```
+| 字段 | 用途     |
+| ---- | -------- |
+| sub  | 用户ID   |
+| iat  | 签发时间 |
+| exp  | 过期时间 |
+
+因此,我们还需要对models.py中的原字段做一些改动,加入时间机制,先看看原来的结构:
+```py
+from sqlmodel import Relationship, SQLModel, Field
+
+
+class UserBase(SQLModel):
+    name: str
+
+
+class UserRegister(UserBase):
+    password: str
+
+
+class UserLogin(UserBase):
+    password: str
+
+
+class User(UserBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str
+    chats: list["ChatMessage"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+
+
+class Message(SQLModel):
+    message: str
+
+
+class ChatMessage(SQLModel, table=True):
+    chat_id: int | None = Field(default=None, primary_key=True)
+    content: str | None = None
+    user_id: int | None = Field(foreign_key="user.id")
+    user: User | None = Relationship(back_populates="chats")
+
+
+class Token(SQLModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenPayload(SQLModel):
+    sub: str | None = None
+```
+
+加入计时功能需要导入datetime库,该库与普通的计时器time库不同,可以获取更为精确的时间,并且支持时区.
+##### models.py最终版本
+```py
+from sqlalchemy import DateTime
+from sqlmodel import Relationship, SQLModel, Field
+from datetime import UTC, datetime
+
+
+def get_datetime() -> datetime:
+    return datetime.now(UTC)
+
+
+class UserBase(SQLModel):
+    name: str | None = Field(default=None, max_length=255)
+    is_active: bool = True
+
+
+class UserRegister(SQLModel):
+    password: str
+    name: str | None = Field(default=None, max_length=255)
+
+
+class UserCreate(UserBase):
+    password: str = Field(min_length=8, max_length=16)
+
+
+class User(UserBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str
+    created_at: datetime | None = Field(
+        default_factory=get_datetime,
+    )
+    chats: list["ChatMessage"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+
+
+class Message(SQLModel):
+    message: str
+
+
+class ChatMessage(SQLModel, table=True):
+    chat_id: int | None = Field(default=None, primary_key=True)
+    content: str | None = None
+    created_at: datetime | None = Field(
+        default_factory=get_datetime,
+    )
+    user_id: int | None = Field(foreign_key="user.id")
+    user: User | None = Relationship(back_populates="chats")
+
+
+class Token(SQLModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenPayload(SQLModel):
+    sub: str | None = None
+
+```
+##### 重构deps.py
+再重构玩models.py后,就可以着手重构deps.py了,把之前的所有伪处理全部改成真实的处理:
+```py
+from collections.abc import Generator
+from typing import Annotated
+
+from sqlmodel import Session
+
+from app.core.db import engine
+from app.models import User, TokenPayload  # newline
+from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, HTTPException, status  # newline
+
+# newline
+import jwt
+from jwt.exceptions import InvalidTokenError
+from app.core.config import settings
+from pydantic import ValidationError
+
+# newline
+oauth2 = OAuth2PasswordBearer(
+    tokenUrl="api/login/access-token",
+    scheme_name="Oauth2",
+)
+
+TokenDep = Annotated[str, Depends(oauth2)]
+
+ALGORITHM = "HS256"
+
+
+def get_db() -> Generator[Session, None, None]:
+    with Session(engine) as session:
+        yield session
+
+
+SessionDep = Annotated[Session, Depends(get_db)]
+
+
+def get_current_user(
+    session: SessionDep,
+    token: TokenDep,
+) -> User:
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[ALGORITHM],
+        )
+        token_data = TokenPayload(**payload)
+    except InvalidTokenError, ValidationError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid credentials",
+        )
+    user = session.get(User, token_data.sub)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User Not Found",
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user",
+        )
+    return user
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
+```
+可以看到,引入验证功能之后,所有的路由处理都水到渠成了.
+##### 重构security.py
+原来的security.py长这样,属实有点寒酸:
+```py
+from pwdlib import PasswordHash
+
+hash_method = PasswordHash.recommended()
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return hash_method.verify(plain_password, hashed_password)
+
+
+def hashing_password(plain_password: str):
+    return hash_method.hash(plain_password)
+```
+加入验证功能后,我们需要创建一个构建token的函数,最终效果如下:
+```py
+from datetime import timedelta
+from typing import Any
+from datetime import datetime, UTC
+import jwt
+
+from pwdlib import PasswordHash
+from app.api.deps import ALGORITHM
+from app.core.config import settings
+
+hash_method = PasswordHash.recommended()
+
+
+def create_token(subject: str | Any, expires_delta: timedelta) -> str:
+    expire_date = datetime.now(UTC) + expires_delta
+    encode_content = {"exp": expire_date, "sub": str(subject)}
+    encoded_jwt = jwt.encode(
+        encode_content,
+        settings.SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
+    return encoded_jwt
+
+
+def verify_password(
+    plain_password: str,
+    hashed_password: str,
+) -> bool:
+    return hash_method.verify(plain_password, hashed_password)
+
+
+def hashing_password(plain_password: str) -> str:
+    return hash_method.hash(plain_password)
+```
+
+#### crud.py重构
+原版本:
+```py
+from app.core.security import (
+    verify_password,
+    hashing_password,
+)
+from fastapi import HTTPException
+from sqlmodel import Session, select
+from app.models import User, UserLogin, UserRegister, ChatMessage
+
+
+def healthchecker(session: Session):
+    result = session.exec(select(1)).one()
+    return result == 1
+
+
+def register_user(session: Session, user_create: UserRegister) -> User:
+    user_store = User.model_validate(
+        user_create, update={"hashed_password": hashing_password(user_create.password)}
+    )
+    # 数据库存储
+    session.add(user_store)
+    session.commit()
+    session.refresh(user_store)
+
+    # 返回信息供路由函数处理
+    return user_store
+
+
+def check_user(session: Session, user_login: UserLogin, user_db: User):
+    user = session.exec(select(User).where(user_login.name == user_db.name)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not verify_password(UserLogin.password, User.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    return user
+
+
+def save_chat_message(session: Session, user_id: int, content: str) -> ChatMessage:
+    message = ChatMessage(
+        user_id=user_id,
+        content=content,
+    )
+    session.add(message)
+    session.commit()
+    session.refresh(message)
+
+    return message
+
+
+def stream_and_save(chunks, user_id: int, session: Session):
+    collected_chunks: list[str] = []
+    for chunk in chunks:
+        if not chunk:
+            continue
+        collected_chunks.append(chunk)
+        yield chunk
+    full_content = "".join(collected_chunks)
+    if full_content:
+        save_chat_message(
+            user_id=user_id,
+            content=full_content,
+            session=session,
+        )
+```
+鉴于原版本的部分函数的语义有问题,所以在下面一并进行修改了,最关键的改动则是加入了验证函数:
+```py
+from app.core.security import (
+    verify_password,
+    hashing_password,
+)
+from fastapi import HTTPException
+from sqlmodel import Session, select
+from app.models import User, UserCreate, UserRegister, ChatMessage
+
+# Dummy hash to use for timing attack prevention when user is not found
+DUMMY_HASH = "$argon2id$v=19$m=65536,t=3,p=4$MjQyZWE1MzBjYjJlZTI0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
+
+
+def check_db(*, session: Session):
+    result = session.exec(select(1)).one()
+    return result == 1
+
+
+def register_user(*, session: Session, user_register: UserRegister) -> User:
+    user_store = User.model_validate(
+        user_register,
+        update={"hashed_password": hashing_password(user_register.password)},
+    )
+
+    session.add(user_store)
+    session.commit()
+    session.refresh(user_store)
+
+    return user_store
+
+
+def get_user_by_name(*, session: Session, name: str) -> User | None:
+    statement = select(User).where(User.name == name)
+    user = session.exec(statement).first()
+    return user
+
+
+def check_user(session: Session, name: str, password: str) -> User | None:
+    db_user = get_user_by_name(session=session, name=name)
+    if not db_user:
+        verify_password(password, DUMMY_HASH)
+        return None
+    verified = verify_password(password, db_user.hashed_password)
+    if not verified:
+        return None
+    return db_user
+
+
+# 工具函数
+def save_chat_message(*, session: Session, user_id: int, content: str) -> ChatMessage:
+    message = ChatMessage(
+        user_id=user_id,
+        content=content,
+    )
+    session.add(message)
+    session.commit()
+    session.refresh(message)
+
+    return message
+
+
+def stream_and_save(*, session: Session, user_id: int, chunks):
+    collected_chunks: list[str] = []
+    for chunk in chunks:
+        if not chunk:
+            continue
+        collected_chunks.append(chunk)
+        yield chunk
+    full_content = "".join(collected_chunks)
+    if full_content:
+        save_chat_message(
+            user_id=user_id,
+            content=full_content,
+            session=session,
+        )
+```
+- 尽管根据名字来区分用户的方法有点草率,但却不需要我们做什么额外的操作,无论是邮件验证还是手机号验证,都需要去搞个云服务器过来,或者自掏腰包.之后若有空闲,或许可以引入Google登录.
+
+#### 路由重构
+做完上述的准备工作后,我们所要用到的组件都已经集齐了,接下来就是将路由重构成能够真正地与数据库交互的版本.
+##### 构思
+原先版本的两个路由文件长这样:
+
+**api/routers/utils.py**
+```py
+from fastapi import APIRouter
+from app.crud import healthchecker
+from app.api.deps import SessionDep
+
+router = APIRouter(prefix="/utils", tags=["utils"])
+
+
+@router.get("/health")
+async def health_check(session: SessionDep) -> bool:
+    return healthchecker(session)
+
+
+@router.get("/auth")
+async def check() -> dict:
+    return {
+        "message": "我懒得写验证了,你直接进来吧",
+        "ok": True,
+    }
+```
+**api/routers/user.py**
+```py
+from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
+
+from app.api.deps import SessionDep
+from app.utils.client import stream_agent
+
+router = APIRouter(prefix="/user", tags=["user"])
+
+
+@router.post("/{user_id}/chat")
+async def chat(
+    user_message: str,
+    user_id: int,
+    session: SessionDep,
+) -> StreamingResponse:
+    # return stream_agent(request.message)
+
+    return StreamingResponse(
+        stream_agent(user_id, user_message, session),
+        headers={
+            "Cache-Control": "no-cache",
+        },
+    )
+```
+
+加入验证功能后,我们需要引入以下路由:
+1. 用于注册的register路由
+2. 用于登录的login路由
+3. 用于展示用户主页的`{user_id}`路由
+4. 用于产生token的`access-token`路由
+
+除了最后一个需要放入utils.py中,其他的都可以放入user.py里.
+##### utils.py重构
+原来的auth路由就可以直接删掉了,而health路由暂时保留,可以用来在测试和初始化数据库的时候使用.
+```py
+from typing import Annotated
+from datetime import timedelta
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from app.crud import check_db, check_user
+from app.api.deps import SessionDep
+from app.models import Token
+from app.core import security
+
+router = APIRouter(tags=["utils"])
+
+TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+
+
+@router.get("/utils/health")
+async def health_check(session: SessionDep) -> bool:
+    return check_db(session=session)
+
+
+@router.get("/login/access-token")
+def login_access_token(
+    session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+) -> Token:
+    user = check_user(
+        session=session,
+        name=form_data.username,
+        password=form_data.password,
+    )
+    if not user:
+        raise HTTPException(status_code=400, detail="Incorrect name or password")
+    elif not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    token_expires = timedelta(minutes=TOKEN_EXPIRE_MINUTES)
+    return Token(
+        access_token=security.create_token(
+            user.id,
+            expires_delta=token_expires,
+        )
+    )
+```
+##### user.py重构
+
+
+### ch9: 完善openapi文档并重构前端(可选)
 
 #### 前端重构阶段
 我们之前的前端用的是非常拉跨的编写方式,甚至把api全部写在api.ts中一个个保存,这种写法显然不利于后期的扩展.

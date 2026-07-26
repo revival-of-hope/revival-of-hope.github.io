@@ -30,5 +30,13 @@ draft: true
 爬虫有风险,研究需谨慎.
 
 ## Python爬虫
+### scrapy
+- 明明框架的功能就已经不错了,但非要拉上一个莫名其妙的命令行.
+
+### MediaCrawler学习
+- [仓库](https://github.com/NanmiCoder/MediaCrawler)
+
 
 ## Typescript爬虫
+
+## Go爬虫
