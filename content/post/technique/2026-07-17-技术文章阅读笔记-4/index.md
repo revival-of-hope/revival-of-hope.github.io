@@ -10,11 +10,95 @@ math:
 
 # Effective Software Testing
 ## 软件测试介绍
+>软件工程中的实证研究一再表明，简洁无味的代码比复杂代码更不易出现缺陷（参见 Shatnawi 和 Li 2006年的论文）。
+然而，仅有简洁远远不够。
+认为测试可以完全被简洁取代是天真的看法。"通过设计保证正确性"同样如此：设计好代码并不意味着能避免所有可能的错误。
+
 
 # Kafka: The Definitive Guide,2rd edition
+## 介绍
+- Kafka由Linkedin在09年研发出来,并在11年捐献给Apache基金会,所以又叫Apache Kafka.
+
+>I thought that since Kafka was a system optimized for writing, 
+using a writer’s name would make sense. 
+I had taken a lot of lit classes in college and liked Franz Kafka. 
+Plus the name sounded cool for an open source project.
+
+Kafka中的数据单位称为消息(messages)。如果你有数据库背景，可以将此视为类似行或记录的概念。对Kafka而言，消息本质上就是一个字节数组，因此其中包含的数据对Kafka没有特定格式或含义。消息可以附带一个可选的元数据片段，称为键,可以辅助消息写入kafka中.
+
+- Kafka传输的消息格式一般为紧凑的Apache Avro而不是可读性强的Json
+- Kafka中的消息按照topic进行分类(类似于文件系统中的文件夹),每个topic可以有多个partition(分区),消息以追加形式写入分区中,按照顺序从头到尾读取.
+- 不同服务器可以存储一个分区的多个副本,从而保障数据安全.
+- stream表示消息传输时的数据流.
+
+Kafka clients是Kafka server的使用者,有两种基本类型: producers and consumers.
+
+- 单个Kafka server被称为Broker(代理),它从生产者处接受消息并存储,并响应消费者的服务请求.
+- 多个Broker组成一个cluster(代理集群),Broker中自动选举一个Controller作为管理员.
+
+消息保留了一定时间(例如7天)或者分区达到特定的容量大小就会自动进行删除,这是Kafka的独特之处,简化了其他消息队列系统中复杂的数据库管理方式.
+
+## 补充: docker启动kafka
+由于这本书出版于2021年,当时kafka版本为2.8.0,底层用的还是ZooKeeper,而现在Kafka更新到了4.3.1版本,底层全面换成了KRaft,所以书中的安装指南基本没有任何作用了.
+
+- [原因](https://spoud-io.medium.com/embracing-the-future-of-kafka-why-its-time-to-migrate-from-zookeeper-to-kraft-f1a5225ac48a)
+
+要想跨平台使用Kafka,显然只能让Docker来干活儿了,自然,我是不知道怎么写kafka的compose文档的,看一下
+[官方](https://hub.docker.com/r/apache/kafka)推荐的单节点写法:
+
+```yml
+services:
+  broker:
+    image: apache/kafka:latest
+    container_name: broker
+    ports:
+      - 9092:9092
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://localhost:9092,CONTROLLER://localhost:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+```
+考虑到我们只是测试使用,所以就不需要绑定到数据卷上了,kafka,启动!
+
+```bash
+docker compose up -d 
+```
+启动成功后,首先运行以下命令创建topic:
+```bash
+docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --create --topic test-topic --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
+```
+在该终端启动producer:
+```bash
+docker exec -it kafka /opt/kafka/bin/kafka-console-producer.sh --topic test-topic --bootstrap-server localhost:9092
+```
+
+另开一个终端启动consumer:
+```bash
+docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --topic test-topic --from-beginning --bootstrap-server localhost:9092
+```
+
+在producer这边随意发送消息,都可以在consumer那边接收到并输出:
+
+![效果图](PixPin_2026-07-27_10-52-43.webp)
+
+效果很不错!
+
+- 上述命令中的第一行完全相同,因为都要用到kafka随安装自带的CLI工具.
+## 生产者
+## 消费者
 # RabbitMQ in Depth
 # Rust程序设计语言
 - 由浅入深,这才是正常的教科书,不吊打Go圣经几条街.
+# Node.js Cookbook
 
 
 # Fluent Python ,second edition

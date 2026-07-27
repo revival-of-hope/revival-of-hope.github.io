@@ -1128,6 +1128,18 @@ NP完全问题至今都无法找到多项式时间内的解法,而在80年代就
 - Bitcoin
 ### Kafka: a Distributed Messaging System for Log Processing(2011)
 - Kafka
+
+![封面](PixPin_2026-07-27_09-35-35.webp)
+
+kafka之前的消息队列框架都有着各种各样的缺陷,要么是过度设计,要么不可以在线处理数据.
+
+![kafka结构图](PixPin_2026-07-27_09-48-55.webp)
+
+>Unlike most other messaging systems, in
+Kafka, the information about how much each consumer has consumed is not maintained by the broker, **but by the consumer itself**.
+
+整篇论文也只是简单地谈了谈Kafka的基本原理而已,真要学习的话还得去看专门的文档.
+
 ### In Search of an Understandable Consensus Algorithm(2014)
 - Raft
 

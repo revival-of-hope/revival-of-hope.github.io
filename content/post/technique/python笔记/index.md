@@ -7453,8 +7453,8 @@ python app/db_pre_start.py
 ```yml
   prestart:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
+      dockerfile: dockerfile
     depends_on:
       db:
         condition: service_healthy
@@ -7627,11 +7627,16 @@ class UserBase(SQLModel):
 
 class UserRegister(SQLModel):
     password: str
-    name: str | None = Field(default=None, max_length=255)
+    name: str = Field(default=None, max_length=255)
 
 
 class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=16)
+
+
+class UserPublic(UserBase):
+    id: int | None
+    created_at: datetime | None = None
 
 
 class User(UserBase, table=True):
@@ -7660,6 +7665,12 @@ class ChatMessage(SQLModel, table=True):
     user: User | None = Relationship(back_populates="chats")
 
 
+class ChatMessagePublic(SQLModel):
+    chat_id: int
+    content: str | None
+    created_at: datetime | None
+
+
 class Token(SQLModel):
     access_token: str
     token_type: str = "bearer"
@@ -7670,7 +7681,7 @@ class TokenPayload(SQLModel):
 
 ```
 ##### 重构deps.py
-再重构玩models.py后,就可以着手重构deps.py了,把之前的所有伪处理全部改成真实的处理:
+重构完models.py后,就可以着手重构deps.py了,把之前的所有伪处理全部改成真实的处理:
 ```py
 from collections.abc import Generator
 from typing import Annotated
@@ -7991,9 +8002,8 @@ async def chat(
 
 加入验证功能后,我们需要引入以下路由:
 1. 用于注册的register路由
-2. 用于登录的login路由
-3. 用于展示用户主页的`{user_id}`路由
-4. 用于产生token的`access-token`路由
+2. 用于展示用户主页的`{user_id}`路由
+3. 用于产生token和登录的`access-token`路由
 
 除了最后一个需要放入utils.py中,其他的都可以放入user.py里.
 ##### utils.py重构
@@ -8018,7 +8028,7 @@ async def health_check(session: SessionDep) -> bool:
     return check_db(session=session)
 
 
-@router.get("/login/access-token")
+@router.post("/login/access-token")
 def login_access_token(
     session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> Token:
@@ -8040,7 +8050,81 @@ def login_access_token(
     )
 ```
 ##### user.py重构
+```py
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import StreamingResponse
+from typing import Annotated, Any
 
+from app.api.deps import SessionDep, CurrentUser
+from app.utils.client import stream_agent
+from app.models import ChatMessage, ChatMessagePublic, User, UserPublic, UserRegister
+from app import crud
+from sqlmodel import select, desc
+
+router = APIRouter(prefix="/user", tags=["user"])
+
+
+# response_model用于过滤密码
+@router.post("/register", response_model=UserPublic)
+def register_user(session: SessionDep, user_in: UserRegister) -> Any:
+    user = crud.get_user_by_name(session=session, name=user_in.name)
+    if user:
+        raise HTTPException(status_code=400, detail="Name exists")
+    user_register = UserRegister.model_validate(user_in)
+    user = crud.register_user(session=session, user_register=user_register)
+    return user
+
+
+# 用户主页
+@router.get("/me", response_model=UserPublic)
+def homepage(current_user: CurrentUser) -> User:
+    return current_user
+
+
+# 新对话
+@router.post("/me/chat")
+async def chat(
+    user_message: str,
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> StreamingResponse:
+    if not current_user.id:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authenticated user",
+        )
+
+    return StreamingResponse(
+        stream_agent(current_user.id, user_message, session),
+        headers={
+            "Cache-Control": "no-cache",
+        },
+    )
+
+
+# 消息列表
+@router.get(
+    "/me/messages",
+    response_model=list[ChatMessagePublic],
+)
+def get_chat_list(
+    session: SessionDep,
+    current_user: CurrentUser,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=20)] = 10,
+) -> Any:
+    statement = (
+        select(ChatMessage)
+        .where(ChatMessage.user_id == current_user.id)
+        .order_by(desc(ChatMessage.created_at))
+        .offset(offset=offset)
+        .limit(limit=limit)
+    )
+    chatlist = session.exec(statement).all()
+    return chatlist
+
+```
+出于简化的考量,就没有加入删除对话等功能,但这就已经比较复杂了.
 
 ### ch9: 完善openapi文档并重构前端(可选)
 
