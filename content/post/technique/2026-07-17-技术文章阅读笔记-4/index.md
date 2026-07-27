@@ -8,12 +8,6 @@ math:
 
 # Web Automation Testing Using Playwright
 
-# Effective Software Testing
-## 软件测试介绍
->软件工程中的实证研究一再表明，简洁无味的代码比复杂代码更不易出现缺陷（参见 Shatnawi 和 Li 2006年的论文）。
-然而，仅有简洁远远不够。
-认为测试可以完全被简洁取代是天真的看法。"通过设计保证正确性"同样如此：设计好代码并不意味着能避免所有可能的错误。
-
 
 # Kafka: The Definitive Guide,2rd edition
 ## 介绍
@@ -98,6 +92,8 @@ docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --topic test-topi
 # RabbitMQ in Depth
 # Rust程序设计语言
 - 由浅入深,这才是正常的教科书,不吊打Go圣经几条街.
+
+
 # Node.js Cookbook
 
 
@@ -310,11 +306,19 @@ class ClipTestRoute extends StatelessWidget {
 # Node.js in Action, Second Edition
 - 十年前写的,用的还是CommonJS的写法
 不推荐,太老了,涉及的技术栈也都非常老旧,基本都死透了.
-
+# Powerful Python
+尽管是24年出版的书,但内容都很老套,也都讲的很简单.
 # High Performance Python 3rd edition
 - 25年5月出版的,新鲜的很
 
 讲的一般般,大多数内容我都已经学过了.
+# Effective Software Testing(待补充)
+## 软件测试介绍
+>软件工程中的实证研究一再表明，简洁无味的代码比复杂代码更不易出现缺陷（参见 Shatnawi 和 Li 2006年的论文）。
+然而，仅有简洁远远不够。
+认为测试可以完全被简洁取代是天真的看法。"通过设计保证正确性"同样如此：设计好代码并不意味着能避免所有可能的错误。
+
+![金字塔](PixPin_2026-07-27_12-01-45.webp)
 
 # Python3网络爬虫开发实战
 ## 爬虫基础
