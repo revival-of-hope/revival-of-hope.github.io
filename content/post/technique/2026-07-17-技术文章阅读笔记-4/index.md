@@ -88,14 +88,59 @@ docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --topic test-topi
 
 - 上述命令中的第一行完全相同,因为都要用到kafka随安装自带的CLI工具.
 ## 生产者
+首先配置`bootstrap.servers`等参数来初始化Producer,接着构建一个ProducerRecord对象,该对象对应所有kafka能发送的信息(纯文本,Json字符串,key-value对,数据表),最终由producer发送给kafka的client.
 ## 消费者
+## Kafka原理
 # RabbitMQ in Depth
 # Rust程序设计语言
 - 由浅入深,这才是正常的教科书,不吊打Go圣经几条街.
 
-
+# Web Scraping with Python,3rd edition
 # Node.js Cookbook
+## 介绍
+>Node.js 创建于2009年，是一个跨平台的开源JavaScript运行时，允许你在浏览器环境之外执行JavaScript。它封装了谷歌浏览器的JavaScript引擎——V8引擎，使JavaScript能够在脱离浏览器的情况下运行
 
+Node的执行环境为单线程,通过异步I/O来实现高并发,这与Python的GIL极为相似,不过也正是因为这样,后端通常不会让Node来负责,否则就会受到性能上的限制.
+## 文件系统
+# Elasticsearch in Action, Second Edition
+## 概述
+
+# golang实现网络爬虫
+
+# Redis in action(待补充)
+## 介绍
+Redis有5种基础数据类型:
+1. string: 支持字符串,整数和浮点数
+2. list: 链表,每个节点包含一个元素,元素可重复
+3. set: 无序的字符串集合,元素不可重复
+4. hash: 哈希表,存储键值对
+5. zset: 有序字典,存储键值对
+
+
+string类型支持get,set,del三种方法:
+![使用示例](PixPin_2026-07-13_10-06-47.webp)
+
+list类型支持以下命令:
+| 命令     | 行为                                     |
+| -------- | ---------------------------------------- |
+| `RPUSH`  | 将给定值推入列表的右端                   |
+| `LRANGE` | 获取列表在给定范围上的所有值             |
+| `LINDEX` | 获取列表在给定位置上的单个元素           |
+| `LPOP`   | 从列表的左端弹出一个值，并返回被弹出的值 |
+
+- 左右端都可以进行操作,前缀分别是`L`,`R`.
+
+set类型支持`sadd`,`srem`等命令
+
+![示例](PixPin_2026-07-13_10-14-46.webp)
+
+![hash](PixPin_2026-07-13_10-16-55.webp)
+
+![zset](PixPin_2026-07-13_10-16-41.webp)
+
+
+
+# Redis设计与实现(待补充)
 
 # Fluent Python ,second edition
 比较一般,讲的不够深入,尽管名气很大,但不推荐阅读.

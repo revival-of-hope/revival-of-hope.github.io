@@ -3869,7 +3869,7 @@ server: uvicorn
 # 智能体进阶
 ## ch9-episode 1(选读): 重构前端
 ### 加入dockerfile
-1. 修改根目录下的`next.config.ts`:
+#### 修改`next.config.ts`.
 
 ```ts
 import type { NextConfig } from "next";
@@ -3887,10 +3887,159 @@ export default nextConfig;
 >nextjs有多种部署方式:
 1. 纯静态的`export`模式,不需要node.js即可启动,输出目录为`out`
 2. 默认的动态模式,输出目录为`.next`
-3. standalone模式,输出目录为`.next/standalone`,在支持动态加载的情况下做到轻量化,非常适合docker部署
+3. standalone模式,输出目录为`.next/standalone`,在支持动态加载的情况下做到轻量化,非常适合docker部署,这也是为什么我们要单独修改配置文件的原因.
+
+#### 编写dockerfile
+- [官方推荐的standalone写法](https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile)
+
+参考官方文档,我们采用三阶段构建,并做了些许的更改,主要原因是阶段1的构建中新版本pnpm带来的问题,所以我依靠AI进行了细微的调整.
+
+```dockerfile
+ARG NODE_VERSION=24.13.0-slim
+
+# ============================================
+
+# Stage 1: Dependencies Installation Stage
+
+# ============================================
+
+FROM node:${NODE_VERSION} AS dependencies
+
+WORKDIR /app
+
+COPY package.json  pnpm-lock.yaml* pnpm-workspace.yaml ./
+
+RUN corepack enable pnpm && \
+    pnpm install --frozen-lockfile --ignore-scripts=false
+# ============================================
+
+# Stage 2: Build Next.js application in standalone mode
+
+# ============================================
+
+FROM node:${NODE_VERSION} AS builder
+
+WORKDIR /app
+
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY . .
+
+ENV NODE_ENV=production
+
+RUN if [ -f pnpm-lock.yaml ]; \
+        then corepack enable pnpm && pnpm build; \
+    else \
+        echo "No lockfile found." && exit 1; \
+    fi
+
+# ============================================
+
+# Stage 3: Run Next.js application
+
+# ============================================
+
+FROM node:${NODE_VERSION} AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+COPY --from=builder --chown=node:node /app/public ./public
+
+RUN mkdir .next
+RUN chown node:node .next
+
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+
+USER node
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]
+```
+- 照抄即可,原理不是太有必要了解
+#### 编写compose.yml
+官方推荐的yml写法如下:
+```yml
+services:
+  # Node.js service (use with: docker compose up nextjs-standalone --build)
+  nextjs-standalone:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nextjs-standalone-image
+    container_name: nextjs-standalone-container
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+```
+对于我们这个项目,稍微改动一下就适配了:
+
+```yml
+services:
+  db:
+    image: postgres:18-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+  prestart:
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    command: bash scripts/prestart.sh
+    env_file:
+      - .env
+  backend:
+    restart: always
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      prestart:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: dockerfile
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+volumes:
+  db-data:
+
+```
+
+启动后也终于是看到了我们熟悉的古早页面:
+
+![主页](PixPin_2026-07-27_18-51-39.webp)
 
 ### 扔掉AI组件,拥抱shadcn UI
-
+AI组件不仅难看懂,更重要的是很难维护,因此,更推荐使用定制化的组件,如shadcn UI提供的
 ### 扔掉硬编码API,拥抱hey-api
 我们之前的前端用的是非常拉跨的编写方式,甚至把api全部写在api.ts中一个个保存,这种写法显然不利于后期的扩展.好在我们有`hey-api`库,能够自动根据后端生成的`openapi`来生成优美的前端api调用组件.
 
@@ -3901,5 +4050,9 @@ export default nextConfig;
 
 ## ch9-episode 2: 实现多轮对话和多智能体.
 
-## ch10: 加入管理员账户,完善CRUD
+## ch10: 完善CRUD和数据库管理,加入管理员用户
+### 数据库管理系统选择
+- adminer与dbgate.
+
+
 
