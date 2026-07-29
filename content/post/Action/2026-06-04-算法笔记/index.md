@@ -1,5 +1,5 @@
 ---
-title: "真实的算法"
+title: "算法笔记"
 date: 2026-06-07T11:56:37+08:00
 description: 动态更新ing
 image: 59128984_p0-秋天的神明大人們.webp

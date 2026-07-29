@@ -1,5 +1,5 @@
 ---
-title: "各国历史调研"
+title: "历史笔记"
 date: 2026-06-28T13:43:07+08:00
 description: 
 image: 

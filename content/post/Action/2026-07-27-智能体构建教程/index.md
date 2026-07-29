@@ -3866,7 +3866,7 @@ server: uvicorn
 ![消息列表](PixPin_2026-07-27_16-21-46.webp)
 
 可以看到,尽管我们还没有重构前端,但所有的基本功能我们都已经实现了,你可以自豪的跟面试官吹嘘,我自己一个人写了个智能体出来,代码都是自己写的哦!
-# 智能体进阶
+
 ## ch9-episode 1(选读): 重构前端
 ### 加入dockerfile
 #### 修改`next.config.ts`.
@@ -3892,16 +3892,12 @@ export default nextConfig;
 #### 编写dockerfile
 - [官方推荐的standalone写法](https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile)
 
-参考官方文档,我们采用三阶段构建,并做了些许的更改,主要原因是阶段1的构建中新版本pnpm带来的问题,所以我依靠AI进行了细微的调整.
+参考官方文档,我们采用三阶段构建,并依靠AI进行了细微的调整,至于为什么要修改,那当然是因为官方文档的写法跑不起来啊!不过我懒得提issue了,毕竟这个模块的更新时间竟然是在5个月前.
 
 ```dockerfile
 ARG NODE_VERSION=24.13.0-slim
 
-# ============================================
-
 # Stage 1: Dependencies Installation Stage
-
-# ============================================
 
 FROM node:${NODE_VERSION} AS dependencies
 
@@ -3909,13 +3905,13 @@ WORKDIR /app
 
 COPY package.json  pnpm-lock.yaml* pnpm-workspace.yaml ./
 
-RUN corepack enable pnpm && \
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    corepack enable pnpm && \
+    pnpm config set store-dir /pnpm/store && \
+    pnpm config set minimum-release-age 0 && \
     pnpm install --frozen-lockfile --ignore-scripts=false
-# ============================================
 
 # Stage 2: Build Next.js application in standalone mode
-
-# ============================================
 
 FROM node:${NODE_VERSION} AS builder
 
@@ -3926,17 +3922,9 @@ COPY . .
 
 ENV NODE_ENV=production
 
-RUN if [ -f pnpm-lock.yaml ]; \
-        then corepack enable pnpm && pnpm build; \
-    else \
-        echo "No lockfile found." && exit 1; \
-    fi
-
-# ============================================
+RUN ./node_modules/.bin/next build
 
 # Stage 3: Run Next.js application
-
-# ============================================
 
 FROM node:${NODE_VERSION} AS runner
 
@@ -4038,12 +4026,59 @@ volumes:
 
 ![主页](PixPin_2026-07-27_18-51-39.webp)
 
-### 扔掉AI组件,拥抱shadcn UI
-AI组件不仅难看懂,更重要的是很难维护,因此,更推荐使用定制化的组件,如shadcn UI提供的
-### 扔掉硬编码API,拥抱hey-api
-我们之前的前端用的是非常拉跨的编写方式,甚至把api全部写在api.ts中一个个保存,这种写法显然不利于后期的扩展.好在我们有`hey-api`库,能够自动根据后端生成的`openapi`来生成优美的前端api调用组件.
+### 重写前端
+尽管我们前面用shadcn初始化了一个还能看的过去的项目,但现在由于我们的路由已经成熟,整个页面的逻辑完全不一样了,如果还一个个文件重构那显然有点白痴了,最好的方法就是扔掉之前的项目,重新创建一个.
+
+我们先保留之前好不容易写出来的dockerfile和.dockerignore文件,然后在根目录文件夹中运行下述命令,选择文件夹名字为frontend,一键完成,再将dockerfile拖回去,这次我们顺便换个主题风格:
+```bash
+pnpm dlx shadcn@latest init --preset b2HRG489Am --base radix --template next --pointer
+```
+可以看到,上述命令一键指定了要用的组件框架和模板.
 
 
+#### 路由构思
+先看看我们的后端路由:
+
+![路由图片](PixPin_2026-07-28_17-19-34.webp)
+
+首先,我们这个智能体应该做成一个SPA(Single-Page Application,单页应用),然后用户第一次进入该网站根网址`/`时,点击注册按钮会被自动导引到注册界面,也就是`/user/register`,注册之后自动调用`/api/login/access-token`,获得token后转到`/user/me/chat`界面,在侧栏则可以通过`/api/user/me/messages`看到过往的聊天记录.
+
+尽管设计确实很简单,也有很多比较草率的地方,但对于第一次设计api的新人来说,却已经比较复杂了,现在就让我们来实现它吧.
+#### heyapi使用
+我们之前的前端用的是非常拉跨的编写方式,甚至把api全部写在api.ts中一个个保存,这种写法显然不利于后期的扩展.好在我们有`heyapi`库,能够自动根据后端生成的`openapi`来生成优美的前端api调用组件.
+
+首先,在frontend文件夹下面安装heyapi库:
+```bash
+pnpm add @hey-api/client-next
+pnpm add -D @hey-api/openapi-ts
+```
+
+
+在 package.json 中加入新命令以快速产生api.
+```json
+{
+  "scripts": {
+    "api:generate": "openapi-ts"
+  }
+}
+```
+
+在前端根目录创建：
+```ts
+import { defineConfig } from "@hey-api/openapi-ts"
+
+export default defineConfig({
+  input: "http://localhost:8000/api/openapi.json",
+  output: "lib/api/generated",
+  plugins: [
+    {
+      name: "@hey-api/client-next",
+      runtimeConfigPath: "./lib/api/hey-api.ts",
+    },
+  ],
+})
+
+```
 
 #### hey-api库使用
 
@@ -4054,5 +4089,5 @@ AI组件不仅难看懂,更重要的是很难维护,因此,更推荐使用定制
 ### 数据库管理系统选择
 - adminer与dbgate.
 
-
+# 智能体进阶
 

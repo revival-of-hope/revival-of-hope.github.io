@@ -7,91 +7,15 @@ math:
 ---
 
 # Web Automation Testing Using Playwright
-
-
-# Kafka: The Definitive Guide,2rd edition
 ## 介绍
-- Kafka由Linkedin在09年研发出来,并在11年捐献给Apache基金会,所以又叫Apache Kafka.
+人工编写测试用例并逐一运行过于繁琐,这也是测试工具不断演进不断发展的原因,而在其中名气处于第一梯队的就是Playwright了,而它这么火爆的另一个原因是还可以被用于爬虫.谁能想到,Playwright的正式发布时间也才在2020年呢,至于老牌的Selenium由于更差性能和更复杂的调用方式则逐渐落伍.有力的竞争者之一则是Cypress,由于它运行在浏览器内部,不需要额外安装驱动,所以也占有了一席之地.
 
->I thought that since Kafka was a system optimized for writing, 
-using a writer’s name would make sense. 
-I had taken a lot of lit classes in college and liked Franz Kafka. 
-Plus the name sounded cool for an open source project.
 
-Kafka中的数据单位称为消息(messages)。如果你有数据库背景，可以将此视为类似行或记录的概念。对Kafka而言，消息本质上就是一个字节数组，因此其中包含的数据对Kafka没有特定格式或含义。消息可以附带一个可选的元数据片段，称为键,可以辅助消息写入kafka中.
+## 安装Playwright
+- 每次安装都麻烦的过头了好不好
+![示意图](PixPin_2026-07-29_12-03-37.webp)
 
-- Kafka传输的消息格式一般为紧凑的Apache Avro而不是可读性强的Json
-- Kafka中的消息按照topic进行分类(类似于文件系统中的文件夹),每个topic可以有多个partition(分区),消息以追加形式写入分区中,按照顺序从头到尾读取.
-- 不同服务器可以存储一个分区的多个副本,从而保障数据安全.
-- stream表示消息传输时的数据流.
 
-Kafka clients是Kafka server的使用者,有两种基本类型: producers and consumers.
-
-- 单个Kafka server被称为Broker(代理),它从生产者处接受消息并存储,并响应消费者的服务请求.
-- 多个Broker组成一个cluster(代理集群),Broker中自动选举一个Controller作为管理员.
-
-消息保留了一定时间(例如7天)或者分区达到特定的容量大小就会自动进行删除,这是Kafka的独特之处,简化了其他消息队列系统中复杂的数据库管理方式.
-
-## 补充: docker启动kafka
-由于这本书出版于2021年,当时kafka版本为2.8.0,底层用的还是ZooKeeper,而现在Kafka更新到了4.3.1版本,底层全面换成了KRaft,所以书中的安装指南基本没有任何作用了.
-
-- [原因](https://spoud-io.medium.com/embracing-the-future-of-kafka-why-its-time-to-migrate-from-zookeeper-to-kraft-f1a5225ac48a)
-
-要想跨平台使用Kafka,显然只能让Docker来干活儿了,自然,我是不知道怎么写kafka的compose文档的,看一下
-[官方](https://hub.docker.com/r/apache/kafka)推荐的单节点写法:
-
-```yml
-services:
-  broker:
-    image: apache/kafka:latest
-    container_name: broker
-    ports:
-      - 9092:9092
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://localhost:9092,CONTROLLER://localhost:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_NUM_PARTITIONS: 3
-```
-考虑到我们只是测试使用,所以就不需要绑定到数据卷上了,kafka,启动!
-
-```bash
-docker compose up -d 
-```
-启动成功后,首先运行以下命令创建topic:
-```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --create --topic test-topic --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
-```
-在该终端启动producer:
-```bash
-docker exec -it kafka /opt/kafka/bin/kafka-console-producer.sh --topic test-topic --bootstrap-server localhost:9092
-```
-
-另开一个终端启动consumer:
-```bash
-docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --topic test-topic --from-beginning --bootstrap-server localhost:9092
-```
-
-在producer这边随意发送消息,都可以在consumer那边接收到并输出:
-
-![效果图](PixPin_2026-07-27_10-52-43.webp)
-
-效果很不错!
-
-- 上述命令中的第一行完全相同,因为都要用到kafka随安装自带的CLI工具.
-## 生产者
-首先配置`bootstrap.servers`等参数来初始化Producer,接着构建一个ProducerRecord对象,该对象对应所有kafka能发送的信息(纯文本,Json字符串,key-value对,数据表),最终由producer发送给kafka的client.
-## 消费者
-## Kafka原理
-# RabbitMQ in Depth
 # Rust程序设计语言
 - 由浅入深,这才是正常的教科书,不吊打Go圣经几条街.
 
@@ -103,7 +27,27 @@ docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --topic test-topi
 Node的执行环境为单线程,通过异步I/O来实现高并发,这与Python的GIL极为相似,不过也正是因为这样,后端通常不会让Node来负责,否则就会受到性能上的限制.
 ## 文件系统
 # Elasticsearch in Action, Second Edition
+- [为什么不用Solr](https://learnku.com/articles/43880)
 ## 概述
+传统的数据库仅能返回普通的查询结果,而若是要实现智能提示和多样化搜索,就需要搜索引擎这些经过了优化处理的数据库来解决了.
+
+Es的底层引擎为使用Java编写的Lucene,再在外面套了一层符合Rest规范的API,然后还有一个配套的前端管理程序Kibana.
+
+![示意图](PixPin_2026-07-29_10-55-57.webp)
+
+![创建过程](PixPin_2026-07-29_11-01-18.webp)
+
+![查询过程](PixPin_2026-07-29_11-06-37.webp)
+
+到这里我们也看明白了,Es的使用方法就是通过Restful API来传输Json文档而已,这种方法非常高效,而且掩盖了背后的复杂优化过程.
+
+- 不过,也只有搜索引擎才能这么干,毕竟搜索请求都是幂等的,所以不会受到并发的困扰.而对于普通的数据库来说,只好老老实实地通过底层驱动连接了,如果有人能够想到更美妙的解决方法,诺奖不说,图灵奖是绝对有的.
+
+>Elasticsearch has an algorithm called **Okapi Best Match 25** (BM25), which is an **enhanced** term frequency/inverse document frequency (**TF/IDF**) similarity algorithm that calculates the relevancy scores for the results and sorts them in that order when presenting them to the client.
+
+而在执行搜索时,我们也可以手动给关键字分配对应的权重,来返回自己想要的搜索结果,而在我们平常的搜索时,这一过程都是自动进行的.
+
+## 架构
 
 # golang实现网络爬虫
 
@@ -141,6 +85,8 @@ set类型支持`sadd`,`srem`等命令
 
 
 # Redis设计与实现(待补充)
+
+# RabbitMQ官方python文档
 
 # Fluent Python ,second edition
 比较一般,讲的不够深入,尽管名气很大,但不推荐阅读.
@@ -364,7 +310,97 @@ class ClipTestRoute extends StatelessWidget {
 认为测试可以完全被简洁取代是天真的看法。"通过设计保证正确性"同样如此：设计好代码并不意味着能避免所有可能的错误。
 
 ![金字塔](PixPin_2026-07-27_12-01-45.webp)
+# Kafka: The Definitive Guide,2rd edition
+## 介绍
+- Kafka由Linkedin在09年研发出来,并在11年捐献给Apache基金会,所以又叫Apache Kafka.
 
+>I thought that since Kafka was a system optimized for writing, 
+using a writer’s name would make sense. 
+I had taken a lot of lit classes in college and liked Franz Kafka. 
+Plus the name sounded cool for an open source project.
+
+Kafka中的数据单位称为消息(messages)。如果你有数据库背景，可以将此视为类似行或记录的概念。对Kafka而言，消息本质上就是一个字节数组，因此其中包含的数据对Kafka没有特定格式或含义。消息可以附带一个可选的元数据片段，称为键,可以辅助消息写入kafka中.
+
+- Kafka传输的消息格式一般为紧凑的Apache Avro而不是可读性强的Json
+- Kafka中的消息按照topic进行分类(类似于文件系统中的文件夹),每个topic可以有多个partition(分区),消息以追加形式写入分区中,按照顺序从头到尾读取.
+- 不同服务器可以存储一个分区的多个副本,从而保障数据安全.
+- stream表示消息传输时的数据流.
+
+Kafka clients是Kafka server的使用者,有两种基本类型: producers and consumers.
+
+- 单个Kafka server被称为Broker(代理),它从生产者处接受消息并存储,并响应消费者的服务请求.
+- 多个Broker组成一个cluster(代理集群),Broker中自动选举一个Controller作为管理员.
+
+消息保留了一定时间(例如7天)或者分区达到特定的容量大小就会自动进行删除,这是Kafka的独特之处,简化了其他消息队列系统中复杂的数据库管理方式.
+
+## 补充: docker启动kafka
+由于这本书出版于2021年,当时kafka版本为2.8.0,底层用的还是ZooKeeper,而现在Kafka更新到了4.3.1版本,底层全面换成了KRaft,所以书中的安装指南基本没有任何作用了.
+
+- [原因](https://spoud-io.medium.com/embracing-the-future-of-kafka-why-its-time-to-migrate-from-zookeeper-to-kraft-f1a5225ac48a)
+
+要想跨平台使用Kafka,显然只能让Docker来干活儿了,自然,我是不知道怎么写kafka的compose文档的,看一下
+[官方](https://hub.docker.com/r/apache/kafka)推荐的单节点写法:
+
+```yml
+services:
+  broker:
+    image: apache/kafka:latest
+    container_name: broker
+    ports:
+      - 9092:9092
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://localhost:9092,CONTROLLER://localhost:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+```
+考虑到我们只是测试使用,所以就不需要绑定到数据卷上了,kafka,启动!
+
+```bash
+docker compose up -d 
+```
+启动成功后,首先运行以下命令创建topic:
+```bash
+docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --create --topic test-topic --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
+```
+在该终端启动producer:
+```bash
+docker exec -it kafka /opt/kafka/bin/kafka-console-producer.sh --topic test-topic --bootstrap-server localhost:9092
+```
+
+另开一个终端启动consumer:
+```bash
+docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --topic test-topic --from-beginning --bootstrap-server localhost:9092
+```
+
+在producer这边随意发送消息,都可以在consumer那边接收到并输出:
+
+![效果图](PixPin_2026-07-27_10-52-43.webp)
+
+效果很不错!
+
+- 上述命令中的第一行完全相同,因为都要用到kafka随安装自带的CLI工具.
+## 生产者
+首先配置`bootstrap.servers`等参数来初始化Producer,接着构建一个ProducerRecord对象,该对象对应所有kafka能发送的信息(纯文本,Json字符串,key-value对,数据表),最终由producer发送给kafka的client.
+## 消费者
+>消费者数量超过topic中的分区数量是毫无意义的——部分消费者将处于空闲状态
+
+![示意图](PixPin_2026-07-29_10-10-08.webp)
+
+创建消费者的过程与创建生产者没有太大的区别,同样需要先配置servers等属性,并分配特定的消费者组id,再通过订阅(subscribe)方法来接受特定的topic下的消息.
+
+## 总结
+了解到这里就基本足够了,后面就是一些琐碎的配置环节了.
+# RabbitMQ in Depth
+该说是太老了还是怎么呢,讲的一点都不清晰,看了两章都没看明白RabbitMQ的基本原理
 # Python3网络爬虫开发实战
 ## 爬虫基础
 讲的还不错,基本涉及了爬虫所需的所有知识,尤其是关于session,cookie的地方讲的很好,帮我扫清了一点疑惑
