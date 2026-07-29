@@ -1,5 +1,5 @@
 ---
-title: 从零开始的算法交易(量化交易)
+title: 量化交易笔记
 draft: true
 tags:
 image:
