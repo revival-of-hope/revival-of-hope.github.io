@@ -1,0 +1,2417 @@
+---
+title:  面向面试学习
+tags:
+  - 调研
+  - 职场
+date: 2026-04-23 08:00:00
+image: 72471572_p0-秦こころ.webp
+---
+
+# 准备环节
+## 技术岗位概览
+首先我们需要知道有哪些技术岗位
+### 岗位术语
+**每家公司**都有自己独特的术语,相同岗位的名字可能大不相同,我们列举~~几个~~一堆常见的术语,从而能够在看到某一个岗位名字的时候能够快速定位:
+
+- Software Engineer(SWE): **最通用**的称呼,无论什么技术岗位都可以叫做是软件工程师,因此必须要看招聘的具体要求才好判断到底是什么岗位.
+- Software Dev Engineer(SDE): **软件开发工程师**,如名字所说是负责软件开发的,至于是负责哪一部分还是要看招聘需求的
+- Operations(Ops): 简称**运维**,维护系统,负责产品部署和监控
+- Infrastructure(Infra): 负责搭建底层工具链,需要精通底层语言和硬件原理
+- Architect: 这就是我们俗称的**架构师**,一般来说架构师都是在其他岗位历练后转调过来的,不太可能让一个实习生去架构吧.
+- Site Reliability Engineering(SRE): 最早由Google提出,主要责任是管理大规模集群网络,解决系统故障,相当于**高级运维**
+- **[DevOps](https://en.wikipedia.org/wiki/DevOps)**: 这鬼名字谁第一次看了不迷糊😅,不管怎样,该岗位的职责如名字所说是**开发 (Dev) + 运维 (Ops)**,需要能够一边开发软件一边负责部署上线,一看就是事最多的岗位.
+- CI/CD: **Continuous Integration**,持续集成;**Continuous Delivery & Deployment**,持续部署.换句话说就是精细化的版本控制.
+
+## 面试题分析
+自然,招聘网站上的信息只是一个初步的筛查而已,大厂还需要通过面试来真正的筛查所需的雇员.
+事实上,从公司面试里出的技术题能够精确的反映面试者需要学习的知识点,因此,我在此处调研了多个领域的面试题,总结出各个领域所需的知识点,如果这些知识点你想都不想就能回答出来的话,那该你拿offer.
+### 计算机网络
+主要考点: 老生常谈的TCP/UDP,HTTP/IP协议理解
+
+- "**谈一谈点击一个URL链接后页面响应的全过程,越详细越好**"
+  - 解答: 先在网络层之上回答,第一轮是与某个DNS服务器的DNS查询,第二轮再与真正的服务器进行TCP握手(想炫技的话可以说TLS握手,把TLS的加密过程也掺进去),经过三次握手后传回网页内容;
+  - 再在网络层和链路层回答,如果使用的是以太网则讲一讲分组交换机和ARP广播,如果使用的是WiFi和5G则讲一讲无线链路.再宽泛的讲一讲路由转发.
+  - 还想装逼的话就可以讲一讲如果是在局域网里,就需要通过DHCP来获取自己的动态IP地址.
+- **HTTPS有什么优点和缺点？**
+- **常用的HTTP请求方法,哪几个是幂等的?**
+- **一个 Http 请求包含哪几部分内容？**
+- 说真的,一本"自顶向下方法"就能搞定的事情真的没必要单独去破碎的吸收二手博客和总结.
+### 操作系统
+- 通用
+  - **进程和线程之间有什么区别？**
+  - **进程间有哪些通信方式？**
+  - **简述操作系统进行内存管理的方法**
+### 前端(待补充)
+- 由于我对前端暂时没有考量,所以就先搁置了
+
+
+### 后端
+#### C/C++
+说真的,cpp特性太多了,就算都学过了,一下子被问到的时候我还是不能说的很明白.
+- 基础知识
+  - **谈一谈指针和引用**
+  - **常量指针和指针常量**
+  - **谈一谈C中的malloc和Cpp中的new,delete**
+  - **struct和class的区别**
+  - **#include<filename.h>和#include“filename.h”有什么区别？**
+  - **C语言是强类型的语言，这是什么意思？**
+- 进阶知识
+  - **动态库与静态库的区别**
+  - **深拷贝和浅拷贝**
+  - **inline,const,volatile,extern关键字的用法**
+  - **左值和右值**
+  - **谈一谈智能指针的用法**
+  - **谈一谈常用的STL容器**
+  - **C++友元的具体原理**
+  - **C和C++的区别**
+  - **为什么要有虚析构函数**
+  - **C++中一个空类的大小为什么是1**
+  - **define和typedef的区别**
+  - **构造函数和析构函数的执行顺序？**
+- 内存管理
+  - **谈一谈cpp中的内存分配,栈,堆,静态存储区**
+  - **内存泄漏,野指针,指针越界你分别是怎么处理的**
+  - **谈一谈结构体中的内存对齐**
+    - **一个结构体中有一个int，一个char，一个static int，问这个结构体占多少内存？**
+#### Python
+- 基础语法: 
+  - **yield的用法**
+  - **wsgi是什么**
+  - **Session,Cookie,JWT的理解**
+  - **python的垃圾回收机制**
+  - ***args 和 **kwargs**
+  - **Python中单下划线和双下划线**
+  - **range和xrange的区别**
+  - **简单讲讲lambda函数的应用**
+  - **python闭包的特性**
+  - **你怎么使用python多线程**
+  - **为什么python没有重载机制**
+- 爬虫
+  - **你用过的爬虫框架或者模块有哪些？优缺点？**
+  - **怎么样让 scrapy 框架发送一个 post 请求（具体写出来）**
+  - **你所知道的分布式爬虫方案有哪些？**
+  - **常见的反爬虫和应对方法？**
+
+#### Java
+
+- Java基础语法
+- 垃圾回收机制
+  - **Java中的内存泄露例子**
+    - 解答:
+- Java高级特性
+  - **Java的反射是什么**
+  - **谈一谈Java的线程池机制**
+
+#### Go
+- 基础语法
+  - **为什么说 Go 语言字符串是不可变的？**
+  - **Go 语言 map 是并发安全的吗？**
+  - **Go 语言 new 和 make 关键字的区别**
+  - **Goroutine调度策略**
+  - **简单聊聊内存逃逸？**
+#### Android
+#### 数据库
+事实上很多后端岗位都需要涉及跟数据库的交互,因此面试题里总会问到数据库的具体数据结构等这些知识点.
+- Redis
+  - **使用Redis有哪些好处**
+  - **Redis性能问题都有哪些**
+  - **Redis的同步机制**
+  - **Redis中的底层数据结构**
+  - **Redis 和 Memcached 有什么区别？Redis 的线程模型是什么？为什么单线程的 Redis 比多线程的 Memcached 效率要高得多？**
+  - **Redis 集群模式的工作原理能说一下么？在集群模式下，Redis 的 key 是如何寻址的？分布式寻址都有哪些算法？了解一致性 hash 算法吗？如何动态增加和删除一个节点？**
+  - **生产环境中的 Redis 是怎么部署的？**
+  - **了解什么是 Redis 的雪崩、穿透和击穿？Redis 崩溃之后会怎么样？系统该如何应对这种情况？如何处理 Redis 的穿透？**
+  - **使用 Redis 如何设计分布式锁？使用 Zookeeper 来设计分布式锁可以吗？以上两种分布式锁的实现方式哪种效率比较高？**
+- MongoDB
+  - **MongoDB的架构和优势**
+- MySQL
+  - **为什么MySQL使用B+树做索引？**
+  - **如何实现 MySQL 的读写分离？MySQL 主从复制原理是啥？如何解决 MySQL 主从同步的延时问题？**
+- 通用
+  - **CRUD是哪四个词**
+  - **数据库的几大范式**
+  - **谈一谈B+,B,B-树,红黑树,跳表**
+
+### 游戏开发
+- 计算机图形学
+- Unity
+### 架构
+- 微服务
+  - **什么是微服务？微服务之间是如何独立通讯的？**
+  - **你所知道的微服务技术栈都有哪些？**
+- 数据处理
+  - **如何从大量的 URL 中找出相同的 URL？**
+  - **如何从 5 亿个数中找出中位数？**
+    - 解答: 使用分治法不断处理二进制最高位分组,直到凑齐2.5亿个数
+  - **1T 的数据怎么加载到 200M 的内存中，并且找到两行一样的数据？**
+  - **IO 多路复用是什么？多路是什么？复用了什么？**
+- 设计模式
+  - **谈谈常见的设计模式?**
+- kubernetes
+  - **简述Kubernetes的优势、适应场景及其特点？**
+  - **简述Kubernetes和Docker的关系？**
+  - **简述Kubernetes中什么是Minikube、Kubectl、Kubelet？**
+  - **简述Kubernetes自动扩容机制？**
+  - **简述Kubernetes的负载均衡器？**
+  - **简述Kubernetes数据持久化的方式有哪些？**
+- 消息队列
+  - **为什么使用消息队列？消息队列有什么优点和缺点？Kafka、ActiveMQ、RabbitMQ、RocketMQ 都有什么优点和缺点？**
+  - **如何解决消息队列的延时以及过期失效问题？消息队列满了以后该怎么处理？有几百万消息持续积压几小时，说说怎么解决？**
+  - **如果让你写一个消息队列，该如何进行架构设计啊？说一下你的思路。**
+- 搜索引擎
+  - **ES 的分布式架构原理能说一下么（ES 是如何实现分布式的啊）？**
+  - **ES 写入数据的工作原理是什么啊？ES 查询数据的工作原理是什么啊？底层的 Lucene 介绍一下呗？倒排索引了解吗？**
+  - **ES 生产集群的部署架构是什么？每个索引的数据量大概有多少？每个索引大概有多少个分片？**
+
+### NLP/ML/CV
+这三个领域的很多知识都是掺杂在一起的,所以就放到一起了.
+- **CPU和GPU的区别？**
+- **深度学习框架有哪些？各有什么特点？**
+- **求解马尔科夫决策过程都有哪些方法？**
+
+
+### 更多的面试题
+#### 合集
+[osjobs](https://osjobs.net/topk/)
+[个人总结面经](https://github.com/liulei18/road-2-internet-giant/)
+#### 架构
+GitHub仓库: k8s-books
+## 真实要求分析
+### 工作经验
+我们很容易看到某个岗位要求"**X年工作经验**",但是就算真这么说了,如果你有相应实力的话,还是去试试水呗,你要是能胜任这个岗位的话工作经验就没那么重要了.
+[Reddit讨论](https://www.reddit.com/r/jobs/comments/3grlr6/why_the_required_years_of_experience_on_a_job/?tl=zh-hans)
+### 英语能力
+面外企的话,可以看看自己的英语能力在哪个档:
+1. 会读和写: 基础条件,一个合格的技术人员的最低标准.
+2. 会听和说: 有些岗位标明需要**流畅地**与native speaker交谈
+
+但实际上来说只要你的面试口语不是太差,总会让你过的.
+### 技术能力
+你面的是哪门语言,或者说你简历上写的**精通xx语言**,那么这门语言你至少要做到以下几点:
+1. 独立设计一个架构良好的常见类
+2. 手撕一道洛谷绿题/力扣难题
+3. 常见的库/包/框架能够信口拈来
+4. 基本特性和容易踩坑的点要十分熟悉
+
+不然的话,面试的时候有的你苦吃的,毕竟面试官都是**有备而来**
+### 到底招什么
+>大多数人对于就业的恐惧在于不知道企业要招什么样的人才,从而夸大了找工作的难度,要我说,既然不知道就赶紧去搜集信息看看要学什么啊!
+
+甚至问AI都可以:
+
+针对内地头部科技公司，根据 2026 年最新的技术栈演进与业务分布，后端架构已从早期的单体或简单微服务演变为**高性能异构系统**。
+
+以下是各家大厂主要软件产品的后端语言架构整合：
+
+#### 1. 字节跳动 (ByteDance)
+* **代表软件**：抖音、今日头条、飞书 (Lark)
+* **主导语言**：**Go (Golang)** —— 字节是国内最早、最彻底全面 Go 化的公司。
+* **架构特征**：
+    * **微服务框架**：自研高性能框架 **Kiteex** (RPC)、**Hertz** (HTTP)。
+    * **中间件**：重度依赖 **Service Mesh** (如其自研的控制面)，实现海量微服务的治理。
+    * **存储**：自研分布式 KV 存储（如 ByteKV），并结合分库分表的 MySQL。
+
+#### 2. 蚂蚁集团 / 阿里巴巴 (Ant / Alibaba)
+* **代表软件**：支付宝、淘宝、闲鱼
+* **主导语言**：**Java** —— 阿里系是国内 Java 规范的制定者，深度定制 JVM。
+* **架构特征**：
+    * **微服务框架**：**Spring Cloud Alibaba** 体系，核心为 Dubbo 和 Nacos。
+    * **底层引擎**：蚂蚁金服重度使用 **OceanBase** (分布式数据库) 和 **SOFAStack** (金融级中间件)。
+    * **异构补充**：部分高性能网关和底层节点开始引入 **Go** 和 **Rust**。
+
+#### 3. 腾讯 (Tencent)
+* **代表软件**：微信、QQ、王者荣耀
+* **主导语言**：**C++ / Go** —— 微信由于历史积累和极致性能追求，底层大量使用 C++；新业务及 QQ 架构演进则转向 Go。
+* **架构特征**：
+    * **微服务框架**：自研开源框架 **tRPC** (支持 C++, Go, Java, Python 多语言互通)。
+    * **存储**：重度使用 **TDSQL** (分布式数据库) 和自研的数仓架构。
+    * **并发模型**：微信著名的协程库 **libco** 支撑了数亿级的并发。
+
+#### 4. 华为 (Huawei)
+* **代表软件**：华为云 (Huawei Cloud)、鸿蒙 (HarmonyOS) 后端云服务
+* **主导语言**：**Java / C++ / Rust**
+* **架构特征**：
+    * **底层开发**：内核与关键驱动层使用 C++/C，安全敏感模块开始向 **Rust** 迁移。
+    * **云架构**：Java 支撑复杂的业务逻辑，配合自研的微服务引擎 **CSE**。
+    * **数据库**：核心业务均跑在自研的 **GaussDB** 上。
+
+#### 5. 美团 (Meituan)
+* **代表软件**：美团 App、大众点评
+* **主导语言**：**Java**
+* **架构特征**：
+    * **工程化极强**：拥有极其完善的 Java 开发规范和监控系统 (CAT)。
+    * **配送调度**：后端不仅涉及业务流，还包含复杂的 LBS (地理位置服务) 逻辑。
+    * **中间件**：使用 **MT Thrift** 作为内部通信协议。
+
+#### 后端
+cpp/Java/Go你总得精通一个吧,数据库总得精通一个吧,网络通信总得熟悉吧,操作系统总得懂吧,微服务总得学习吧.
+#### 算法岗
+Pytorch总得会吧,常用的数据处理库得会吧,Agent优化,RAG处理总得熟练吧,传统神经网络和数学模型总得了解吧.
+### 什么岗位需求大
+我们用两个案例来分析,一个是需求庞大的字节招聘官网,一个是阮一峰的weekly谁在招人issue集.
+#### 字节招聘
+搜索python:
+![示意图](PixPin_2026-04-25_22-03-51.webp)
+搜索Java:
+![示意图](PixPin_2026-04-25_22-04-16.webp)
+搜索cpp:
+![示意图](PixPin_2026-04-25_22-04-31.webp)
+搜索Go:
+![示意图](PixPin_2026-04-25_22-04-55.webp)
+搜索rust:
+![示意图](PixPin_2026-04-25_23-04-28.webp)
+搜索前端:
+![示意图](PixPin_2026-04-25_23-05-06.webp)
+搜索Redis:
+![示意图](PixPin_2026-04-25_22-05-42.webp)
+搜索MySQL:
+![示意图](PixPin_2026-04-25_22-05-58.webp)
+搜索PostgreSQL:
+![示意图](PixPin_2026-04-25_22-06-30.webp)
+搜素kuber:
+![示意图](PixPin_2026-04-25_22-07-29.webp)
+
+#### 谁在招人issue
+- 我爬取了从2023-01-01至今天的issues
+搜索python:
+![示意图](PixPin_2026-04-25_22-21-53.webp)
+搜索Java:
+![示意图](PixPin_2026-04-25_22-50-22.webp)
+搜索go:
+![示意图](PixPin_2026-04-25_22-59-55.webp)
+![示意图](PixPin_2026-04-25_23-00-06.webp)
+搜索cpp:
+![示意图](PixPin_2026-04-25_23-00-59.webp)
+搜索rust:
+![示意图](PixPin_2026-04-25_23-01-13.webp)
+搜索前端:
+![示意图](PixPin_2026-04-25_23-00-40.webp)
+搜索kuber:
+![示意图](PixPin_2026-04-25_23-05-24.webp)
+
+
+#### 总结
+1. 前端的缺口依然很大,需求很多.
+2. 后端里cpp/Java/Go/python必须要精通一门
+## 实战
+本章通过剖析一些常见的招聘信息来说明找工作真没有那么难,**难的只是找到自己心仪的工作而已**.
+
+
+### 亚马逊
+以这个[招聘信息](https://www.amazon.jobs/zh/jobs/3179483/software-dev-engineer-intern-opensearch-2026-shanghai)为例:
+
+**描述**
+职位：SDE上海
+· 毕业时间：2026年10月 - 2027年7月之间毕业的应届毕业生
+· 入职日期：2026年5月及之前
+· 实习时间：保证一周实习4-5天全职实习，至少持续6个月
+· 工作地点：上海
+
+
+**基本任职资格**
+- Currently enrolled in Bachelor's or Master's degree in Computer Science, Software Development, Machine Learning, Mathematics, or related majors
+- Graduation date: November 2026 - July 2027
+- Available for minimum 6-month internship
+- Proficient in Java/Python/C++/JavaScript/TypeScript
+- Solid foundation in algorithms and data structures
+- Strong English reading and writing skills
+
+**优先任职资格**
+- Previous technical internship or project experience
+- Experience with agent frameworks
+- Experience with distributed systems, algorithms, and relational databases
+- Experience in optimization mathematics (linear programming, nonlinear optimization)
+- Verbal proficiency in English
+
+因为是个实习岗,所以要求很少,但其实细致考量一下的话,会发现这个岗位其实没有任何要求,任何一个普通的计算机专业学生都可以应聘...
+### 特斯拉
+**职位描述**
+
+**Full Stack Engineer (Golang/Python+React), AI**
+
+> We're looking for a highly motivated full stack engineer specialized in backend development with desktop application experience. You will build scalable, high-performance desktop and web applications that enable agents to interact with users and automate complex workflows. The platform you build will power innovative features used by thousands of internal and external users.
+
+
+**Responsibilities**
+* **Design and build scalable desktop and web applications with modern frontend frameworks**
+* Design and implement production-level AI agents and tool integrations
+* Create end-to-end agentic workflows that enable AI agents to interact with internal system
+* **Work with backend Frameworks (Go, Python) to build high performance agent system**
+* Leverage AI coding tools (Cursor, Claude Code, GitHub Copilot) to accelerate development
+* Work closely with product, other application team, and AI/ML teams
+* Experience of AI coding assistants
+* **Experience with Next.JS**
+* Proficient in English, able to communicate with global team regarding solution and plan
+
+**Requirements**
+* **5+ years of strong development experience in building highly-reliable, mission-critical software**
+* Degree in Computer Science, Information Systems, or the equivalent in experience
+* Experience in building AI agents or LLM-powered applications
+* Experience with agent frameworks, tool calling, and agent orchestration
+* **Experience with backend development (Go, Python) and understanding of microservices architecture**
+* **Frontend experience is a plus**
+* Deep knowledge of best practices, information security, and API design principles
+* Experience with gathering and building requirements from multiple stakeholders
+* Go, Kubernetes, and distributed systems experience a plus
+
+看着东西多,其实一点都不吓人,只需要看我着重的部分就可以了,可以简单总结一下要求:
+1. 5年以上的Go/Python后端开发经验
+2. 要会NextJs,但不用实际干过前端
+3. 要会用AI工具来搭建一个好用的智能体
+
+很显然,这个岗位不用自己训练模型,只需要调用API就行了,还能用AI开发,那不是有手就行了.
+- 事实上,如果他能够在招人的时候网开一面,不死守五年工作经验的话,我都可以去了...
+
+### 英伟达
+
+**描述**
+SAI Verification Engineer
+
+
+**What you’ll be doing**:
+•    Be part of NVIDIA SAI multi-national R&D team, contribute code to SAI community and Nvidia SAI implementation.
+•    Design and implement robust, maintainable, and efficient automation test suite.
+•    Work with continuous integration systems, regression tools, automate builds, run test suites, generate test reports, isolate and classify failures and review new degradation.
+•    Work with experienced teams which are well known in the SAI community.
+•    Develop high quality code, most of the code is open source and published and reviewed in industry leading open source environments.
+
+**What we need to see**:
+•    B.Sc. degree or equivalent experience in Engineering/Computer Science/related field.
+•    5+ years of experience as a Software Engineer.
+•    Intrinsically motivated with a desire for automation programming.
+•    Strong programming skills in Python.
+•    Strong technical abilities, problem solving skills, coding and design skills.
+•    Ability to lead feature development, take full ownership and deliver independently.
+•    Linux knowledge: have a general understanding of Linux operation system concepts.
+•    C experience and extensive knowledge.
+•    Ability to understand, debug and improve 3rd party complex code.
+•    Excellent communication in English and leading skills.
+
+**Ways to stand out from the crowd**:
+•    Knowledge in one or more of the following Networking areas: Ethernet, VLANs, TCP/UDP/IP, QoS, L2-L3 protocols.
+•    Prior software testing experience, with an understanding of Software Testing Tools and Methodologies.
+•    Experience in development in Linux (user and/or kernel modes).
+•    Python specialist.
+
+
+要求也很简单,五年工作经验,会python,懂C语言和底层通信技术,吃苦耐劳,能够团队协作.
+- 不厚道的说,我还是可以去应聘...
+
+
+
+
+# 公司调研
+在了解了可以面试哪些岗位之后,就可以根据自己想去的岗位来投递自己的意向公司了,但是参加面试之前总得对自己要面试的公司有个了解吧,因此我在这里介绍了一些常见的大型互联网公司.
+
+该文对于一个公司的调研主要分为以下四点:
+1. 公司概况: 快速了解这家公司
+2. 公司历史: 公司的发展历史
+3. 主要产品: 该公司的优秀产品
+4. 招聘需求: 内地应聘的条件和要求
+
+
+## 国际企业
+该类企业有以下优缺点:
+1. 工资较高,福利好,无996
+2. 应试要求低,但一般都要求英语好
+3. 晋升难
+4. 难外调(relocate)
+5. **招聘岗位少**,竞争激烈,大牛多
+
+由于招聘岗位少,招聘需求部分就不贴具体岗位分析了,只写一点吐槽.
+- 值得一提的是,外企都没有内推码这种让我深恶痛绝的东西,凭什么我投个简历还要去到处找关系托人情啊!
+### Microsoft (微软)
+- 多少人梦寐以求的头部外企啊
+#### 公司概况
+微软发迹于为早期的 Altair 8800 提供 BASIC 解释器，凭借 MS-DOS 和 Windows 确立了在个人电脑操作系统市场的垄断地位；其核心业务由 Windows 操作系统、Office 生产力套件、Azure 云平台以及 Xbox 游戏生态组成，通过收购 LinkedIn、Skype 和动视暴雪等企业实现多元化，目前是全球收入最高的软件公司。
+- 操作系统市场的垄断地位是微软最可怕的地方
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Microsoft)
+##### 1972–1985：初创与系统业务奠基
+* **早期尝试**：盖茨与艾伦通过 Traf-O-Data 开启创业，1975 年受 Altair 8800 启发开发出 Altair BASIC，并正式成立 Microsoft。
+* **MS-DOS 的崛起**：1980 年通过收购 86-DOS 并授权给 IBM PC（品牌化为 MS-DOS），确立了在操作系统市场的统治地位，且保留了对非 IBM 硬件的授权权益。
+
+##### 1985–1994：Windows 与 Office 时代的开启
+* **图形化转型**：1985 年发布 Windows 1.0，1986 年公司上市（IPO）。随后推出的 Windows 3.0 取得巨大市场成功。
+* **生产力套件**：1990 年引入 Microsoft Office，将 Word、Excel 等应用打包，主导了办公软件市场。
+* **内核演进**：发布基于 32 位模块化内核的 Windows NT，奠定了现代 Windows 系统的架构基础。
+
+##### 1995–2007：互联网转型、XP 与 Xbox 扩张
+* **拥抱 Web**：在“互联网潮汐”备忘录指引下，发布集成浏览器的 Windows 95，随后陷入与网景（Netscape）及司法部的反垄断纠纷。
+* **硬件与娱乐**：2001 年发布 Windows XP 统一系统内核，并推出首款 Xbox 游戏机进入主机市场。
+* **管理层更迭**：2000 年史蒂夫·鲍尔默接任 CEO，盖茨转任首席软件架构师。
+
+##### 2007–2014：移动端挫败与云端转型初探
+* **Azure 诞生**：2008 年发布 Azure 平台，正式进军云计算领域。
+* **移动端困局**：Windows Vista 市场反响平平后推出 Windows 7。为应对移动端冲击，推出 Windows Phone 并收购诺基亚手机业务，但市场份额始终未能突破。
+* **自研硬件**：2012 年推出 Surface 系列，标志着微软开始直接制造个人电脑硬件。
+
+##### 2014–2020：纳德拉时代的“云优先”
+* **战略重心转移**：萨提亚·纳德拉接任 CEO，将公司重心全面转向云计算。
+* **开源与融合**：加入 Linux 基金会，收购 GitHub，推出 Windows 10。
+* **业务多元化**：通过收购 Minecraft（Mojang）和 LinkedIn，强化内容与社交版图。
+
+##### 2020 至今：AI 浪潮与大规模收购
+* **游戏帝国**：通过收购 ZeniMax Media（Bethesda）及动视暴雪，确立了在全球游戏行业的领先地位。
+* **生成式 AI**：深度注资 OpenAI，将 Copilot 融入 Azure、Office 和 Windows 全线产品。
+* **基础设施投入**：2026 年大规模投资 AI 算力与能源项目，并针对数据中心用电签署白宫能源协议。
+
+#### 控股公司及主要产品
+##### 控股公司及主要子公司
+
+* **Microsoft Gaming**：整合了 **Xbox Game Studios**、**ZeniMax Media**（Bethesda）及 **Activision Blizzard**（动视暴雪），是全球最大的游戏出版商之一。
+* **LinkedIn Corporation**：2016 年收购的职业社交平台，独立运营并深度集成于微软的企业服务生态。
+* **GitHub**：2018 年收购的全球最大开源代码托管平台，作为微软开发者工具链的核心组成部分。
+* **Microsoft Mobile Oy**：原诺基亚设备与服务部门，曾负责 Lumia 系列手机（现已停止手机硬件业务）。
+* **Nuance Communications**：2022 年完成收购，专注于医疗保健领域的对话式 AI 和环境智能技术。
+
+---
+
+##### 主要产品线
+
+* **操作系统（Windows）**：核心产品包括 **Windows 11** 及针对企业级市场的 **Windows Server**，是全球 PC 市场的主导系统。
+* **生产力与业务流程**：包含 **Microsoft 365**（原 Office 365）订阅服务，核心组件为 **Word**、**Excel**、**PowerPoint**、**Teams** 及 **Outlook**。
+* **智能云（Azure）**：提供计算、存储、数据库及 **Azure OpenAI** 等 AI 基础设施服务，是微软当前的增长引擎。
+* **硬件设备（Surface & Xbox）**：包括 **Surface** 系列二合一笔记本、**Xbox Series X/S** 游戏主机及其相关的 **Xbox Game Pass** 订阅服务。
+* **人工智能（Copilot）**：基于 GPT-4 等技术的生成式 AI 助手，贯穿于搜索引擎 **Bing**、浏览器 **Edge** 及全线办公软件中。
+* **开发工具**：包括 **Visual Studio**、**VS Code** 以及针对企业数据的 **SQL Server** 数据库系统。
+
+- 硬件软件两开花,可以看得出来微软互联网巨头的地位是不可撼动的
+#### 招聘需求
+- [招聘官网](https://apply.careers.microsoft.com/)
+- 公众号: 微软招聘
+  
+![示意图](PixPin_2026-04-25_11-25-18.webp)
+官网的岗位很多对吧,但如果你把地点更改一下的话:
+![示意图](PixPin_2026-04-25_11-24-29.webp)
+行了,都知道你不想在中国招人了.
+
+##### 面经1
+[链接](https://stdrc.cc/post/2022/01/30/microsoft-interview/)
+尽管是22年的实习面经,但问题确实很简单,看得出来微软是不喜欢刁难实习生的...
+##### 面经2
+[链接](https://ddadaal.me/articles/2019-spring-ms-intern-interview-experiences/cn)
+19年的实习面经,面试题也都不难
+### Google (谷歌)
+#### 公司概况
+Google 由拉里·佩奇和谢尔盖·布林于 1998 年创立，凭借核心产品 Google 搜索确立了全球信息索引的统治地位，并于 2015 年重组为 Alphabet Inc. 的最大子公司。其业务版图深度覆盖在线广告、云计算（Google Cloud）、操作系统（Android、ChromeOS）、视频共享（YouTube）及消费电子（Pixel、Nest），并在量子计算、自动驾驶（Waymo）和人工智能（Gemini）等前沿领域处于领先。作为全球访问量最大的网站拥有者，Google 在搜索引擎、移动生态和生产力工具市场占据绝对优势，同时也面临着关于垄断、隐私及税务问题的持续监管与争议。
+#### Google与Alphabet
+Alphabet 是 Google 的母公司，两者于 2015 年通过企业架构重组确立了控股关系：Alphabet 作为顶层控股实体，将盈利核心 Google（含搜索、YouTube、Android）与风险高、投入大的“登月计划”子公司（如 Waymo 自动驾驶、Calico 生物技术）剥离。这一变革的历史缘由在于，当时的 Google 已从单一搜索工具扩张至机器人、生命科学等极度分散的领域，创始人拉里·佩奇希望通过这种“瘦身”结构提高财务透明度，使各业务在拥有独立 CEO 和预算的同时，能更灵活地追求长远创新，而不受核心搜索业务财务波动的束缚。
+
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Google)
+##### 1996–2004：车库创业与技术突破
+* **起源与算法**：1996 年，拉里·佩奇和谢尔盖·布林在斯坦福大学发起 BackRub 项目，开发出 **PageRank** 算法，通过分析网页链接关系而非关键词频率来提升搜索质量。
+* **正式成立**：1998 年获得安迪·贝托谢姆 10 万美元投资后正式注资成立公司，办公地点位于苏珊·沃西基的家用车库。
+* **早期增长**：1999 年获得 Kleiner Perkins 和 Sequoia Capital 2500 万美元注资。2000 年成为 Yahoo 的默认搜索引擎，并开启基于文本的关键字广告业务。
+
+##### 2004–2015：IPO 与生态版图扩张
+* **公开上市**：2004 年以每股 85 美元的价格进行 IPO，市值超过 230 亿美元。
+* **关键收购**：2006 年以 16.5 亿美元收购 **YouTube**；2008 年收购 DoubleClick 强化广告业务；2012 年以 125 亿美元收购摩托罗拉移动（侧重专利保护）。
+* **技术演进**：2011 年月度独立访客破 10 亿。2014 年收购 **DeepMind**，同年 AlphaGo 击败围棋职业选手，标志着 AI 战略的加速。
+
+##### 2015–2022：Alphabet 重组与管理层交替
+* **架构重组**：2015 年成立母公司 **Alphabet**，桑达尔·皮查伊接任 Google CEO。2019 年，佩奇和布林退居幕后，皮查伊兼任 Alphabet CEO。
+* **内部动荡与法律挑战**：2018 年发生全球范围内的员工罢工，抗议公司处理性骚扰及军事项目（Project Maven）的方式。2020 年起面临美国司法部和欧盟的多项反垄断起诉。
+
+##### 2023 至今：AI 红码与重塑核心
+* **AI 转型**：面对 ChatGPT 的竞争，公司内部发布“红色代码”警报。2023 年发布 Bard（后更名为 **Gemini**）和高性能 AI 芯片 TPU。
+* **监管定论**：2024 年，美国法院裁定 Google 在搜索市场存在非法垄断。2025 年法院裁定其不得签署独家预装合同，且必须向竞争对手共享搜索数据。
+* **巨额投入**：2025 年以 320 亿美元收购网络安全公司 **Wiz**。2026 年签署白宫能源承诺，承担数据中心扩张带来的额外发电成本。
+#### 控股公司与组织架构
+
+* **Alphabet Inc.**：顶层母公司，将核心互联网业务与高风险前瞻项目（Other Bets）分离。
+* **Google LLC**：Alphabet 旗下最大的子公司，涵盖搜索、广告、YouTube、Android、Chrome 和云服务。
+* **Google DeepMind**：核心 AI 研究部门，由原 DeepMind 与 Google Brain 合并而成。
+* **前瞻业务 (Other Bets)**：包括 **Waymo**（自动驾驶）、**Verily**（生命科学）、**Calico**（抗衰老研究）及 **X Development**（秘密实验室）。
+* **主要子公司**：包含 **YouTube**、**Waze**、**Fitbit** 以及新近收购的 **Wiz**（云安全）。
+
+#### 主要产品线
+
+* **搜索与信息**：核心 **Google Search**、**Google Maps**、**Google Translate** 以及 **Google Lens**。
+* **广告平台**：**Google Ads**、**AdSense** 及 **AdMob**，构成了公司主要的营收来源。
+* **内容与平台**：**YouTube**（视频及音乐流媒体）、**Google Play 商店**。
+* **操作系统与硬件**：**Android** 移动系统、**ChromeOS**、**Pixel** 系列手机、**Nest** 智能家居及 **Fitbit** 穿戴设备。
+* **企业与云服务**：**Google Cloud Platform (GCP)** 基础设施及 **Google Workspace**（Gmail、文档、驱动器等）。
+* **人工智能 (Gemini)**：原生多模态大模型 **Gemini**，以及集成在各产品中的 **Copilot** 式助手。
+* **底层技术与芯片**：**TensorFlow** 机器学习框架、定制化 AI 芯片 **TPU**。
+#### 招聘需求
+- [招聘官网](https://www.google.com/about/careers/applications/)
+- 公众号: 谷歌招聘包打听
+
+之所以内地很少看见有人应聘谷歌是因为它在内地的岗位确实少,而且产品人员招的比技术人员多...
+![示意图](PixPin_2026-04-25_11-41-45.webp)
+![示意图](PixPin_2026-04-25_11-42-11.webp)
+
+##### 面经1
+[大牛的上岸分享](https://zhuanlan.zhihu.com/p/362736343)
+### Apple (苹果)
+- 安静的做好自己的产品,其他公司别来搭理我
+#### 公司概况
+Apple Inc. 由史蒂夫·乔布斯、斯蒂夫·沃兹尼亚克和罗纳德·韦恩于 1976 年创立，总部位于加州库比蒂诺。公司凭借 Apple II 和带图形界面的 Macintosh 推动了个人电脑的普及，在经历 90 年代的濒临破产后，通过收购 NeXT 迎回乔布斯，并凭借 iMac、iPod、iPhone 和 iPad 实现业务重组与盈利。核心产品涵盖 iPhone、Mac、iPad 等硬件及其配套的 iOS、macOS 系统和 Apple Music、iCloud 等服务，于 2025 年 10 月市值突破 4 万亿美元。
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Apple_Inc.)
+##### 1976–1984：初创与图形界面革命
+* **公司成立**：1976 年 4 月 1 日，史蒂夫·乔布斯、斯蒂夫·沃兹尼亚克与罗纳德·韦恩创立 Apple，首款产品为 **Apple I** 主板。
+* **Apple II 的成功**：1977 年发布，成为首款取得大规模商业成功的个人电脑，确立了苹果在微型计算机行业的地位。
+* **GUI 创新**：受施乐帕罗奥多研究中心（Xerox PARC）启发，先后研发出 **Lisa**（1983）和 **Macintosh**（1984），首次将图形用户界面（GUI）和鼠标推向大众市场。
+
+##### 1985–1997：权力斗争与财务危机
+* **创始人离职**：在与 CEO 约翰·斯卡利的权力斗争后，乔布斯于 1985 年辞职并创立 NeXT，沃兹尼亚克随后也离开公司。
+* **市场份额侵蚀**：面对“Wintel”联盟（Windows 与 Intel）的低价竞争，苹果市场份额大幅缩减，**Newton PDA** 等实验性产品均告失败。
+* **濒临破产**：1990 年代中期公司深陷亏损。1996 年，苹果以 4.29 亿美元收购 **NeXT** 获取其操作系统技术（NeXTSTEP），乔布斯重返公司担任顾问。
+
+##### 1997–2011：乔布斯回归与数字化巅峰
+* **业务重组**：乔布斯于 1997 年出任临时 CEO，精简产品线并推出 **iMac G3**（1998）。
+* **移动化转型**：通过 **iPod**（2001）和 **iTunes Store** 重新定义了音乐产业。
+* **核心产品跨越**：2007 年发布 **iPhone**，彻底改变了智能手机市场，公司由“苹果电脑”更名为“苹果”。2010 年发布 **iPad**，开创了现代平板电脑市场。
+* **领导层更迭**：2011 年乔布斯病逝前，蒂姆·库克接任 CEO。
+
+##### 2011 至今：生态扩张与服务转型
+* **穿戴设备与服务**：在库克领导下，推出 **Apple Watch**（2015）和 **AirPods**（2016）。重心转向以 **Services**（Apple Music, iCloud, Apple Pay）为主的持续性收入。
+* **Apple Silicon**：2020 年开始将 Mac 全线转用自研的 **M 系列芯片**，显著提升了能效比和生态整合度。
+* **空间计算**：2023 年发布 **Apple Vision Pro**，标志着公司正式进军虚拟现实/增强现实（空间计算）领域。
+* **市值里程碑**：2018 年成为首家市值破 1 万亿美元的美国公司，并于 2025 年 10 月突破 4 万亿美元。
+#### 控股公司及产品
+
+##### 控股子公司与核心实体
+* **Beats Electronics**：2014 年收购的音频技术公司，负责 Beats 品牌耳机、扬声器研发及早期的流媒体技术整合。
+* **Claris (原 FileMaker)**：专注于企业级低代码开发平台及数据库软件的开发。
+* **Braeburn Capital**：苹果设立的资产管理公司，总部位于内华达州，负责管理公司巨额现金储备及投资组合。
+* **Apple Energy, LLC**：电力子公司，负责管理苹果持有的太阳能、风能资产，并向批发市场销售多余电量。
+* **Beddit**：专注于睡眠监测技术的子公司，为 Apple Watch 的健康追踪功能提供底层算法支持。
+
+##### 核心硬件产品线
+* **iPhone**：公司支柱产品，运行 iOS 系统，包括数字系列、Pro 系列及 SE 系列。
+* **Mac**：搭载 **Apple Silicon (M系列)** 芯片的个人电脑，涵盖 MacBook Air/Pro、iMac、Mac mini、Mac Studio 及 Mac Pro。
+* **iPad**：平板电脑产品线，包括 iPad、iPad Air、iPad Pro 及 iPad mini，运行 iPadOS。
+* **穿戴与配件**：包括 **Apple Watch**、**AirPods**（含 Pro/Max）、**HomePod** 智能音箱以及 **AirTag**。
+* **Apple Vision Pro**：公司首款空间计算设备，运行 visionOS 系统，定位增强现实（AR）与虚拟现实（VR）市场。
+
+##### 软件与操作系统
+* **六大系统**：**iOS**、**macOS**、**iPadOS**、**watchOS**、**tvOS** 及 **visionOS**，构建了封闭且协同的生态闭环。
+* **专业与创意软件**：包括 **Xcode**（开发环境）、**Final Cut Pro**（视频剪辑）、**Logic Pro**（音频制作）以及 iWork 办公套件。
+
+##### 在线服务与金融科技
+* **媒体订阅**：**Apple Music**、**Apple TV+**、**Apple Arcade**（游戏）及 **Apple News+**。
+* **基础设施**：提供云存储与同步服务的 **iCloud+**。
+* **金融服务**：**Apple Pay**、**Apple Card** 以及关联的支付与钱包生态。
+* **软件分发**：全球核心分发渠道 **App Store**。
+#### 招聘需求
+- [招聘官网](https://www.apple.com/careers/cn/)
+- 公众号: Apple招聘
+
+招聘岗位比起谷歌和微软都多上不少,但产品人员和硬件开发招的比较多,软件开发的岗位实际上也很少:
+![示意图](PixPin_2026-04-25_11-59-57.webp)
+### Meta
+不在内地招人,可直接跳过
+#### 公司概况
+Meta Platforms, Inc.（前身为 Facebook, Inc.）是一家总部位于加州门洛帕克的美国跨国科技巨头，与 Alphabet、亚马逊、苹果、微软及英伟达并称为美国六大科技巨头（Big Tech）。该公司由马克·扎克伯格于 2004 年创立，旗下拥有 Facebook、Instagram、WhatsApp、Messenger 和 Threads 等全球主流社交与通信平台，广告收入占其总营收的 97.8% 以上。2021 年，公司正式更名为 Meta，反映其转向构建以虚拟现实（VR）和增强现实（AR）技术为核心的“元宇宙”生态系统的战略布局。作为全球研发投入最高的公司之一，Meta 在 2023 年福布斯全球 2000 强中排名第 31 位。
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Amazon_(company))
+
+##### 2004–2005：哈佛宿舍的诞生与起步
+* **TheFacebook 启动**：2004 年 2 月 4 日，马克·扎克伯格在哈佛大学宿舍内上线了 TheFacebook.com。最初仅限于哈佛学生，随后迅速扩张至常春藤盟校及北美各大高校。
+* **联合创始人**：参与开发的还包括埃德华多·萨维林（资金支持）、达斯汀·莫斯科维茨（编程）、安德鲁·麦科勒姆（设计）和克里斯·休斯。
+* **核心股权结构**：创始人通过发行具有超强投票权的 **B 类股**，使扎克伯格在 IPO 后仍能保留约 57% 的投票权，确立了对公司的绝对控制。
+* **更名与扩张**：2005 年，公司支付 20 万美元收购了 Facebook.com 域名，正式更名为 **Facebook**，并将注册范围扩大至高中生及全球用户。
+
+##### 2012–2014：移动转型与关键并购
+* **IPO 的曲折**：2012 年 5 月，Facebook 以 1040 亿美元的估值上市。尽管开盘遭遇技术故障且股价在首周下跌 16.5%，但其融资额（160 亿美元）成为当时美股历史上规模第三大的 IPO。
+* **“移动优先”战略**：面对用户向手机端转移的趋势，扎克伯格下令全公司转型。2014 年，他将内部座右铭从“快速行动，打破常规”改为“在稳定的基础设施下快速行动”，以应对大规模业务运营的稳定性需求。
+* **生态版图成型**：
+    * **Instagram (2012)**：以 10 亿美元收购，击败了 Twitter 的竞争。
+    * **WhatsApp (2014)**：以惊人的 190 亿美元收购，锁定了全球即时通讯市场的统治地位。
+    * **Oculus VR (2014)**：以 20 亿美元收购，埋下了后续转型元宇宙的伏笔。
+
+##### 2018–2021：从社交巨头到元宇宙 (Meta)
+* **元宇宙愿景文档**：2018 年，Oculus 负责人 Jason Rubin 提交了长达 50 页的《元宇宙》愿景报告，极力主张通过重金投资来阻断苹果、谷歌在 VR/AR 领域的竞争。
+* **加密货币尝试 (Libra)**：2019 年发起 Libra 稳定币计划，试图建立全球数字支付标准，但因全球监管机构的强烈抵制，该项目在更名为 Diem 后于 2022 年彻底关停并清算。
+* **全面重塑**：2021 年 10 月 28 日，扎克伯格在 Connect 大会上正式宣布将母公司更名为 **Meta**。此举旨在将品牌重心从单一的社交媒体应用转移到结合 VR/AR 的虚拟数字生态系统。
+
+##### 2022–2024：效率之年与 AI 追赶
+* **财务阵痛**：2022 年 2 月，因 Apple 隐私政策调整（ATT）导致年度广告损失预估达 100 亿美元，Meta 股价单日暴跌 26%，市值蒸发超 2300 亿美元。
+* **大规模裁员**：2022 年底至 2023 年，Meta 开启“效率之年”，裁减超过 2.1 万名员工，并精简中间管理层。
+* **AI 爆发**：2023 年发布开源大模型 **Llama**，通过“开源换生态”的策略在生成式 AI 领域与 OpenAI、Google 形成鼎足之势。
+
+##### 2025–2026：基础设施爆发与自研生态
+* **万亿级投资**：2026 年，Meta 联合英伟达并投入约 6500 亿美元建设 AI 基础设施。同年，公司签署白宫能源承诺，承担数据中心扩张带来的巨大电力成本。
+* **硬件落地**：2024 年展示了首款全功能 AR 眼镜 **Orion** 原型；2026 年发布了四款自研 AI 芯片（MTIA 项目）并大幅扩展了与雷朋（Ray-Ban）合作的智能眼镜产品线。
+
+
+
+#### 控股公司及产品
+
+##### 控股实体与业务单元
+* **Meta Platforms, Inc.**：顶层控股公司。
+* **Reality Labs**：元宇宙核心研发部门，负责 Quest 系列及 AR 眼镜研发。
+* **Fundamental AI Research (FAIR)**：Meta 的顶尖 AI 实验室。
+* **WhatsApp Inc. / Instagram, LLC**：独立运营的社交/通讯子公司。
+* **Moltbook**：2026 年新收购的 AI 代理自主社交网络。
+
+##### 核心产品线
+* **Family of Apps**：Facebook, Instagram, WhatsApp, Messenger, Threads。
+* **硬件设备**：**Meta Quest** (VR), **Ray-Ban Meta** (智能眼镜), **Portal** (视频通话设备, 已精简)。
+* **AI 与开发者工具**：**Llama** 模型系列, **PyTorch** (由 Meta 创建的深度学习框架), **Movie Gen** (视频生成模型)。
+
+
+
+### Amazon (亚马逊)
+- 对于亚马逊退出中国市场一事我一直很遗憾
+#### 公司概况
+Amazon.com, Inc.（简称亚马逊）是一家总部位于华盛顿州西雅图的美国跨国科技巨头，业务涵盖电子商务、云计算、在线广告、数字流媒体及人工智能。公司由杰夫·贝佐斯于 1994 年创立，最初是一家在线书店，后演变为提供全品类商品的“万能商店”（The Everything Store）。作为“五大科技巨擘”（Big Tech）之一，亚马逊在多个领域占据全球领先地位：它是全球最大的在线零售商、智能音箱供应商和云计算服务商（通过 AWS）。
+#### 公司历史
+
+- [Wiki](https://en.wikipedia.org/wiki/Amazon_(company))
+##### 1994–2009：从车库书店到全品类扩张
+* **创立与更名**：1994 年 7 月 5 日，杰夫·贝佐斯在华盛顿州贝尔维尤自家的车库中创立公司，原名 **Cadabra**。由于发音易被误听为“尸体”（Cadaver），数月后更名为 **Amazon**。选择西雅图是因其拥有微软和华盛顿大学的技术人才库，且靠近俄勒冈州的图书分销中心。
+* **初创期**：1995 年 7 月 16 日正式上线运营，最初仅售卖图书。贝佐斯至今保留着 `relentless.com` 域名并将其重定向至官网。
+* **品类扩张与上市**：1997 年 5 月公司公开上市。1998 年开始销售音乐和视频，并启动国际化扩张。1999 年产品线进一步扩展至消费电子、家居改进、软件及玩具等。
+* **云服务的起源**：2002 年推出 **AWS**，最初仅为 API 接口。2006 年发布 **S3** 存储，2008 年发布 **EC2** 计算服务，标志着亚马逊向企业服务转型的关键一步。
+* **FBA 模式**：2006 年启动 **Fulfillment by Amazon**，允许第三方卖家利用亚马逊的仓储和物流设施。
+
+##### 2010 至今：生态深化与 AI 转型
+* **并购与增长**：2017 年收购 **Whole Foods Market**。疫情期间业务激增，仅在美加地区就增聘了 10 万名员工。
+* **领导层交接**：2021 年 7 月 5 日，贝佐斯卸任 CEO 转任执行主席，AWS 负责人 **安迪·贾西（Andy Jassy）** 接任。
+* **大规模裁员与效率优化**：受宏观环境及 AI 转型影响，亚马逊经历了多轮剧烈裁员。2023 年裁员 1.8 万人；2025 年 10 月宣布减员 1.4 万人；2026 年 1 月再次裁减 1.6 万个企业岗位，旨在减少官僚机构并加速适配 AI 技术应用。
+* **AI 军备竞赛**：2026 年 1 月，亚马逊与 **OpenAI** 洽谈高达 500 亿美元的投资，打破了此前仅重仓 Anthropic 的格局。同年 2 月，宣布在路易斯安那州投资 120 亿美元建设 AI 数据中心。
+* **能源与基础建设**：2026 年 3 月签署白宫能源承诺，承担数据中心扩张带来的新增发电成本。根据分析，亚马逊在 2026 年将与 Meta 等巨头共同投入 6500 亿美元用于 AI 基础设施建设。
+
+##### 进军中国市场始末
+
+**2004–2011：入场与本土化初期**
+
+* **收购卓越网**：2004年8月，亚马逊以7500万美元收购中国最大图书音像电商**卓越网（Joyo.com）**，避开牌照限制正式入场。
+* **品牌整合**：2007年更名为“卓越亚马逊”，2011年统一品牌为**“亚马逊中国”**。初期凭借全球供应链和自建物流（15个运营中心）在图书领域占据领先地位。
+* **Kindle 入华**：2013年Kindle电子书店正式在中国上线，随后硬件入华，一度占据中国电子阅读器市场65%以上的份额。
+
+**2012–2018：竞争红海与份额滑坡**
+
+* **本土巨头崛起**：阿里巴巴（天猫/淘宝）与京东凭借更灵活的促销策略（如双11、618）和极致的本土物流速度，迅速稀释亚马逊的市场空间。
+* **系统“水土不服”**：亚马逊中国长期采用全球统一的后台架构，导致界面陈旧、促销配置缓慢，无法适应中国电商高频、复杂的营销节奏。
+* **份额触底**：至2018年，其在中国电商市场的占有率已从巅峰期的15%萎缩至不足1%。
+
+**2019–2024：战略收缩与境内业务退出**
+
+* **裁撤境内电商**：2019年7月，亚马逊正式停止为中国境内第三方卖家提供服务，关闭境内纸质书销售业务，仅保留**海外购**、**全球开店**及 **AWS（亚马逊云科技）**。
+* **Kindle 彻底撤离**：2023年6月关闭电子书店；2024年6月30日停止云端下载服务，标志着Kindle在中国长达11年的运营正式终结。
+* **App 停运转型**：2023年7月停运原亚马逊中国App，业务整合至微信小程序。
+
+
+#### 控股公司及产品
+
+##### 核心子公司
+* **Amazon Web Services (AWS)**：全球领先的云平台，提供 **S3**、**EC2** 及 **Bedrock** (AI 平台)。
+* **Zoox**：全自动驾驶技术研发公司。
+* **Amazon MGM Studios**：影视内容生产与分发中心，包含米高梅影业。
+* **Project Kuiper**：低轨卫星互联网计划。
+* **Lab126**：位于硅谷的核心硬件研发部门。
+
+##### 核心硬件
+* **Kindle**：电子书阅读器系列。
+* **Echo**：搭载 **Alexa** 语音助手的智能音箱系列。
+* **Fire 系列**：平板电脑、流媒体电视棒。
+* **Ring & Blink**：家庭安全视频监控系统。
+
+##### 服务与软件
+* **Amazon Prime**：拥有超 2 亿用户的订阅体系，包含物流、视频、音乐特权。
+* **Amazon Publishing & Audible**：图书出版与全球最大的有声读物平台。
+* **Twitch**：顶级游戏直播平台。
+* **Rufus**：基于生成式 AI 的新型购物助手。
+
+#### 招聘需求
+- [招聘官网](https://www.amazon.jobs/zh)
+- 公众号: 亚马逊招聘
+
+![示意图](PixPin_2026-04-25_12-32-22.webp)
+
+与Apple一样,管理岗位和产品岗位招的特别多,真正的软件开发岗位很少
+
+
+### Intel (英特尔)
+母校不是上交的可以直接跳过了
+#### 公司概况
+英特尔（Intel）是总部位于加州圣克拉拉的跨国科技巨头，由戈登·摩尔和罗伯特·诺伊斯于1968年创立，是硅谷崛起的核心基石。作为x86架构的奠基者，英特尔曾通过“Wintel”联盟长期统治个人电脑市场，目前仍是全球领先的半导体制造商，核心业务涵盖酷睿（Core）系列处理器、Arc显卡、芯片组及数据中心基础设施。尽管近年来面临AMD的激烈竞争及移动互联网转型的挑战，英特尔依然凭借其集设计与制造于一体的IDM模式，在PC和服务器芯片领域保持着显著的市场领先地位。
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Intel)
+
+##### 1968–1981：硅谷基石与存储器时代
+* **起源与命名**：1968年7月18日，化学家戈登·摩尔、物理学家（集成电路共同发明人）罗伯特·诺伊斯离开仙童半导体，创立了“NM Electronics”，不久更名为 **Intel**（集成电子）。第三名员工安迪·格鲁夫随后加入。
+* **早期突破**：英特尔最初专注于半导体存储器，试图取代磁芯存储。1970年发布全球首款商用DRAM芯片 **1103**，至1972年成为全球最畅销的内存芯片。
+* **微处理器的诞生**：1971年，英特尔受日本公司委托开发出全球首款商用微处理器 **4004**，开启了计算设备小型化的革命。
+
+##### 1982–2000：Wintel 霸权的黄金时代
+* **核心转型**：由于日本半导体厂商在DRAM市场的激烈竞争，CEO戈登·摩尔于80年代中期决定裁撤内存业务，全力押注微处理器。
+* **Wintel 联盟**：英特尔处理器与微软Windows操作系统的结合，使其成为PC产业的绝对主导者。通过 **"Intel Inside"** 营销计划（1991年），英特尔成功将品牌深度植入消费者认知。
+* **快速扩张**：在安迪·格鲁夫（1987-1998任CEO）的带领下，英特尔经历了前所未有的高速增长。尽管因反垄断指控和与AMD的法律诉讼频发，但仍稳坐市场头把交椅。
+
+##### 2001–2020：架构迭代与工艺瓶颈
+* **酷睿（Core）的辉煌**：在经历了NetBurst架构的失利后，2006年英特尔推出 **Core 酷睿微架构**，重新确立了性能领先地位。同年，苹果Mac转投英特尔阵营。
+* **制程挑战**：2016年后，英特尔在 **10nm 工艺**节点上遭遇严重技术瓶颈，多次推迟量产，导致产品迭代陷入停滞，并被迫放弃著名的“Tick-Tock”模型。
+* **安全危机**：2018年，**Meltdown (熔断)** 和 **Spectre (幽灵)** 漏洞被曝光，影响了几乎所有现代英特尔处理器，对品牌信任造成巨大冲击。
+
+##### 2021–2026：动荡、重组与政府入股
+* **IDM 2.0 战略**：2021年帕特·基辛格接任CEO，提出转型计划，包括设立独立的代工服务（IFS）和巨额基础设施投资。
+* **管理层巨变**：由于转型进度未达预期及巨额亏损（2024年Q2亏损16亿美元），基辛格于2024年底被罢免。2025年3月，**陈立武（Lip-Bu Tan）** 接任CEO。
+* **国家战略持股**：2025年8月，**美国政府斥资约89亿美元购入英特尔9.9%的股份**，将其视为保障国家半导体安全的“被动所有权”资产。
+* **战略合纵连横**：
+    * **英伟达入场**：2025年9月，英伟达注资50亿美元与英特尔合作开发数据中心CPU。
+    * **AMD代工意向**：2025年10月，英特尔开始接洽竞争对手AMD，试图将其纳入代工客户。
+    * **架构收复**：2026年4月，英特尔斥资142亿美元回购爱尔兰工厂49%的股权，重新掌握核心制造设施的控制权。
+
+#### 控股公司及产品
+
+##### 核心事业部
+* **Intel Foundry (英特尔代工)**：独立的代工业务实体，利用 Intel 18A 等先进制程对外提供制造服务。
+* **Client Computing Group (CCG)**：负责酷睿（Core）系列 PC 处理器的核心部门。
+* **Data Center and AI (DCAI)**：负责至强（Xeon）服务器处理器及 **Gaudi** 系列 AI 加速器。
+* **Intel Labs**：负责前沿研究，包括量子计算和硅光子技术。
+
+##### 关键子公司与分拆实体
+* **Altera**：专注于 FPGA（现场可编程逻辑门阵列）的业务单元。
+* **Mobileye**：自动驾驶技术公司（曾被收购后再次分拆上市）。
+* **RealSense**：2025年分拆为独立实体的 AI 机器人与生物识别视觉公司。
+
+##### 核心产品线
+* **CPU**：**Intel Core**（消费级）、**Intel Xeon**（服务器）、**Intel Lunar Lake**（AI PC 专用）。
+* **GPU**：**Intel Arc** 系列独立显卡。
+* **AI 硬件**：**Gaudi 3** 加速器，直接竞争英伟达 H100 等产品。
+* **制程技术**：Intel 7, Intel 4 (7nm), Intel 3, 以及即将量产的 **Intel 18A**。
+#### 招聘需求
+- [招聘官网](https://jobs.intel.cn/intel/home/index#/index/about/icg)
+- 服务号: 英特尔招聘在线
+![示意图](PixPin_2026-04-25_12-25-27.webp)
+![示意图](PixPin_2026-04-25_12-25-57.webp)
+只在上海闵行区招聘AI岗位,目标院校是什么不用多说...
+- 招聘岗位特别少,看的出来是不愿意在中国招人的那种,可以直接跳过
+
+### Nvidia(英伟达)
+入职能送我5090吗😃
+#### 公司概况
+
+NVIDIA 是一家全球领先的科技巨头，总部位于美国加利福尼亚州圣克拉拉。公司由黄仁勋、Chris Malachowsky 和 Curtis Priem 于 1993 年创立。其核心竞争力在于设计与研发**图形处理器 (GPU)**、**系统级芯片 (SoC)** 以及支撑高性能计算的 **CUDA** 软件架构。
+
+##### 业务架构与产品线
+* **数据中心 (核心增长极)**：提供 Blackwell、Ampere 架构的 AI 加速器（如 H100、GB200）。截至 2026 财年，该业务营收占比已接近 **90%**，是全球 AI 算力基础设施的垄断级供应商。
+* **游戏与创作**：主力产品为 **GeForce** 系列显卡。虽然在公司总收入中占比下降至约 11%，但在独立 GPU 市场仍维持超过 90% 的份额。
+* **专业可视化**：提供 RTX 系列专业级显卡，用于科学研究、工业设计及 **Omniverse** 数字孪生平台。
+* **汽车与机器人**：研发 **DRIVE** 自动驾驶平台及 **Jetson/Thor** 机器人 SoC，聚焦于物理 AI 与智能化交通解决方案。
+
+##### 行业地位
+* **软硬件生态**：通过 **CUDA** API 建立了极高的开发者粘性，在 AI 模型训练与部署市场占有率超过 80%。
+* **资本市场表现**：2025 年，NVIDIA 成为全球首个市值突破 **5 万亿美元** 的公司。
+* **战略转型**：公司已从传统的游戏显卡厂商转型为一家**全栈加速计算公司**，其技术支撑了全球超过 75% 的最强超级计算机及绝大部分主流大语言模型 (LLM) 的运行。
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Nvidia)
+
+##### 早期初创与架构试错 (1993–1996)
+* **1993年**：黄仁勋、Chris Malachowsky 及 Curtis Priem 创立 NVIDIA。
+* **1995年**：推出首款芯片 **NV1**。该产品尝试集成图形、音频及游戏控制，但因采用非主流的**四边形纹理映射**技术，在微软发布以三角形映射为核心的 DirectX 标准后失去竞争力。
+* **1996年**：因 NV1 失败导致财务崩溃，世嘉 (Sega) 的 500 万美元投资成为关键救命钱。
+
+---
+
+##### 图形标准确立与 GPU 诞生 (1997–2005)
+* **1997年**：发布 **RIVA 128**。这是公司首款支持三角形渲染的 128 位图形处理器，市场反响剧烈，解决了生存危机。
+* **1998年**：发布 **RIVA TNT**，确立了在多纹理处理领域的领先地位。
+* **1999年**：发布 **GeForce 256**。NVIDIA 正式定义了 **GPU (图形处理器)**，通过硬件集成 T&L（几何转换与光照）引擎，将图形处理从 CPU 中解放出来。
+* **2000–2002年**：收购竞争对手 **3dfx**；发布 **GeForce 3**，引入可编程着色器技术。
+* **2004年**：推出基于 SLI 技术的 **GeForce 6 系列**，允许双显卡并联。
+
+---
+
+##### CUDA 生态与移动端探索 (2006–2015)
+* **2006年**：发布 **Tesla 架构**及 **CUDA** 计算平台。这是一次战略性赌注，使 GPU 能够处理通用并行计算任务，为后续 AI 爆发奠定基础。
+* **2008–2010年**：发布 **Fermi 架构**，强化高性能计算性能。同期推出 **Tegra** 系列移动处理器，尝试进入智能手机与平板市场。
+* **2012年**：发布 **Kepler 架构**。同年 AlexNet 神经网络利用 NVIDIA GPU 在 ImageNet 竞赛中获胜，开启了深度学习时代。
+* **2014年**：发布 **Maxwell 架构**，大幅提升能效比；业务重心向游戏、数据中心、汽车电子及可视化四大方向多元化转型。
+
+---
+
+##### AI 算力爆发与光追时代 (2016–2023)
+* **2016年**：发布 **Pascal 架构** (GTX 10系列)，采用 16nm 工艺，性能飞跃。发布专门针对 AI 训练的 **DGX-1** 超级计算机。
+* **2017年**：发布 **Volta 架构** (V100)，首次引入 **Tensor Core (张量核心)**，专为深度学习加速设计。
+* **2018年**：发布 **Turing 架构** (RTX 20系列)，引入 **RT Core** 实现硬件级实时光线追踪及 DLSS 技术。
+* **2019–2020年**：完成对 **Mellanox** 的收购，整合 InfiniBand 高速网络技术。发布 **Ampere 架构** (RTX 30系列及 A100)，A100 成为大模型训练的标准配置。
+* **2022年**：发布 **Hopper 架构** (H100)，专门针对 Transformer 模型优化；同年发布 **Ada Lovelace 架构** (RTX 40系列)。
+
+---
+
+##### 万亿市值与全栈算力帝国 (2024–2026)
+* **2024年**：发布 **Blackwell 架构** (B200/GB200)，单芯片支持万亿参数模型推理。市值突破 3 万亿美元。
+* **2025年1月**：面对 DeepSeek 等算法优化带来的算力需求波动，市场出现剧烈震荡，但随后通过技术迭代稳固地位。
+* **2025年7–10月**：市值接连突破 **4 万亿**与 **5 万亿美元**大关，成为全球市值第一。
+* **2025年下半年**：发布 **Alpamayo-R1** 自动驾驶模型及 **Nemotron-3** 混合专家 (MoE) 模型。
+* **2026年**：通过注资英特尔 (Intel) 强化 X86 架构兼容性，并与 OpenAI **达成协议**，转型为提供“算力+网络+模型”的全栈 AI 服务商。
+
+#### 主要产品
+##### 数据中心与加速计算 (Data Center)
+* **Blackwell 架构 GPU**
+    * **代表作：B200 / GB200**
+    * **地位**：当前 AI 算力的巅峰。GB200 超级芯片由一颗 Grace CPU 和两颗 Blackwell GPU 组成，专为万亿参数规模的大模型 (LLM) 训练与推理设计。
+* **Hopper 架构 GPU**
+    * **代表作：H100 / H200**
+    * **地位**：AI 工业革命的“功勋机型”。H200 凭借 141GB HBM3e 内存，成为大模型部署的主力军。
+* **Vera Rubin 架构 (2026 新品)**
+    * **代表作：Vera CPU / BlueField-4**
+    * **地位**：最新发布的下一代平台，聚焦“智能体 AI (Agentic AI)”，通过 **BlueField-4 STX** 架构极大提升了存储访问与上下文缓存处理能力。
+
+##### 游戏与桌面计算 (Gaming)
+* **GeForce RTX 系列**
+    * **代表作：RTX 5090 / RTX 5080 (Blackwell 架构)**
+    * **地位**：2026 年最新旗舰，搭载 **DLSS 4.5** 技术。其核心特点是引入了动态多帧生成技术，仅支持 50 系列显卡，为 4K/8K 游戏提供极限帧率。
+
+
+##### 汽车与自动驾驶 (Automotive)
+* **NVIDIA DRIVE Thor**
+    * **代表作：极越 (Jiyue) 2026 款量产车型**
+    * **地位**：集中式车载计算平台，单颗芯片算力达 2000 TFLOPS，首批搭载 Blackwell GPU 架构，支持端到端智驾及车内生成式 AI。
+
+##### 网络与基础设施 (Networking)
+* **BlueField DPU**
+    * **代表作：BlueField-3 / BlueField-4**
+    * **地位**：数据中心基础设施的加速器，负责卸载 CPU 的网络、存储和安全任务。BlueField-4 是 2026 年推出的最新款，针对智能体 AI 的数据瓶颈进行了专项优化。
+* **Spectrum-X / Quantum-X800**
+    * **代表作：Spectrum-X800 以太网平台**
+    * **地位**：为超大规模 AI 云设计的网络架构，支持 800Gb/s 高速互联。
+
+##### 企业级软件与平台
+* **NVIDIA Omniverse**
+    * **代表作：Omniverse Cloud**
+    * **地位**：工业数字孪生标准平台，用于模拟工厂、气候及物理精确的虚拟环境。
+* **NVIDIA Nemotron (模型家族)**
+    * **代表作：Nemotron-3 500B (Ultra)**
+    * **地位**：英伟达自研的大语言模型系列，深度适配其硬件架构，提供从 Nano 到 Ultra 的全尺寸选择。
+#### 招聘需求
+- [招聘官网](https://www.nvidia.cn/about-nvidia/careers/)
+- 公众号: NVIDIA英伟达
+![示意图](PixPin_2026-04-25_12-45-11.webp)
+招聘岗位在外企里算多的了,建议优先考虑,但同样比较偏硬件
+
+### Tesla (特斯拉)
+尽管是汽车公司,但是还是有不少软件需求的...
+#### 公司概况
+特斯拉（Tesla, Inc.）总部位于德克萨斯州奥斯汀，是一家集汽车与清洁能源为一体的美国跨国公司。公司由马丁·艾伯哈德和马克·塔彭宁于 2003 年创立，随后由埃隆·马斯克领投并出任 CEO。特斯拉不仅通过 **Model S/3/X/Y** 等车型引领了全球纯电动汽车（BEV）市场，还涉足家用及电网级储能设备、太阳能产品。尽管在 2025 年底失去了全球最大电动汽车制造商的地位，但其市值多次突破 1 万亿美元，稳居全球市值最高车企。
+##### 马斯克控股公司名列
+这些企业并没有像其他巨头一样整合成一家公司,所以有必要在这里说一下:
+* **Tesla (特斯拉)**：马斯克担任 CEO 且为第一大股东。虽然是上市公司，但他通过持股和极高的个人影响力行使控制权。
+* **SpaceX (太空探索技术公司)**：马斯克担任 CEO 兼首席技术官，拥有绝对控股权。这是目前全球估值最高的私有航天企业，旗下包含 **Starlink (星链)** 卫星互联网业务。
+* **X (原 Twitter)**：马斯克于 2022 年全资收购并将其私有化。目前他拥有 100% 的决策权。
+* **xAI**：马斯克于 2023 年创立的人工智能公司，旨在开发 **Grok** 等大模型，与 OpenAI 竞争。其计算资源常与 X 平台深度整合。
+* **Neuralink**：脑机接口技术公司，马斯克为联合创始人及主要控股人，致力于实现人脑与计算机的直接连接。
+* **The Boring Company (隧道挖掘公司)**：马斯克创立的地下交通基础设施公司，旨在通过超高速隧道解决城市拥堵。
+
+
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Tesla,_Inc.)
+##### 2003–2009：创立与 Roadster 的探索
+* **公司创立**：2003 年 7 月 1 日，马丁·艾伯哈德和马克·塔彭宁创立 **Tesla Motors**。
+* **马斯克入场**：2004 年 2 月，埃隆·马斯克领投 650 万美元 A 轮融资并出任董事长。2009 年的法律和解协议认定艾伯哈德、塔彭宁、莱特、马斯克和斯特劳贝尔五人为共同创始人。
+* **首款车型**：2008 年开始生产 **Roadster**。同年，马斯克接任 CEO。尽管面临财务危机，马斯克投入个人资金并于 2009 年获得美国能源部 4.65 亿美元贷款，帮助公司度过难关。
+
+##### 2010–2018：IPO、Model S 与“生产地狱”
+* **上市与扩张**：2010 年 6 月特斯拉在纳斯达克 IPO，是自 1956 年福特以来首家上市的美国车企。
+* **产品矩阵成型**：2012 年发布 **Model S**（全球首款高端电动轿车），2015 年交付 **Model X**（豪华 SUV）。2014 年上线 **Autopilot** 辅助驾驶系统。
+* **能源与量产挑战**：2016 年收购 **SolarCity** 并更名为 **Tesla, Inc.**。同年发布廉价车型 **Model 3**，随后经历了两年的“生产地狱”，最终在 2018 年克服产能瓶颈，使其成为全球最畅销电动车。
+
+##### 2019–2024：全球爆发与万亿市值
+* **全球工厂建设**：2019 年**上海超级工厂**开工并于当年投产。随后**柏林**和**德克萨斯**工厂相继于 2022 年投产。
+* **财务巅峰**：2020 年起实现连续盈利，市值于 2021 年首次突破 1 万亿美元。
+* **技术创新**：2023 年开始交付 **Cybertruck** 纯电动皮卡。期间，特斯拉的 **NACS 充电标准** 成为北美行业事实标准。
+
+##### 2025–2026：AI 转型、竞争格局与 Terafab 计划
+* **市场易主**：2026 年 1 月，官方数据显示特斯拉在 2025 年的交付量被中国竞争对手 **BYD** 超越，失去全球最大纯电动车制造商头衔。
+* **AI 与机器人重心**：2025 年 7 月在车内集成 **Grok** AI。2026 年 1 月，马斯克宣布将于 2026 年 Q2 停产 Model S 和 Model X，以全力转向 **Optimus 人形机器人** 的制造。
+* **超级工程 Terafab**：2026 年 3 月，特斯拉联合 SpaceX 和 xAI 启动 **Terafab** 项目，旨在建造一座每年可产生 1 万亿瓦（1 Terawatt）AI 算力的垂直整合半导体超级工厂，涵盖逻辑芯片与先进封装。
+
+
+#### 控股公司及产品
+
+##### 核心子公司与部门
+* **Tesla Energy**：负责 Powerwall、Megapack 及太阳能业务。
+* **Tesla Foundry (Terafab)**：2026 年启动的半导体制造单元，负责自研 AI 芯片生产。
+* **Reality Automation**：负责 Optimus 机器人的核心算法与机械架构。
+
+##### 核心产品线
+* **乘用车**：**Model 3**、**Model Y**、**Cybercab**（自动驾驶出租车原型）。
+* **商用与特种车**：**Cybertruck**、**Tesla Semi**（重卡）。
+* **智能设备**：**Optimus**（通用人形机器人）。
+* **软件**：**FSD (Full Self-Driving)**、**Grok 语音助手**（车内集成）。
+
+##### 关键技术平台
+* **Dojo**：自研 AI 训练超级计算机。
+* **NACS (North American Charging Standard)**：北美通用充电网络标准。
+* **4680 电池**：自研高能量密度圆柱电池技术。
+#### 招聘需求
+- 公众号: 特斯拉招聘
+社会招聘在[官网](https://www.tesla.cn/careers),但校园招聘用的是[第三方平台](https://app.mokahr.com/campus-recruitment/tesla/),看不懂了.
+![示意图](PixPin_2026-04-25_13-22-55.webp)
+
+
+服务岗位很多,软件类的岗位还是很少的
+
+### AMD 
+岗位均偏硬件方向
+#### 公司概况
+AMD（Advanced Micro Devices,超威半导体）总部位于加州圣克拉拉，由杰里·桑德斯于 1969 年创立，是硅谷历史最悠久的半导体巨头之一。公司经历了从存储器生产到 x86 处理器授权制造，再到自研架构的战略演变，凭借 **Zen** 架构及 **Ryzen（锐龙）**、**EPYC（霄龙）** 系列处理器，AMD 在 2020 年代实现了史诗级逆袭：不仅在 2022 年市值首次超越宿敌英特尔，更在 2026 年初将其桌面 CPU 市场份额推至 36.4% 的历史新高，并在高利润的服务器营收份额中突破 41%。通过 2022 年对 **Xilinx（赛灵思）** 的世纪收购，AMD 完成了从 PC 芯片商向覆盖数据中心、AI、嵌入式及游戏主机的全能型高性能计算领导者的转型。
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Advanced_Micro_Devices)
+##### 1969–1981：初创与“第二供应商”模式
+* **起源与创立**：1969年5月1日，杰里·桑德斯（Jerry Sanders）与七位仙童半导体同事共同创立 AMD。由于起步比英特尔晚一年，AMD 最初作为“第二供应商”，生产由仙童和国家半导体设计的逻辑芯片，并以美军标准（Mil-Spec）的严苛品控赢得了初期市场。
+* **进入处理器市场**：1975年，AMD 通过逆向工程推出了英特尔 8080 的克隆版 **Am9080**。1976年，两家公司签署了微代码交叉授权协议，确立了长期竞合关系的法律基础。
+* **西门子注资**：1977年，德国西门子购入 AMD 20% 股份，资金注入助力其产品线扩张及海外工厂建设。
+
+##### 1982–2005：x86 授权与自主研发的转型
+* **IBM 强制授权**：1982年，因 IBM 要求其 PC 必须拥有两个处理器来源，英特尔被迫与 AMD 签署技术交换协议，AMD 成为 8086、80186、80286 芯片的法定授权制造商。
+* **走向独立竞争**：80年代中后期，由于日本半导体的低价倾销，AMD 退出 DRAM 市场。1991年推出兼容英特尔架构但完全自研的 **Am386**，标志着两家公司正式进入直接竞争。
+* **战略收购**：1996年收购 NexGen 奠定了 **AMD K6** 的成功。2003年，为专注处理器业务，将闪存业务分拆成立 Spansion（后与富士通合资）。
+
+##### 2006–2019：架构动荡与苏姿丰时代的复兴
+* **ATI 世纪收购**：2006年以54亿美元收购显卡巨头 **ATI**，AMD 成为全球唯一同时拥有高性能 CPU 和 GPU 技术的公司。
+* **轻资产化转型**：2008-2009年，AMD 将其制造部门分拆为独立的代工厂 **GlobalFoundries**，转型为专注于芯片设计的“无厂”（Fabless）半导体公司。
+* **濒临破产与主机救命**：2010年代初期，受 Bulldozer 架构失利及 Intel 挤压，AMD 裁员超 25%。最终依靠为 **PS4** 和 **Xbox One** 提供半定制芯片带来的稳定现金流度过危机。
+* **Lisa Su 掌舵**：2014年苏姿丰（Lisa Su）出任 CEO，将战略重心转向高性能计算和数据中心。2017年 **Zen** 架构及 **Ryzen（锐龙）** 系列发布，AMD 开始在性能和能效比上反超英特尔。
+
+##### 2020–2026：AI 爆发与市场格局重塑
+* **赛灵思并购**：2022年完成对 **Xilinx（赛灵思）** 的500亿美元收购，极大强化了其在 FPGA 和自适应计算领域的地位。
+* **服务器与 AI 逆袭**：
+    * **份额跃升**：至2025年7月，AMD 在服务器 CPU 市场的份额已攀升至 **36.5%**。
+    * **算力竞赛**：2024-2025年连续收购 Silo AI 和 ZT Systems 以构建 AI 生态。2025年6月发布 **MI400** 系列 AI 芯片（Helios 服务器核心）。
+    * **OpenAI 深度绑定**：2025年10月，AMD 与 **OpenAI** 达成协议，未来五年内供应 6GW 的 AI 处理器。作为交易，OpenAI 获得增持 AMD 10% 股份的期权。
+* **市值巅峰**：2024年市值首次突破 3000 亿美元。2026年初，随着 AI 算力需求爆发，AMD 已成为 Nvidia 在数据中心推理市场的主要竞争对手。
+
+---
+
+#### 控股公司及产品
+
+##### 核心事业部
+* **Computing and Graphics**：负责锐龙（Ryzen）消费级 CPU 及 Radeon 显卡。
+* **Data Center Solutions**：负责霄龙（EPYC）服务器芯片及 **Instinct MI** 系列 AI 加速器。
+* **Embedded Group**：整合赛灵思业务，专注 FPGA、自适应 SoC。
+* **Semi-Custom Business**：负责游戏机（PS5/Xbox）及手持设备芯片。
+
+##### 核心产品线
+* **桌面/笔记本 CPU**：Ryzen 5/7/9, Ryzen AI (集成 NPU)。
+* **服务器 CPU**：EPYC (Gen 4/5/6)。
+* **AI/高性能计算**：**AMD Instinct MI300/MI400** 系列。
+* **可编程器件**：Versal Adaptive SoC, Virtex FPGA。
+* **图形技术**：Radeon RX 系列显卡, **FSR (FidelityFX Super Resolution)** 图像技术。
+#### 招聘需求
+- [招聘官网](https://careers.amd.com/careers-home/jobs)
+![示意图](PixPin_2026-04-25_13-36-03.webp)
+
+招的岗位也很多,但不少是面向AI模型和硬件架构的,难度很高.
+
+### Cisco (思科)
+岗位很少,可直接跳过
+#### 公司概况
+思科（Cisco Systems）总部位于加州圣何塞，由斯坦福大学两位计算机科学家于 1984 年创立，是全球联网技术与网络安全领域的绝对领导者。作为 LAN（局域网）多协议路由系统的先驱，思科在 2000 年互联网泡沫巅峰期曾一度超越微软成为全球市值最高的公司，目前市值约 3170 亿美元。公司业务深度覆盖核心网络硬件、网络安全、云计算、物联网（IoT）及人工智能，拥有 Webex、OpenDNS 等知名品牌.
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Cisco)
+
+
+##### 1984–1995：多协议路由器的先驱与上市
+* **起源与争议**：1984 年 12 月，斯坦福大学计算机科学家列昂纳德·波萨克和桑迪·勒纳夫妇创立思科。初期产品源于斯坦福校内的“蓝箱”（Blue Box）多协议路由器。由于涉及知识产权争议，思科于 1987 年向斯坦福支付了授权费。
+* **命名与品牌**：公司名称取自旧金山（San Fran**cisco**），标志则是由金门大桥的双塔抽象而成的电波信号。
+* **走向公众**：1990 年思科在纳斯达克上市。同年，创始人勒纳因与资方冲突被解雇，波萨克随之辞职。
+* **早期战略**：思科凭借 **Cisco 2500** 等经典型号统治市场，并开始通过收购（如 Crescendo）切入以太网交换领域，形成了著名的 **Catalyst** 业务线。
+
+##### 1996–2012：互联网泡沫与业务转型
+* **巅峰时刻**：在约翰·钱伯斯的领导下，思科抓住互联网协议（IP）普及的浪潮。2000 年互联网泡沫顶峰，其市值突破 **5000 亿美元**，一度成为全球市值最高的公司。
+* **技术重塑**：面对 Juniper 等对手在硬件转发上的挑战，思科自研了高性能 **ASIC** 芯片，并于 2004 年推出 **CRS-1** 核心路由器。
+* **消费市场尝试与撤退**：曾通过收购 Linksys 尝试进入家庭消费市场，并提出“人类网络”口号。但 2011 年后因利润不及预期，思科大幅裁员，并在 2013 年出售了 Linksys，重新聚焦企业级服务。
+
+##### 2013–2023：云转型与安全转型
+* **领导层交替**：2015 年，钱伯斯卸任，查克·罗宾斯接任 CEO。思科开始从单纯的硬件厂商向**软件订阅与服务模式**转型。
+* **核心收购**：2013 年以 27 亿美元收购 **Sourcefire**，强化网络安全能力。2017 年推出 **Cisco Umbrella** 云安全网关。
+* **自研芯片突破**：2019 年发布 **Silicon One** ASIC 芯片，打破了 Broadcom 在高速网络芯片市场的垄断。
+* **退出俄罗斯**：2022 年俄乌冲突后，思科停止在俄销售并于 2023 年销毁了无法复运出口的价值 2300 万美元的库存设备。
+
+##### 2024–2026：AI 驱动与 Splunk 时代的开启
+* **史上最大收购**：2024 年 3 月，思科以 **280 亿美元** 完成对网络安全与数据分析巨头 **Splunk** 的收购，标志着思科全面向 AI 驱动的监控与安全领域转型。
+* **AI 伦理与技术协作**：2024 年 4 月，CEO 罗宾斯与教皇方济各签署《罗马 AI 伦理倡议》。2026 年，思科继续优化其 Silicon One 芯片至 G200 规格，支持 **51.2 Tbit/s** 的超高速 AI 算力集群网络。
+* **结构调整**：2024 至 2025 年间，思科多次精简团队以整合网络、安全与协作部门。尽管如此，至 2025 年底其财报显示营收仍稳步增长，市值维持在 **3170 亿美元** 左右。
+
+#### 控股公司及产品
+
+##### 核心事业部
+* **Networking (网络)**：交换机（Catalyst、Nexus）、路由器（ASR、ISR）。
+* **Security (安全)**：防火墙、云安全服务（Umbrella、Duo）、Splunk 数据分析平台。
+* **Collaboration (协作)**：Webex 会议系统、IP 电话及智能协同终端。
+* **Observability (可观测性)**：集成 AppDynamics 与 Splunk，提供全栈监控服务。
+
+##### 关键子品牌与收购实体
+* **Splunk**：2024 年并入，负责网络安全与机器数据分析的核心。
+* **Meraki**：云管理网络设备的领导者。
+* **Webex**：全球领先的企业级音视频协作平台。
+* **AppDynamics**：应用性能管理（APM）平台。
+
+##### 核心产品线
+* **硬件架构**：**Catalyst** 系列交换机（企业网核心）、**Nexus**（数据中心）、**Silicon One** 芯片。
+* **软件系统**：**Cisco IOS / IOS-XE / IOS-XR**（网络操作系统）、**Cisco DNA Center**。
+* **人工智能**：**Webex AI Assistant**（实时翻译与摘要）、**AI-Native Security Cloud**。
+
+
+#### 招聘需求
+![示意图](PixPin_2026-04-25_13-44-29.webp)
+招人,但都是无关紧要的岗位.
+### Airbnb (爱彼迎)
+岗位很少,可直接跳过
+#### 公司概况
+Airbnb（爱彼迎）总部位于旧金山，由布莱恩·切斯基、乔·杰比亚和内森·布莱查奇克于 2008 年创立，是全球共享经济模式的开创者。作为一家轻资产的在线旅行租赁平台，它通过连接房东与房客，提供从气垫床到城堡的多样化住宿及当地体验服务，并从中抽取佣金。尽管经历了 2020 年疫情的冲击及 2022 年撤出中国本土房源市场的战略调整，Airbnb 目前仍是全球市值最高的旅游科技公司之一，市值超 1000 亿美元。
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Airbnb)
+
+##### 2007–2009：从“气垫床”到“孵化器”
+* **起源**：2007 年，乔·杰比亚和布莱恩·切斯基为了支付旧金山的房租，在公寓里放置了三张气垫床并提供早餐（Airbed and Breakfast）。2008 年，内森·布莱查奇克加入并担任 CTO，公司正式成立。
+* **筹资奇招**：早期公司极度缺钱，创始人曾在 2008 年大选期间设计并销售定制款麦凯恩和奥巴马主题早餐麦片（Obama O's），赚取了 3 万美元的启动资金。
+* **Y Combinator**：2009 年公司进入顶级孵化器 YC。在保罗·格雷厄姆的建议下，创始人飞往纽约亲自为房源拍摄高质量照片，这一举动成为公司业绩的转折点。
+
+##### 2010–2019：共享经济的全球化
+* **指数级增长**：2011 年，Airbnb 获得红杉资本注资，估值突破 10 亿美元，正式开启全球扩张。
+* **体验业务**：2016 年推出 **Airbnb Experiences**（体验），将业务从单一的住宿扩展到由当地人领队的旅游活动。
+* **中国市场**：2015 年正式进入中国，起名“爱彼迎”。
+
+##### 2020–2026：疫情冲击、上市与业务重塑
+* **裁员与转型**：2020 年初受疫情重创，营收暴跌 80%。布莱恩·切斯基随后宣布裁员 25% 并大幅削减非核心项目（如酒店和交通）。
+* **IPO**：2020 年 12 月，Airbnb 在纳斯达克上市。尽管处于疫情中，其市值在首日即突破 1000 亿美元。
+* **后疫情策略**：随着远程办公普及，Airbnb 转向推广“长租”和“非城市中心”房源。
+* **退出中国本土市场**：2022 年 5 月，Airbnb 宣布停止中国本土房源的经营，保留跨境旅游业务（Outbound），将重心转回服务出境游的中国游客。
+* **AI 整合 (2025-2026)**：2026 年，Airbnb 深度整合了 **Joule-like** 生成式 AI 系统，用户可以通过自然语言描述复杂的旅行方案（如“适合带狗、有恒温泳池且附近有酒庄的意式庄园”），AI 可实现端到端的筛选与预订。
+
+#### 控股公司及产品
+
+##### 核心管理主体
+* **Airbnb, Inc.**：位于旧金山的母公司，负责全球平台运营。
+* **Airbnb China (爱彼迎中国)**：现阶段主要负责中国游客的海外房源预订及跨境服务支持。
+
+##### 核心产品线
+* **Airbnb Stays**：核心住宿业务，涵盖单间、整套公寓、独特房源（如树屋、城堡）。
+* **Airbnb Experiences**：由当地达人提供的徒步、烹饪、工作坊等在地化服务。
+* **Airbnb for Work**：针对企业出差团队的商务住宿管理工具。
+* **Airbnb Luxe**：提供经过严苛筛选的高端豪华住宅及管家服务。
+
+
+#### 招聘需求
+- [招聘官网](https://careers.airbnb.com/positions/?_where_you_work=china)
+
+内地岗位很少:
+![示意图](PixPin_2026-04-25_15-53-18.webp)
+### SAP
+#### 公司概况
+SAP SE（思爱普）总部位于德国沃尔多夫，由五位前 IBM 工程师于 1972 年创立，是全球最大的企业管理软件（ERP）供应商。作为欧洲市值最高的科技公司及全球最大的非美软件企业，SAP 专注于开发能够处理企业核心业务流程（如财务、后勤、人力资源）的集成系统。从早期的 R/2、R/3 架构到如今基于内存计算技术的 **S/4HANA** 平台，SAP 的产品支撑着全球绝大多数大型企业的运作。其业务遍布 180 个国家，是德国 DAX 指数及欧洲蓝筹股的核心成分股，代表了企业级应用软件的工业标准。
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/SAP)
+##### 1972–1981：初创与“实时”系统的诞生
+* **起源**：1972 年 6 月，五名前 IBM 工程师因不满项目被终止而离职，在德国曼海姆创立了 **SAPD** 公司。
+* **技术革命**：当时 IBM 仍在使用穿孔卡片进行批处理，SAP 率先实现了在大型机上通过逻辑数据库进行**实时（Real-time）**数据存储与处理。其首个客户是英国帝国化学工业（ICI），为其开发的财务与账务系统奠定了 **SAP R/1** 的基础（“R”代表实时）。
+* **总部迁移**：1977 年总部搬迁至沃尔多夫。1981 年，私人合伙制转变为 SAP GmbH。
+
+##### 1982–1999：R/2、R/3 与全球扩张
+* **大型机时代 (R/2)**：1979 年发布 **SAP R/2**，将功能扩展至物料管理和生产计划，能够处理多语种和多币种，助力其进入国际市场。
+* **客户端-服务器架构 (R/3)**：1992 年发布的 **SAP R/3** 是公司历史上的重大转折点。它顺应了从大型机向**客户端-服务器（Client-Server）架构**转型的趋势，使 SAP 迅速成为全球 ERP 市场的霸主。
+* **资本市场**：1988 年 SAP 挂牌上市，并于 1995 年被纳入德国 DAX 指数。
+
+
+##### 2000–2014：ERP 演进与云转型起步
+* **架构升级**：2004 年，R/3 被 **SAP ERP Central Component (ECC) 5.0** 取代，随后 2006 年发布了长期服役的 **ERP 6.0** 版本。公司架构向面向服务（SOA）转型。
+* **大规模收购**：为应对甲骨文（Oracle）的挑战，SAP 开始疯狂并购云服务商。2014 年以 83 亿美元收购 **Concur**（差旅管理），创下当时最高收购纪录。
+* **法律形态变更**：2014 年 7 月，公司正式更名为 **SAP SE**（欧洲公司），反映其跨国治理结构的成熟。
+
+##### 2015–2026：HANA 时代、AI 与云优先战略
+* **核心平台**：2015 年后，基于内存计算技术的 **S/4HANA** 成为核心。它结合了机器学习与 IoT 技术，将实时处理能力提升到了新高度。
+* **战略精简**：2019 年 SAP 宣布裁员 4000 人，旨在将资源从传统业务向区块链、量子计算和人工智能倾斜。
+* **AI 驱动的招聘与协作**：2025 年收购 **SmartRecruiters**，将其 AI 助手 **Winston** 整合进 SuccessFactors 模块，并与 SAP 的生成式 AI 产品 **Joule** 协同工作。
+* **云端霸权与挑战**：截至 2025 年 6 月，SAP 市值达到 **3200 亿欧元**，成为欧洲市值最高的公司。其 80% 的客户业务已迁移至云端。同年 9 月，欧盟委员会对其发起反垄断调查，关注其竞争实践。
+
+#### 控股公司及产品
+
+##### 核心事业部与合资实体
+* **SAP Deutschland SE & Co. KG**：负责德国本土业务。
+* **SAP Fioneer**：2021 年成立，专注于金融服务行业（FSI）的独立部门。
+* **SAP SuccessFactors**：全球领先的人力资本管理（HCM）云平台。
+
+##### 核心产品线
+* **ERP 旗舰**：**SAP S/4HANA**（下一代智能 ERP）、**SAP ERP 6.0 (ECC)**（传统核心）。
+* **云应用套件**：**SAP Concur**（差旅与费用）、**SAP Ariba**（采购与供应链）、**SAP Fieldglass**（外部劳动力管理）。
+* **技术平台**：**SAP BTP**（业务技术平台）、**SAP HANA**（内存数据库）。
+* **AI 与智能化**：**Joule**（生成式 AI 副驾驶）、**Joule + Winston** 智能招聘解决方案。
+
+
+#### 招聘需求
+- [官网](https://jobs.sap.com/) 
+![示意图](PixPin_2026-04-25_13-49-13.webp)
+
+- 公众号: SAP招聘,会跳转到一个移动端网站
+![示意图](PixPin_2026-04-25_13-54-52.webp)
+
+看着多,但软件岗位依然很少.
+
+
+### Oracle (甲骨文)
+直接跳过,不在中国招人
+#### 公司概况
+Oracle（甲骨文）总部位于德克萨斯州奥斯汀，由拉里·埃里森等人在 1977 年创立，是全球最大的数据库软件供应商及核心企业级软件巨头。作为全球市值排名前 20 的顶级科技公司，Oracle 以其核心的**关系型数据库（Oracle Database）**统治了金融、电信等关键行业数十年，并以此为基础构建了涵盖 ERP、HCM 和供应链管理（SCM）的完整企业应用生态。
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Oracle_Corporation)
+
+##### 1977–1989：从 CIA 项目到数据库霸主
+* **初创与灵感**：1977 年，拉里·埃里森（Larry Ellison）与鲍勃·迈纳、爱德·欧茨在加州创立了 SDL 公司。其灵感源于埃德加·科德（Edgar F. Codd）关于**关系型数据库（RDBMS）**的论文。
+* **命名渊源**：公司首个客户是美国中央情报局（CIA），其项目代号为“Oracle”。1983 年，公司正式更名为 **Oracle Systems Corporation**，与其核心产品保持一致。
+* **商业奇才**：三位创始人认为埃里森编程最差，于是让他负责销售。他通过演示 **SQL** 语言的强大威力成功打开市场。1986 年，Oracle 在纳斯达克上市。
+* **人才策略**：早期大规模从名校招聘，由于职位供不应求，部分名校毕业生甚至先担任接待员或分发咖啡，直到研发岗位空缺。
+
+##### 1990–2009：应用软件扩张与“红木城”时代
+* **全栈转型**：80 年代末，Oracle 开始基于数据库销售财务和制造软件。虽然初期应用软件业务亏损多年，但埃里森坚持通过收购（如 2005 年对 **PeopleSoft** 的恶意收购）切入 ERP 领域，最终使 Oracle 能够与 SAP 竞争。
+* **战略 footprint**：通过提供完整的软件栈，Oracle 从单一的技术供应商转型为客户的战略合作伙伴，成功进入大企业的董事会决策层。
+
+##### 2010–2020：云端追赶与总部迁移
+* **融合应用**：2010 年发布 **Fusion Applications**，整合了此前收购的 PeopleSoft、Siebel 和 JD Edwards 的技术优势。
+* **迁移奥斯汀**：2018 年在德克萨斯州奥斯汀设立办公室，并于 2020 年宣布将全球总部从加州红木岸正式迁至奥斯汀。
+* **云联盟**：为了挑战 AWS，Oracle 曾与宿敌微软结盟，实现 **Oracle Cloud** 与 **Microsoft Azure** 的直接互联。
+
+##### 2021–2026：AI 基础设施与全球版图重塑
+* **医疗与 AI 收购**：2022 年以 283 亿美元完成对医疗 IT 巨头 **Cerner** 的收购。
+* **AI 军备竞赛**：
+    * **Stargate 计划**：2025 年初，Oracle 与 OpenAI、软银等参与了 5000 亿美元的“Stargate”AI 基础设施投资计划。
+    * **超级云联盟**：2025 年，Oracle 数据库已登陆四大超算平台（AWS、Azure、Google Cloud、OCI），实现了真正的多云部署。
+* **权力交接与 TikTok 交易**：2025 年 9 月，萨夫拉·卡茨卸任 CEO，由 Clay Magouyrk 和 Mike Sicilia 接任**联合 CEO**。2026 年 1 月，Oracle 正式获得 **TikTok** 美国业务 15% 的股权。
+* **总部再迁**：2024 年宣布计划将总部从奥斯汀迁往田纳西州的纳什维尔（Nashville）。
+* **最新业绩 (2026)**：截至 2025 年底，其云基础设施（IaaS）营收同比增长 **68%**。由于 AI 算力需求旺盛，其剩余履约义务（RPO）高达 **1300 亿美元**。
+
+#### 控股公司及产品
+
+##### 核心事业部
+* **Oracle Cloud Infrastructure (OCI)**：提供高性能计算、存储及 AI 算力集群。
+* **Cloud Applications**：包含 ERP、HCM、CX 及 SCM 云套件。
+* **Financial & Healthcare**：包含 Cerner 业务，专注行业深度方案。
+
+##### 核心产品线
+* **数据库**：**Oracle Database 23c/25c**（支持向量检索、AI 驱动）、**MySQL HeatWave**。
+* **云平台**：**OCI (Oracle Cloud Infrastructure)**，因其能效比高、网络延迟低，成为许多 AI 模型训练的首选。
+* **应用软件**：**Oracle Fusion Cloud**、**NetSuite**（针对中小企业）。
+
+
+#### 招聘需求
+![示意图](PixPin_2026-04-22_18-55-39.webp)
+不在中国招人,印度人倒是招的挺多,就别看了.
+
+
+## 内地企业
+目录的编排大致有一个排名顺序
+### 腾讯
+#### 公司概况
+腾讯是一家总部位于深圳的全球顶尖科技与投资控股公司，成立于1998年。它是全球最大的游戏发行商及领先的社交媒体巨头，运营着微信（WeChat）和QQ等国民级应用。业务横跨娱乐、人工智能、金融科技及云服务，通过对全球600多家企业的股权投资，构建了庞大的产业生态。
+- 横跨多个领域的巨头
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Tencent)
+
+
+##### 1998–2010：初创与快速成长
+* **1998年11月：** 马化腾、张志东、许晨晔、陈一丹、曾李青在开曼群岛创办腾讯。
+* **1999年2月：** 发布即时通讯产品 **OICQ**（后更名为 **QQ**）。
+* **2001年：** 南非媒体巨头 **Naspers** 购入腾讯 46.5% 的股份。
+* **2004年6月16日：** 腾讯控股在**香港联交所**正式挂牌上市。
+* **2005年：** 收入模式多元化，涵盖移动 QQ、电信增值服务及周边授权。
+* **2007年：** 成立腾讯公益慈善基金会。
+* **2008年：** 腾讯被纳入**恒生指数成份股**；虚拟物品销售成为利润增长点；开始大规模代理游戏（如《穿越火线》、《地下城与勇士》）。
+
+---
+
+##### 2011–2014：移动转型与投资扩张
+* **2011年1月21日：** 推出 **微信 (Weixin/WeChat)**，开启移动社交新时代。
+* **2011年2月：** 以约 2.3 亿美元收购 **Riot Games**（英雄联盟开发商）92.78% 的股权。
+* **2012年6月：** 收购 **Epic Games**（虚幻引擎、堡垒之夜开发商）少数股权。
+* **2013年：** 投资搜狗（4.48 亿美元）及金山网络；成为动视暴雪的被动投资者。
+* **2014年：**
+    * **1月：** 投资华南城，进军物流电商。
+    * **2月：** 4 亿美元购入**大众点评** 20% 股份。
+    * **3月：** 购入 **JD.com (京东)** 15% 股份，并将旗下电商业务并入京东。
+    * **11月：** 与 **HBO** 达成独家分销协议。
+    * **12月：** 领投滴滴打车；上线 **微众银行 (WeBank)**。
+
+---
+
+##### 2015–2020：全球布局与市值巅峰
+* **2015年：** 与 NBA 签署 7 亿美元独家流媒体协议；完成对 Riot Games 的全资收购。
+* **2016年：**
+    * 以 86 亿美元收购 **Supercell**（部落冲突开发商）84.3% 股权。
+    * 入股 **特斯拉 (Tesla)** 5% 股权（2017年披露，价值 17.8 亿美元）。
+* **2017年：**
+    * 5月：市值超越富国银行，进入全球前 10。
+    * 6月：入榜 BrandZ 全球最有价值品牌前 8。
+    * 11月：市值突破 **5000 亿美元**，超越 Facebook 成为亚洲首家跨过此门槛的公司。
+* **2018年：** 投资万达商业、乐高、家乐福；设立 10 亿元“科学探索奖”。
+* **2020年：** 收购 **iflix**；在新加坡设立亚洲中心；购买《系统震荡 3》及其续作版权。
+
+---
+
+##### 2021–至今：监管合规与 AI 转型
+* **2021年：**
+    * **7月：** 虎牙斗鱼合并案因反垄断监管被正式禁止；搜狗私有化获批。
+    * **12月：** 收购 **Turtle Rock Studios**。
+* **2022年：**
+    * **1月：** 因未按规定申报并购交易多次受罚。
+    * **11月：** 以实物分红方式减持 **美团** 绝大部分股份。
+* **2023年：** 减持特斯拉股份；收购育碧母公司 49.9% 股份；12 月受网络游戏监管新规草案影响，市值一度单日大幅波动。
+* **2024年：**
+    * **12月：** 苹果公司洽谈在华销售的 iPhone 中集成腾讯 AI 模型。
+* **2025年：**
+    * **1月：** 发布 3D 模型生成器 **Hunyuan3D**。
+    * **3月：** 发布基于 Transformer-Mamba 架构的推理语言模型 **Hunyuan T1**。
+    * **截至年底：** 持有环球音乐集团 (UMG) 11.45% 的股份。
+#### 旗下公司及产品
+
+##### 主要产品
+- **通信与社交：**
+    - **QQ：** 经典即时通讯平台，目前侧重年轻用户生态及频道化运营。
+    - **微信 (WeChat)：** 全球用户超13亿的超级App，包含朋友圈、视频号、小程序、微信支付及企业微信。
+- **数字内容：**
+    - **腾讯视频：** 头部长视频流媒体平台。
+    - **腾讯音乐 (TME)：** 旗下拥有 QQ音乐、酷狗音乐、酷我音乐及全民 K 歌。
+    - **腾讯新闻：** 资讯服务平台。
+    - **腾讯阅文集团：** 掌管起点中文网等头部网络文学平台（控股）。
+- **金融科技与企业服务：**
+    - **微信支付 (财付通)：** 移动支付解决方案。
+    - **微众银行：** 中国首家互联网银行（第一大股东）。
+    - **腾讯云：** 基础设施及产业互联网核心支撑。
+    - **腾讯混元 (Hunyuan)：** 旗下全链路自研大语言模型，包含 Hunyuan-DiT、Hunyuan-T1（推理模型）。
+
+##### 腾讯游戏 (Tencent Games)
+- **核心工作室群：**
+    - **天美工作室群 (TiMi)：** 代表作《王者荣耀》、《使命召唤手游》。
+    - **光子工作室群 (Lightspeed)：** 代表作《和平精英》、《PUBG Mobile》。
+    - **魔方工作室群 (Morefun)：** 代表作《火影忍者》手游。
+    - **北极光工作室群：** 代表作《天涯明月刀》。
+
+##### 控股及核心关联公司
+- **直播领域：**
+    - **虎牙 (Huya)：** 控股子公司，财务已并表。
+    - **斗鱼 (DouYu)：** 第一大股东。
+- **全球游戏巨头 (控股/全资)：**
+    - **Riot Games (拳头游戏)：** 100% 控股，代表作《英雄联盟》、《瓦罗兰特》。
+    - **Supercell：** 控股股东，代表作《部落冲突》、《荒野乱斗》。
+    - **Turtle Rock Studios：** 全资收购，代表作《求生之路》开发团队。
+    - **Sumo Group：** 全资收购的英国游戏开发巨头。
+- **全球游戏巨头 (重要持股)：**
+    - **Epic Games：** 持有约 40% 股份。
+    - **Ubisoft (育碧)：** 通过持有其母公司股权拥有约 9.9% 股份。
+    - **蓝洞 (Krafton)：** 持有约 13.5% 股份，代表作《绝地求生》。
+    - **环球音乐集团 (UMG)：** 持有约 20% 股份。
+- **本地生活与电商 (策略持股)：**
+    - **美团：** 虽然 2022 年进行了实物分红减持，但仍保持战略合作。
+    - **京东：** 重要股东及战略合作伙伴。
+    - **拼多多：** 重要股东。
+#### 招聘需求
+- [官网](https://careers.tencent.com/home.html)
+![示意图](PixPin_2026-04-24_23-15-29.webp)
+
+腾讯的业务很多,岗位也非常多,官网上的要求都比较简单,但实际应聘的时候都是会狠狠拷打你的:
+![示意图](PixPin_2026-04-23_17-37-11.webp)
+- 翻了翻都是远程面试.
+
+##### 面试流程一览
+[腾讯面试流程](https://github.com/0voice/cpp_backend_awsome_blog/blob/main/%E3%80%90NO.82%E3%80%91%E8%80%97%E6%97%B61%E4%B8%AA%E6%9C%88%EF%BC%8C%E4%B8%87%E5%AD%97%E5%B9%B2%E8%B4%A7%EF%BC%8C%E8%AF%A6%E8%A7%A3%E8%85%BE%E8%AE%AF%E9%9D%A2%E8%AF%95%EF%BC%88T1-T9%EF%BC%89%E6%A0%B8%E5%BF%83%E6%8A%80%E6%9C%AF%E7%82%B9%EF%BC%8C%E9%9D%A2%E8%AF%95%E9%A2%98%E6%95%B4%E7%90%86.md)
+##### 面经1
+- [来源](https://www.nowcoder.com/feed/main/detail/f054aef412104109a1dfa85e273e6faf?sourceSSR=enterprise)
+
+```md
+## 项目深挖与常规问答
+
+
+* **自我介绍**
+* **核心项目介绍：** 挑一个花费时间最多、最重点的项目介绍，并罗列一两个难点。
+* **后续追问：** 目前项目的访问量多大？（如实回答目前仅作个人和朋友测试使用）。
+
+---
+
+## 计算机基础与后端八股
+
+### 操作系统与网络
+* Python多进程解决OOM问题，为什么不用多线程？
+* 进程和线程在操作系统层面的核心区别是什么？
+* FastAPI 服务端延迟极低，客户端发起请求时，TCP 建立连接的过程是怎样的？
+* 项目中实现在线推送为什么使用 WebSocket 而不用 HTTP 轮询？
+
+### JVM 基础
+* Java 程序运行时，JVM 内存分为哪几块？
+* 堆里的对象是一定会被回收的吗？
+* 引用类型会被回收吗？
+
+### Redis
+* 项目中的布隆过滤器、互斥锁、逻辑过期分别是解决什么问题的？
+* 逻辑过期和物理过期的区别是什么？
+* HyperLogLog、ZSet、Bitmap 的底层原理和适用场景是什么？
+* 场景题：如何统计最近七天内每天都活跃的日活用户交集？
+
+### 消息队列 (RabbitMQ)
+* 如何保证消息百分之百入库？描述消息从生产到消费的完整可靠链路。
+* 死信队列里面是怎么处理的？
+* 怎么保证消息的幂等性？
+
+### 数据库 (MySQL)
+* 索引场景题：有用户表、签到表（自增ID，user_id，签到时间，状态），要查某个用户某个月的签到记录，怎么加索引？
+* 如果不用 Redis，直接在 MySQL 层面避免高并发下的重复点赞，怎么设计？
+* 如果并发量很大，使用乐观锁和悲观锁的区别？使用悲观锁有什么问题？
+
+---
+
+## 算法与代码手撕
+
+* 实现 `O(1)` 时间复杂度的 LRU 缓存
+* 合并 K 个升序链表
+
+---
+
+## AI 与大模型工程
+
+* RAG（检索增强生成）的工作流分哪几步？
+* RAG 知识库生成的步骤是什么？
+* 向量检索时，怎么判断相似度？
+* 你项目里的 Agent 架构是怎么设计的？
+
+---
+
+## 反问环节
+
+* 如果有幸入职，主要会做哪些工作？难点在哪里？
+* 腾讯内部对使用 AI 辅助编程的态度是什么？
+* 对我今天的面试表现有什么评价或建议？
+```
+### 阿里
+#### 公司概况
+阿里巴巴是一家成立于1999年、总部位于杭州的全球性科技巨头，也是全球最大的电子商务与零售平台之一。其业务体系以淘宝、天猫为核心，覆盖了云计算、数字媒体、物流及金融科技（蚂蚁集团）等多元领域。2014年阿里巴巴在纽交所完成了当时全球规模最大的IPO。进入2026年，阿里通过“千问”大模型全面向AI驱动转型，旗下云智能与国际商业板块表现强劲，目前仍是全球最具价值的互联网公司之一。
+- 目标是电商和云计算等上游产业,从而摆脱腾讯的限制
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Alibaba_Group)
+
+
+##### 1. 1999–2004：初创与淘宝崛起
+* **1999年6月28日：** 马云带领 18 人在杭州公寓创立 **Alibaba.com**（B2B 平台）。
+* **1999年10月：** 获得高盛、软银等 2500 万美元投资。
+* **2002年：** 阿里巴巴 B2B 业务开始盈利。
+* **2003年：** 为了应对 eBay 进入中国市场，秘密成立 **淘宝网 (Taobao)**。
+* **2004年：** 淘宝凭借免费模式和第三方信用担保（支付宝前身）迅速获得市场信任。
+
+---
+
+##### 2. 2005–2014：全球最大 IPO 与扩张
+* **2005年：** **雅虎 (Yahoo!)** 以 10 亿美元和雅虎中国资产交换阿里巴巴 40% 的股份。
+* **2007年：** 淘宝市场份额超越 eBay；后者随后退出中国市场。
+* **2012年：** 中投公司领衔回购雅虎所持有的 40% 股份。
+* **2014年：**
+    * **3月：** 投资银泰商业，开启线下零售布局。
+    * **6月：** 12 亿元收购广州恒大足球俱乐部 50% 股权。
+    * **9月19日：** 在纽约证券交易所挂牌上市，融资 **250 亿美元**，创下当时全球最大 IPO 纪录。
+
+---
+
+##### 3. 2015–2022：领导层更迭与监管风暴
+* **2015年：** 成立阿里文学；开始投资印度支付平台 Paytm。
+* **2018年：** 成为奥运会全球赞助商；市值突破 5000 亿美元。
+* **2019年9月：** 马云正式卸任董事局主席，由 **张勇 (Daniel Zhang)** 接任。
+* **2019年11月：** 在香港二次上市，成为当年全球最大融资案。
+* **2020年11月：** **蚂蚁集团 (Ant Group)** IPO 被监管部门叫停，阿里股价受挫。
+* **2021年4月：** 因违反反垄断法被处以 **28 亿美元 (182.28亿元)** 罚款。
+* **2022年：** 被美国证监会列入预摘牌名单；国资背景基金入股优酷、UC 业务子公司（“金股”）。
+
+---
+
+##### 4. 2023–至今：拆分重组与 AI 时代
+* **2023年3月：** 启动 **“1+6+N” 组织变革**，将业务拆分为云智能、淘天、菜鸟、本地生活、阿里国际数字商业、大文娱六大业务集团，计划独立上市。
+* **2023年9月：** 菜鸟向港交所提交上市申请（后撤回）；领导层再次更迭（蔡崇信接任董事局主席，吴泳铭接任 CEO）。
+* **2024年12月：** 将银泰百货出售给雅戈尔集团，退出非核心零售业务。
+* **2025年11月：** 股价及估值逐步回升；面临关于提供技术支持的指控（阿里否认）。
+* **2026年1月：** 由于地缘政治及数据安全考量，美国德克萨斯州禁止在政府设备上使用阿里产品和服务。
+#### 旗下公司及产品
+
+##### 主要产品
+- **核心电商：**
+    - **淘宝 (Taobao)：** 全球最大的 C2C 零售平台。
+    - **天猫 (Tmall)：** 品牌 B2C 平台，包含天猫超市、天猫国际。
+    - **闲鱼：** 闲置物品交易社区。
+- **全球与批发：**
+    - **Alibaba.com：** 核心 B2B 贸易平台。
+    - **速卖通 (AliExpress)：** 面向全球消费者的跨境零售平台。
+    - **Lazada：** 东南亚领先的电商平台。
+- **基础设施与服务：**
+    - **阿里云 (Alibaba Cloud)：** 全球领先的云计算服务商，包含**通义千问大模型**体系。
+    - **菜鸟 (Cainiao)：** 智慧物流网络，提供端到端供应链服务。
+    - **钉钉 (DingTalk)：** 智能协同办公平台。
+- **本地生活：**
+    - **饿了么：** 本地即时配送平台。
+    - **高德地图：** 领先的移动出行与位置服务平台。
+    - **飞猪 (Fliggy)：** 在线旅游服务平台。
+
+##### 控股及核心关联公司
+- **金融科技 (核心关联)：**
+    - **蚂蚁集团 (Ant Group)：** 腾讯持有约 33% 股份；运营 **支付宝 (Alipay)**。
+- **数字媒体与娱乐：**
+    - **优酷 (Youku)：** 头部长视频平台。
+    - **阿里影业：** 影视内容投资与发行平台。
+    - **大麦网：** 现场娱乐票务平台。
+    - **UC 浏览器：** 移动互联网入口及内容资讯。
+- **新零售与制造：**
+    - **盒马 (Freshippo)：** 数据驱动的新零售连锁。
+    - **银泰商业：** 曾高度控股，2024 年底已宣布将其转让给雅戈尔集团。
+    - **犀牛智造：** 数字化服装制造工厂。
+- **海外市场：**
+    - **Trendyol：** 土耳其最大电商平台（控股）。
+    - **Daraz：** 南亚领先电商平台（全资）。
+
+#### 招聘需求
+- 公众号: 阿里巴巴集团招聘
+- [校园招聘](https://campus-talent.alibaba.com/)
+- [社会招聘](https://talent-holding.alibaba.com/)
+不懂为什么要特意分开...
+
+![示意图](PixPin_2026-04-24_23-13-40.webp)
+
+- 全面拥抱AI,很多岗位都是算法和Agent.
+需要注意的是,阿里很多岗位都是实习转正的,如果目标确定是阿里的话建议先投递暑期实习.
+
+阿里的招聘要求说的都比腾讯清楚很多,能够让应聘者快速知道自己是不是这块料:
+```md
+职位要求
+1.基础条件
+● 计算机、软件工程、人工智能等相关专业优先。
+2.专业能力
+● AI编程工具重度玩家：Cursor、Claude code等AI编程工具重度或顶级玩家，具备极强的Prompt编写与调优能力，有过完整的项目级开发经验，理解如何让AI写出生产级代码。
+● 大模型能力理解与掌握：理解主流LLM的能力与局限，能够清晰拆解任务并通过LLM或确定性逻辑兜底实现；熟悉主流大模型的应用范式(Context Engineering、Prompt Engineering、Agent、工具/函数调用等等)及主流Agent框架(如LangChain等)，具备大模型幻觉、Prompt注入等风险的工程化应对思路。
+● 扎实的代码和工程能力：具备扎实的计算机基础知识，深入理解数据结构、算法、网络和操作系统等相关知识，能至少在一种主流编程语言（如 Java / Python / JS 等）上有深度的实践经验，掌握常见工程实践并具备优秀的Coding 能力，能够根据场景灵活选型并快速上手。
+3.能力特质
+● 学习能力： 具备快速啃透前沿论文（Paper）的能力，并能将理论知识转化为工程代码。
+● 开放性与动手能力： 拒绝纸上谈兵，有自己独立完成的小项目（开源项目或个人 Demo），展现极客精神。
+● 好奇心与想象力： 面对未知事物有独特的想法，具备敏锐的问题定义能力和坚韧的解决问题能力。
+● 审美追求： 技术亦有审美，鼓励你提出能提出打动人心、简洁优雅的好想法。
+● 高能动性： 具备强烈的自驱力，能够主动探索边界，而不是等待被分配任务。
+加分项
+● 有AI应用或Agent实际落地经验：包括不限于RAG系统、多智能体编排、结合MCP、Skill等的Agent项目，有可展示的项目/实习成果者优先。
+● 开源贡献或技术影响力：在Github上有高质量AI项目、技术博客或社区影响力。
+● 对AI Infra有基本理解：了解vLLM、Ollama等推理框架原理，理解延迟优化、KV cache优化、流式输出等工程全局视角。
+● 在 CV（计算机视觉）或 NLP（自然语言处理）方向有扎实的理论基础，有实际业务场景模型训练(SFT、RL)等经验的优先。
+```
+
+##### 面经1
+```md
+### Java线程池的使用及工作原理
+
+### 并发情况下线程安全的问题介绍一下
+
+### HashMap是线程安全的吗
+
+### ConcurrentHashMap原理，是如何实现线程安全的？
+
+### ConcurrentHashMap的段是怎么划分的？ConcurrentHashMap的存储结构是怎样的？
+
+### ConcurrentHashMap和HashMap存储数据的区别是什么？
+
+### NIO和AIO分别是什么原理？
+
+### 零拷贝介绍一下
+
+### HTTPS加密通信的过程？
+
+### MySQL四种隔离级别是什么？分别怎么实现的？
+
+### 你的MySQL设置的隔离级别是什么？可重复读如何实现的？
+
+### 两个字符串的最长连续相等字符串长度
+```
+### 字节
+#### 公司概况
+字节跳动（ByteDance）是一家成立于2012年、总部位于北京的全球领先互联网技术巨头，由张一鸣、梁汝波等人创立。公司凭借TikTok和抖音（Douyin）重塑了全球短视频社交格局，同时拥有资讯平台今日头条（Toutiao）、视频剪辑工具剪映（CapCut）以及Lemon8等多元化产品矩阵，并在生成式人工智能领域积极布局。
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/ByteDance)
+
+##### 2012–2015：初创与算法起步
+* **2012年3月：** 张一鸣与梁汝波在中关村成立字节跳动；发布首款应用**内涵段子**（2018年被关停）。
+* **2012年8月：** 旗舰产品**今日头条**（Toutiao）首个版本上线，利用大数据算法实现个性化内容推荐。
+* **2013年1月：** 制定国际化愿景，计划建立英文版头条以进军海外。
+
+##### 2016–2018：短视频爆发与全球扩张
+* **2016年3月：** 成立 **ByteDance AI Lab**，发力人工智能底层研究。
+* **2016–2017年：** 开启全球收购潮，投资印尼平台 BABE，收购 Flipagram 及 News Republic。
+* **2017年11月：** 以约 10 亿美元收购 **musical.ly**，为 TikTok 的全球扩张奠定基础。
+* **2018年8月：** 将 musical.ly 与 **TikTok** 合并，统一品牌开启全球化运营。
+* **2018年起：** 与腾讯陷入长期法律诉讼，涉及不正当竞争及数据抓取争议。
+
+##### 2019–2022：业务多元化与监管挑战
+* **2021年4月：** 成立 **BytePlus** 部门，向外部企业输出 TikTok 核心底层算法技术。
+* **2021年8月：** 收购虚拟现实（VR）初创公司 **Pico**。
+* **2022年6月：** 伦敦办公室因文化冲突引发员工离职潮，引发对其内部“赛马机制”文化的关注。
+
+##### 2023–至今：生成式 AI 与算力布局
+* **2023年：** 成立 AI 团队“Seed”；8 月发布首款 AI 聊天机器人**豆包**（Doubao）。
+* **2023年12月：** 因在训练过程中使用 OpenAI API 数据引发争议，随后进行合规整改。
+* **2024年：** 进行全球业务优化，裁减约 1000 名用户运营及市场人员；6 月推出图片社交应用 **Whee**。
+* **2025年2月：** 展示 AI 视频生成系统 **OmniHuman-1**，可由单图及动作信号生成逼真视频。
+* **2026年3月：** 披露与 Aolani Cloud 合作，在马来西亚部署包含 **36,000 片英伟达 B200 芯片**的 Blackwell 计算系统。
+。
+#### 旗下公司及产品
+
+##### 主要产品
+* **短视频与社交：**
+    * **抖音 (Douyin)：** 中国领先的短视频社交平台，包含电商、生活服务等生态。
+    * **TikTok：** 抖音海外版，全球下载量最高的社交应用之一。
+    * **Whee：** 2024 年推出的海外图片分享社交应用。
+* **信息流与工具：**
+    * **今日头条 (Toutiao)：** 基于算法推荐的通用信息平台。
+    * **剪映 (CapCut)：** 全球领先的视频编辑工具，海外版名为 CapCut。
+    * **番茄小说：** 免费网络文学平台。
+* **人工智能 (AI)：**
+    * **豆包 (Doubao)：** 核心 AI 聊天机器人，基于其自研大模型。
+    * **OmniHuman-1：** 2025 年发布的 AI 视频生成系统，支持单图转视频。
+* **办公与企业服务：**
+    * **飞书 (Lark)：** 企业协作与管理平台，海外版名为 Lark。
+    * **BytePlus：** 向企业输出推荐算法、数据分析等底层技术的服务部门。
+* **其他领域：**
+    * **Lemon8：** 种草类兴趣社区，定位类似小红书。
+    * **8th Note Press：** 2023 年设立的图书出版品牌。
+
+##### 核心事业部 (BU) 架构
+字节跳动目前采取以下六大业务板块架构：
+* **抖音：** 负责抖音、西瓜视频、今日头条、搜索等国内信息流业务。
+* **大力教育：** 涵盖智慧学习等教育技术业务。
+* **飞书：** 负责领跑协同办公领域。
+* **火山引擎：** 企业级技术服务平台（云服务）。
+* **朝夕光年：** 游戏研发与发行（近年来进行了战略收缩与调整）。
+* **TikTok：** 负责 TikTok 全球业务及其海外延伸产品（如 Lemon8）。
+
+##### 控股及核心关联公司
+* **Pico (小鸟看看)：** 2021 年全资收购的 VR 硬件及内容平台。
+* **沐瞳科技 (Moonton)：** 全球知名移动游戏开发商（《无尽对决》）。
+* **沐九歌 (Aolani Cloud)：** 2026 年披露的算力合作伙伴，助力其在东南亚部署英伟达 Blackwell 计算集群。
+* **BABE (印尼)：** 控股的印尼新闻推荐平台。
+* **News Republic：** 收购自猎豹移动的全球新闻平台。
+#### 招聘需求
+- [招聘官网](https://jobs.bytedance.com/)
+- 公众号: 字节跳动招聘,实质上还是跳转到招聘官网
+
+由于字节的业务增长迅速,人才缺口是头部企业中最旺盛的,光是上海的实习岗就有1800个:
+![示意图](PixPin_2026-04-25_16-02-21.webp)
+
+### 美团
+#### 公司概况
+美团（Meituan）是一家成立于2010年、总部位于北京的领先生活服务电子商务平台，由王兴创立。公司通过美团、大众点评及境外品牌 KeeTa，构建了涵盖外卖配送、到店餐饮、酒店旅游及即时零售的全方位业务矩阵。截至2024年底，美团年度交易用户已突破7.7亿，年活跃商家达1450万，是全球最大的本地生活服务平台之一，并于2018年在香港联交所成功上市。
+- 专注于生活领域
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Meituan)
+
+##### 2010–2014：团购大战与市场突围
+* **2010年：** 王兴在北京创立美团网，最初定位于团购（deal-of-the-day）模式。
+* **2011–2014年：** 经历“千团大战”，美团从2000多家团购公司中脱颖而出，迅速向二三线城市扩张；获得红杉资本、泛大西洋资本等机构多轮融资。
+* **2014年：** 美团在中国团购市场的份额达到 60%，确立行业领先地位。
+**千团大战AI总结**
+
+```md
+“千团大战”是中国互联网史上最残酷的存量淘汰赛，也是美团确立其“本地生活”霸主地位的关键战役。
+
+#### 1. 背景：疯狂的“C2C”模式 (2010 - 2011)
+2010年初，受美国团购鼻祖 Groupon 启发，中国市场在半年内涌现出超过 **5000 家** 团购网站。
+* **资本狂热：** 当时VC（风险投资）疯狂注资，拉手网、窝窝团、满座网等头部玩家动辄融资数千万美元。
+* **野蛮生长：** 行业门槛极低，基本模式就是“扫街签商户+线上卖券+线下消费”。
+
+#### 2. 混乱割据：烧钱与广告战
+在2010年到2011年间，多数公司采取了**“高空轰炸”**战略：
+* **疯狂烧钱：** 头部玩家砸数亿元聘请代言人、购买地铁和电视广告。
+* **恶性竞争：** 为了抢占商户，有些平台甚至提供“负毛利”结算，即商家卖100元的东西，平台补贴后只收80元，甚至直接给商家现金提成。
+* **美团的选择：** 王兴在此时表现出极度的**财务克制**。美团几乎不打电视广告，而是将资金投入到后台 IT 系统建设和地推团队的管理工具上。
+
+#### 3. 转折点：资本寒冬与“死人堆里爬出来” (2011下半年)
+2011年中期，由于中概股诚信危机和资本市场遇冷，融资渠道瞬间关闭。
+* **断粮潮：** 那些依赖高获客成本、高运营杠杆的网站（如拉手网、24券）因为烧光了钱且无法持续融资，迅速崩盘。
+* **美团的“剩者为王”：** * **账上有钱：** 阿里注资的 5000 万美元被王兴死死握住，不仅没烧光，还趁对手倒闭时低价接收人才。
+    * **效率机器：** 依靠自研的 ERP 系统，美团商户审核和结款速度极快，赢得了在动荡中极其焦虑的商户的信任。
+
+#### 4. 决胜时刻：从“团购”向“本地生活”升维
+当其他对手还在纠结如何卖券时，美团完成了两次关键跳跃：
+* **T型战略：** 以团购为“一横”，迅速切入酒店、电影票（猫眼）等垂直细分领域作为“一竖”。
+* **移动端转型：** 在移动互联网爆发前夕，果断倾斜资源到 App 开发，抓住流量红利。
+
+#### 5. 结果：定局
+到2014年，中国团购市场从“千团”缩减至“三强”（美团、大众点评、糯米），美团以 **60% 以上** 的份额占据绝对优势。
+```
+
+##### 2015–2019：战略合并与香港上市
+* **2015年10月8日：** 美团与大众点评宣布合并，成立“美团点评”，整合了到店餐饮、评价与团购资源。
+* **2016年1月：** 完成超 33 亿美元融资，估值大幅提升。
+* **2018年9月20日：** 美团点评在香港联交所正式挂牌上市，发行价为每股 69 港元。
+
+##### 2020–2022：品牌更名与监管挑战
+* **2020年9月30日：** 公司名称由“美团点评”简化为“美团”，旨在建立更统一的品牌形象。
+* **2021年4月：** 通过配售股票及发行可转债融资近 100 亿美元，用于投入社区团购（零售）及无人机、自动配送车等前沿技术。
+* **2021年4–10月：** 国家市场监管总局因涉嫌垄断行为对其立案调查。美团随后接受罚款并进行全面合规整改。
+
+##### 2023–至今：出海布局与技术落地
+* **2023年5月：** 在香港推出外卖品牌 **KeeTa**，开启迈向国际市场（内地以外）的第一步。
+* **2024–2025年：** KeeTa 在香港市场份额显著提升，公司重点发力“即时零售”及自动驾驶技术在城市配送场景的大规模应用。
+* **2025年：** 年度交易用户突破 7.7 亿，继续巩固其作为本地生活服务领域第一大平台的地位。
+
+#### 旗下公司及产品
+基本上来说,美团旗下最常用的就是两个App: 美团和大众点评,而不是像其他公司一样做精细化拆分,这种把功能绑定在一个软件上的做法有利有弊,但技术难度上显然比较高.
+##### 主要产品
+* **本地生活服务：**
+    * **美团 App：** 核心入口，整合外卖、到店、打车、共享单车、电影票（猫眼）等多项服务。
+    * **大众点评 (Dazhong Dianping)：** 国内领先的城市生活信息与消费者评论平台，侧重于“发现”与“评价”。
+* **即时零售与配送：**
+    * **美团外卖：** 全球最大的即时配送服务平台。
+    * **美团闪购：** 30分钟送达的即时零售业务，涵盖超市、药品、鲜花等。
+    * **美团配送：** 开放式的即时配送网络。
+* **零售与民生：**
+    * **美团优选：** 社区电商平台，采取“预付款+自提”模式。
+    * **小象超市 (原美团买菜)：** 前置仓模式的自营即时零售。
+* **旅游与交通：**
+    * **美团酒店/美团门票：** 酒店预订及旅游景点票务。
+    * **美团单车/助力车：** 共享出行服务。
+* **出海品牌：**
+    * **KeeTa：** 专门面向内地以外市场（如香港、利雅得等）的外卖与即时配送品牌。
+
+##### 核心业务事业部 (BU)
+* **到家事业群：** 负责外卖、配送及即时零售（闪购）。
+* **到店事业群：** 负责餐饮到店、婚庆、休闲娱乐及丽人等本地生活服务。
+* **核心本地商业：** 2024 年组织架构调整后，将到家与到店整合，由王莆中负责。
+* **科技/自动配送：** 负责无人机、自动配送车（无人车）的研发与运营。
+
+##### 控股及关联公司
+* **摩拜单车 (Mobike)：** 2018 年全资收购，现已全面更名为“美团单车”。
+* **光年之外：** 2023 年全资收购王慧文创立的 AI 初创公司，加强大模型技术储备。
+* **猫眼娱乐 (Maoyan)：** 由美团电影业务拆分独立，美团仍是其核心股东及战略合作伙伴。
+* **美团金融：** 运营支付（美团支付）、小额贷款等金融服务相关实体。
+#### 招聘需求
+- [招聘官网](https://zhaopin.meituan.com/web/home)
+![示意图](PixPin_2026-04-25_16-28-03.webp)
+
+招聘需求也很多,但是AI/算法岗位占比很高,超过一半了.
+### 京东
+#### 公司概况
+京东（JD.com）是一家成立于1998年、总部位于北京的中国最大零售商，由刘强东创立。公司自2004年转型线上零售以来，凭借自建物流体系和B2C自营模式，发展成为与天猫比肩的电商巨头，2024年营收超过1588亿美元，位列财富世界500强前列。其业务版图涵盖零售、物流、科技、健康、工业及国际商业等多个领域，以正品保障和极速配送为核心竞争力。
+- 主打电商平台
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/JD.com)
+
+
+##### 1998–2009：从线下柜台到自建物流
+* **1998年：** 刘强东在北京中关村创立“京东多媒体”，名称取自其女友龚晓京与自己名字的组合。
+* **2004年：** 转型线上零售，建立 B2C 网站 **jdlaser.com**；随后启用 **360buy.com** 域名。
+* **2007年：** 这是一个决定性的转折点，京东开始**自建物流部门**，旨在提供更可靠、及时的配送服务。同年更名为“京东商城”。
+* **2009年：** 在宿迁设立行业规模最大的自营客服中心。
+
+##### 2010–2014：图书大战与纳斯达克上市
+* **2010年：** 刘强东发起图书价格战，宣布比竞争对手便宜 20%，与当当网展开激烈博弈。
+* **2013年：** 正式切换域名为 **JD.com**，并发布新的 Logo 和金属狗吉祥物 Joy。
+* **2014年：** 在美国**纳斯达克（Nasdaq）**上市，融资 18 亿美元，当时估值约 260 亿美元，是当时仅在美国上市的最大中国公司。
+
+##### 2015–2021：多板块拆分与回港上市
+* **2017–2018年：** **京东金融**（现京东科技）完成拆分并融资 21 亿美元；销售额持续刷新纪录。
+* **2020年6月：** 在**香港联交所**完成二次上市。
+* **2020–2021年：** 资本化加速。**京东健康**于 2020 年完成 35 亿美元 IPO；**京东物流**于 2021 年完成 32 亿美元 IPO。
+
+##### 2023–至今：全球化布局与欧洲扩张
+* **2023–2024年：** 在香港开启“4小时极速达”服务；上线美国、日本及东南亚的全球直邮业务。
+* **2025年7–11月：** 开启大规模海外并购。以 25 亿美元收购德国零售巨头 **Ceconomy**（MediaMarkt 及 Saturn 的母公司）超 70% 的股权，确立欧洲市场据点。
+* **2025年9月：** 曾尝试收购英国零售商 Argos，但最终因条款未能达成一致而终止。
+* **2026年1–3月：** 在欧洲扩张遭遇不同监管反馈。德国准许其收购案，但**法国政府**于 2026 年 1 月正式封锁了其对 Fnac Darty 的收购意向。此外，在奥地利面临国家投资控制法的严格审查，京东需在数据保护和本地就业方面做出额外承诺。
+
+
+#### 旗下公司及产品
+
+##### 主要产品
+* **京东零售：** 核心 B2C 自营平台，主打 3C 家电、快消等全品类。
+* **京东物流 (JD Logistics)：** 以仓配一体为核心，提供极速达、211限时达服务。
+* **京东健康：** 在线诊疗与医药电商平台。
+* **京东科技 (原京东金融)：** 提供数字支付、财富管理及金融科技服务。
+* **海外零售：** 收购后的德国 Ceconomy 连锁体系（MediaMarkt / Saturn）。
+
+##### 控股及关联公司
+* **京东物流：** 港交所上市公司，京东控股。
+* **京东健康：** 港交所上市公司，京东控股。
+* **达达集团 (Dada Group)：** 旗下即时零售平台（京东到家），京东控股。
+* **德邦快递：** 2022 年由京东物流完成控股。
+* **Ceconomy (德国)：** 控股超 70%，京东欧洲扩张的核心支点。
+
+
+#### 招聘需求
+- [招聘官网](https://zhaopin.jd.com/home)
+![示意图](PixPin_2026-04-25_16-35-25.webp)
+
+需求比起前面的公司骤减,并且全面拥抱AI.
+### 网易
+#### 公司概况
+网易是一家成立于1997年、总部位于杭州的领先互联网技术公司，由丁磊创立。作为全球顶尖的游戏开发商，其核心支柱为《梦幻西游》等自研游戏及暴雪游戏的中国代理，同时深度布局网易云音乐、网易有道（在线教育）和网易邮箱等多元化服务。凭借2023年达146亿美元的营收规模，网易在深耕国内内容社区的同时，正通过在全球建立工作室加速向国际化游戏市场转型。
+
+- 核心业务是游戏
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/NetEase)
+
+##### 1997–2003：从邮箱服务到游戏转型
+* **1997年6月：** 丁磊在广州创立网易，初期仅有3名员工，主要销售邮件服务器软件。
+* **1998–1999年：** 推出 163 邮箱，成为中国首个提供免费邮箱、在线社区和个性化信息的门户网站。
+* **2000年7月1日：** 在美国纳斯达克（Nasdaq）上市，发行价 15.5 美元。
+* **2001年：** 成立网易游戏（NetEase Games）；推出首款自主研发的 MMORPG《大话西游 Online》，标志着公司战略重心的转移。
+* **2003年：** 获得高盛、软银等机构投资；邮箱注册用户达到 170 万。
+
+##### 2004–2014：多元化探索与暴雪合作
+* **2005–2007年：** 推出博客服务；正式上线自主搜索引擎“有道（Youdao）”，取代与谷歌的合作。
+* **2008年：** 开始与**暴雪娱乐**（Blizzard Entertainment）合作，获得《魔兽世界》等作品在中国内地的代理权。
+* **2011年：** 推出网易轻博客 **LOFTER**，成为中国最活跃的同人文化平台之一。
+* **2013年：** 与 Coursera 合作推出中文公开课平台；上线**网易云音乐**，进入音乐流媒体市场。
+* **2014年：** 与腾讯产生版权纠纷，最终达成音乐版权转授权协议，成为行业标准模型。
+
+##### 2015–2022：电商高潮、全球收购与监管挑战
+* **2015–2016年：** 推出跨境电商**考拉海购**及自营品牌**网易严选**；在旧金山设立首个美国办公室。
+* **2017年：** 与漫威（Marvel）达成合作，出版中国超级英雄漫画；邮箱用户突破 9.4 亿。
+* **2019年：** 将考拉海购以 20 亿美元出售给阿里巴巴。
+* **2020年：** 在香港联交所完成二次上市。
+* **2021–2022年：** * **收购与扩张：** 全资收购 Quantic Dream、草蜢工作室（Grasshopper Manufacture）；入股 Devolver Digital。
+    * **合作伙伴关系：** 推出《永劫无间》及《暗黑破坏神：不朽》。
+* **2023年1月：** 由于授权协议到期，暴雪旗下游戏（除《暗黑破坏神：不朽》）在中国内地暂时停服。
+
+##### 2023–至今：AI 驱动、暴雪回归与海外收缩
+* **2023年3月：** 推出动画品牌 Anici。
+* **2024年4月：** 宣布与暴雪娱乐更新协议，暴雪游戏重返中国市场；同时与微软达成战略合作。
+* **2024年12月：** 自研游戏《漫威争锋》（Marvel Rivals）上线，前三天注册用户即突破 1000 万。
+* **2024–2025年：** **战略调整期。** 为应对行业变化并与腾讯、米哈游竞争，网易开始收缩海外投资，关停包括 Ouka Studios、Jar of Sparks、Fantastic Pixel Castle 在内的多家海外工作室，寻求更小而精的全球布局。
+* **2025–2026年：** 发布《命运：崛起》等重磅作品；部分海外工作室（如名越工作室、GPTRACK50）转向自筹资金或自出版模式。
+  
+#### 旗下公司及产品
+
+##### 主要产品
+- **核心游戏：**
+    - **经典自研：** 《梦幻西游》、《大话西游》、《倩女幽魂》、《天下》、《逆水寒》（端手游）。
+    - **爆款竞技/生存：** 《永劫无间》、《第五人格》、《蛋仔派对》、《荒野行动》、《明日之后》。
+    - **国际合作：** 《漫威争锋》（Marvel Rivals）、《命运：崛起》（Destiny: Rising）、《暗黑破坏神：不朽》、《光·遇》（国内代理）。
+- **通信与工具：**
+    - **网易邮箱：** 包含 163、126、Yeah.net，中国领先的电子邮件服务商。
+    - **网易有道：** 包含有道词典、有道翻译、有道精品课等智能学习工具。
+- **数字内容：**
+    - **网易云音乐：** 领先的音乐社区，主打独立音乐人扶持与歌单社交。
+    - **网易新闻：** 门户网站 163.com 及移动端新闻客户端。
+    - **LOFTER：** 泛兴趣创作社区（国内领先的同人/绘画社区）。
+- **生活与电商：**
+    - **网易严选：** 自营生活方式品牌。
+    - **网易味央：** 现代农业品牌（网易黑猪）。
+
+##### 核心工作室群 (NetEase Games)
+- **国内事业群：**
+    - **梦幻事业部：** 负责核心西游 IP 运营。
+    - **雷火游戏/雷火事业群：** 驻地杭州，代表作《倩女幽魂》、《逆水寒》、《永劫无间》。
+    - **互动娱乐事业群 (在线游戏)：** 包含广州和上海等地的多个工作室，负责《阴阳师》、《第五人格》等。
+- **国际工作室 (控股/全资)：**
+    - **Quantic Dream (法国)：** 代表作《底特律：变人》，全资收购。
+    - **Grasshopper Manufacture (日本)：** 由须田刚一领导，全资收购。
+    - **SkyBox Labs (加拿大)：** 曾支持《光环》、《我的世界》开发，全资收购。
+
+##### 控股及关联公司
+- **网易有道 (Youdao, Inc.)：** 纽交所上市公司，网易控股。
+- **云音乐 (Cloud Village Inc.)：** 港交所上市公司，网易控股。
+- **24 Entertainment：** 《永劫无间》开发商，隶属于雷火事业群。
+- **Mattel163：** 与美泰 (Mattel) 合资成立，开发《UNO》等手游。
+- **策略投资：** 持有 **Bungie**（少数股权）、**Devolver Digital**（约 8% 股份）等全球游戏公司的股权。
+
+#### 招聘需求
+- [招聘官网](https://game.campus.163.com/position)
+![示意图](PixPin_2026-04-25_19-01-07.webp)
+岗位很少,均为游戏相关,想去的话注意校招的时候抓紧投递
+
+### 华为
+#### 公司概况
+华为（Huawei）是一家成立于1987年、总部位于深圳的全球通信技术巨头，由任正非创立。公司业务涵盖电信网络基础设施、智能终端、云服务、智能汽车解决方案及光伏产品，是全球最大的电信设备制造商。尽管近年来面临严峻的美国制裁与国际准入限制，华为通过剥离荣耀品牌、自主研发鸿蒙系统（HarmonyOS）及麒麟芯片实现战略突围，2025年起重回中国智能手机市场前列。作为技术领先的“国家冠军”企业，华为正全面发力 5.5G 通信、全栈 AI 算力及汽车智能化转型。
+- 真正的国家队,基岩后台,横跨手机,汽车,通信,芯片等硬件领域
+#### 公司历史
+- [wiki](https://en.wikipedia.org/wiki/Huawei)
+
+#### 华为发展历史时间线 (1987–2026)
+
+---
+
+##### 1987–1995：初创与农村包围城市
+* **1987年：** 前解放军团级干部任正非在深圳创立华为，注册资本 2.1 万人民币。初期业务为代销香港交换机（PBX）。
+* **1992–1993年：** 确立“农村包围城市”战略，避开国际巨头（阿尔卡特、朗讯）直面竞争。1993 年发布 **C&C08** 数字程控交换机，打破国外垄断。
+* **1994年：** 任正非提出“交换机技术关乎国家安全”观点，获得国家高层认可。
+
+##### 1996–2009：全球扩张与技术积淀
+* **1996年：** 被政府和军队确立为“国家冠军”企业，获得政策支持并限制海外竞争对手进入。
+* **1997–1998年：** 开启全球扩张，从非洲和中东起步；1999 年在印度班加罗尔建立 R&D 中心。
+* **2003–2007年：** 先后与 3Com（成立 H3C）、赛门铁克成立合资公司；2005 年海外合同首次超过国内销售额。
+* **2009年：** 在挪威奥斯陆交付全球首个 LTE/EPC 商业网络。
+
+##### 2010–2020：登顶全球与制裁冲击
+* **2010年：** 首次入选《财富》世界 500 强。
+* **2012年：** 超越爱立信成为全球最大电信设备商。
+* **2018–2019年：** 美国启动制裁；CFO 孟晚舟在加拿大被拘。华为发布 **鸿蒙系统 (HarmonyOS)** 应对安卓禁令；将荣耀（Honor）品牌出售以求生存。
+* **2020年Q2：** 华为手机出货量首次超越三星，登顶全球第一。
+
+##### 2021–2024：战略突围与重回巅峰
+* **2021–2022年：** 业绩因制裁大幅下滑；孟晚舟获释回国。华为加码 R&D 投入，位列全球第二。
+* **2023–2024年：** 实现供应链去美化，国产零件替代成功。2024 年 Q1 利润同比增长近 6 倍；6 月宣布 **HarmonyOS** 装机量突破 9 亿台。
+* **2024年：** 萝卜快跑及其他无人驾驶技术落地，华为智能汽车解决方案（华为系车型）市场爆发。
+
+##### 2025–至今：全球合规争议与 AI 算力布局
+* **2025年3–4月：** 遭遇欧洲合规危机。因涉嫌贿赂、伪造和洗钱，华为说客被禁止进入欧洲议会，欧盟委员会宣布不再会见华为相关利益代表。
+* **2026年：** 保持全球 PCT 专利申请量第一（连续 8 年）。华为全栈 AI 算力集群（昇腾系列）成为中国大模型训练的核心基础设施。
+
+---
+
+#### 旗下公司及产品
+
+##### 1. 终端与生态
+* **智能手机：** Mate 系列（商务旗舰）、Pura 系列（原 P 系列，影像旗舰）、Nova 系列。
+* **操作系统：** **HarmonyOS**（手机/全场景）、**OpenHarmony**（开源底座）、**EulerOS**（服务器）。
+* **硬件：** 平板电脑（MatePad）、笔记本（MateBook）、智能穿戴及全屋智能。
+
+##### 2. 华为智能汽车解决方案 (Huawei Inside / 鸿蒙智行)
+* **问界 (AITO)：** 与赛力斯合作。
+* **智界 (Luxeed)：** 与奇瑞合作。
+* **享界 (Stelato)：** 与北汽合作。
+* **自研技术：** 乾崑 (Qiankun) 智驾、ADS 3.0 高阶辅助驾驶、鸿蒙座舱。
+
+##### 3. 运营商与企业业务
+* **5.5G (5G-A)：** 推动 5G 向万兆速率演进。
+* **华为云 (Huawei Cloud)：** 提供基础设施及盘古大模型（Pangu Models）。
+* **昇腾 (Ascend) & 鲲鹏 (Kunpeng)：** 自研 AI 算力芯片及通用计算芯片。
+
+##### 4. 其它领域
+* **华为数字能源：** 智能光伏、车载充电系统。
+* **海思 (HiSilicon)：** 负责核心半导体芯片设计。
+
+
+#### 招聘需求
+- [招聘官网](https://career.huawei.com/cn)
+![示意图](PixPin_2026-04-25_21-32-03.webp)
+![示意图](PixPin_2026-04-25_21-33-50.webp)
+社会招聘的技术岗位基本为零...看得出来是很不缺人了,待遇真的好到大家都不愿意跳槽吗😃
+### 快手
+#### 公司概况
+快手科技（Kuaishou Technology）是一家成立于2011年、总部位于北京海淀区的中国上市科技公司（由宿华和程一笑创立）。公司主要通过同名短视频 App、社交网络及视频特效编辑工具提供服务，是中国领先的短视频与直播平台之一。在海外市场，该应用以 **Kwai** 之名运营，而在印度、巴基斯坦及印度尼西亚等地区则被称为 **Snack Video**。目前，快手已在香港联交所上市，且包含部分国有股份。
+
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Kuaishou)
+##### 2011–2013：从 GIF 工具到短视频转型
+* **2011年3月：** 曾在谷歌和百度工作的工程师宿华与程一笑在北京创立“GIF 快手”，最初是一款制作和分享 GIF 图片的工具。
+* **2013年：** 转型为短视频社交平台，用户数迅速突破 1 亿。
+
+##### 2014–2020：流量爆发与国际化受挫
+* **2017–2018年：** 获得腾讯领投的 3.5 亿美元融资，估值达 180 亿美元。2018 年因涉及未成年妈妈等低俗内容被央视曝光并短暂下架整改。
+* **2019年：** 日活用户突破 2 亿；与《人民日报》达成 AI 技术合作。
+* **2020年：** 受中印边境冲突影响，海外版 Kwai 在印度被禁。
+
+##### 2021–2023：港股上市与裁员重组
+* **2021年2月：** 在**香港联交所**上市，首日股价飙升 194%，市值一度突破 1590 亿美元。
+* **2021年12月：** 受监管环境及业绩压力影响，股价从巅峰下跌近 80%。公司启动大规模重组，裁员 30%，主要针对高薪中层。
+* **2022年10月：** 北京广播电视台入股快手，快手正式成为部分国有的控股公司。
+
+##### 2024–2025：AI 突破与安全危机
+* **2024年4-6月：** * 媒体曝光其内部代号为“石灰石”的裁员计划，被指清退 35 岁以上高龄员工。
+    * 进军巴西市场，在圣保罗建立分支中心。
+    * **技术飞跃：** 发布视频生成大模型 **Kling（可灵）**，支持生成 2 分钟 1080p 视频，性能对标 OpenAI 的 Sora。
+* **2025年12月：** 遭受网络攻击，导致平台短时间内涌入大量违禁暴力与色情内容。
+
+##### 核心争议与标签
+
+* **年龄歧视：** 内部“石灰石”计划被指针对 30 岁中后期员工进行结构性优化。
+* **内容监管：** 历史上多次因低俗内容引发监管关注，并曾遭受严重的黑客攻击导致内容失控。
+* **资本背景：** 拥有腾讯等头部互联网资本支持，并包含地方官方媒体的国有股份。
+
+#### 旗下产品
+
+* **快手/快手极速版：** 国内核心短视频与直播电商平台，以“老铁文化”和高互动率为特征。
+* **Kwai / Snack Video：** 负责拉美（巴西为主）及东南亚市场的国际化拓展。
+* **快影 (KwaiCut)：** 视频剪辑工具，目前是可灵（Kling）大模型的主要入口。
+* **可灵 (Kling)：** 领先的 Diffusion Transformer 架构视频生成模型。
+#### 招聘需求
+
+### 米哈游
+#### 公司概况
+米哈游（miHoYo）是一家长安成立于 2012 年、总部位于上海的全球领先电子游戏开发商。公司以开发《原神》、《崩坏》系列、《未定事件簿》及《绝区零》等高产值、全球化运作的抽卡类（Gacha）游戏闻名，业务范围涵盖动画、小说、漫画、音乐及周边产品。凭借《原神》获得的巨大全球成功，公司于 2022 年在新加坡设立全球发行品牌 **HoYoverse**（其运营实体为 Cognosphere），负责中国大陆以外市场的全球化内容制作与发行，目前在蒙特利尔、洛杉矶、东京及首尔设有办事处。
+>The letters "H" and "Y" in **miHoYo**'s name are derived from the names of two of the three founders, Cai Haoyu and Luo Yuhao. 
+The letter "O" was then added because famous companies like Facebook, Google and Microsoft contain that letter. 
+Since the combination "HoYo" was already registered, the prefix "mi" was prepended to the name. The prefix "mi" **was inspired by the VOCALOID software Hatsune Miku**, who was chosen due to her widespread popularity among the otaku community. 
+- 这名字到底是怎么想出来的...
+
+#### 公司历史
+- [wiki](https://en.wikipedia.org/wiki/MiHoYo)
+##### 2011–2012：技术宅男的宿舍创业
+* **2011年：** 上海交通大学学生蔡浩宇、刘伟和罗宇皓在宿舍创立 miHoYo 工作室，核心理念为“技术宅拯救世界”。同年发布首款移动游戏 **《FlyMe2theMoon》**，主角为琪亚娜·卡斯兰娜（Kiana）。
+* **2012年2月：** **上海米哈游网络科技股份有限公司**正式成立。随后发布横版射击游戏《崩坏学园》（Zombiegal Kawaii）。
+
+##### 2013–2016：崩坏 IP 的确立
+* **2014年：** **《崩坏学园2》**（Guns Girl Z）上线并走红，为公司积累了早期核心粉丝。同年启动《崩坏3》项目。
+* **2016年10月：** **《崩坏3》**（Honkai Impact 3rd）发布，凭借 3D 渲染技术和极致的打击感，米哈游实现了从 2D 到 3D 的技术跨越，并开始走向亚洲市场。
+
+##### 2017–2020：破圈与《原神》奇迹
+* **2017年：** 启动开放世界项目《原神》。同年申请 A 股 IPO，因过度依赖单一 IP 等原因面临质疑。
+* **2018年：** 推出官方社区 **米游社**（Miyoushe）。
+* **2020年：** * 撤回 IPO 申请，保持私人控股。
+    * 7月发布乙女向律政手游《未定事件簿》。
+    * **9月28日：** **《原神》**（Genshin Impact）全球全平台同步上线，迅速成为全球收入最高的移动游戏之一，标志着米哈游跻身世界顶级开发商行列。
+
+##### 2021–2024：全球化布局与多赛道并发
+* **2021年：** 员工人数突破 1000 人。虚拟偶像 **鹿鸣 (Lumi)** 走红。
+* **2022年2月：** 推出全球发行品牌 **HoYoverse**（新加坡运营），正式确立全球化战略。
+* **2023年：** * 4月发布银河冒险回合制游戏 **《崩坏：星穹铁道》**，市场表现极佳。
+    * 9月蔡浩宇卸任董事长，由刘伟接任。蔡浩宇转向北美专注于 AI 与前沿技术研究。
+* **2024年7月：** 都市动作冒险游戏 **《绝区零》**（Zenless Zone Zero）全球公测。
+
+##### 2025–2026：法律维权与 AI 深耕
+* **2025年：** 米哈游通过打击内鬼（泄密者）诉讼获得约 538 万美元赔偿金。
+* **2026年2月：** 在美国佐治亚州对著名内鬼 **HomDGCat** 提起诉讼，指控其非法获取并泄露未发布的测试版本内容（侵犯版权与窃取商业秘密）。
+* **2026年：** 鹿鸣 (Lumi) 停止活跃，公司资源进一步向 AI 模型研究及新项目整合。
+
+
+##### 核心标签与特质
+
+* **技术驱动：** 坚持自主研发引擎技术，将 3D 卡通渲染（Cel-shading）推向行业顶尖。
+* **IP 宇宙：** 围绕“崩坏”和“提瓦特”构建多媒体矩阵（动画、漫画、音乐、周边）。
+* **独立性：** 极少接受外部投资（仅有一笔 100 万人民币的天使投资），由创始团队绝对控股。
+* **反泄密铁腕：** 长期与“内鬼”进行法律博弈，通过 DMCA 警告和高额索赔维护商业秘密。
+
+#### 主要产品
+* **崩坏系列：** 《FlyMe2theMoon》、《崩坏学园2》、《崩坏3》、《崩坏：星穹铁道》。
+* **开放世界：** 《原神》（Genshin Impact）。
+* **都市/动作：** 《绝区零》（Zenless Zone Zero）。
+* **女性向：** 《未定事件簿》（Tears of Themis）。
+* **虚拟技术：** N0va Desktop（鹿鸣）、HoYoLAB（玩家社区）。
+
+#### 招聘需求
+
+
+### 百度
+#### 公司概况
+百度（Baidu）是一家成立于2000年、总部位于北京的全球领先人工智能及互联网服务巨头，由李彦宏和徐勇创立。作为中国搜索引擎市场的统治者，百度不仅拥有百度搜索、百度百科、爱奇艺及百度贴吧等核心互联网产品，更转型为拥有全栈AI技术实力的科技公司，业务涵盖自动驾驶（Apollo）、智能硬件（小度）及云计算基础设施。作为首家入选纳斯达克100指数的中国企业.
+
+
+曾经的头部企业,由于战略走向问题逐渐衰落,如今抱牢着人工智能和智能驾驶慢慢恢复生机,但是既然有这么多战略失误,而且方向都向智能驾驶靠拢了,所以建议放到第二梯队.
+
+#### AI总结的战略失误
+百度在互联网时代的战略失误，常被外界总结为“错过了一个时代”或“在关键路口反复横跳”。其核心症结在于过早建立的搜索霸权带来的路径依赖，导致在多次行业重塑中落后。
+
+以下是百度公认的四大战略失误：
+
+##### 1. 错过移动互联网的“入口门票”
+* **失误点：** 百度在移动化转型上极其迟钝。当阿里巴巴布局手机淘宝、腾讯孵化微信时，百度仍寄希望于通过“手机百度”浏览器承载一切。
+* **后果：** 移动时代形成了“App孤岛”，搜索不再是唯一入口。百度直到 2013 年才斥资 19 亿美元收购 91 无线，试图通过应用商店补票。但这被公认为一次昂贵的失败，因为随后 App Store 和各手机厂商自带商店迅速封死了第三方商店的空间。
+
+##### 2. O2O 战略的摇摆与收缩
+* **失误点：** 2015 年，李彦宏曾高调宣布“拿 200 亿砸向 O2O（百度外卖、糯米）”，试图将搜索与生活服务闭环。
+* **后果：** 在与美团、饿了么的烧钱大战中，百度由于内部资源整合不力及战略耐性不足，最终在 2017 年前后全面退缩，卖掉外卖业务。这导致百度失去了继搜索之后最真实的用户消费场景和支付数据。
+
+##### 3. 短视频与内容生态的缺位
+* **失误点：** 百度拥有强大的技术基因，却缺乏产品经理基因。在短视频爆发前夕，百度并未利用其搜索带来的巨大流量孵化出类似抖音、快手的短视频应用。
+* **后果：** 当用户的信息获取习惯从“搜文字”转向“看短视频”时，百度流量遭到字节跳动等对手的结构性打击。虽然百度后来补齐了好看视频和百家号，但已无法撼动已成型的市场格局。
+
+##### 4. “医疗广告”对品牌护城河的侵蚀
+* **失误点：** 过度依赖医疗竞价排名带来的高利润。2016 年的“魏则西事件”成为百度的品牌分水岭。
+* **后果：** 这次危机不仅导致了严格的监管处罚，更重创了公众对百度的信任。这种品牌负资产使得百度在后来的产品推广中（如 AI、自动驾驶）背负了极高的心理信任成本。
+
+---
+
+##### 总结
+百度的技术基因使其在 AI 领域领先（如 2017 年起全力押注 Apollo 和大模型），但**产品化能力的缺失**和**对核心营收（广告）的过度依赖**，使其在过去十年中不断面临“赢了技术、输了场景”的尴尬局面。
+
+直到 2024-2025 年，随着萝卜快跑（Robotaxi）和文心大模型（ERNIE）在 B 端与 C 端的落地，百度才算真正找到了摆脱“搜索路径依赖”的第二增长曲线。
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Baidu)
+
+##### 1994–2004：RankDex 算法与搜索引擎诞生
+* **1996年：** 李彦宏在 IDD 期间开发了 **RankDex** 站点评分算法，这是全球首个利用超链接评估网站质量的引擎，比谷歌的 PageRank 早两年。
+* **2000年1月18日：** 李彦宏与徐勇在北京创立百度。
+* **2001年：** 推出竞价排名（竞标广告位），早于谷歌采用类似的广告模式。
+* **2003年：** 上线新闻搜索和图片搜索，利用识别技术对文章进行自动聚类。
+
+##### 2005–2016：纳斯达克上市与移动转型
+* **2005年8月5日：** 百度在纳斯达克挂牌上市，成为当时美股市场的焦点。
+* **2007–2008年：** 成为首个获得新闻发布牌照的搜索平台；启动日本搜索业务（后于2015年关闭）。
+* **2010年1月：** 遭遇著名的 DNS 劫持攻击，导致服务中断四小时。
+* **2013年：** 以 18.5 亿美元收购 **91 无线**，创下当时中国互联网史上最大并购案；收购纵横中文网成立百度文学。
+* **2014年：** 吴恩达（Andrew Ng）加盟担任首席科学家，百度研究院开始发力人工智能（AI）。
+
+##### 2017–2022：自动驾驶与 AI 转型
+* **2017年4月：** 推出 **Apollo（阿波罗）** 自动驾驶开放平台，正式进军智能驾驶领域。
+* **2017年9月：** 联合阿里、腾讯等注资 120 亿美元入股中国联通。
+* **2018年：** 剥离全球移动应用业务（如 ES 文件浏览器），更名为 DO Global 独立运营；被中国政府指定为“人工智能国家队”。
+* **2021年3月：** 在香港联交所完成二次上市。
+* **2022年6月：** 旗下集度汽车（Jidu Auto）发布首款概念车 ROBO-01。
+
+##### 2023–至今：大模型爆发与全球布局
+* **2023年8月：** 正式向公众发布大语言模型 **文心一言（Ernie Bot）**。
+* **2024年4月：** 自动驾驶出行平台“萝卜快跑（Apollo Go）”累计订单突破 600 万单，在武汉部署超 400 辆无人车。
+* **2025年3月：** 发布 **文心大模型 4.5** 及推理模型 **ERNIE X1**，宣称在性能对标 DeepSeek R1 的同时成本仅为一半。
+* **2025年7月：** 与 **Uber** 达成合作，计划将萝卜快跑（Apollo Go）部署至美国和中国内地以外的市场。
+* **2026年1月：** 百度正式向港交所提交申请，拆分其半导体业务子公司 **昆仑芯（Kunlunxin）** 独立上市。
+#### 旗下公司及产品
+
+##### 1. 移动生态与人工智能应用
+* **百度 App：** 旗舰产品，集成搜索、信息流、百家号、小程序等功能，目前深度嵌入 **文心一言 (ERNIE Bot)** 实现 AI 原生搜索。
+* **文心大模型 (ERNIE)：**
+    * **文心一言 5.0：** 2026 年 1 月发布的下一代原生多模态大模型，支持文字、视觉、音频的统一理解与生成。
+    * **ERNIE X1：** 高性能推理模型，主打逻辑推理与深度思考（Deep Thinking），对标全球顶尖推理模型。
+* **百度百科 & 百度贴吧：** 核心内容社区，国内最大的百科全书和基于兴趣的中文论坛。
+* **爱奇艺 (iQIYI)：** 控股的长视频流媒体平台。
+
+##### 2. 智能云与算力基础设施
+* **百度智能云 (Baidu AI Cloud)：** 国内市场份额领先的 AI 云供应商，主打 **MaaS (Model-as-a-Service)** 模型即服务，为企业提供大模型训练与部署环境。
+* **昆仑芯 (Kunlunxin)：** 百度旗下的半导体子公司，专注 AI 芯片（如 M100/M300 系列），已于 2026 年 1 月正式启动在港上市流程。
+
+##### 3. 智能驾驶与机器人
+* **萝卜快跑 (Apollo Go)：** 全球领先的无人驾驶出行服务平台。
+    * **规模：** 截至 2026 年初，累计订单突破 2000 万单，在武汉、北京等地实现商业化盈利（Unit Economics Breakeven）。
+    * **全球布局：** 与 **Uber** 达成全球战略合作，2026 年上半年开始在英国伦敦及中东迪拜测试及部署无人车车队。
+* **Apollo RT6：** 自研 Level 4 级量产无人车，采用无方向盘设计，单车成本降至 3 万美元（约 20 万人民币）以内。
+
+##### 4. 智能硬件与消费电子
+* **小度 (Xiaodu)：** 独立运营的智能硬件品牌。
+    * **智能屏与音箱：** 搭载 DuerOS 系统的智能家居核心。
+    * **小度添添家庭智能机器人：** 2025 年推出的全球首款大模型驱动的家庭机器人，具备情绪互动与护理功能。
+    * **AI 酒店解决方案 4.0：** 2026 年 4 月发布，覆盖客房数突破 260 万间，并拓展至新加坡、泰国市场。
+
+---
+
+##### 核心事业部架构
+* **MEG (移动生态事业群)：** 负责搜索、信息流、贴吧、百家号等。
+* **ACG (智能云事业群)：** 负责云计算、企业级 AI 服务、昆仑芯业务。
+* **IDG (智能驾驶事业群)：** 负责 Apollo 自动驾驶、萝卜快跑、智能交通。
+* **SLG (智能生活事业群)：** 即小度科技，负责智能硬件与语音助手。
+#### 招聘需求
+##### 面经1
+```md
+## 题目
+
+> **题目来源**：https://www.nowcoder.com/feed/main/detail/d39aabc0debd4dba810b4b9671d54348
+
+**1.基础题**
+
+- 有几种网络 Io 模型？
+- 异步网络模型在什么场景下你了解有应用过？（回答了线程相关的场景）
+- 除了用线程完成，还有什么操作可以完成异步操作？
+- 同步阻塞和同步非阻塞在Java层面怎么实现？（说前面网络io模型答得挺顺畅，具体实现细节还需要提升一下）
+- 描述一下一次完整的 Http 请求
+- 知道的长连接有几种实现方式？
+- 一个 Http 请求包含哪几部分内容？
+
+**2.代码题**
+
+- 设计一个 HashSet（完全不会）
+
+**3.场景题**
+
+- 1T 的数据怎么加载到 200M 的内存中，并且找到两行一样的数据？
+- Java 打开 1T 文件，第一部操作做什么？
+- 用代码打开一个文件和用鼠标打开一个文件有什么区别？
+```
+
+### 滴滴
+#### 公司概况
+滴滴出行（DiDi）是一家成立于2012年、总部位于北京的全球领先移动出行科技公司，由程维创立。公司通过整合原滴滴打车与快的打车，并于2016年收购优步中国（Uber China），确立了在中国共享出行市场的统治地位，业务涵盖网约车、出租车、单车、汽车服务及自动驾驶等。尽管在2021年纽交所上市后经历了严峻的网络安全审查、退市及巨额罚款，滴滴于2023年初恢复新用户注册并重回正常运营，目前正持续深耕国内市场并积极拓展拉美等海外业务。
+- 负责打车业务,中国uber
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/DiDi)
+
+##### 2012–2014：初创与补贴大战
+* **2012年6月：** 程维在北京创立“滴滴打车”（小桔科技），最初仅提供出租车呼叫服务。随后获得腾讯 1500 万美元投资。
+* **2014年：** 与阿里巴巴支持的“快的打车”展开疯狂的补贴大战，争夺刚兴起的移动出行市场入口。
+
+##### 2015–2016：巨头合并与击退 Uber
+* **2015年2月：** 滴滴打车与快的打车宣布战略合并，成立“滴滴快的”，占据国内出租车打车市场 99% 的份额。随后更名为“滴滴出行”。
+* **2016年8月：** 滴滴宣布收购 **优步中国 (Uber China)**。交易完成后，Uber 获得滴滴 17.7% 的经济权益。此举标志着滴滴彻底终结了中国网约车市场的混战，确立了绝对统治地位。
+
+##### 2017–2020：安全危机与整改
+* **2017年：** 完成多轮巨额融资（包括软银、苹果投资），公司估值达到 500 亿美元。
+* **2018年：** 发生两起“顺风车”乘客遇害严重安全事件。滴滴随后无限期下线顺风车业务（后逐步恢复），并投入 2000 万美元用于安全系统升级，设立 8000 人客服团队。
+* **2018年：** 启动“红旗方向盘”计划，招募 1000 名党员司机以增强合规与安全性。
+
+##### 2021–2022：监管风暴与纽交所退市
+* **2021年6月30日：** 滴滴在**纽约证券交易所 (NYSE)** 挂牌上市。
+* **2021年7月：** 上市仅数日，因违反《网络安全法》等法规，滴滴被国家网信办（CAC）实施网络安全审查，旗下 25 款应用被要求下架。
+* **2022年6月：** 滴滴正式从纽交所退市。同年 7 月，网信办对其处以 **80.26 亿元人民币**巨额罚款。
+
+##### 2023–至今：恢复增长与造车业务整合
+* **2023年1月：** 经报网络安全审查办公室同意，滴滴恢复“新用户注册”。
+* **2023年8月：** 滴滴策略性收缩造车业务。将旗下智能电动汽车（Mona 项目）及自动驾驶资产以约 7.44 亿美元对价出售给 **小鹏汽车 (XPeng)**，并成为小鹏的战略股东。
+* **2024年5月：** 联合创始人**柳青 (Jean Liu)** 辞去总裁及董事职务，转任“永久合伙人”及首席人才官，公司不再设总裁职位。
+* **2025–2026年：** 滴滴持续深耕海外市场（如拉美、非洲），并加速与小鹏、比亚迪在定制网约车及自动驾驶技术上的协同落地。
+
+---
+
+#### 旗下业务与产品板块
+
+* **核心出行：** 滴滴快车、滴滴优享、滴滴专车、滴滴豪华车。
+* **公共出行：** 滴滴出租车、滴滴公交（路线查询及定制巴士）。
+* **两轮车：** 青桔单车、青桔电单车。
+* **汽车服务：** 小桔能源（充电、加油）、养车、租赁及二手车。
+* **自动驾驶：** **DiDi Autonomous Driving**（已与小鹏、广汽等深入合作落地 L4 级技术）。
+* **海外业务：** 覆盖巴西（收购 99 平台）、墨西哥、智利、南非、日本等多个国际市场。
+
+#### 招聘需求
+
+### 小米
+
+#### 公司概况
+小米（Xiaomi）是一家成立于2010年、总部位于北京的全球顶尖科技巨头，由雷军及其合伙人创立。公司以智能手机、互联网物联网（IoT）平台及电动汽车为核心业务，凭借高性价比策略和独特的粉丝文化迅速崛起，2025年已稳居全球第三大智能手机厂商，并成为《财富》世界500强中最年轻的企业。通过自研的澎湃 OS（HyperOS）及庞大的生态链系统，小米构建了涵盖家电、穿戴设备及智能出行的全方位科技生态。
+
+- 手机和汽车厂商,计算机的只招ML和硬件领域的,同样放在第二梯队
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/Xiaomi)
+
+##### 2010–2013：初创与“互联网手机”风暴
+* **2010年4月6日：** 雷军联合林斌（原谷歌）、周光平（原摩托罗拉）等七人于北京创立小米。
+* **2010年8月：** 发布基于 Android 的自研系统 **MIUI**（现已演进为 HyperOS）。
+* **2011年8月：** 首款手机 **小米1** 发布，以 1999 元的颠覆性价格和“为发烧而生”的定位开启互联网手机时代。
+* **2013年：** 引入谷歌副总裁 Hugo Barra 负责国际化；同年发布小米3及首款小米智能电视。
+
+##### 2014–2020：生态链扩张与港股上市
+* **2014年：** 以 360 万美元购买 **mi.com** 域名；小米成为中国市场份额第一的手机品牌，估值达 450 亿美元。
+* **2015–2017年：** 经历巴西扩张受挫及国内市场调整；2017 年在印度市场超越三星夺冠；确立“小米生态链”模式，投资石头科技等初创公司。
+* **2018年7月：** 在**香港联交所**正式挂牌上市。随后推出游戏手机品牌黑鲨（Black Shark）及高性价比品牌 **POCO**。
+* **2020年：** 小米手机出货量升至全球第三；发布首款折叠屏手机 Mi Mix Fold。
+
+##### 2021–2024：造车战略与高端化转型
+* **2021年3月：** 雷军宣布“人生最后一次重大创业”——**投入 100 亿美元进军电动汽车领域**。同时更换由原研哉设计的“超椭圆”新 Logo。
+* **2022–2023年：** 成立半导体公司芯片研发团队；与徕卡（Leica）达成影像战略合作；与华为达成 5G 等通信技术全球专利交叉许可协议。
+* **2024年：** 首款电动轿车 **小米 SU7** 正式上市并交付，凭借强大的生态连接能力迅速引爆汽车市场。
+
+##### 2025–至今：自研芯片、AI 大模型与 SUV 落地
+* **2025年4-5月：** 进军大模型领域，推出 **Xiaomi MiMo**；5月正式发布自研 **3nm 工艺**手机处理器芯片 **XRING O1**，首搭于小米 15S Pro。
+* **2025年6月：** 首款纯电 SUV 车型 **小米 YU7** 正式上市。
+* **2025年10月：** 推出短剧应用“微观短剧”，探索内容分发新赛道。
+* **2026年4月：** 发布万亿参数大语言模型 **MiMo-V2-Pro**；雷军宣布未来三年将投入至少 **87 亿美元** 深耕人工智能领域。
+
+#### 旗下公司及产品
+
+##### 1. 智能终端
+* **手机：** 小米系列（高端/影像）、红米（Redmi，高性价比）、POCO（海外）。
+* **可穿戴设备：** 小米手环、小米手表、耳机。
+* **自研芯片：** 澎湃 (Surge) 系列（电源管理、影像处理）、XRING 系列（核心 SoC）。
+
+##### 2. 小米汽车 (Xiaomi EV)
+* **小米 SU7：** 纯电 C 级高性能轿车。
+* **小米 YU7：** 2025 年发布的纯电 SUV。
+* **核心技术：** 超级电机 (HyperEngine)、自研 CTB 电池技术、全栈自研自动驾驶系统（Deepmotion 收购支持）。
+
+##### 3. AI 与软件生态
+* **HyperOS (澎湃 OS)：** 贯穿手机、人、家、车的全生态操作系统。
+* **MiMo 系列大模型：** 涵盖轻量化端侧模型及万亿参数专业模型。
+
+##### 4. 生态链控股/参股公司
+* **智米 (Smartmi)：** 空气净化器、空调等。
+* **石头科技 (Roborock)：** 扫地机器人。
+* **华米 (Zepp Health)：** 智能穿戴。
+* **九号公司 (Segway-Ninebot)：** 平衡车、电动滑板车。
+* **半导体布局：** 珠海芯试半导体、湖北小米长江产业基金投资的多家国产芯片厂商。
+
+#### 招聘需求
+
+### 得物
+#### 公司概况
+得物（Poizon）是一家成立于2015年、总部位于上海的全球领先潮流网购社区，由杨冰创立（原虎扑联合创始人）。公司最初作为潮流资讯社区起步，后通过首创“先鉴别，后发货”的购物流程，解决了球鞋及奢侈品行业的真伪痛点，确立了其在中国年轻人潮流消费市场的领导地位。业务涵盖球鞋、服装、美妆、数码以及二手交易等。
+
+#### 公司历史
+- [Wiki](https://zh.wikipedia.org/wiki/%E5%BE%97%E7%89%A9)
+
+##### 2015–2017：社区起步与资讯积累
+* **2015年7月：** 杨冰在虎扑内部孵化出“毒”App，最初定位为纯粹的潮流资讯与球鞋鉴别社区。
+* **2017年：** 正式引入电商交易模式，首创“先鉴别，后发货”的商业逻辑，从资讯平台转型为闭环交易平台。
+
+##### 2018–2019：爆发式增长与融资潮
+* **2018年：** 获得红杉中国、普思资本等多轮投资，平台交易额（GMV）进入高速增长期，成为独角兽企业。
+* **2019年：** 完成由 DST Global 领投的 A轮融资，估值达到 10 亿美元。平台通过“球鞋指数”及透明的交易机制，深刻影响了国内球鞋二级市场的定价体系。
+
+##### 2020–2022：品牌升级与品类扩张
+* **2020年1月：** “毒”App正式更名为“得物 (Poizon)”，旨在淡化单一的球鞋标签，向全品类潮流生活方式平台迈进。
+* **2021年：** 大力拓展美妆、数码、潮玩、艺术品等非鞋类业务，并吸引超过数千家国内外知名品牌入驻开设官方旗舰店。
+* **2022年：** 建立全球规模领先的查验鉴别中心，通过计算机视觉、AI 辅助与人工复核相结合，进一步提升查验效率与准确性。
+
+##### 2023–至今：全球化布局与技术深耕
+* **2023年：** 加速海外版 Poizon 的运营，通过跨境电商模式将中国潮流设计推向全球市场。
+* **2024年：** 进一步强化社区内容生态，投入数亿元扶持潮流博主，强化“社交+电商”的双轮驱动模式。
+* **2025–2026年：** 持续优化“鉴别实验室”技术体系，探索 AR 试穿、VR 购物等前沿交互体验，并与头部品牌深度联动开发独家限量单品。
+
+---
+
+#### 旗下业务与产品板块
+
+* **核心电商：** 得物 App（涵盖球鞋、服装、箱包、配饰等全品类）。
+* **技术创新：** **Poizon Lab**（专注于商品鉴别算法、3D 建模及数字水印技术）。
+* **海外业务：** **Poizon Global**（覆盖北美、欧洲及东南亚市场，提供全球化的潮流消费体验）。
+#### 招聘需求
+
+##### 面经1
+```md
+## 题目
+
+> 题目来源：https://www.nowcoder.com/discuss/525371909735792640
+
+**（1）八股：**
+
+- 生产场景下什么时候用 ArrayList ，什么时候用 LinkedList
+- 创建线程的方式
+- 为什么 volatile 能保证多线程可见
+- 在并发量特别高的情况下是使用 synchronized 还是 ReentrantLock
+- 说一下 ConcurrentHashMap 中并发安全的实现
+- 你说高并发下 ReentrantLock 性能比 synchronized 高，那为什么 ConcurrentHashMap 在 JDK 1.7 中要用 ReentrantLock，而 ConcurrentHashMap 在 JDK 1.8 要用 Synchronized
+- 有哪些并发安全的实现方式（简单讲了下 JUC）
+
+**（2）场景题：**
+
+- 不用 ThreadLocal 你会想用什么方式存用户信息
+- 有千万级数据，如何判断一个整数是否存在（布隆过滤器）
+- 如何理解：布隆过滤器说某个元素存在，则大概率在。布隆过滤器说某个元素不在，则一定不在
+- 千万级数据用布隆过滤器初始化的时候 redis 太慢了，有没有什么好方法（RDB 的 bgsave）
+- 多线程间如何传值（volatile修饰共享变量、阻塞队列、ThreadLocal）
+- 如何设计登陆黑名单
+
+**（3）手撕：面试官说看我笔试AK了，就不出手撕了**
+```
+### 拼多多
+
+#### 公司概况
+拼多多（Pinduoduo）是拼多多控股（PDD Holdings）旗下的核心电商平台，由黄峥于2015年在上海创立。通过开创性的“拼购”社交电商模式和对下沉市场及农产品供应链的深耕，拼多多在阿里与京东的垄断中迅速崛起，并在2020年成为中国用户规模最大的电商平台。2023年公司更名为拼多多控股，并将法律总部迁至爱尔兰都柏林，同时推出全球化平台 **Temu**。截至2026年初，凭借“C2M”模式和全球化的半托管策略，PDD Holdings 已成为全球利润率最高的零售实体之一，2025年营收突破617亿美元，其现金储备甚至一度超越阿里巴巴。
+- 一家初创公司能够在非常成熟的电商领域里,在阿里和京东两大巨头的垄断下,杀出一条血路,用的手段一定**非常肮脏**
+#### 公司历史
+- [Wiki](https://en.wikipedia.org/wiki/PDD_Holdings)
+
+##### 2015–2017：差异化崛起
+* **2015年：** 软件工程师黄峥创立拼多多，初期深耕农业领域，在阿里与京东垄断的电商市场中通过“社交拼团”模式寻找生存空间。
+* **2017年：** 凭借微信生态的病毒式传播迅速扩张，触达传统电商忽视的下沉市场和低收入群体。
+
+##### 2018–2020：纳斯达克上市与用户增长神话
+* **2018年7月：** 拼多多在**纳斯达克 (NASDAQ)** 上市。随后因假货和“山寨”产品问题遭遇中国监管部门（SAMR）调查及卖家抗议。
+* **2019年：** 推出“百亿补贴”战略，试图扭转品牌形象并吸引一二线城市用户。
+* **2020年：** * 疫情期间推出“多多买菜”，进军社区团购。
+    * 上线“多多批发” B2B 平台。
+    * **里程碑：** 年度活跃买家数达 7.88 亿，首次超越阿里巴巴成为中国用户规模最大的购物 App。
+
+##### 2021–2023：全球化与总部迁移
+* **2021年：** GMV（成交总额）达到 4.17 万亿人民币。黄峥辞任董事长。
+* **2022年9月：** 姊妹公司 **Temu** 在美国上线，开启全球化扩张。
+* **2023年：** PDD Holdings 将法律总部（注册地）从上海迁至**爱尔兰都柏林**。同年，主站 App 因存在利用 Android 漏洞的恶意代码风险被谷歌下架。
+
+##### 2024–至今：合规压力与东南亚版图
+* **2024年：** * 因强迫劳动质疑和知识产权盗窃指控，Temu 在美国遭遇严厉审查，多个州对其提起消费欺诈诉讼。
+    * 内部“竞业协议”争议引发媒体关注，被指通过视频监控证据起诉跳槽员工。
+* **2025年12月：** 启动马来西亚战役，在当地推行免运费政策，加速深耕东南亚。
+* **2026年：** PDD Holdings 成为全球利润率最高的零售企业之一。
+
+
+#### 核心争议与挑战
+
+* **假货与山寨：** 长期被美国贸易代表办公室 (USTR) 列入“恶名市场”名单。尽管公司采取封店和 10 倍赔偿措施，但供应链监管压力持续存在。
+* **网络安全与隐私：** 2023 年被多家国际安全机构（如卡巴斯基、CNN 访谈团队）贴上“恶意软件”标签，指控其非法获取用户文件及通知权限。
+* **劳工与竞业：** 极高强度的工作节奏及针对基层员工的严苛竞业条款在行业内引发广泛争议。
+
+
+#### 旗下产品
+
+* **拼多多 (Pinduoduo)：** 国内 C2M 社交电商平台，核心竞争力在于农产品直采和低价策略。
+* **Temu：** 全球化跨境电商平台，通过“全托管/半托管”模式在北美、欧洲、东南亚极速扩张。
+* **多多买菜：** 高频生活服务入口，负责生鲜配送及社区自提业务。
+#### 招聘需求
+自己搜吧
+
+
+## 总结
+
+### 巨头分析
+一步领先,步步领先,上述企业中的巨头很早就在市场的对应领域上建立了统治地位,并且屹立十年/二十年/三十年不倒,可想而知,不发生什么特别离谱的事情的话,这些巨头将会持续存在下去,并将业务越做越大,不断蚕食和合并初创公司和小型企业,就像韩国的三星那样垄断了多个特定区域/领域的市场.
+
+而这些巨头也有自己的本钱:
+1. 高投入的科研机构
+2. 顶尖人才的聚集
+3. 庞大的产业帝国
+4. 不必打广告就人尽皆知的名气
+
+一家初创公司如果不是瞄准某个特别刁钻的痛点,如果没有大量资金的投入,如果没有完美的运营方式,是不太可能与这些巨头抗衡的,只能在角落瑟瑟发抖.
+### 内地公司分析
+内地的互联网公司起步普遍比外企晚了二十年以上,比得过外企反而是不正常的.
+
+组织架构上也都比较稚嫩,历史底蕴也不深,很多公司的领导人至今都没变过,技术积累也不多,产业链也不够庞大,不少还保留着暴发户的气质,有点强盗/小偷风范.
+
+由于政府的支持和内地的特殊环境,内地企业能够轻松抵御巨头的外来影响,统治本土市场,但想要向外推广通常都是举步维艰的.
+# 面试
+## 简历编写
+
+### 简历模板
+
+* [闻所未闻的动态简历](https://jirengu-inc.github.io/animating-resume/public/)
+
+  * 这个模板让人耳目一新,但只适合前端工程师
+* [可在线编辑的简历](https://visiky.github.io/resume/?template=template2&user=visiky)
+
+  * 中规中矩,比较清晰,推荐使用
+* [精美简历](https://github.com/salomonelli/best-resume-ever)
+
+  * 需要专门去下载老版本的node才可以运行,根据issue和实测,至少大于18版本的node都不行
+* [md格式简历](https://github.com/geekcompany/ResumeSample)
+
+  * 没什么弯弯绕绕,也很好编辑
+* [简历模板大集合](https://github.com/mmmlllnnn/ResumeCollection)
+
+  * 如果都不满意,就来这里找适合自己的
+
+写简历最难的地方就是找自己的优点了,我们需要通过一种实在的角度来夸自己,不过分包装,但要让自己显得很专业很厉害,需要一点语言上的基本功.
+
+### 简历之外
+
+有时候,公司的简历提交网站上除了提交简历之外还要你填写其他的内容:
+![示意图](PixPin_2026-05-06_18-25-29.webp)
+
+所以我们需要将简历上没写的一些不是很重要的补充信息填上去,帮助面试官加深印象.
+
+## 内推码
+
+在有了简历之后,我们就可以去对应公司的官网投递了,由于内地公司盛行内推码(真不知道最早是哪个**小可爱**想出来的),所以你需要先去小红书/微信上搜索对应公司的内推码,一般直接搜就会有最新的内推码了,直接用就可以.
+
+* 当然有认识的学长学姐更好,但正常来说不会这么凑巧吧...
+
+## 准备面试
+
+不管怎样,投递了简历之后就要开始准备面试了,面试中的问题大致有四种:
+
+1. 算法题
+2. 技术题(通常会拷打你简历上的项目)
+3. 生活相关的提问
+4. 反问环节
+
+所以我们针对每一类题型都要做好相应的准备,接下来我重点谈谈两个环节: **算法题和反问环节**,技术题和生活题真全靠个人修养了.
+
+## 算法题
+
+刷题是面试的必备环节,尽管这些算法你以后再也不会在项目中用到,但还是需要你背得滚瓜烂熟.
+
+至于为什么要考算法题,我之前看到有个人说的很好: **企业不敢招连算法题都不会的人**.
+
+这本质上是一场服从性测试,如果你面试前连算法都不愿意去刷的话,你又怎么愿意为了这个公司付出更大的努力呢.
+
+而由于面试的算法题跟竞赛题比起来简直是小儿科,因此基本只要**一个月每天刷个10道题**就可以秒杀所有的面试题了.如果你不满足于刷题的话,可以去看洛谷的**深入浅出系列**,并跟着题单来刷,保证可以快速入门算法.至于其他的算法书,由于不成体系或者体量过大,基本全都是狗屁...
+
+## 反问环节
+
+* 可参考GitHub仓库: reverse-interview-zh
+
+**"你有什么想问的吗?"**,这个问题基本是面试的收尾必备环节,到了这一步你的表现其实已经不大重要了,毕竟该暴露的都已经暴露了...所以情商不要太低就行,随便问点问题水过去.
+
+尽管如此,工程师一般都是心地淳朴(~~呆头呆脑~~)的人,所以有人特定总结了一点反问用的语句(根据上面的仓库总结):
+
+### 职责
+
+* 我的日常工作是什么？
+* 有给我设定的特定目标吗？
+* 团队里面初级和高级工程师的比例是多少？（有计划改变吗）
+* 入职培训 (onboarding) 会是什么样的？
+
+### 技术
+
+* 公司常用的技术栈是什么？
+* 你们怎么使用源码控制系统？
+* 你们怎么测试代码？
+
+### 团队
+
+* 工作是怎么组织的？
+* 团队内 / 团队间的交流通常是怎样的？
+* 你们使用什么工具来做项目组织？你的实际体会是什么？
+* 如果遇到不同的意见怎样处理？
+* 不同的意见如何处理？
+* 如果被退回了会怎样？（“这个在预计的时间内做不完”）
+* 当团队有压力并且在超负荷工作的时候怎么处理？
+* 如果有人注意到了在流程或者技术等其他方面又改进的地方，怎么办？
