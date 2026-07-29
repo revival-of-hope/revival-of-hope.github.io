@@ -1,5 +1,5 @@
 ---
-title: 折腾记录
+title: 折腾日志
 date: 2025-12-16 08:00:00
 tags:
 image: 86800864_p0-no title.webp
