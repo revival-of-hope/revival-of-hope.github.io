@@ -6,16 +6,6 @@ image: 62549331_p0-フランちゃんとチェス.webp
 math: 
 ---
 
-# Web Automation Testing Using Playwright
-## 介绍
-人工编写测试用例并逐一运行过于繁琐,这也是测试工具不断演进不断发展的原因,而在其中名气处于第一梯队的就是Playwright了,而它这么火爆的另一个原因是还可以被用于爬虫.谁能想到,Playwright的正式发布时间也才在2020年呢,至于老牌的Selenium由于更差性能和更复杂的调用方式则逐渐落伍.有力的竞争者之一则是Cypress,由于它运行在浏览器内部,不需要额外安装驱动,所以也占有了一席之地.
-
-
-## 安装Playwright
-- 每次安装都麻烦的过头了好不好
-![示意图](PixPin_2026-07-29_12-03-37.webp)
-
-
 # Rust程序设计语言
 - 由浅入深,这才是正常的教科书,不吊打Go圣经几条街.
 
@@ -187,7 +177,6 @@ Es的底层引擎为使用Java编写的Lucene,再在外面套了一层符合Rest
 
 ## 架构
 
-# golang实现网络爬虫
 
 # Redis in action(待补充)
 ## 介绍
@@ -223,9 +212,222 @@ set类型支持`sadd`,`srem`等命令
 
 
 # Redis设计与实现(待补充)
+# golang实现网络爬虫
 
-# RabbitMQ官方python文档
+# Rootkit和Bootkit：现代恶意软件逆向分析和下一代威胁
+Rootkit: 针对操作系统内核
+Bootkit: 针对MBR等引导扇区
+## Rootkit
+### TDL3
+为了在系统重新启动时幸存下来，TDL3通过在驱动程序的二进制文件中注入恶意代码来感染加载操作系统所必需的一个引导启动驱动程序.
 
+一旦选择了一个目标驱动程序，TDL3感染程序就会用一个恶意加载程序覆盖它的资源部分.rsrc的前几百个字节，从而修改驱动程序在内存中的映像。这个加载程序非常简单：它只是在启动时从硬盘上加载它需要的其余恶意软件代码。
+
+这种方式只能针对x32位系统起作用,因为x64位系统需要对内核代码进行完整性的检查,通过数字签名即可阻止TDL3的运行.
+
+![目标](PixPin_2026-07-30_12-23-56.webp)
+
+>TDL3是第一个将配置文件和有效负载存储在目标系统隐藏的加密存储区域的恶意软件系统，不依赖于操作系统提供的文件系统服务。
+
+### Festi
+>本章专门讨论发现的最先进的垃圾邮件和分布式拒绝服务
+（DDoS）僵尸网络之一—Win32/Festi僵尸网络，我们将其简称为Festi。Festi拥有强大的垃圾邮件发送和DDoS功能，以及有趣的Rootkit功能，这使得它可以连接到文件系统和系统注册表而不被人发现。Festi还通过使用调试器和沙箱规避技术来对抗动态分析，以隐藏自己的存在。
+
+Festi的Dropper（植入程序）有一个相当简单的功能—在系统中安装一个内核模式驱动程序，该驱动程序实现了恶意软件的主要逻辑。内核模式组件注册为“系统启动”内核模式驱动程序，并随机生成名称，这意味着在初始化期间，恶意驱动程序将在系统启动时加载和执行。
+
+内核模式驱动程序有两个主要职责：从命令和控制（C&C）服务器请求配置信
+息，以及以插件的形式下载和执行恶意模块（见图2-2）。每个插件专用于特定的任
+务，例如对指定的网络资源执行DDoS攻击，或向C&C服务器提供的电子邮件列表发送
+垃圾邮件。
+
+有趣的是，插件并不存储在系统硬盘驱动器上，而是存储在易失性内存中，这意
+味着当受感染的计算机被关闭或重新启动时，插件就会从系统内存中消失。这使得恶
+意软件的取证分析变得非常困难，因为存储在硬盘上的唯一文件是主内核模式驱动程
+序，它既不包含有效负载，也不包含攻击目标的任何信息。
+
+## Bootkit
+可以看到,由于操作系统的安全性能不断提高,Rootkit已经式微,随之而来的是更加深入底层的Bootkit类型软件.
+# Responsive Web Design with HTML5 and CSS,Fourth Edition
+# Tailwind CSS
+## ch1
+```html
+  <body>
+    <div class="container mx-auto">
+      <header
+        class="flex justify-between items-center sticky top-0 z-10 py-4 bg-blue-900"
+      >
+        <div class="flex-shrink-0 ml-6 cursor-pointer">
+          <i class="fas fa-wind fa-2x text-yellow-500"></i>
+          <span class="text-3xl font-semibold text-blue- 200"
+            >Tailwind School</span
+          >
+        </div>
+        <ul class="flex mr-10 font-semibold">
+          <li class="mr-6 p-1 border-b-2 border-yellow-500">
+            <a class="cursor-default text-blue-200" href="#">Home</a>
+          </li>
+          <li class="mr-6 p-1">
+            <a class="text-white hover:text-blue-300" href="#">News</a>
+          </li>
+          <li class="mr-6 p-1">
+            <a class="text-white hover:text-blue-300" href="#">Tutorials</a>
+          </li>
+          <li class="mr-6 p-1">
+            <a class="text-white hover:text-blue-300" href="#">Videos</a>
+          </li>
+        </ul>
+      </header>
+    </div>
+  </body>
+```
+1. container作为容器,限制页面与网页边框的间距
+2. mx-auto作用于div,section,或者设置了flex的元素,使得这些元素在父容器中水平居中,`m=margin`,`x=横向`,若为`my-auto`则表示纵向
+3. justify-between (justify-content: space-between)：将子元素沿水平方向向两端推开
+4. items-center (align-items: center)：让不同高度的子元素在垂直方向居中对齐。
+5. sticky: 固定该元素,会随着页面滚动
+6. `z-10`,z轴优先级,设置高优先级保证始终位于页面最上层.
+7. `py-4`: padding-y为4*4px
+8. `bg-blue-900`: 背景为蓝色,强度为900,色调的默认范围为50到950
+
+```html
+<div class="flex-shrink-0 ml-6 cursor-pointer">
+  <i class="fas fa-wind fa-2x text-yellow-500"></i>
+  <span class="text-3xl font-semibold text-blue-200">Tailwind
+  School</span>
+</div>
+```
+1. `fas fa-wind`: 风图标,属于Font Awesome库
+2. `fa-2x`: 放大为2倍.
+3. `ml-6`: margin-left,6*4px
+4. `cursor-pointer`: 悬停时光标变成pointer(手),自然还有`cursor-wait`等其他的光标形状
+5. `text-2xl`: 2倍字号大小
+6. `font-semibold`: 半粗体
+7. `flex-shrink-0`: 控制当 Flex 容器空间不足时，元素是否以及如何按比例缩小,若为0则表示不缩小.
+
+```html
+<ul class="flex mr-10 font-semibold">
+          <li class="mr-6 p-1 border-b-2 border-yellow-500">
+            <a class="cursor-default text-blue-200" href="#">Home</a>
+          </li>
+          <li class="mr-6 p-1">
+            <a class="text-white hover:text-blue-300" href="#">News</a>
+          </li>
+          <li class="mr-6 p-1">
+            <a class="text-white hover:text-blue-300" href="#">Tutorials</a>
+          </li>
+          <li class="mr-6 p-1">
+            <a class="text-white hover:text-blue-300" href="#">Videos</a>
+          </li>
+        </ul>
+```
+- `text-white hover:text-blue-300`:很好看懂
+
+## 补充学习
+遗憾的是,这篇教程剩下的内容用的是vue,而且还是tailwind v3版本,不具备任何的实用性,所以只好做点个人的补充了.
+
+在某个文件夹运行下述命令:
+```bash
+npx create-next-app@latest . --src-dir --ts --no-agents-md
+```
+如果用pnpm的话则这样写:
+```bash
+pnpm dlx create-next-app@latest . --src-dir --ts --no-agents-md
+```
+
+之所以不要额外干什么活儿,是因为nextjs已经将tailwindcss全部内置统一安装了,还是非常不错的.
+
+好在ch1学的东西已经够用了,现在再来看`page.tsx`就不觉得是鬼画符了:
+```tsx
+// 省略了几个图像
+export default function Home() {
+  return (
+    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
+          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
+            To get started, edit the page.tsx file.
+          </h1>
+          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
+            Looking for a starting point or more instructions? Head over to{" "}
+            <a
+              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+              className="font-medium text-zinc-950 dark:text-zinc-50"
+            >
+              Templates
+            </a>{" "}
+            or the{" "}
+            <a
+              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+              className="font-medium text-zinc-950 dark:text-zinc-50"
+            >
+              Learning
+            </a>{" "}
+            center.
+          </p>
+        </div>
+      </main>
+    </div>
+  );
+}
+```
+1. `flex-1`,等价于下述代码:
+
+```css
+flex: 1 1 0%;
+/* 等价拆解：
+   flex-grow: 1;   (允许拉伸放大以填满剩余空间)
+   flex-shrink: 1; (允许在空间不足时按比例缩小)
+   flex-basis: 0%; (初始基准尺寸忽略内容固有宽度)
+*/
+```
+
+2. `max-w-md`: 最大宽度为medium尺寸
+3. `dark:bg-black`: 当主题被设置为dark时,背景变成black
+4. `leading-8`: line-height为8*4px大小
+
+必须承认,tailwind确实很好记,怪不得这么火.
+
+# Web Automation Testing Using Playwright
+## 介绍
+人工编写测试用例并逐一运行过于繁琐,这也是测试工具不断演进不断发展的原因,而在其中名气处于第一梯队的就是Playwright了,而它这么火爆的另一个原因是还可以被用于爬虫.谁能想到,Playwright的正式发布时间也才在2020年呢,至于老牌的Selenium由于更差性能和更复杂的调用方式则逐渐落伍.有力的竞争者之一则是Cypress,由于它运行在浏览器内部,不需要额外安装驱动,所以也占有了一席之地.
+
+
+## 安装Playwright
+- 每次安装都麻烦的过头了好不好
+![示意图](PixPin_2026-07-29_12-03-37.webp)
+
+```bash
+pnpm create playwright@latest
+```
+## locators
+playwright中的定位器都很朴素,调用方法如下:
+```ts
+import { test, expect } from '@playwright/test';
+
+test('has title', async ({ page }) => {
+  await page.goto('https://playwright.dev/');
+
+  // Expect a title "to contain" a substring.
+  await expect(page).toHaveTitle(/Playwright/);
+});
+
+test('get started link', async ({ page }) => {
+  await page.goto('https://playwright.dev/');
+
+  // Click the get started link.
+  await page.getByRole('link', { name: 'Get started' }).click();
+
+  // Expects page to have a heading with the name of Installation.
+  await expect(page.getByRole('heading', { name: 'Installation' })).toBeVisible();
+});
+```
+如果用于css的话,则是这样写:
+```ts
+await page.locator('#sum1’);
+```
+显然,对于爬虫来说,这一功能确实很不错,至少能够保证
+## 总结
+必须承认,这本书写的很烂,也没什么系统性,不过基本能够了解playwright是什么,而且它远远没有达到所谓的自动化的程度.
 # Fluent Python ,second edition
 比较一般,讲的不够深入,尽管名气很大,但不推荐阅读.
 

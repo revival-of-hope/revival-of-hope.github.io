@@ -357,40 +357,93 @@ notepad $PROFILE
 2. 将以下代码粘贴进记事本并保存：
 ```ps1
 function hn {
-    param($name)
-    hugo new "post/drafts/$name/index.md"
-}
+    [CmdletBinding()]
+    param(
+        [Parameter(
+            Mandatory = $true,
+            Position = 0,
+            HelpMessage = "请输入文章名称"
+        )]
+        [ValidateNotNullOrEmpty()]
+        [string]$Name
+    )
 
-function hugo {
-    if ($args[0] -eq "new" -and $args.Count -ge 2) {
-        $datePrefix = Get-Date -Format "yyyy-MM-dd-"
-        $originalPath = $args[1]
+    $articleName = $Name.Trim()
 
-        if ($originalPath -match '([^/]+)/index\.md$') {
-            $pureName = $matches[1]
-        } else {
-            $pureName = Split-Path $originalPath -LeafBase
-        }
+    # 检查 Windows 文件名非法字符
+    $invalidChars = [System.IO.Path]::GetInvalidFileNameChars()
 
-        if ($originalPath -match '(.*/)([^/]+/[^/]+)$') {
-            $newPath = $matches[1] + $datePrefix + $matches[2]
-        } else {
-            $newPath = $datePrefix + $originalPath
-        }
+    if ($articleName.IndexOfAny($invalidChars) -ge 0) {
+        throw "文章名包含 Windows 文件名不允许的字符：\ / : * ? `" < > |"
+    }
 
-        $newArgs = @($args[0], $newPath) + $args[2..($args.Count-1)]
-        & (Get-Command hugo.exe -CommandType Application) $newArgs
 
-        $fullPath = Join-Path (Get-Location) "content/$newPath"
-        if (Test-Path $fullPath) {
-            $content = Get-Content $fullPath -Raw -Encoding UTF8
-            $content = $content -replace '(?m)^title\s*:\s*.*$', "title: `"$pureName`""
-            [System.IO.File]::WriteAllText($fullPath, $content, (New-Object System.Text.UTF8Encoding($false)))
-        }
+    # 查找真正的 Hugo 可执行文件
+    $hugoExe = (
+        Get-Command hugo.exe `
+            -CommandType Application `
+            -ErrorAction Stop
+    ).Source
+
+    $datePrefix = Get-Date -Format "yyyy-MM-dd-"
+
+    # 最终生成：
+    # content/post/2026-07-17-文章名/index.md
+    $relativePath = "post/$datePrefix$articleName/index.md"
+
+    # PowerShell 7 中调用当前 Hugo 的标准写法
+    & $hugoExe new content $relativePath
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Hugo 创建文章失败，退出码：$LASTEXITCODE"
+    }
+
+    $fullPath = Join-Path (
+        Get-Location
+    ) "content/$relativePath"
+
+    if (-not (Test-Path -LiteralPath $fullPath)) {
+        throw "Hugo 命令已执行，但没有找到生成的文件：$fullPath"
+    }
+
+    $content = Get-Content `
+        -LiteralPath $fullPath `
+        -Raw `
+        -Encoding utf8
+
+    # 支持 YAML Front Matter
+    if ($content -match '(?m)^title\s*:') {
+        $content = $content -replace `
+            '(?m)^title\s*:\s*.*$', `
+            ('title: "' + $articleName + '"')
+    }
+    # 支持 TOML Front Matter
+    elseif ($content -match '(?m)^title\s*=') {
+        $content = $content -replace `
+            '(?m)^title\s*=\s*.*$', `
+            ('title = "' + $articleName + '"')
+    }
+    # 支持 JSON Front Matter
+    elseif ($content -match '(?m)^\s*"title"\s*:') {
+        $replacement = '$1"title": "' + $articleName + '"$2'
+
+        $content = $content -replace `
+            '(?m)^(\s*)"title"\s*:\s*"[^"]*"(\s*,?\s*)$', `
+            $replacement
     }
     else {
-        & (Get-Command hugo.exe -CommandType Application) $args
+        Write-Warning "没有在 Front Matter 中找到 title 字段，未修改标题。"
     }
+
+    # PowerShell 7原生支持无BOM UTF-8
+    Set-Content `
+        -LiteralPath $fullPath `
+        -Value $content `
+        -Encoding utf8NoBOM `
+        -NoNewline
+
+    Write-Host "文章创建完成："
+    Write-Host $fullPath
 }
 ```
 3. 回到 PowerShell，执行：
