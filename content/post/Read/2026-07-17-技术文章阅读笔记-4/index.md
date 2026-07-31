@@ -350,7 +350,6 @@ Rest基于HTTP1.1规范,而gRPC基于HTTP2.0,二者之间的一个关键区别�
 # Python for Algorithmic Trading
 
 # Data Storage Architectures and Technologies
-- 华为出品
 # Redis in action
 ## 介绍
 Redis有5种基础数据类型:

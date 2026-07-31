@@ -20,6 +20,12 @@ git clone --branch 3.0 --depth 1 https://github.com/redis/redis.git
 ![示意图](PixPin_2026-07-31_11-58-06.webp)
 简直可以说是小巧得可爱.
 
+### [Cpython](https://github.com/python/cpython)
+3.0版本就够用了...
+```bash
+git clone --branch 3.0 https://github.com/python/cpython.git --depth 1
+```
+
 ## Agents
 ### [AgentGPT](https://github.com/reworkd/AgentGPT)
 刚开始看到的时候以为和我的项目撞车了,但后来发现完全不是这样,有以下缺点:

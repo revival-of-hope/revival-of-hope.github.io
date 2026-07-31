@@ -23,9 +23,11 @@ math:
 因此,AI浪潮与草根程序员并没有任何关系,就算你懂得了基本原理,又何谈去贡献自己的力量呢.
 
 所以,唯一能让自己有点参与感的方法就是去调用大公司恩赐下来的API,并通过自己的手段来优化API的使用,帮助更多的普通人以更简单的方式接触和认识AI.这也是我写这篇教程的部分初衷.
+
+>不敢说我的教程写的有多好,但我保证我的技术栈是最前沿的,前端用的是最新版本的next.js 16,后端用的是fastapi+sqlmodel,使用uv管理python包,加上docker compose部署,翻遍GitHub仓库都很难找到一个差不多的项目吧.
 # fastapi基础
 ## ch1: 使用fastapi响应普通的网络请求
-### 一个非常长的前提(如果对CORS很了解的话可以直接跳过)
+### CORS问题
 为了更好的理解前后端通信的过程,我推荐自己写一个或者拿AI写一个网页,通过这个页面来访问fastapi端口,而非直接通过命令行触发默认的前端页面,可以有一个更好的学习效果.
 
 比如我拿AI生成了一个网页代码:
@@ -3867,7 +3869,7 @@ server: uvicorn
 
 可以看到,尽管我们还没有重构前端,但所有的基本功能我们都已经实现了,你可以自豪的跟面试官吹嘘,我自己一个人写了个智能体出来,代码都是自己写的哦!
 
-## ch9: 重构前端
+## ch9: 重构前端的初步尝试
 ### 加入dockerfile
 #### 修改`next.config.ts`.
 
@@ -4447,41 +4449,7 @@ export default function RegisterPage() {
             placeholder="输入你的用户名"
           />
         </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-medium">密码</span>
-          <span className="relative block">
-            <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="new-password"
-              className="h-12 w-full rounded-xl border bg-background px-4 pr-12 text-sm shadow-xs transition placeholder:text-muted-foreground/70 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:outline-none"
-              placeholder="至少 6 个字符"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((visible) => !visible)}
-              className="absolute top-1/2 right-3 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
-              aria-label={showPassword ? "隐藏密码" : "显示密码"}
-            >
-              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            </button>
-          </span>
-        </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-medium">确认密码</span>
-          <input
-            type={showPassword ? "text" : "password"}
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            autoComplete="new-password"
-            className="h-12 w-full rounded-xl border bg-background px-4 text-sm shadow-xs transition placeholder:text-muted-foreground/70 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:outline-none"
-            placeholder="再次输入密码"
-          />
-        </label>
-
+// 省略一大段代码
         {error ? (
           <p role="alert" className="rounded-xl border border-destructive/20 bg-destructive/8 px-4 py-3 text-sm text-destructive">
             {error}
@@ -4507,12 +4475,21 @@ export default function RegisterPage() {
 ```
 
 不过,即便再怎么说AI写的不行,要自己来写出上面的代码也是不太可能的,这里面的状态管理和组件UI没有长期的学习经历的话,就跟看天书没有太大区别.
-#### 状态管理
-#### 实现基本路由
+### 总结
+尽管如此,好在前端现在已经足够自动化了,测试文件可以通过录制浏览器操作生成,构建流程可以用next命令一键完成,必要的组件都可以直接复用shadcn的,API请求函数可以用hey-api生成.
 
-## ch10: 实现多轮对话和多智能体.
+但剩下的内容才是重中之重,要想完成我们这个智能体的前端,我们还需要学习以下知识:
+1. next.js的路由方法
+2. 
+3. 使用tailwind css修饰shadcn带入的组件
+## ch10: 重构前端
+### nextjs基础
+- [官方文档](https://nextjscn.org/docs/app/getting-started/updating-data)
 
-## ch11: 完善CRUD和数据库管理,加入管理员用户
+
+## ch11: 实现多轮对话和多智能体.
+
+## ch12: 完善CRUD和数据库管理,加入管理员用户
 ### 数据库管理系统选择
 - adminer与dbgate.
 
