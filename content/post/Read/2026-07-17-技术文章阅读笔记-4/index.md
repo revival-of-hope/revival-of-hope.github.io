@@ -5,7 +5,6 @@ description:
 image: 62549331_p0-フランちゃんとチェス.webp
 math: 
 ---
-
 # Rust程序设计语言
 - 由浅入深,这才是正常的教科书,不吊打Go圣经几条街.
 
@@ -145,75 +144,167 @@ fn main() {
 }
 ```
 ### 所有权（ownership）
+>所有程序都必须管理其运行时使用计算机内存的方式。一些语言中具有垃圾回收机制，在程序运行时有规律地寻找不再使用的内存；在另一些语言中，程序员必须亲自分配和释放内存。Rust 则选择了第三种方式：通过所有权系统管理内存，编译器在编译时会根据一系列的规则进行检查。
+
+首先，让我们看一下所有权的规则:
+1. Rust 中的每一个值都有一个 所有者（owner）。
+2. 值在任一时刻有且只有一个所有者。
+3. 当所有者离开作用域，这个值将被丢弃。
+
+```rs
+    {
+        let s = String::from("hello"); // 从此处起，s 是有效的
+
+        // 使用 s
+    }                                  // 此作用域已结束，
+                                       // s 不再有效
+
+```
+
+当 s 离开作用域的时候。当变量离开作用域，Rust 为我们调用一个特殊的函数。这个函数叫做 drop，在这里 String 的作者可以放置释放内存的代码。Rust 在结尾的 `}` 处自动调用 drop。
+
+当你给一个已有的变量赋一个全新的值时，Rust 将会立即调用 drop 并释放原始值的内存
+```rs
+    let s1 = String::from("hello");
+    let s2 = s1;
+```
+当 s2 和 s1 离开作用域，它们都会尝试释放相同的内存。这是一个叫做 二次释放（double free）的错误，也是之前提到过的内存安全性 bug 之一。两次释放（相同）内存会导致内存污染，它可能会导致潜在的安全漏洞。
+
+为了确保内存安全，在 let s2 = s1; 之后，Rust 认为 s1 不再有效，因此 Rust 不需要在 s1 离开作用域后清理任何东西
+
+- 这种语法相当独特,不过确实很合理,正常情况下不应该在同一个作用域中出现两个相同的指针变量.
+
+![copy trait](PixPin_2026-07-31_09-48-37.webp)
+
+```rs
+fn main() {
+    let s = String::from("hello");  // s 进入作用域
+
+    takes_ownership(s);             // s 的值移动到函数里 ...
+                                    // ... 所以到这里不再有效
+
+    let x = 5;                      // x 进入作用域
+
+    makes_copy(x);                  // x 应该移动函数里，
+                                    // 但 i32 是 Copy 的，
+    println!("{}", x);              // 所以在后面可继续使用 x
+
+} // 这里，x 先移出了作用域，然后是 s。但因为 s 的值已被移走，
+  // 没有特殊之处
+
+fn takes_ownership(some_string: String) { // some_string 进入作用域
+    println!("{some_string}");
+} // 这里，some_string 移出作用域并调用 `drop` 方法。
+  // 占用的内存被释放
+
+fn makes_copy(some_integer: i32) { // some_integer 进入作用域
+    println!("{some_integer}");
+} // 这里，some_integer 移出作用域。没有特殊之处
+```
+调用一次无返回值的函数`takes_ownership`后,s就被置为无效了,这确实是我闻所未闻的语法,不过另一方面,这确实很合理,正常编写代码的时候不会这样写的.
+
+```rs
+fn main() {
+    let s1 = gives_ownership();        // gives_ownership 将它的返回值传递给 s1
+
+    let s2 = String::from("hello");    // s2 进入作用域
+
+    let s3 = takes_and_gives_back(s2); // s2 被传入 takes_and_gives_back, 
+                                       // 它的返回值又传递给 s3
+} // 此处，s3 移出作用域并被丢弃。s2 被 move，所以无事发生
+  // s1 移出作用域并被丢弃
+
+fn gives_ownership() -> String {       // gives_ownership 将会把返回值传入
+                                       // 调用它的函数
+
+    let some_string = String::from("yours"); // some_string 进入作用域
+
+    some_string                        // 返回 some_string 并将其移至调用函数
+}
+
+// 该函数将传入字符串并返回该值
+fn takes_and_gives_back(a_string: String) -> String {
+    // a_string 进入作用域
+
+    a_string  // 返回 a_string 并移出给调用的函数
+}
+```
+如果不显式返回所有权,那么就说明这个变量不再有用,那么直接收回确实很合理.
+
+### reference and borrow
+```rs
+fn main() {
+    let s1 = String::from("hello");
+
+    let len = calculate_length(&s1);
+
+    println!("The length of '{s1}' is {len}.");
+}
+
+fn calculate_length(s: &String) -> usize {
+    s.len()
+}
+```
+& 符号表示 引用；它们让你引用某个值而不取得它的所有权,我们将创建一个引用的行为称为 **借用（borrowing）**。正如现实生活中，如果一个人拥有某样东西，你可以从他那里借来。当你使用完后，必须还回去。因为我们并不拥有它的所有权。
+
+![指针图](PixPin_2026-07-31_10-00-07.webp)
+
+既然是借用,那么我们自然不能损坏它,所以引用变量均无法修改:
+```rs
+fn main() {
+    let s = String::from("hello");
+
+    change(&s);
+}
+
+fn change(some_string: &String) {
+    some_string.push_str(", world");
+    // failed!
+}
+```
+
+如果要想修改借用的值,就要加上`mut`关键字,这被称为可变引用:
+```rs
+fn main() {
+    let mut s = String::from("hello");
+
+    change(&mut s);
+}
+
+fn change(some_string: &mut String) {
+    some_string.push_str(", world");
+}
+```
+可变引用有一个很大的限制：在同一个作用域内,如果你有一个对该变量的可变引用，你就不能再创建对该变量的引用。这些尝试创建两个 s 的可变引用的代码会失败：
+```rs
+    let mut s = String::from("hello");
+
+    let r1 = &mut s;
+    let r2 = &mut s;
+
+    println!("{r1}, {r2}");
+```
+
+我们也不能在拥有不可变引用的同时拥有可变引用,因为不可变引用的借用者可不希望在借用时值会突然发生改变！
+```rs
+    let mut s = String::from("hello");
+
+    let r1 = &s; // 没问题
+    let r2 = &s; // 没问题
+    let r3 = &mut s; // 大问题
+
+    println!("{r1}, {r2}, and {r3}");
+```
+
+>在带有指针的语言中，如果释放了一块内存，却保留了指向它的指针，就很容易错误地制造出一个悬垂指针（dangling pointer）：这个指针指向的内存位置可能已经被分配作其他用途。相比之下，在 Rust 中，编译器保证引用永远不会变成悬垂引用：如果你持有某些数据的引用，编译器会确保这些数据不会在它们的引用之前离开作用域。
 
 
+
+# THE GHIDRA BOOK
 # Web Scraping with Python,3rd edition
-# Node.js Cookbook
-## 介绍
->Node.js 创建于2009年，是一个跨平台的开源JavaScript运行时，允许你在浏览器环境之外执行JavaScript。它封装了谷歌浏览器的JavaScript引擎——V8引擎，使JavaScript能够在脱离浏览器的情况下运行
+# Go Web Scraping Quick Start Guide
 
-Node的执行环境为单线程,通过异步I/O来实现高并发,这与Python的GIL极为相似,不过也正是因为这样,后端通常不会让Node来负责,否则就会受到性能上的限制.
-## 文件系统
-# Elasticsearch in Action, Second Edition
-- [为什么不用Solr](https://learnku.com/articles/43880)
-## 概述
-传统的数据库仅能返回普通的查询结果,而若是要实现智能提示和多样化搜索,就需要搜索引擎这些经过了优化处理的数据库来解决了.
-
-Es的底层引擎为使用Java编写的Lucene,再在外面套了一层符合Rest规范的API,然后还有一个配套的前端管理程序Kibana.
-
-![示意图](PixPin_2026-07-29_10-55-57.webp)
-
-![创建过程](PixPin_2026-07-29_11-01-18.webp)
-
-![查询过程](PixPin_2026-07-29_11-06-37.webp)
-
-到这里我们也看明白了,Es的使用方法就是通过Restful API来传输Json文档而已,这种方法非常高效,而且掩盖了背后的复杂优化过程.
-
-- 不过,也只有搜索引擎才能这么干,毕竟搜索请求都是幂等的,所以不会受到并发的困扰.而对于普通的数据库来说,只好老老实实地通过底层驱动连接了,如果有人能够想到更美妙的解决方法,诺奖不说,图灵奖是绝对有的.
-
->Elasticsearch has an algorithm called **Okapi Best Match 25** (BM25), which is an **enhanced** term frequency/inverse document frequency (**TF/IDF**) similarity algorithm that calculates the relevancy scores for the results and sorts them in that order when presenting them to the client.
-
-而在执行搜索时,我们也可以手动给关键字分配对应的权重,来返回自己想要的搜索结果,而在我们平常的搜索时,这一过程都是自动进行的.
-
-## 架构
-
-
-# Redis in action(待补充)
-## 介绍
-Redis有5种基础数据类型:
-1. string: 支持字符串,整数和浮点数
-2. list: 链表,每个节点包含一个元素,元素可重复
-3. set: 无序的字符串集合,元素不可重复
-4. hash: 哈希表,存储键值对
-5. zset: 有序字典,存储键值对
-
-
-string类型支持get,set,del三种方法:
-![使用示例](PixPin_2026-07-13_10-06-47.webp)
-
-list类型支持以下命令:
-| 命令     | 行为                                     |
-| -------- | ---------------------------------------- |
-| `RPUSH`  | 将给定值推入列表的右端                   |
-| `LRANGE` | 获取列表在给定范围上的所有值             |
-| `LINDEX` | 获取列表在给定位置上的单个元素           |
-| `LPOP`   | 从列表的左端弹出一个值，并返回被弹出的值 |
-
-- 左右端都可以进行操作,前缀分别是`L`,`R`.
-
-set类型支持`sadd`,`srem`等命令
-
-![示例](PixPin_2026-07-13_10-14-46.webp)
-
-![hash](PixPin_2026-07-13_10-16-55.webp)
-
-![zset](PixPin_2026-07-13_10-16-41.webp)
-
-
-
-# Redis设计与实现(待补充)
-# golang实现网络爬虫
-
+# GraphQL in Action
 # Rootkit和Bootkit：现代恶意软件逆向分析和下一代威胁
 Rootkit: 针对操作系统内核
 Bootkit: 针对MBR等引导扇区
@@ -248,6 +339,102 @@ Festi的Dropper（植入程序）有一个相当简单的功能—在系统中�
 ## Bootkit
 可以看到,由于操作系统的安全性能不断提高,Rootkit已经式微,随之而来的是更加深入底层的Bootkit类型软件.
 # Responsive Web Design with HTML5 and CSS,Fourth Edition
+# Mastering API Architecture
+## 前言
+>One of the hardest things to track during the life of a project is the motivation behind certain decisions. A new person coming on to a project may be perplexed, baffled, delighted, or infuriated by some past decision.
+
+因此,我们需要通过ADR（Architecture Decision Record，架构决策记录）来保存架构设计时的各种考量
+## Designing, Building, and Testing APIs
+### gRPC与Rest
+Rest基于HTTP1.1规范,而gRPC基于HTTP2.0,二者之间的一个关键区别在于状态,Rest是无状态的,而RPC的底层是持续连接,有状态的
+# Python for Algorithmic Trading
+
+# Data Storage Architectures and Technologies
+- 华为出品
+# Redis in action
+## 介绍
+Redis有5种基础数据类型:
+1. string: 支持字符串,整数和浮点数
+2. list: 链表,每个节点包含一个元素,元素可重复
+3. set: 无序的字符串集合,元素不可重复
+4. hash: 哈希表,存储键值对
+5. zset: 有序字典,存储键值对
+
+
+string类型支持get,set,del三种方法:
+![使用示例](PixPin_2026-07-13_10-06-47.webp)
+
+list类型支持以下命令:
+| 命令     | 行为                                     |
+| -------- | ---------------------------------------- |
+| `RPUSH`  | 将给定值推入列表的右端                   |
+| `LRANGE` | 获取列表在给定范围上的所有值             |
+| `LINDEX` | 获取列表在给定位置上的单个元素           |
+| `LPOP`   | 从列表的左端弹出一个值，并返回被弹出的值 |
+
+- 左右端都可以进行操作,前缀分别是`L`,`R`.
+
+set类型支持`sadd`,`srem`等命令
+
+![示例](PixPin_2026-07-13_10-14-46.webp)
+
+![hash](PixPin_2026-07-13_10-16-55.webp)
+
+![zset](PixPin_2026-07-13_10-16-41.webp)
+
+
+## 数据存储
+Redis有两种数据存储方式:
+1. snapshot(快照): 将某一时刻内存中保存的所有数据写入硬盘
+2. append-only file(AOF): 执行某条写入命令时,将指令复制到硬盘里.
+### 复制(replication)
+单个Redis节点无法应对高并发,所以我们需要用到主从服务器的配置,从服务器在连接主服务器的时候会发生以下过程:
+
+| 步骤 | 主服务器操作                                                                            | 从服务器操作                                                                                               |
+| ---- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 1    | （等待命令进入）                                                                        | 连接（或者重连接）主服务器，发送 `SYNC` 命令                                                               |
+| 2    | 开始执行 `BGSAVE`，并使用缓冲区记录 `BGSAVE` 之后执行的所有写命令                       | 根据配置选项来决定是继续使用现有的数据（如果有的话）来处理客户端的命令请求，还是向发送请求的客户端返回错误 |
+| 3    | `BGSAVE` 执行完毕，向从服务器发送快照文件，并在发送期间继续使用缓冲区记录被执行的写命令 | 丢弃所有旧数据（如果有的话），开始载入主服务器发来的快照文件                                               |
+| 4    | 快照文件发送完毕，开始向从服务器发送存储在缓冲区里面的写命令                            | 完成对快照文件的解释操作，像往常一样开始接受命令请求                                                       |
+| 5    | 缓冲区存储的写命令发送完毕；从现在开始，每执行一个写命令，就向从服务器发送相同的写命令  | 执行主服务器发来的所有存储在缓冲区里面的写命令；并从现在开始，接收并执行主服务器传来的每个写命令           |
+
+![主从链](PixPin_2026-07-31_11-33-18.webp)
+
+主从复制只有复制和冗余,并没有实现扩容,要想扩容就必须用到多个主服务器.
+
+## 总结
+剩下的内容就都是一些不太实用的扯淡了,可以直接跳过
+
+# Elasticsearch in Action, Second Edition(待补充)
+- [为什么不用Solr](https://learnku.com/articles/43880)
+## 概述
+传统的数据库仅能返回普通的查询结果,而若是要实现智能提示和多样化搜索,就需要搜索引擎这些经过了优化处理的数据库来解决了.
+
+Es的底层引擎为使用Java编写的Lucene,再在外面套了一层符合Rest规范的API,然后还有一个配套的前端管理程序Kibana.
+
+![示意图](PixPin_2026-07-29_10-55-57.webp)
+
+![创建过程](PixPin_2026-07-29_11-01-18.webp)
+
+![查询过程](PixPin_2026-07-29_11-06-37.webp)
+
+到这里我们也看明白了,Es的使用方法就是通过Restful API来传输Json文档而已,这种方法非常高效,而且掩盖了背后的复杂优化过程.
+
+- 不过,也只有搜索引擎才能这么干,毕竟搜索请求都是幂等的,所以不会受到并发的困扰.而对于普通的数据库来说,只好老老实实地通过底层驱动连接了,如果有人能够想到更美妙的解决方法,诺奖不说,图灵奖是绝对有的.
+
+>Elasticsearch has an algorithm called **Okapi Best Match 25** (BM25), which is an **enhanced** term frequency/inverse document frequency (**TF/IDF**) similarity algorithm that calculates the relevancy scores for the results and sorts them in that order when presenting them to the client.
+
+而在执行搜索时,我们也可以手动给关键字分配对应的权重,来返回自己想要的搜索结果,而在我们平常的搜索时,这一过程都是自动进行的.
+
+## 架构
+Elasticsearch按节点和数据类型对数据进行分类。每个节点都有一个专用文件夹，其中包含若干存储相关数据的桶。Elasticsearch会根据每种数据类型创建一组桶（在Elasticsearch术语中称为索引）
+
+分片是 Apache Lucene 的物理实例，是幕后将数据存入和取出存储的关键载体。换言之，分片负责数据的物理存储与检索工作。从 7.x 版本起，默认情况下新创建的每个索引仅配备一个主分片和一个副本
+
+主分片负责存储文档，而副本分片（简称副本）顾名思义是主分片的副本。每个分片可以有多个副本，也可不设置副本，但这种方式不推荐用于生产环境——在实际生产环境中，通常会为每个分片创建多个副本。副本存储着数据副本，既能提升系统冗余度，又能帮助加速搜索查询。
+
+# Security Chaos Engineering
+很好奇这种丝毫不涉及现实,而是空泛提及理论的书是如何出版的.
 # Tailwind CSS
 ## ch1
 ```html
@@ -430,7 +617,6 @@ await page.locator('#sum1’);
 必须承认,这本书写的很烂,也没什么系统性,不过基本能够了解playwright是什么,而且它远远没有达到所谓的自动化的程度.
 # Fluent Python ,second edition
 比较一般,讲的不够深入,尽管名气很大,但不推荐阅读.
-
 # Full Stack Testing,2rd edition
 - July/9 2026: Second Edition
   - 我读这本书的日期为7/19,而zlib上就已经有资源了,确实离谱
@@ -441,9 +627,15 @@ await page.locator('#sum1’);
 ![图示](PixPin_2026-07-21_17-39-07.webp)
 ## 总结
 基本都是概念,没多少实战,还教我用AI写测试,跟我原来想的差距有点大.
+# Node.js Cookbook
+## 介绍
+>Node.js 创建于2009年，是一个跨平台的开源JavaScript运行时，允许你在浏览器环境之外执行JavaScript。它封装了谷歌浏览器的JavaScript引擎——V8引擎，使JavaScript能够在脱离浏览器的情况下运行
 
-
-
+Node的执行环境为单线程,通过异步I/O来实现高并发,这与Python的GIL极为相似,不过也正是因为这样,后端通常不会让Node来负责,否则就会受到性能上的限制.
+## 总结
+忽然想到,我不太需要知道node.js的api用法,毕竟框架都帮我做好了,而且我即便学习好了,或许日后也会被其他框架取代,只是现在还看不出这个趋势而已.
+# Metasploit
+讲Metasploit渗透测试框架的,写的挺烂.
 # Flutter实战 第二版
 ## 入门
 ### 起步

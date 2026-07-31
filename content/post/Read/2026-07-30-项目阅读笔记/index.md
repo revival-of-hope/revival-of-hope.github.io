@@ -4,6 +4,22 @@ date: 2026-07-30T15:58:55+08:00
 description: 
 image: 5290131_p0-空へ.webp
 ---
+## 源码类
+### [Redis](https://github.com/redis/redis)
+要是一来就冲着最新版本去那还是太高看自己了,所以退而求其次,找个10年前的3.0版本的就行了.
+![示意图](PixPin_2026-07-31_11-55-09.webp)
+
+命令如下:
+```bash
+git clone --branch 3.0 --depth 1 https://github.com/redis/redis.git
+```
+这样一对比,立刻就赏心悦目了:
+
+![对比图](PixPin_2026-07-31_11-57-10.webp)
+使用cloc统计一下源码数量:
+![示意图](PixPin_2026-07-31_11-58-06.webp)
+简直可以说是小巧得可爱.
+
 ## Agents
 ### [AgentGPT](https://github.com/reworkd/AgentGPT)
 刚开始看到的时候以为和我的项目撞车了,但后来发现完全不是这样,有以下缺点:
