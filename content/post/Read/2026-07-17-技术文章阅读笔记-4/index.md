@@ -230,7 +230,7 @@ fn takes_and_gives_back(a_string: String) -> String {
 }
 ```
 如果不显式返回所有权,那么就说明这个变量不再有用,那么直接收回确实很合理.
-
+s
 ### reference and borrow
 ```rs
 fn main() {
@@ -303,7 +303,7 @@ fn change(some_string: &mut String) {
 # THE GHIDRA BOOK
 # Web Scraping with Python,3rd edition
 # Go Web Scraping Quick Start Guide
-
+# HTML5 WebSocket权威指南
 # GraphQL in Action
 # Rootkit和Bootkit：现代恶意软件逆向分析和下一代威胁
 Rootkit: 针对操作系统内核
