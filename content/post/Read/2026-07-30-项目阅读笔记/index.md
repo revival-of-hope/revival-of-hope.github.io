@@ -184,5 +184,17 @@ async def get_user_tools() -> ToolsResponse:
     return ToolsResponse(tools=formatted_tools)
 ```
 混乱的架构与难以解耦的代码,希望这种事情不要发生在我负责的项目里.
+## Games
+### [Zdoom](https://zdoom.org/index)
+由于GZdoom是手搓的引擎,所以源码不太是正常人能看懂的,这种离谱的硬编码应该很难在现代工程中看到了吧:
+
+![示意图](PixPin_2026-08-03_13-30-03.webp)
+
+尽管代码量不是太离谱,但架构实在是太混乱了:
+![代码量](PixPin_2026-08-03_13-31-06.webp)
+### [Pypvz](https://github.com/wszqkzqk/pypvz)
+- [项目根本来源](https://github.com/marblexu/PythonPlantsVsZombies)
+
+非常有意思的Pvz版本,推荐所有初学python/pygame的人都拿这个项目来练练手,不过这个架构实在是太难看了,如果有时间的话我或许会帮忙重构一下.
 
 ## 爬虫

@@ -299,57 +299,67 @@ fn change(some_string: &mut String) {
 >在带有指针的语言中，如果释放了一块内存，却保留了指向它的指针，就很容易错误地制造出一个悬垂指针（dangling pointer）：这个指针指向的内存位置可能已经被分配作其他用途。相比之下，在 Rust 中，编译器保证引用永远不会变成悬垂引用：如果你持有某些数据的引用，编译器会确保这些数据不会在它们的引用之前离开作用域。
 
 
+### Slice
+```rs
+    let s = String::from("hello world");
 
+    let hello = &s[0..5];
+    let world = &s[6..11];
+```
+![示意图](PixPin_2026-08-03_10-57-34.webp)
+
+下面这段函数会编译错误,因为 clear 需要清空 String，它尝试获取一个可变引用,但在调用 clear 之后的 println! 使用了 word 中的引用，所以这个不可变的引用在此时必须仍然有效:
+```rs
+fn main() {
+    let mut s = String::from("hello world");
+
+    let word = first_word(&s);
+
+    s.clear(); // 错误！
+
+    println!("the first word is: {word}");
+}
+```
+
+
+```rs
+String：拥有字符串数据的“容器”
+str：字符串中的“文字内容”
+&String：借用整个 String 容器
+&str：借用其中的文字内容
+s               // String
+&s              // &String
+&s[..]          // &str
+&s[0..5]        // &str
+"hello world"   // &str
+```
+### 结构体
+
+
+# Python for Algorithmic Trading
+## 前置知识
+1. Beta trading: 通过投资于例如复制标普500指数表现的交易所交易基金（ETFs）来赚取市场风险溢价
+2. Alpha generation: 以独立于市场的方式获取风险溢价，例如做空标普500指数成分股或标普500指数ETF即可实现。
+3. Static hedging: ，通过买入标准普尔500指数价外看跌期权来对冲市场风险
+4. Dynamic hedging: 通过对标普500指数期权产生影响的市场风险进行对冲，例如动态交易标普500指数期货以及相应的现金、货币市场或利率工具
+
+本书聚焦于Alpha generation策略.
+
+
+# HTML5 WebSocket权威指南
+## 前置知识
+在HTTP/1.0和HTTP/1.1中，低效的根源主要是：
+1. HTTP用于文档共享，而不是丰富的交互性应用程序，我们在桌面上习以为常的这种应用程序现在已经进入Web
+2. 随着客户端和服务器之间交互的增加，HTTP协议在客户端和服务器之间通信所需要的信息量快速增加。
+
+而WebSocket是基于HTTP1.1的
+# GraphQL in Action
+
+# Data Storage Architectures and Technologies
 # THE GHIDRA BOOK
 # Web Scraping with Python,3rd edition
 # Go Web Scraping Quick Start Guide
-# HTML5 WebSocket权威指南
-# GraphQL in Action
-# Rootkit和Bootkit：现代恶意软件逆向分析和下一代威胁
-Rootkit: 针对操作系统内核
-Bootkit: 针对MBR等引导扇区
-## Rootkit
-### TDL3
-为了在系统重新启动时幸存下来，TDL3通过在驱动程序的二进制文件中注入恶意代码来感染加载操作系统所必需的一个引导启动驱动程序.
-
-一旦选择了一个目标驱动程序，TDL3感染程序就会用一个恶意加载程序覆盖它的资源部分.rsrc的前几百个字节，从而修改驱动程序在内存中的映像。这个加载程序非常简单：它只是在启动时从硬盘上加载它需要的其余恶意软件代码。
-
-这种方式只能针对x32位系统起作用,因为x64位系统需要对内核代码进行完整性的检查,通过数字签名即可阻止TDL3的运行.
-
-![目标](PixPin_2026-07-30_12-23-56.webp)
-
->TDL3是第一个将配置文件和有效负载存储在目标系统隐藏的加密存储区域的恶意软件系统，不依赖于操作系统提供的文件系统服务。
-
-### Festi
->本章专门讨论发现的最先进的垃圾邮件和分布式拒绝服务
-（DDoS）僵尸网络之一—Win32/Festi僵尸网络，我们将其简称为Festi。Festi拥有强大的垃圾邮件发送和DDoS功能，以及有趣的Rootkit功能，这使得它可以连接到文件系统和系统注册表而不被人发现。Festi还通过使用调试器和沙箱规避技术来对抗动态分析，以隐藏自己的存在。
-
-Festi的Dropper（植入程序）有一个相当简单的功能—在系统中安装一个内核模式驱动程序，该驱动程序实现了恶意软件的主要逻辑。内核模式组件注册为“系统启动”内核模式驱动程序，并随机生成名称，这意味着在初始化期间，恶意驱动程序将在系统启动时加载和执行。
-
-内核模式驱动程序有两个主要职责：从命令和控制（C&C）服务器请求配置信
-息，以及以插件的形式下载和执行恶意模块（见图2-2）。每个插件专用于特定的任
-务，例如对指定的网络资源执行DDoS攻击，或向C&C服务器提供的电子邮件列表发送
-垃圾邮件。
-
-有趣的是，插件并不存储在系统硬盘驱动器上，而是存储在易失性内存中，这意
-味着当受感染的计算机被关闭或重新启动时，插件就会从系统内存中消失。这使得恶
-意软件的取证分析变得非常困难，因为存储在硬盘上的唯一文件是主内核模式驱动程
-序，它既不包含有效负载，也不包含攻击目标的任何信息。
-
-## Bootkit
-可以看到,由于操作系统的安全性能不断提高,Rootkit已经式微,随之而来的是更加深入底层的Bootkit类型软件.
 # Responsive Web Design with HTML5 and CSS,Fourth Edition
-# Mastering API Architecture
-## 前言
->One of the hardest things to track during the life of a project is the motivation behind certain decisions. A new person coming on to a project may be perplexed, baffled, delighted, or infuriated by some past decision.
-
-因此,我们需要通过ADR（Architecture Decision Record，架构决策记录）来保存架构设计时的各种考量
-## Designing, Building, and Testing APIs
-### gRPC与Rest
-Rest基于HTTP1.1规范,而gRPC基于HTTP2.0,二者之间的一个关键区别在于状态,Rest是无状态的,而RPC的底层是持续连接,有状态的
-# Python for Algorithmic Trading
-
-# Data Storage Architectures and Technologies
 # Redis in action
 ## 介绍
 Redis有5种基础数据类型:
@@ -403,6 +413,16 @@ Redis有两种数据存储方式:
 
 ## 总结
 剩下的内容就都是一些不太实用的扯淡了,可以直接跳过
+# Mastering API Architecture
+## 前言
+>One of the hardest things to track during the life of a project is the motivation behind certain decisions. A new person coming on to a project may be perplexed, baffled, delighted, or infuriated by some past decision.
+
+因此,我们需要通过ADR（Architecture Decision Record，架构决策记录）来保存架构设计时的各种考量
+## Designing, Building, and Testing APIs
+### gRPC与Rest
+Rest基于HTTP1.1规范,而gRPC基于HTTP2.0,二者之间的一个关键区别在于状态,Rest是无状态的,而RPC的底层是持续连接,有状态的
+## 总结
+非常搞笑,标题叫掌握API架构,但只有前两章稍微有一点关系,后面都是运维相关的知识,很扯淡了.
 
 # Elasticsearch in Action, Second Edition(待补充)
 - [为什么不用Solr](https://learnku.com/articles/43880)
@@ -431,7 +451,43 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 分片是 Apache Lucene 的物理实例，是幕后将数据存入和取出存储的关键载体。换言之，分片负责数据的物理存储与检索工作。从 7.x 版本起，默认情况下新创建的每个索引仅配备一个主分片和一个副本
 
 主分片负责存储文档，而副本分片（简称副本）顾名思义是主分片的副本。每个分片可以有多个副本，也可不设置副本，但这种方式不推荐用于生产环境——在实际生产环境中，通常会为每个分片创建多个副本。副本存储着数据副本，既能提升系统冗余度，又能帮助加速搜索查询。
+# Rootkit和Bootkit：现代恶意软件逆向分析和下一代威胁(待补充)
+- Rootkit: 针对操作系统内核
+- Bootkit: 针对MBR等引导扇区
+## Rootkit
+### TDL3
+为了在系统重新启动时幸存下来，TDL3通过在驱动程序的二进制文件中注入恶意代码来感染加载操作系统所必需的一个引导启动驱动程序.
 
+一旦选择了一个目标驱动程序，TDL3感染程序就会用一个恶意加载程序覆盖它的资源部分.rsrc的前几百个字节，从而修改驱动程序在内存中的映像。这个加载程序非常简单：它只是在启动时从硬盘上加载它需要的其余恶意软件代码。
+
+这种方式只能针对x32位系统起作用,因为x64位系统需要对内核代码进行完整性的检查,通过数字签名即可阻止TDL3的运行.
+
+![目标](PixPin_2026-07-30_12-23-56.webp)
+
+>TDL3是第一个将配置文件和有效负载存储在目标系统隐藏的加密存储区域的恶意软件系统，不依赖于操作系统提供的文件系统服务。
+
+### Festi
+>本章专门讨论发现的最先进的垃圾邮件和分布式拒绝服务
+（DDoS）僵尸网络之一—Win32/Festi僵尸网络，我们将其简称为Festi。Festi拥有强大的垃圾邮件发送和DDoS功能，以及有趣的Rootkit功能，这使得它可以连接到文件系统和系统注册表而不被人发现。Festi还通过使用调试器和沙箱规避技术来对抗动态分析，以隐藏自己的存在。
+
+Festi的Dropper（植入程序）有一个相当简单的功能—在系统中安装一个内核模式驱动程序，该驱动程序实现了恶意软件的主要逻辑。内核模式组件注册为“系统启动”内核模式驱动程序，并随机生成名称，这意味着在初始化期间，恶意驱动程序将在系统启动时加载和执行。
+
+内核模式驱动程序有两个主要职责：从命令和控制（C&C）服务器请求配置信
+息，以及以插件的形式下载和执行恶意模块（见图2-2）。每个插件专用于特定的任
+务，例如对指定的网络资源执行DDoS攻击，或向C&C服务器提供的电子邮件列表发送
+垃圾邮件。
+
+有趣的是，插件并不存储在系统硬盘驱动器上，而是存储在易失性内存中，这意
+味着当受感染的计算机被关闭或重新启动时，插件就会从系统内存中消失。这使得恶
+意软件的取证分析变得非常困难，因为存储在硬盘上的唯一文件是主内核模式驱动程
+序，它既不包含有效负载，也不包含攻击目标的任何信息。
+
+## Bootkit
+可以看到,由于操作系统的安全性能不断提高,Rootkit已经式微,随之而来的是更加深入底层的Bootkit类型软件.
+
+![示意图](PixPin_2026-08-03_10-18-49.webp)
+### ch5
+这一章很有看头,讲述了从BIOS启动操作系统的一般过程
 # Security Chaos Engineering
 很好奇这种丝毫不涉及现实,而是空泛提及理论的书是如何出版的.
 # Tailwind CSS
