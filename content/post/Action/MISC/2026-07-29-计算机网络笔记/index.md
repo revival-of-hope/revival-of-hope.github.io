@@ -12,6 +12,7 @@ draft: true
 
 ## GraphQL
 ## 加密链接
+### 前言
 - Across the Great Wall we can reach every corner in the world.
 
 看了[这篇文章](https://blog.ch3nyang.top/post/%E7%BF%BB%E5%A2%99%E5%8D%8F%E8%AE%AE/)后,我对加密链接有了浓厚的兴趣,先将该文涉及的加密工具按时间线摆出来:

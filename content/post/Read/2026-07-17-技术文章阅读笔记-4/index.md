@@ -346,14 +346,29 @@ s               // String
 本书聚焦于Alpha generation策略.
 
 
-# HTML5 WebSocket权威指南
-## 前置知识
-在HTTP/1.0和HTTP/1.1中，低效的根源主要是：
-1. HTTP用于文档共享，而不是丰富的交互性应用程序，我们在桌面上习以为常的这种应用程序现在已经进入Web
-2. 随着客户端和服务器之间交互的增加，HTTP协议在客户端和服务器之间通信所需要的信息量快速增加。
+# The Design of Web APIs, Second Edition
+## 介绍
+### 前言
+1. **“I can’t list friends of friends!”**
 
-而WebSocket是基于HTTP1.1的
-# GraphQL in Action
+2. **“What contains the `sts` property?”**
+
+3. **“Why don’t `createdAt` and `fromDate` use the same date-time format?”**
+
+4. **“Identifying friends requires a `userId`, but storing a message requires a username! Can’t we use the same user ID in all operations?”**
+
+5. **“The ‘List friends’ operation is useless; to get useful data, I must call the ‘Read friend’ operation for each friend!”**
+
+6. **“The HTTP response indicates a success, but its data contains an error!”**
+
+7. **“How can I know what’s wrong with my API call if I only get an ‘Invalid request’ error message?”**
+
+8. **“Are you sure about the mobile and web applications taking care of friend identification with the Face Detection API before sharing a message with photos?”**
+
+API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也会大打折扣
+
+>不是每个人都能有幸从白纸一张开始设计API。现有的API可能存在并且设计得不够理想。我们的目的并非指责过去的设计，而是要防止API设计的技术债务继续增加
+
 
 # Data Storage Architectures and Technologies
 # THE GHIDRA BOOK
@@ -423,7 +438,15 @@ Redis有两种数据存储方式:
 Rest基于HTTP1.1规范,而gRPC基于HTTP2.0,二者之间的一个关键区别在于状态,Rest是无状态的,而RPC的底层是持续连接,有状态的
 ## 总结
 非常搞笑,标题叫掌握API架构,但只有前两章稍微有一点关系,后面都是运维相关的知识,很扯淡了.
+# HTML5 WebSocket权威指南
+## 前置知识
+在HTTP/1.0和HTTP/1.1中，低效的根源主要是：
+1. HTTP用于文档共享，而不是丰富的交互性应用程序，我们在桌面上习以为常的这种应用程序现在已经进入Web
+2. 随着客户端和服务器之间交互的增加，HTTP协议在客户端和服务器之间通信所需要的信息量快速增加。
 
+而WebSocket是基于HTTP1.1的框架,能够将HTTP请求变成全双工的.
+## 总结
+内容太老了,所以没什么可读性.不过WebSocket也逐渐式微了,在可预见的未来我想不是很需要学习这方面的知识.
 # Elasticsearch in Action, Second Edition(待补充)
 - [为什么不用Solr](https://learnku.com/articles/43880)
 ## 概述
@@ -628,7 +651,15 @@ flex: 1 1 0%;
 4. `leading-8`: line-height为8*4px大小
 
 必须承认,tailwind确实很好记,怪不得这么火.
+# GraphQL in Action
+## 介绍
+>REST API最大的相关问题是客户端需要与多个数据API端点通信。因此，当客户端需要多个资源的数据时，它必须向该REST API发起多个网络请求，然后通过组合接收到的多个响应来整合数据。REST API客户端可用的语言极其有限。例如，`READ` REST API端点要么是GET /ResourceName以获取该资源的所有记录列表，要么是GET /ResourceName/ ResourceID以获取由ID标识的单一记录。
+### 补充: strawberry库
+strawberry库是python的GraphQL实现,在22年就有issue提出要整合Pydantic进去,可惜直到现在都还是实验性的,等到真正整合进去之后,我想才有必要去学这个库.
 
+![示意图](PixPin_2026-08-04_11-58-43.webp)
+## 总结
+尽管GraphQL很不错,但可惜这本书讲的太烂了,不如直接看文档.
 # Web Automation Testing Using Playwright
 ## 介绍
 人工编写测试用例并逐一运行过于繁琐,这也是测试工具不断演进不断发展的原因,而在其中名气处于第一梯队的就是Playwright了,而它这么火爆的另一个原因是还可以被用于爬虫.谁能想到,Playwright的正式发布时间也才在2020年呢,至于老牌的Selenium由于更差性能和更复杂的调用方式则逐渐落伍.有力的竞争者之一则是Cypress,由于它运行在浏览器内部,不需要额外安装驱动,所以也占有了一席之地.
