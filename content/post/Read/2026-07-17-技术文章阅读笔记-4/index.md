@@ -334,18 +334,263 @@ s               // String
 "hello world"   // &str
 ```
 ### 结构体
+```rs
+struct User {
+    active: bool,
+    username: String,
+    email: String,
+    sign_in_count: u64,
+}
+```
+不得不说,这种结构体的写法真的是赏心悦目,非常适合我这种对Ts和Python都比较熟悉的人.
+
+实例化的写法不太正常:
+```rs
+fn main() {
+    let mut user1 = User {
+        active: true,
+        username: String::from("someusername123"),
+        email: String::from("someone@example.com"),
+        sign_in_count: 1,
+    };
+
+    user1.email = String::from("anotheremail@example.com");
+}
+```
+照理说这里弄成等号显然更为合理一点,弄成`:`就不知所云了.
+
+简写构造函数:
+```rs
+fn build_user(email: String, username: String) -> User {
+    User {
+        active: true,
+        username,
+        email,
+        sign_in_count: 1,
+    }
+}
+```
+这一语法糖与CS中的比较相似.
+
+```rs
+fn main() {
+    // --snip--
+
+    let user2 = User {
+        active: user1.active,
+        username: user1.username,
+        email: String::from("another@example.com"),
+        sign_in_count: user1.sign_in_count,
+    };
+}
+// 等价于下述简写版
+fn main() {
+    // --snip--
+
+    let user2 = User {
+        email: String::from("another@example.com"),
+        ..user1
+    };
+}
+```
+这与js中的解包语法和pydantic中的解包极其相似,也确实很方便.
+
+你也可以定义没有任何字段的结构体！它们被称为 类单元结构体（unit-like structs），因为它们的行为类似于 ()，也就是我们在“元组类型”一节中提到的 unit 类型
+
+```rs
+struct AlwaysEqual;
+
+fn main() {
+    let subject = AlwaysEqual;
+}
+```
+### 方法
+```rs
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+
+    println!(
+        "The area of the rectangle is {} square pixels.",
+        rect1.area()
+    );
+}
+```
+>&self 实际上是 self: &Self 的缩写。在一个 impl 块中，Self 类型是 impl 块的类型的别名。方法的第一个参数必须有一个名为 self 的Self 类型的参数，所以 Rust 让你在第一个参数位置上只用 self 这个名字来简化
+
+这与python的语法高度相似呢.
+
+### Enum
+```rs
+    enum IpAddr {
+        V4(String),
+        V6(String),
+    }
+
+    let home = IpAddr::V4(String::from("127.0.0.1"));
+
+    let loopback = IpAddr::V6(String::from("::1"));
+```
+任何类型都可以放入enum中,例如元组,结构体,甚至是另一个枚举.
+```rs
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(i32, i32, i32),
+}
+```
+结构体和枚举还有另一个相似点：就像可以使用 impl 来为结构体定义方法那样，也可以在枚举上定义方法
+```rs
+    impl Message {
+        fn call(&self) {
+            // 在这里定义方法体
+        }
+    }
+
+    let m = Message::Write(String::from("hello"));
+    m.call();
+```
+
+>我称之为我十亿美元的错误。当时，我在为一个面向对象语言设计第一个综合性的面向引用的类型系统。我的目标是通过编译器的自动检查来保证所有引用的使用都应该是绝对安全的。不过我未能抵抗住引入一个空引用的诱惑，仅仅是因为它是这么的容易实现。这引发了无数错误、漏洞和系统崩溃，在过去四十年里可能造成了价值十亿美元的痛苦和损失。
+
+问题不在于概念而在于具体的实现。为此，Rust 并没有空值，不过它确实拥有一个可以编码存在或不存在概念的枚举。这个枚举是 Option<T>，而且它定义于标准库中，如下：
+```rs
+enum Option<T> {
+    None,
+    Some(T),
+}
+```
+实际应用:
+```rs
+    let some_number = Some(5);
+    let some_char = Some('e');
+
+    let absent_number: Option<i32> = None;
+
+```
+简而言之，因为 Option<T> 和 T（这里的 T 可以是任何类型）是不同的类型，所以编译器不允许我们把 Option<T> 当成一个肯定有效的值来使用。例如，这段代码不能编译，因为它试图把 Option<i8> 和 i8 相加：
+
+```rs
+    let x: i8 = 5;
+    let y: Option<i8> = Some(5);
+
+    let sum = x + y;
+```
+>除了错误地假设一个非空值的风险，会让你对代码更加有信心。为了拥有一个可能为空的值，你必须要显式的将其放入对应类型的 Option<T> 中。接着，当使用这个值时，必须明确的处理值为空的情况。只要一个值不是 Option<T> 类型，你就可以安全的认定它的值不为空。这是 Rust 的一个经过深思熟虑的设计决策，来限制空值的泛滥以增加 Rust 代码的安全性。
+
+这一考量确实很不错.
+### 模式匹配: match
+```rs
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter,
+}
+
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter => 25,
+    }
+}
+```
+当 match 表达式执行时，它将结果值按顺序与每一个分支的模式相比较。如果模式匹配了这个值，这个模式相关联的代码将被执行。如果模式并不匹配这个值，将继续执行下一个分支，非常类似一个硬币分类器
+
+match 还有另一方面需要讨论：这些分支必须覆盖了所有的可能性。考虑一下 plus_one 函数的这个版本，它有一个 bug 并不能编译：
+```rs
+    fn plus_one(x: Option<i32>) -> Option<i32> {
+        match x {
+            Some(i) => Some(i + 1),
+        }
+    }
+```
+
+rust还支持通过变量来实现通配:
+```rs
+    let dice_roll = 9;
+    match dice_roll {
+        3 => add_fancy_hat(),
+        7 => remove_fancy_hat(),
+        other => move_player(other),
+    }
+
+    fn add_fancy_hat() {}
+    fn remove_fancy_hat() {}
+    fn move_player(num_spaces: u8) {}
+```
+如果我们不想使用通配变量来处理所有的边缘情况,而是打算直接忽略它或者做其他处理,就可以用到`_`这一特殊模式:
+```rs
+    let dice_roll = 9;
+    match dice_roll {
+        3 => add_fancy_hat(),
+        7 => remove_fancy_hat(),
+        _ => reroll(),
+    }
+
+    fn add_fancy_hat() {}
+    fn remove_fancy_hat() {}
+    fn reroll() {}
+```
+### 简洁控制流
 
 
-# Python for Algorithmic Trading
-## 前置知识
-1. Beta trading: 通过投资于例如复制标普500指数表现的交易所交易基金（ETFs）来赚取市场风险溢价
-2. Alpha generation: 以独立于市场的方式获取风险溢价，例如做空标普500指数成分股或标普500指数ETF即可实现。
-3. Static hedging: ，通过买入标准普尔500指数价外看跌期权来对冲市场风险
-4. Dynamic hedging: 通过对标普500指数期权产生影响的市场风险进行对冲，例如动态交易标普500指数期货以及相应的现金、货币市场或利率工具
+# Web Scraping with Python,3rd edition
+# Go Web Scraping Quick Start Guide
+## A simple request example
+```go
+package main
 
-本书聚焦于Alpha generation策略.
+import (
+	"log"
+	"net/http"
+	"os"
+)
 
+func main(){
+	var r *http.Response
+	var err error
+	r,err=http.Get("https://www.example.com")
+	if err!=nil{
+		panic(err)
+	}
+	if r.StatusCode==200{
+		var Content []byte
+		var bodyLength int=1270
+		Content=make([]byte, bodyLength)
 
+		r.Body.Read((Content))
+		var out *os.File
+		out,err=os.OpenFile("index.html",os.O_CREATE|os.O_WRONLY,0664)
+		if err!=nil{
+			panic(err)
+		}
+		out.Write(Content)
+		out.Close()
+	}else{
+		log.Fatal("Failed",
+	r.StatusCode)
+	}
+}
+```
+不得不承认,Go的语法确实很简洁,但远不如Python形象
 # The Design of Web APIs, Second Edition
 ## 介绍
 ### 前言
@@ -368,13 +613,25 @@ s               // String
 API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也会大打折扣
 
 >不是每个人都能有幸从白纸一张开始设计API。现有的API可能存在并且设计得不够理想。我们的目的并非指责过去的设计，而是要防止API设计的技术债务继续增加
-
+# gRPC: Up and Running
+## 介绍
+在构建现代云原生应用和微服务的同步请求-响应式通信时，最常用且传统的方法是将其构建为RESTful服务，即将应用或服务建模为可通过HTTP协议上的网络调用访问和更改状态的资源集合。然而，对于大多数用例而言，RESTful服务在构建进程间通信时往往较为笨重、效率低下且易出错。通常需要一种高度可扩展、松散耦合且比RESTful服务更高效的进程间通信技术。这正是gRPC——一种用于构建分布式应用和微服务的现代进程间通信方式——发挥作用的地方
+# System Performance,2nd edition
 
 # Data Storage Architectures and Technologies
 # THE GHIDRA BOOK
-# Web Scraping with Python,3rd edition
-# Go Web Scraping Quick Start Guide
 # Responsive Web Design with HTML5 and CSS,Fourth Edition
+# Python for Algorithmic Trading
+## 前置知识
+1. Beta trading: 通过投资于例如复制标普500指数表现的交易所交易基金（ETFs）来赚取市场风险溢价
+2. Alpha generation: 以独立于市场的方式获取风险溢价，例如做空标普500指数成分股或标普500指数ETF即可实现。
+3. Static hedging: ，通过买入标准普尔500指数价外看跌期权来对冲市场风险
+4. Dynamic hedging: 通过对标普500指数期权产生影响的市场风险进行对冲，例如动态交易标普500指数期货以及相应的现金、货币市场或利率工具
+
+本书聚焦于Alpha generation策略.
+
+## 总结
+基本是代码的罗列,原理讲的一点都不清晰,所以看的很迷糊
 # Redis in action
 ## 介绍
 Redis有5种基础数据类型:

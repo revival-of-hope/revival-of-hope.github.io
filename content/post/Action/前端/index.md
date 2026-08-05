@@ -1,10 +1,9 @@
 ---
 title: 前端笔记
 date: 2026-04-30T09:56:06+08:00
-tags: 
-- 前端
 image: 60155475_p0-ゆき.webp
 math: true
+description: 重构中ing
 
 ---
 # 前端概览
@@ -2731,8 +2730,15 @@ createRoot(document.getElementById('root')).render(
   <FavoriteColor />
 );
 ```
+setColor本质上是一个回调函数,会在触发时去更新被绑定的state.
 
-- setColor本质上是一个回调函数,会在触发时去更新被绑定的state.
+而useState实际上支持两种传参方式,一种是我们上面的直接传参,另一种则是传递一个回调函数,例如:
+```jsx
+setCount((c) => c + 1)
+```
+至于为什么这么设计
+
+
 
 state也可以是对象:
 ```jsx
@@ -2769,7 +2775,8 @@ useEffect是第二常用的React Hook,用来执行一些**side effects**,包括:
 2. updating the DOM
 3. 计时
 
->鉴于官方把useEffect的效果称为`side effects`,但它实质上并不是那种常规的**有危害的副作用**的意思,所以就保持原文算了.
+>[!NOTE]
+鉴于官方把useEffect的效果称为`side effects`,但它实质上并不是那种常规的**有危害的副作用**的意思,所以就保持原文算了.
 
 useEffect有两个参数,第二个参数是可选的:
 ```jsx
@@ -2841,6 +2848,7 @@ createRoot(document.getElementById('root')).render(
   <Counter />
 );
 ```
+
 ### useContext
 useState只能写在函数中,这意味着它不能通过全局变量来在组件中共享,想要跨越文件传递值则更加困难:
 ```jsx
@@ -3281,7 +3289,7 @@ ts中的类型注释有以下几种:
    1. 与python的Any类型一样,类型检查时会直接跳过它
 3. 未知类型: unknown
    1. 由于any不够安全,所以TS3.0引入了该类型,它是所有类型的顶级类型.
-4. 可选属性: `?: type`,一个例子如下:
+4. 可选类型: `?: type`,一个例子如下:
 
 ```ts
 function printName(obj: { first: string; last?: string }) {
@@ -3296,7 +3304,7 @@ printName({ first: "Alice", last: "Alisson" });
 
 >当然,在ts中更多的是由用户自定义的类或者type进行类型注释.
 
-5. 至于对象这种键值对的类型,想要对键也进行类型注释的话可不能再直接写一个`:`号,那样没人看得懂的,ts的写法是这样的:
+5. 至于像对象这种格式为`key: value`的类型,想要对键也进行类型注释的话可不能再直接写一个`:`号,那样没人看得懂的,ts的写法是这样的:
 
 ```ts
 type OnlyBoolsAndHorses = {
@@ -4541,13 +4549,12 @@ export default async function BlogPostPage({
 
 next中主要有三种异常文件,全都是自动生效/不可改名的:
 
-| 专用文件名          | 触发场景                           | 本质对应的 React 特性 | 必须加 `"use client"` 吗 |
-| ------------------- | ---------------------------------- | --------------------- | ------------------------ |
-| **`not-found.tsx`** | 1. 访问了不存在的路由（404）。<br> |
-
-<br>2. 在代码中显式触发了 `notFound()` 函数。 | 局部的 404 兜底组件 | **否** (默认是 Server Component) |
-| **`error.tsx`** | 捕获该路由目录及其子目录下，所有页面在**运行时（Runtime）**抛出的未知代码崩溃。 | 局部错误边界 `<ErrorBoundary>` | **是** (必须是 Client Component) |
-| **`global-error.tsx`** | 专门用于捕获根布局 `app/layout.tsx` 本身崩溃的极端情况。 | 整个应用的终极死机界面 | **是** (必须是 Client Component) |
+| 专用文件名                                    | 触发场景                                                                        | 本质对应的 React 特性            | 必须加 `"use client"` 吗         |
+| --------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------------- | -------------------------------- |
+| **`not-found.tsx`**                           | 1. 访问了不存在的路由（404）。<br>                                              |
+| <br>2. 在代码中显式触发了 `notFound()` 函数。 | 局部的 404 兜底组件                                                             | **否** (默认是 Server Component) |
+| **`error.tsx`**                               | 捕获该路由目录及其子目录下，所有页面在**运行时（Runtime）**抛出的未知代码崩溃。 | 局部错误边界 `<ErrorBoundary>`   | **是** (必须是 Client Component) |
+| **`global-error.tsx`**                        | 专门用于捕获根布局 `app/layout.tsx` 本身崩溃的极端情况。                        | 整个应用的终极死机界面           | **是** (必须是 Client Component) |
 
 #### 路由处理函数
 - [API文档](https://nextjscn.org/docs/app/api-reference/functions/use-params)
@@ -4671,7 +4678,8 @@ export const metadata: Metadata = {
 export default function Layout() {}
 ```
 
-
+## 实战
+总的来说,nextjs包揽了构建和路由,但是状态管理和API调用还是得靠其他的库来实现.
 # React Router(待补充)
 ## 概览
 - [官网](https://reactrouter.com/start/modes#framework)
@@ -4689,84 +4697,6 @@ export default function Layout() {}
 
 # Tanstack router(待补充)
 ## 概览
-- [官网](https://ui.shadcn.com/docs/dark-mode/vite)
-### 官网的AI介绍
-Tanstack官网里的东西太多了,让AI稍微介绍一下:
-
-TanStack 官网生态庞大，是因为它已经从最初的一个单一数据请求库（React Query），演变成了一整套**框架无关（Framework-Agnostic）的现代化前端应用全家桶**。
-
-其核心设计哲学是“Headless（无头/无 UI 样式）”**和**“极致的 TypeScript 类型安全”。这意味着它的很多库只负责核心逻辑、状态和计算，不提供任何 HTML 标签或 CSS 样式，由开发者自由绑定到 React、Vue、Solid 或 Svelte 等任何前端框架中。
-
-核心产品可以划分为以下四大板块：
-
-#### 1. 三大基石级核心库（也是最常用的）
-
-* **TanStack Query (原名 React Query)**：
-* **定位**：异步状态与数据请求管理。
-* **做什么**：前端开发中最核心的“服务器状态管理工具”。它帮你搞定前端最头疼的**数据缓存、自动后台刷新、请求去重、垃圾回收、滚动分页加载**等功能。现在支持 React、Vue、Svelte 等全框架。
-
-
-* **TanStack Table (原名 React Table)**：
-* **定位**：强大的表格与数据网格（Datagrid）逻辑引擎。
-* **做什么**：它是典型的 Headless 库。它不给你任何表格样式，但把表格所需要的**排序、过滤、多选、列拖拽、分层折叠、服务端分页**等极其复杂的逻辑全部封装好了，样式完全由你自己用 Tailwind 或普通 CSS 去写。
-
-
-* **TanStack Router**：
-* **定位**：极致类型安全的客户端路由。
-* **做什么**：为了对抗 Next.js 等框架的基于文件系统的路由而生。它的核心卖点是 **100% Type-Safe（类型安全）**。你的跳转路径、URL 参数（Search Params）全部有严格的 TypeScript 类型推导，输错一个字母编译就报错。
-
-
-
----
-
-#### 2. 進阶全栈与架构扩展
-
-* **TanStack Start**：
-* **定位**：全栈 Web 框架。
-* **做什么**：基于 TanStack Router 和 Vite 构建。它直接对标 Next.js、Remix 或 Nuxt，支持全文档 SSR（服务端渲染）、数据流式传输（Streaming）以及 Server Functions（直连后端的服务器函数）。
-
-
-* **TanStack Form**：
-* **定位**：高性能、类型安全的表单状态管理。
-* **做什么**：对标 Formik 或 React Hook Form。同样是无头（Headless）设计，主打在极高频输入下依然保持超高的渲染性能，且表单字段的类型校验非常严苛。
-
-
-
----
-
-#### 3. 高性能交互与底座
-
-* **TanStack Virtual**：
-* **定位**：虚拟滚动/虚拟列表。
-* **做什么**：当你有几万、几十万条数据要展示在页面上时，如果直接渲染 DOM 会导致浏览器卡死。它帮你只渲染当前屏幕“看得见”的那几十条，并在滚动时动态复用 DOM，实现 60FPS 的丝滑滚动。
-
-
-* **TanStack DB**：
-* **定位**：响应式客户端优先（Client-first）的 API 存储仓库。
-* **做什么**：让你在前端像操作本地数据库一样，支持乐观更新（Optimistic Mutations）、实时查询（Live Queries），保证 UI 的极速响应和状态一致。
-
-
-* **TanStack Store**：
-* **定位**：底层的不可变响应式状态库（内部底座）。
-
-
-
----
-
-#### 4. 前沿/AI/工程工具
-
-* **TanStack AI**：
-* **定位**：统一的多模型 AI SDK。提供干净的 TypeScript 接口，防止厂商锁定。
-
-
-* **TanStack Intent**：
-* **定位**：让 npm 包原生支持 AI Agent。能将库的知识和 API 自动暴露给 AI 代理（如支持 MCP 协议的系统）。
-
-
-* **TanStack Devtools / Config / CLI**：
-* 统一的调试面板、工程化配置包和脚手架工具。
-
-### 回到主题
 由于Next.js的很多特性是绑定在Vercel自己的服务器平台上的,生态也比较封闭,而新兴的Tanstack router框架更加拥抱开源生态,所以逐渐热门起来.
 
 官网介绍中,Tanstack有`file-based`和`code-based`两种写法,由于code-based写法难度比较高,官方也不很推荐,所以还是用file-based写法.
