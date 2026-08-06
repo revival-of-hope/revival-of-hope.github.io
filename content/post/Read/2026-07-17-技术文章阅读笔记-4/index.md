@@ -9,6 +9,72 @@ math:
 - 由浅入深,这才是正常的教科书,不吊打Go圣经几条街.
 
 ## 基础
+### 补充: 前瞻体验
+不得不承认,rust的代码非常丑陋,导致开发效率很低下:
+```rs
+use crate::{
+    client::Client,
+    config::Config,
+    error::OpenAIError,
+    types::{CompletionResponseStream, CreateCompletionRequest, CreateCompletionResponse},
+};
+
+pub struct Completions<'c, C: Config> {
+    client: &'c Client<C>,
+}
+
+impl<'c, C: Config> Completions<'c, C> {
+    pub fn new(client: &'c Client<C>) -> Self {
+        Self { client }
+    }
+
+    /// Creates a completion for the provided prompt and parameters
+    ///
+    /// You must ensure that "stream: false" in serialized `request`
+    #[crate::byot(
+        T0 = serde::Serialize,
+        R = serde::de::DeserializeOwned
+    )]
+    pub async fn create(
+        &self,
+        request: CreateCompletionRequest,
+    ) -> Result<CreateCompletionResponse, OpenAIError> {
+        #[cfg(not(feature = "byot"))]
+        {
+            if request.stream.is_some() && request.stream.unwrap() {
+                return Err(OpenAIError::InvalidArgument(
+                    "When stream is true, use Completion::create_stream".into(),
+                ));
+            }
+        }
+        self.client.post("/completions", request).await
+    }
+    #[crate::byot(
+        T0 = serde::Serialize,
+        R = serde::de::DeserializeOwned,
+        stream = "true",
+        where_clause = "R: std::marker::Send + 'static"
+    )]
+    #[allow(unused_mut)]
+    pub async fn create_stream(
+        &self,
+        mut request: CreateCompletionRequest,
+    ) -> Result<CompletionResponseStream, OpenAIError> {
+        #[cfg(not(feature = "byot"))]
+        {
+            if request.stream.is_some() && !request.stream.unwrap() {
+                return Err(OpenAIError::InvalidArgument(
+                    "When stream is false, use Completion::create".into(),
+                ));
+            }
+
+            request.stream = Some(true);
+        }
+        Ok(self.client.post_stream("/completions", request).await)
+    }
+}
+```
+
 ### 变量与常量
 1. rust中变量用`let`声明,可以隐式推导类型,但默认为不可变的,即初始化后就不可改变,如果想要让它可变,则要加上mut修饰符,如:
 
@@ -550,7 +616,55 @@ rust还支持通过变量来实现通配:
     fn reroll() {}
 ```
 ### 简洁控制流
+```rs
+    let config_max = Some(3u8);
+    match config_max {
+        Some(max) => println!("The maximum is configured to be {max}"),
+        _ => (),
+    }
+    // 简化写法
+    let config_max = Some(3u8);
+    if let Some(max) = config_max {
+        println!("The maximum is configured to be {max}");
+    }
 
+```
+>可以认为 if let 是 match 的一个语法糖，它当值匹配某一模式时执行代码而忽略所有其他值。
+
+不过这个语法糖确实很抽象,让人看的很迷糊:
+```rs
+fn describe_state_quarter(coin: Coin) -> Option<String> {
+    let state = if let Coin::Quarter(state) = coin {
+        state
+    } else {
+        return None;
+    };
+
+    if state.existed_in(1900) {
+        Some(format!("{state:?} is pretty old, for America!"))
+    } else {
+        Some(format!("{state:?} is relatively new."))
+    }
+}
+```
+
+### 包、Crates 与模块
+- 包（Packages）：Cargo 的一个功能，它允许你构建、测试和分享 crate。
+- Crates：一个模块树，可以产生一个库或可执行文件。
+- 模块（Modules）和 use：允许你控制作用域和路径的私有性。
+- 路径（path）：一个为例如结构体、函数或模块等项命名的方式。
+
+crate 是 Rust 编译器每次处理的最小代码单位。即使你用 rustc 而不是 cargo 来编译单个源代码文件，编译器也会把那个文件视为一个 crate.
+
+crate 有两种形式：二进制 crate 和库 crate。二进制 crate（Binary crates）可以被编译为可执行程序，比如命令行程序或者服务端。它们必须有一个名为 main 函数来定义当程序被执行的时候所需要做的事情。目前我们所创建的 crate 都是二进制 crate。
+
+库 crate（Library crates）并没有 main 函数，它们也不会编译为可执行程序。相反它们定义了可供多个项目复用的功能模块
+
+块让我们可以将一个 crate 中的代码进行分组，以提高可读性与重用性。因为一个模块中的代码默认是私有的，所以还可以利用模块控制项的私有性（privacy）。
+
+
+# Rust 中文学习教程
+由于另一本书太难啃了,所以换这本书来试试咸淡.
 
 # Web Scraping with Python,3rd edition
 # Go Web Scraping Quick Start Guide
@@ -615,7 +729,11 @@ API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也
 >不是每个人都能有幸从白纸一张开始设计API。现有的API可能存在并且设计得不够理想。我们的目的并非指责过去的设计，而是要防止API设计的技术债务继续增加
 # gRPC: Up and Running
 ## 介绍
-在构建现代云原生应用和微服务的同步请求-响应式通信时，最常用且传统的方法是将其构建为RESTful服务，即将应用或服务建模为可通过HTTP协议上的网络调用访问和更改状态的资源集合。然而，对于大多数用例而言，RESTful服务在构建进程间通信时往往较为笨重、效率低下且易出错。通常需要一种高度可扩展、松散耦合且比RESTful服务更高效的进程间通信技术。这正是gRPC——一种用于构建分布式应用和微服务的现代进程间通信方式——发挥作用的地方
+>在构建现代云原生应用和微服务的同步请求-响应式通信时，最常用且传统的方法是将其构建为RESTful服务，即将应用或服务建模为可通过HTTP协议上的网络调用访问和更改状态的资源集合。然而，对于大多数用例而言，RESTful服务在构建进程间通信时往往较为笨重、效率低下且易出错。通常需要一种高度可扩展、松散耦合且比RESTful服务更高效的进程间通信技术。这正是gRPC——一种用于构建分布式应用和微服务的现代进程间通信方式——发挥作用的地方
+
+gRPC（“g”在每个gRPC版本中代表不同的含义）是一种进程间通信技术，它使您能够像进行本地函数调用一样轻松地连接、调用、操作和调试分布式异构应用程序。
+
+
 # System Performance,2nd edition
 
 # Data Storage Architectures and Technologies
