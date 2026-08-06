@@ -4,7 +4,6 @@ date: 2026-08-06 17:32:10
 tags: 
     - 调研
 image: 60095408_p0-Autumn.jpg
-draft: true
 description: AI辅助版,毕竟一个个翻真的太累了
 ---
 # 学术组织与实验室
