@@ -11,7 +11,7 @@ SortBy              = "default"
 
 [footer]
     since      = 2025
-    customText = "😇"
+    customText = "网站总访客数：<span id='busuanzi_value_site_uv'>Loading</span><br/>"
     # customText = """网站总访客数：<span id='busuanzi_value_site_uv'>Loading</span><br/>
     #   网站总访问量：<span id='busuanzi_value_site_pv'>Loading</span>
     #  """
