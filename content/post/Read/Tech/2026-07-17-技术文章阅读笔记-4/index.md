@@ -5,6 +5,34 @@ description:
 image: 62549331_p0-フランちゃんとチェス.webp
 math: 
 ---
+# gRPC: Up and Running
+## 介绍
+- 江山代有才人出,各领风骚一两年
+
+>在构建现代云原生应用和微服务的同步请求-响应式通信时，最常用且传统的方法是将其构建为RESTful服务，即将应用或服务建模为可通过HTTP协议上的网络调用访问和更改状态的资源集合。然而，对于大多数用例而言，RESTful服务在构建进程间通信时往往较为笨重、效率低下且易出错。通常需要一种高度可扩展、松散耦合且比RESTful服务更高效的进程间通信技术。这正是gRPC——一种用于构建分布式应用和微服务的现代进程间通信方式——发挥作用的地方
+
+gRPC（“g”在每个gRPC版本中代表不同的含义）是一种进程间通信技术，它使您能够像进行本地函数调用一样轻松地连接、调用、操作和调试分布式异构应用程序。
+
+![本书示例](PixPin_2026-08-06_13-41-46.webp)
+
+作为有线传输协议，gRPC使用HTTP/2，这是一种高性能的二进制消息协议，支持双向消息传递。
+
+RPC是构建客户端-服务应用程序的一种流行的进程间通信技术。通过RPC，客户端可以像调用本地方法一样远程调用某个函数或方法。早期有几种流行的RPC实现，如公共对象请求代理架构（CORBA）和Java远程方法调用（RMI），它们用于构建和连接服务或应用程序。然而，这类传统RPC实现大多极其复杂，因为它们构建在像TCP这样的通信协议之上，这阻碍了互操作性，并且基于臃肿的规范。
+
+由于传统RPC实现（如CORBA）的局限性，Simple Object Access Protocol（SOAP）被设计并由微软、IBM等大型企业大力推广。SOAP是 service-oriented architecture（SOA）中的标准通信技术，用于在服务（在SOA上下文中通常称为Web服务）之间交换基于XML的结构化数据，并通过任何底层通信协议（如HTTP，最常用）进行通信。
+
+SOAP曾是一种相当流行的技术，但消息格式的复杂性以及围绕SOAP构建的规范复杂性，阻碍了分布式应用开发的敏捷性。因此，在现代分布式应用开发的背景下，SOAP web服务被视为一种遗留技术。相较于使用SOAP，当前大多数现有的分布式应用正采用REST架构风格进行开发。
+
+REST的事实标准实现是HTTP，而在HTTP中，你可以将RESTful Web应用建模为一系列资源，这些资源通过唯一标识符（URL）进行访问。状态变更操作以HTTP动词（如GET、POST、PUT、DELETE、PATCH等）的形式应用于这些资源之上。资源的状态以文本格式（如JSON、XML、HTML、YAML等）表示。
+
+使用REST架构风格配合HTTP和JSON构建应用程序已成为构建微服务的事实标准方法。然而，随着微服务数量及其网络交互的激增，RESTful服务已无法满足预期的现代需求。RESTful服务存在几个关键限制，阻碍了其作为基于微服务的现代应用程序的消息传递协议的能力。
+
+
+# System Performance,2nd edition
+
+# Data Storage Architectures and Technologies
+# THE GHIDRA BOOK
+# Responsive Web Design with HTML5 and CSS,Fourth Edition
 # Rust程序设计语言
 - 由浅入深,这才是正常的教科书,不吊打Go圣经几条街.
 
@@ -727,18 +755,7 @@ func main(){
 API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也会大打折扣
 
 >不是每个人都能有幸从白纸一张开始设计API。现有的API可能存在并且设计得不够理想。我们的目的并非指责过去的设计，而是要防止API设计的技术债务继续增加
-# gRPC: Up and Running
-## 介绍
->在构建现代云原生应用和微服务的同步请求-响应式通信时，最常用且传统的方法是将其构建为RESTful服务，即将应用或服务建模为可通过HTTP协议上的网络调用访问和更改状态的资源集合。然而，对于大多数用例而言，RESTful服务在构建进程间通信时往往较为笨重、效率低下且易出错。通常需要一种高度可扩展、松散耦合且比RESTful服务更高效的进程间通信技术。这正是gRPC——一种用于构建分布式应用和微服务的现代进程间通信方式——发挥作用的地方
 
-gRPC（“g”在每个gRPC版本中代表不同的含义）是一种进程间通信技术，它使您能够像进行本地函数调用一样轻松地连接、调用、操作和调试分布式异构应用程序。
-
-
-# System Performance,2nd edition
-
-# Data Storage Architectures and Technologies
-# THE GHIDRA BOOK
-# Responsive Web Design with HTML5 and CSS,Fourth Edition
 # Python for Algorithmic Trading
 ## 前置知识
 1. Beta trading: 通过投资于例如复制标普500指数表现的交易所交易基金（ETFs）来赚取市场风险溢价
@@ -1392,8 +1409,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --topic test-topi
 
 ## 总结
 了解到这里就基本足够了,后面就是一些琐碎的配置环节了.
-# RabbitMQ in Depth
-该说是太老了还是怎么呢,讲的一点都不清晰,看了两章都没看明白RabbitMQ的基本原理
+
 # Python3网络爬虫开发实战
 ## 爬虫基础
 讲的还不错,基本涉及了爬虫所需的所有知识,尤其是关于session,cookie的地方讲的很好,帮我扫清了一点疑惑
@@ -1422,3 +1438,6 @@ Elasticsearch是使用Lucene作为底层引擎的开源搜索引擎.
 - 前面的概念辨析很有看头
 ## 总结
 尽管确实很全面,奈何讲解都简单的过分了,不够深入,基本都是依靠框架来实现爬虫的.但还是为数不多的爬虫好书.
+
+# RabbitMQ in Depth
+该说是太老了还是怎么呢,讲的一点都不清晰,看了两章都没看明白RabbitMQ的基本原理
