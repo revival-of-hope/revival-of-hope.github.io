@@ -6,51 +6,66 @@ image: 69045738_p0-….webp
 math: 
 draft: true
 ---
-## gRPC与Rest
+## 通信规范:从Rest到gRPC
+### 早期RPC框架
+### Rest的诞生与风行
+### gRPC横空出世
 - [参考文章](https://info.support.huawei.com/info-finder/encyclopedia/zh/gRPC.html)
 - [wiki](https://en.wikipedia.org/wiki/GRPC)
+### GraphQL的插曲
 
-## GraphQL
 ## 加密链接
 ### 前言
-- Across the Great Wall we can reach every corner in the world.
+>[!CAUTION]
+Across the Great Wall we can reach every corner in the world.
 
-看了[这篇文章](https://blog.ch3nyang.top/post/%E7%BF%BB%E5%A2%99%E5%8D%8F%E8%AE%AE/)后,我对加密链接有了浓厚的兴趣,先将该文涉及的加密工具按时间线摆出来:
-1. 2012年: Shadowsocks
-2. 2015年: ShadowsocksR (SSR)
-3. 2015年: VMess
-4. 2019年: Trojan
-5. 2020年: VLESS/Xray
-6. 2022年: Hysteria
-7. 2022年: REALITY
+看了[这篇文章](https://blog.ch3nyang.top/post/%E7%BF%BB%E5%A2%99%E5%8D%8F%E8%AE%AE/)后,我对加密链接有了浓厚的兴趣,先将该文涉及的加密协议及平台按时间线摆出来:
 
-而常见的加密客户端有以下几种:
-1. V2Ray/Xray
-2. sing-box
-3. clash
+1. [Shadowsocks](https://github.com/shadowsocks/shadowsocks-rust)（2012年）
 
-接下来,让我们深入探讨一下加密链接的方方面面
-### 加密链接的原理
-#### 为什么会被拦截
-在谈加密协议之前,我们需要先了解为什么请求会被拦截:
+   1. Shadowsocks 最初由 clowwindy 开发，是一种轻量级加密代理协议。其早期 Python 实现已经停止维护，目前 Shadowsocks 官方组织中较活跃的实现是 **shadowsocks-rust**，使用 Rust 编写，同时支持客户端和服务端。
 
-1. 当你访问互联网时,并不存在真正的无线通信.如果你使用校园网,那么就需要使用学校的无线接入点,这个无线接入点通过链路与路由器连接,路由器与学校的交换机连接,交换机再与ISP(服务商)的链路连接,再通过外网关口连接到全球的互联网;如果是使用移动数据,那么就需要使用ISP的基站,这个基站通过链路与ISP的核心网络连接,再连接到互联网.
-2. 那么,当你访问一个国外网站,比如Google.com时,你的流量就势必要经过内地的网关,而由于没经过加密处理的http请求可以直接被网关探测到,当他判断这个站点"非法"时可以**直接**拒绝转发,返回请求失败的报文.
+2. [ShadowsocksR（SSR）](https://github.com/shadowsocksrr/shadowsocksr)（2015年）
 
->事实上,上述的**网关探测**用词是不准确的,当网关处理网络请求时,它必须要解包后得知这个请求的目的IP,才能知道要把这个请求发向哪个国家.至于发现这个目的IP"非法"只不过是顺带的事.
+   1. ShadowsocksR 是在 Shadowsocks 基础上发展出的分支，增加了额外的协议和混淆机制。原始 SSR 项目已经停止维护，目前能够找到的 `shadowsocksrr/shadowsocksr` 属于后续社区维护版本，因此严格来说不能视为原作者仍在维护的“官方仓库”。
 
-#### 加密方法
-网络协议栈可分为自上而下的5层: **应用层,运输层,网络层,链路层和物理层**.加密链接一般只能对上三层做手脚:
+3. [VMess / V2Ray](https://github.com/v2fly/v2ray-core)（2015年）
 
-1. 应用层: **进一步加密报文**,保证报文只能被中转服务器识别
-2. 运输层: **使用UDP包装TCP请求**
-3. 网络层: 使用境外的中转服务器,从而将目的IP替换成"合法IP"
+   1. VMess 是 V2Ray 体系早期的核心代理协议之一，而 **V2Ray** 本身是支持多种入站、出站协议和传输方式的代理平台。现在主要由 V2Fly 社区维护 `v2ray-core`。
 
-总结一下就是说:
-1. 为了不让自己的IP请求被直接截取,加密链接需要将原TCP请求报文再封装一次,由于TCP本身就具有重传机制,如果再用TCP封装,就会导致大量的无意义重传,所以我们使用UDP来封装.
-2. 由于网关可以直接探测到我们的封装UDP包内部的TCP报文,我们需要对该TCP报文进行加密处理,伪装成正常的网络请求
-3. 既然进行了加密处理,直接发给国外网站服务器的话,它是无法正常识别的,因此,我们需要建立境外中转站,将流量发送给境外中转站,**让它帮我们解密报文后再发给目标网站**.这样一来,我们就需要在IP包中将该UDP包中的目的IP替换成中转站的IP.
+4. [Trojan](https://github.com/trojan-gfw/trojan)（2019年）
 
+   1. Trojan 的主要设计思路是让代理通信建立在 TLS 之上，使网络流量在外观上更接近普通 TLS 通信。
+
+5. [VLESS / Xray](https://github.com/XTLS/Xray-core)（2020年）
+
+   1. VLESS 是 Xray/V2Ray 生态中使用的轻量级代理协议，本身不负责像传统 Shadowsocks 那样在协议内部设计一套数据加密，而通常与 TLS、XTLS、REALITY 等安全传输机制组合使用。**Xray-core** 是目前 VLESS 最主要的实现之一，同时支持 VMess、Trojan、Shadowsocks、VLESS 等多种协议。
+
+6. [Hysteria](https://github.com/apernet/hysteria)（2022年，Hysteria 2 后续继续发展）
+
+   1. Hysteria 是基于 QUIC 思路构建的代理协议和实现，重点针对高延迟、高丢包等质量较差的网络环境。当前主要使用 **Hysteria 2**，项目同时支持 SOCKS5、HTTP Proxy、TCP/UDP 转发和 TUN 等工作模式。
+
+7. [REALITY / Xray](https://github.com/XTLS/Xray-core)（2022年）
+
+   1. REALITY 并不是一个与 VMess、VLESS 完全同层级的独立代理协议，而是 **Xray/XTLS 体系中的安全传输机制**，通常与 VLESS 等协议搭配使用。其主要实现位于 Xray-core 中，因此并不存在一个需要单独安装的“REALITY客户端”。
+
+8. [mieru](https://github.com/enfein/mieru)（原文没有,2025年诞生）
+
+   1. 支持 TCP 和 UDP，不依赖 TLS，而是采用自身的加密、随机 padding、重放检测等设计。到 2026 年仍持续发布 3.x 版本，并已经得到 Mihomo 等第三方客户端支持
+
+客户端平台则主要有以下几种：
+
+1. [V2Ray](https://github.com/v2fly/v2ray-core) / [Xray](https://github.com/XTLS/Xray-core)
+
+   1. V2Ray 是较早的通用代理平台，支持 VMess、Shadowsocks、SOCKS、HTTP 等协议；Xray 最初从 V2Ray 生态发展而来，目前增加并重点维护了 **VLESS、XTLS、REALITY、XHTTP** 等技术。两者都是“核心程序”，Windows、Android 等平台上的图形客户端通常是在这些核心之上再提供 GUI。
+
+2. [sing-box](https://github.com/SagerNet/sing-box)
+
+   1. sing-box 是 SagerNet 开发的现代通用代理平台，使用 Go 编写，目标是通过一个核心统一支持多种代理、VPN和隧道协议。它拥有 Android、Apple 系统以及桌面端的相关官方客户端项目，同时能够作为服务器端程序使用。
+
+3. [Mihomo（原 Clash.Meta）](https://github.com/MetaCubeX/mihomo)
+
+   1. 原版 **Clash** 已经停止维护，它继承了 Clash 的基于规则进行流量分流的设计，并扩充了 VLESS、VMess、Trojan、Hysteria、WireGuard 等大量协议支持。Mihomo 本身主要是核心程序，上层可以搭配不同的图形界面使用。
 
 
 ### Shadowsocks

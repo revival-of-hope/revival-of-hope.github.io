@@ -34,6 +34,42 @@ REST的事实标准实现是HTTP，而在HTTP中，你可以将RESTful Web应用
 Google一直使用一个名为Stubby的通用RPC框架，来连接数千个运行在多个数据中心、采用不同技术构建的微服务。其核心RPC层旨在处理每秒数百亿次请求的互联网规模。Stubby拥有众多优秀特性，但它并未被标准化为通用框架，因为它与Google的内部基础设施耦合过紧。2015年，谷歌发布了gRPC作为开源RPC框架；它是一种标准化、通用且跨平台的RPC基础设施。gRPC旨在向广大社区提供与Stubby相同的可扩展性、性能和功能。
 
 gRPC并非使用JSON或XML这类文本格式，而是采用基于协议缓冲区的二进制协议来与gRPC服务和客户端进行通信。此外，gRPC在HTTP/2之上实现了协议缓冲区，这使得它在进程间通信中更加高效。
+
+随着采用gRPC，Netflix在开发者生产力方面获得了巨大提升。例如，对于每个客户端，数百行自定义代码被替换为proto中仅需两到三行的配置。创建一个原本可能需要两到三周的客户端，如今使用gRPC只需几分钟即可完成。平台的整体稳定性也大为改善，因为大多数常规功能不再需要手写代码，并且有一种全面且安全的方式来定义服务接口.
+
+```ts
+// 指定Protobuf版本语法（Proto3）
+syntax = "proto3";
+
+// 从其他包导入消息类型
+import "google/protobuf/wrappers.proto";
+
+// 声明包名，用于避免消息类型命名冲突，并决定生成的代码命名空间
+package ecommerce;
+
+// 定义RPC服务接口
+service ProductInfo {
+    // 添加商品：接收Product消息，返回ProductID消息
+    rpc addProduct(Product) returns (ProductID);
+    // 获取商品：接收ProductID消息，返回Product消息
+    rpc getProduct(ProductID) returns (Product);
+}
+
+// 定义商品实体结构体
+message Product {
+    string id = 1;          // 商品唯一标识符（字段编号 1）
+    string name = 2;        // 商品名称（字段编号 2）
+    string description = 3; // 商品描述（字段编号 3）
+}
+
+// 定义商品ID结构体
+message ProductID {
+    string value = 1;       // 商品ID值（字段编号 1）
+}
+```
+可以看到,protobuf的格式相当清晰,比起OpenAPI规范的可读性要高了许多,不再需要强调路由,方法这些让人心累的无关参数.
+
+
 # System Performance,2nd edition
 
 # Data Storage Architectures and Technologies
@@ -761,6 +797,22 @@ func main(){
 API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也会大打折扣
 
 >不是每个人都能有幸从白纸一张开始设计API。现有的API可能存在并且设计得不够理想。我们的目的并非指责过去的设计，而是要防止API设计的技术债务继续增加
+# Building Evolutionary Architectures,2nd edition
+## 介绍
+>当我们于2017年撰写《构建演进式架构》第一版时，软件架构可演进的想法仍显得有些激进。在一次关于该主题的早期演讲中，丽贝卡在结束后被某人指责，称她提出软件架构能随时间演进是职业上不负责任的表现——毕竟，架构是永远不变的东西。然而，正如现实所教导我们的，系统必须不断演变以满足用户的新需求，并反映不断变化的软件开发生态系统的变化。
+
+> **为什么 exist 我们在2000年没有微服务**
+> 考虑一位拥有时间机器的架构师，乘时光机回到2000年，向运营负责人提出一个新想法。
+> “我有一个很棒的新架构概念，它可以让各项能力之间实现极佳的隔离——这叫做**微服务**；我们将围绕业务能力设计每个服务，并保持高度解耦。”
+> “太好了，”运营负责人说道，“你需要什么？”
+> “嗯，我需要大约50台新电脑，当然还有50个新的操作系统许可证，另外还需要20台电脑用作独立数据库，并为它们配备许可证。你认为我什么时候能全部拿到这些？”
+> “请离开我的办公室。”
+> ---
+> 
+> 
+> *尽管微服务在当时看起来可能是个好主意，但生态系统还无法支持它。*
+
+
 
 # Python for Algorithmic Trading
 ## 前置知识
