@@ -601,6 +601,261 @@ X在09年的时候发布了第一条博客,内容如下:
 4. [26届薪资的另一个分析](https://www.xiaolincoding.com/salary/class_2026.html#%E5%AD%97%E8%8A%82%E8%B7%B3%E5%8A%A8)
 
 不得不说,没调查之前,我真不知道大厂的薪资现在有这么高,不过也确实很合理,毕竟要求有那么高,这反而更增添了我的不少信心.
+## O’Reilly系列书籍(8/10)
+不搜不知道,一搜吓一跳,O’Reilly出版的技术书籍可谓是浩如烟海,如果能够把其中的精华全都读一读,立马就能成为一个很有见识的优秀程序员了.另一方面,这也让人不由得感叹O’Reilly对互联网生态的贡献之大.
+
+>AI说的...
+>综合算上自 20 世纪 80 年代至今出版的所有纸质书、电子书、更新版次（Editions）以及动物系列（Animal Books）和 Nutshell 系列，O'Reilly 自身累计出版的图书品种数量在 5,000 至 7,000 册 之间
+
+![离谱至极](PixPin_2026-08-10_17-08-06.webp)
+
+```md
+按 **2021 年 8 月—2026 年 8 月 10 日**统计，我核对 Manning 当前目录后，得到：
+
+> **共 55 本正式出版的书。**
+
+这里把**新版视为一本新的出版物**，例如 *AI Agents in Action*（2025）和 *AI Agents in Action, Second Edition*（2026）分别计数；不计 Video Edition、liveProject、单独章节合集，也不计尚未正式出版或已取消的 MEAP。比如 *Go in Action, Second Edition* 和 *Authorization in Action* 当前都预计 2026 年 9 月出版，所以不计入；*Kubeflow in Action* 已明确取消。([Manning Publications][1])
+
+Manning 对部分 2021 年旧书只显示到月份，因此我把 **2021 年 8 月整月**纳入五年窗口。
+
+---
+
+# 一、AI、机器学习与数据科学：16 本
+
+这是近五年 In Action 扩张最明显的一类，尤其 2024 年以后明显向生成式 AI、LLM 和 Agent 倾斜。2025 年就集中出版了 AI Agents、GNN、NLP、Hugging Face、Knowledge Graphs + LLMs、Spring AI 和 Transformers 等。([Manning Publications][2])
+
+1. **Pandas in Action** — 2021
+2. **R in Action, Third Edition** — 2022
+3. **Machine Learning Engineering in Action** — 2022
+4. **Automated Machine Learning in Action** — 2022
+5. **TensorFlow in Action** — 2022
+6. **Bayesian Optimization in Action** — 2023
+7. **Generative AI in Action** — 2024
+8. **AI Agents in Action** — 2025
+9. **Graph Neural Networks in Action** — 2025
+10. **Natural Language Processing in Action, Second Edition** — 2025
+11. **Hugging Face in Action** — 2025
+12. **Knowledge Graphs and LLMs in Action** — 2025
+13. **Spring AI in Action** — 2025
+14. **Transformers in Action** — 2025
+15. **AI Agents in Action, Second Edition** — 2026
+16. **Digital Twins in Action** — 2026
+
+其中 *AI Agents in Action, Second Edition* 已于 **2026 年 6 月**正式出版；*Digital Twins in Action* 的电子版出版信息目前列为 **2026 年 7 月**。([Manning Publications][3])
+
+---
+
+# 二、数据库、大数据、消息与流处理：10 本
+
+这一组基本就是后端数据基础设施：
+
+1. **PostGIS in Action, Third Edition** — 2021
+2. **Apache Pulsar in Action** — 2021
+3. **Kafka in Action** — 2022
+4. **Data Mesh in Action** — 2022
+5. **Elasticsearch in Action, Second Edition** — 2023
+6. **Kafka Streams in Action, Second Edition** — 2024
+7. **DuckDB in Action** — 2024
+8. **ScyllaDB in Action** — 2024
+9. **Apache Kafka in Action** — 2025
+10. **MongoDB 8.0 in Action, Third Edition** — 2025
+
+其中最早进入本统计窗口的两本分别是 *PostGIS in Action, Third Edition*（2021 年 8 月）和 *Apache Pulsar in Action*（2021 年 10 月）。([Manning Publications][4])
+
+2024—2025 年则比较集中：Kafka Streams 2e 为 2024 年 4 月，DuckDB 为 2024 年 7 月，ScyllaDB 为 2024 年 9 月；新的 *Apache Kafka in Action* 是 2025 年 4 月，MongoDB 8.0 3e 是 2025 年 6 月。([Manning Publications][5])
+
+---
+
+# 三、云计算、云原生、DevOps与可观测性：10 本
+
+这一模块和你最近关注的 **Kubernetes、监控、微服务治理**关系最大：
+
+1. **Logging in Action** — 2022
+2. **Istio in Action** — 2022
+3. **Podman in Action** — 2022
+4. **Cloud Native Spring in Action** — 2022
+5. **Amazon Web Services in Action, Third Edition** — 2023
+6. **Google Anthos in Action** — 2023
+7. **Cloud Observability in Action** — 2023
+8. **GitHub Actions in Action** — 2024
+9. **Microsoft Azure in Action** — 2025
+10. **Kubernetes in Action, Second Edition** — 2026
+
+其中 Istio 2022、AWS 3e 2023、GitHub Actions 2024、Azure 2025，基本形成了一条相当完整的云原生学习线。([Manning Publications][6])
+
+*Kubernetes in Action, Second Edition* 已于 **2026 年 3 月**正式出版，688 页，是这一组里目前最新、也最值得注意的新版之一。([Manning Publications][7])
+
+---
+
+# 四、Web、后端框架、Java/.NET应用开发：10 本
+
+1. **Spring in Action, Sixth Edition** — 2022
+2. **Blazor in Action** — 2022
+3. **ASP.NET Core Razor Pages in Action** — 2022
+4. **Akka in Action, Second Edition** — 2023
+5. **ASP.NET Core in Action, Third Edition** — 2023
+6. **.NET MAUI in Action** — 2023
+7. **.NET in Action, Second Edition** — 2024
+8. **Django in Action** — 2024
+9. **Spring Security in Action, Second Edition** — 2024
+10. **Quarkus in Action** — 2025
+
+.NET这一支尤其明显：ASP.NET Core Razor Pages（2022）→ ASP.NET Core 3e、.NET MAUI（2023）→ .NET in Action 2e（2024）。Manning 当前目录也明确列出了这些年份。([Manning Publications][8])
+
+Java这一边则有：
+
+
+其中 Quarkus 的正式版权页为 2025 年。([LiveBook][9])
+
+---
+
+# 五、编程语言、开发平台、可视化与特殊计算：7 本
+
+1. **Hugo in Action** — 2022
+2. **Unity in Action, Third Edition** — 2022
+3. **Quantum Computing in Action** — 2022
+4. **Elixir in Action, Third Edition** — 2024
+5. **F# in Action** — 2024
+6. **Kotlin in Action, Second Edition** — 2024
+7. **D3.js in Action, Third Edition** — 2024
+
+
+
+Manning 的正式产品页分别确认了这些出版时间。([Manning Publications][10])
+
+---
+
+# 六、软件工程与测试：2 本
+
+1. **BDD in Action, Second Edition** — 2023
+2. **Contract Testing in Action** — 2024
+
+前者系统讲 Behavior-Driven Development，2023 年 3 月出版；后者针对微服务/API的契约测试，使用 Pact、PactFlow 与 GitHub Actions，2024 年 11 月出版。([Manning Publications][11])
+
+---
+
+# 汇总
+
+| 模块                                 |   数量 |
+| ------------------------------------ | -----: |
+| AI、机器学习与数据科学               | **16** |
+| 数据库、大数据、消息与流处理         | **10** |
+| 云计算、云原生、DevOps、可观测性     | **10** |
+| Web、后端框架、Java/.NET             | **10** |
+| 编程语言、开发平台、可视化与特殊计算 |  **7** |
+| 软件工程与测试                       |  **2** |
+| **总计**                             | **55** |
+
+```
+```md
+如果你说的是 O’Reilly 的 **“X: Up & Running / Up and Running”** 这一命名体系，我按与你上一问相同的口径统计：
+
+> **2021 年 8 月 10 日—2026 年 8 月 10 日，英文原版、O’Reilly Media 正式出版、书名明确含 `Up & Running` 或 `Up and Running`。**
+
+按这个口径，我目前核到的是 **12 本**。这里不重复计算韩文、德文、意大利文等翻译版，也不计 Video、课程和未来尚未正式出版的 Early Release。比如 *Claude Code: Up and Running* 目前标注正式出版时间为 **2026 年 12 月**，所以暂时不计。([O'Reilly Media][1])
+
+## 一、云原生、DevOps、基础设施：8 本
+
+这是 `Up & Running` 近五年最集中的领域，实际上已经非常明显地形成了 **容器 → K8s → IaC → Service Mesh → GitOps → eBPF 网络** 这一条技术路线。
+
+1. **Consul: Up and Running** — Luke Kysow，**2022 年 6 月**
+
+   * Consul、服务发现、Service Mesh、服务间安全、流量治理。
+   * 比较适合理解 HashiCorp 的服务网络体系。([O'Reilly Media][2])
+
+2. **Ansible: Up and Running, 3rd Edition** — Bas Meijer、Lorin Hochstein、René Moser，**2022 年 7 月**
+
+   * Ansible、Inventory、Playbook、Role、配置管理和基础设施自动化。
+   * 是这批书中偏传统运维自动化的一本。([O'Reilly Media][3])
+
+3. **Kubernetes: Up and Running, 3rd Edition** — Brendan Burns、Joe Beda、Kelsey Hightower、Lachlan Evenson，**2022 年 8 月**
+
+   * Kubernetes 核心模型、Pod、Service、Deployment、ConfigMap、RBAC、扩展机制等。
+   * 第三版正式首发日期为 2022 年 8 月 2 日。([O'Reilly Media][4])
+
+4. **Terraform: Up and Running, 3rd Edition** — Yevgeniy Brikman，**2022 年 9 月**
+
+   * Infrastructure as Code、Terraform state、module、测试、团队工作流。
+   * 非常适合和 Kubernetes、Ansible 连着学习。([O'Reilly Media][5])
+
+5. **Docker: Up & Running, 3rd Edition** — Sean P. Kane、Karl Matthias，**2023 年 4 月**
+
+   * Docker Engine、Image、Container、Networking、调试、生产部署及规模化容器平台。([O'Reilly Media][6])
+
+6. **Linkerd: Up and Running** — Jason Morgan、Flynn，**2024 年 4 月**
+
+   * Service Mesh、Linkerd control plane、proxy、mTLS、可靠性、可观测性和 Kubernetes 部署。([O'Reilly Media][7])
+
+7. **Argo CD: Up and Running** — Andrew Block、Christian Hernandez，**2025 年 6 月**
+
+   * GitOps、Argo CD、Application、同步策略、多集群、ApplicationSet、CI 集成。
+   * 对现代 Kubernetes 发布体系很有价值。([O'Reilly Media][8])
+
+8. **Cilium: Up and Running** — Nico Vibert、Filip Nikolic、James Laverack，**2026 年 2 月**
+
+   * Cilium、eBPF、CNI、Network Policy、Gateway API、Service Mesh、Hubble、透明加密和多集群网络。
+   * 是目前这批书里**最新的正式英文版**。([O'Reilly Media][9])
+
+这八本串起来其实很漂亮：
+
+
+---
+
+## 二、监控与可观测性：1 本
+
+9. **Prometheus: Up & Running, 2nd Edition** — Julien Pivotto、Brian Brazil，**2023 年 4 月**
+
+   * Prometheus 架构
+   * Metrics
+   * Instrumentation
+   * Exporter
+   * PromQL
+   * Recording Rule
+   * Alertmanager
+   * Grafana
+   * Kubernetes
+   * 长期存储与生产部署
+
+
+这本应该排在非常前面。
+
+---
+
+## 三、Web与应用开发：2 本
+
+10. **React: Up & Running, 2nd Edition** — Stoyan Stefanov，**2021 年 11 月**
+
+    * React、JSX、组件、Props/State、生命周期及应用构建。
+    * 它是这次五年窗口里最早的一本。([O'Reilly Media][11])
+
+11. **Laravel: Up & Running, 3rd Edition** — Matt Stauffer，**2023 年 9 月**
+
+    * Laravel、PHP Web应用、路由、数据库、认证、测试、队列等。
+    * 第一版2016、第二版2019，第三版在2023年重新更新。([O'Reilly Media][12])
+
+不过这两本的时效性评价要区别看。
+
+**React 2e 已经不算我现在最优先推荐的 React 教材**，因为前端技术栈变化太快；Laravel 3e 相对仍有较好的系统参考价值。
+
+---
+
+## 四、数据库：1 本
+
+12. **Aerospike: Up and Running** — V. Srinivasan、Tim Faulkes、Albert Autin、Paige Roberts，**2024 年 10 月**
+
+    * Aerospike 分布式 NoSQL 数据库
+    * AP/CP 模式
+    * shared-nothing architecture
+    * flash optimization
+    * sub-millisecond workloads
+    * 数据建模
+    * 集群部署与运维
+
+它定位比较专业，不是像 PostgreSQL/MySQL 那样的通用数据库入门书，而是专门面向**高吞吐、低延迟分布式 KV/NoSQL 场景**。([O'Reilly Media][13])
+
+
+```
+
 
 # 思考
 - 26/7/29: 忘了是在哪看到的了,最令人的厌烦的无非是装作老成的年轻人对同辈或者后辈发表的不知天高地厚的见解,这句话确实说的不错,曾经我也喜欢这么干,这里面的每个标题我都单独发了一篇博客文章出来,现在看来,确实是浅薄的可怕.不过,总还是得写点什么,这毕竟是几年以后能用来嘲笑自己的唯一根据
@@ -1053,7 +1308,17 @@ LLM目前就只是一个概率模型而已,直到泡沫破裂了,才会有优秀
 ## 我要找什么工作(8/9)
 半年前我还对自己希望找怎样的工作感到无比迷茫,但现在我却能够基本下定决心了,基本的目标为APP/Web的后端/架构方向,实际上来说,我对架构和团队管理方面最感兴趣,能够成为一个独当一面的架构师是我这几年的最终目标.但我想怎么也不太可能让一个新人去设计架构吧.
 
-所以我想,只要是后端开发相关的岗位,而且条件很好,要求很高,挑战性很足,那我就会直接跳进去了.
+所以我想,只要是后端开发相关的岗位,而且条件很好,要求很高,挑战性很足,那我就会直接跳进去了.至于相关的知识,随便列举一下就知道了:
+1. 某一门主流语言: Python/Golang/Cpp
+   1. 实话实说,对于Python我是非常有自信的,应届生中敢说比我基础还扎实的不会太常见.
+2. 基本架构知识: Docker/Kubernetes,OpenAPI规范与gRPC规范,主流消息队列如Kafka和RabbitMQ,主流搜索引擎如Es
+   1. 目前还在努力中...
+3. 基础知识: 操作系统和计算机网络,基本的数据库数据结构,主流数据库Redis,MySQL,PostgreSQL等
+   1. 这方面的知识我不敢说全部精通,但我有自信能够超过绝大部分人.但真到面试的时候就可能全忘光了😇
+4. 运维相关: 基本Git,CI/CD,主流监控与日志工具
+   1. 努力中...
+5. AI相关: 这年头简历上不加点AI是活不下去的,如智能体基本原理,手撕Transformer,RAG和MultiAgent.
+   1. 目前这些知识还在储备中,也是我下半年的努力方向.
 # 文章分享
 ## 技术文章
 ### [cpp构造与析构](https://blog.csdn.net/2501_91275995/article/details/156042381)

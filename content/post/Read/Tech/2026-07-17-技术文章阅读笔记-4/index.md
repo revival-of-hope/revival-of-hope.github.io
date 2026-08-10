@@ -68,7 +68,21 @@ message ProductID {
 }
 ```
 可以看到,protobuf的格式相当清晰,比起OpenAPI规范的可读性要高了许多,不再需要强调路由,方法这些让人心累的无关参数.
+## 原理
+gRPC的通信过程很简单,以客户端调用getProduct函数为例:
+1. 客户端进程调用生成存根中的 `getProduct` 函数。
+2. 客户端存根会创建一个携带编码后消息的 HTTP POST 请求。在 gRPC 中，所有请求都是 HTTP POST 请求，其 `content-type` 以 `application/grpc` 为前缀。所调用的远程函数（`/ProductInfo/getProduct`）作为单独的 HTTP 头发送。
+3. HTTP 请求消息通过网络发送到服务器机器。
+4. 当消息到达服务器时，服务器会检查消息头以确定需要调用哪个服务功能，并将消息交给服务存根处理。
+5. 服务存根将消息字节解析为特定于语言的数据结构。
+6. 然后，服务使用解析后的消息，对 `getProduct` 函数进行本地调用。
+7. 服务函数的返回被编码后发送回客户端。响应消息遵循我们在客户端观察到的相同流程（响应→编码→线上的 HTTP 响应）；消息被解包，其值返回给等待的客户端进程。
 
+这些步骤与大多数RPC系统（如CORBA、Java RMI等）非常相似。这里gRPC的主要区别在于它对消息的编码方式--Protocol Buffers,这是一种语言无关的机制.
+
+事实上来讲,gRPC确实没什么革命的地方,只不过把以前要共同维护的OpenAPI文档换成了proto文档而已,但它简化了HTTP方法,路径依赖等比较边角料的参数,从而让程序员能够只专注于简单的函数调用即可.
+## 总结
+可以看的出来目前gRPC还不是那么的成熟,不然这本书的实战部分就不会讲的这么云山雾罩了.
 # Linkers and Loaders
 
 # System Performance,2nd edition
@@ -777,9 +791,23 @@ func main(){
 ```
 不得不承认,Go的语法确实很简洁,但远不如Python形象
 # Fundamentals of Data Engineering
+## ch1
+这一章的数据工程历史介绍很有看头.
+
+>“Big data is like teenage sex: everyone talks about it, nobody really knows how to do it, everyone thinks everyone else is doing it, so everyone claims they are doing it.”
+
+>尽管许多数据科学家热衷于构建和调优机器学习模型，但现实是，据估计，他们70%到80%的时间都耗费在数据层次结构的底层三个部分——数据收集、数据清理、数据处理——而只有极少时间用于分析和机器学习。
+
+- 确实很对,大部分时间都是花在摆弄数据表格上了.
+
+![图示](PixPin_2026-08-09_14-08-51.webp)
+
+
 # Coding Video,A Practical Guide to HEVC and Beyond
 ## 介绍
 >一秒标准的未压缩SD(576p)视频，每秒25帧，大约占用15.5 MB存储空间。这意味着，通过网络或广播频道实时传输这段视频，即每秒发送一秒可播放的视频内容，需要124 Mbit/s的带宽。而一秒未压缩的UHD/4K视频、每秒50帧捕捉，则大约占用620 MB存储空间，实时传输将需要高达5 Gbit/s的传输带宽。
+
+- 由此可知,我们在电子产品中存储的视频都是压缩形式的,只在播放时进行实时的解码.
 
 ![说明图](PixPin_2026-08-09_10-23-28.webp)
 
