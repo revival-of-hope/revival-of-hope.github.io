@@ -5,94 +5,90 @@ description:
 image: 62549331_p0-フランちゃんとチェス.webp
 math: 
 ---
-# gRPC: Up and Running
-## 介绍
-- 江山代有才人出,各领风骚一两年
 
->在构建现代云原生应用和微服务的同步请求-响应式通信时，最常用且传统的方法是将其构建为RESTful服务，即将应用或服务建模为可通过HTTP协议上的网络调用访问和更改状态的资源集合。然而，对于大多数用例而言，RESTful服务在构建进程间通信时往往较为笨重、效率低下且易出错。通常需要一种高度可扩展、松散耦合且比RESTful服务更高效的进程间通信技术。这正是gRPC——一种用于构建分布式应用和微服务的现代进程间通信方式——发挥作用的地方
-
-gRPC（“g”在每个gRPC版本中代表不同的含义）是一种进程间通信技术，它使您能够像进行本地函数调用一样轻松地连接、调用、操作和调试分布式异构应用程序。
-
-![本书示例](PixPin_2026-08-06_13-41-46.webp)
-
-作为有线传输协议，gRPC使用HTTP/2，这是一种高性能的二进制消息协议，支持双向消息传递。
-
-RPC是构建客户端-服务应用程序的一种流行的进程间通信技术。通过RPC，客户端可以像调用本地方法一样远程调用某个函数或方法。早期有几种流行的RPC实现，如公共对象请求代理架构（CORBA）和Java远程方法调用（RMI），它们用于构建和连接服务或应用程序。然而，这类传统RPC实现大多极其复杂，因为它们构建在像TCP这样的通信协议之上，这阻碍了互操作性，并且基于臃肿的规范。
-
-由于传统RPC实现（如CORBA）的局限性，Simple Object Access Protocol（SOAP）被设计并由微软、IBM等大型企业大力推广。SOAP是 service-oriented architecture（SOA）中的标准通信技术，用于在服务（在SOA上下文中通常称为Web服务）之间交换基于XML的结构化数据，并通过任何底层通信协议（如HTTP，最常用）进行通信。
-
-SOAP曾是一种相当流行的技术，但消息格式的复杂性以及围绕SOAP构建的规范复杂性，阻碍了分布式应用开发的敏捷性。因此，在现代分布式应用开发的背景下，SOAP web服务被视为一种遗留技术。相较于使用SOAP，当前大多数现有的分布式应用正采用REST架构风格进行开发。
-
-REST的事实标准实现是HTTP，而在HTTP中，你可以将RESTful Web应用建模为一系列资源，这些资源通过唯一标识符（URL）进行访问。状态变更操作以HTTP动词（如GET、POST、PUT、DELETE、PATCH等）的形式应用于这些资源之上。资源的状态以文本格式（如JSON、XML、HTML、YAML等）表示。
-
-使用REST架构风格配合HTTP和JSON构建应用程序已成为构建微服务的事实标准方法。然而，随着微服务数量及其网络交互的激增，RESTful服务已无法满足预期的现代需求。RESTful服务存在几个关键限制，阻碍了其作为基于微服务的现代应用程序的消息传递协议的能力。
-
-本质上，RESTful服务建立在基于文本的传输协议（如HTTP 1.x）之上，并利用可读的文本格式（如JSON）。在服务到服务的通信中，使用JSON这类文本格式效率并不高，因为通信双方无需采用这种面向人类的可读文本格式。
-
-作为一种架构风格，REST 包含许多“良好实践”，遵循这些实践才能构建出真正的 RESTful 服务。然而，这些实践并未作为实现协议（如HTTP）的强制部分，使得在实现阶段难以强制执行。因此，在实践中，大多数自称为 RESTful 的服务并未 properly 遵循 REST 风格的基础。由此，所谓的 RESTful 服务大多仅仅是通过网络暴露的 HTTP 服务。因此，开发团队不得不花费大量时间维护 RESTful 服务的一致性和纯粹性。
-
-Google一直使用一个名为Stubby的通用RPC框架，来连接数千个运行在多个数据中心、采用不同技术构建的微服务。其核心RPC层旨在处理每秒数百亿次请求的互联网规模。Stubby拥有众多优秀特性，但它并未被标准化为通用框架，因为它与Google的内部基础设施耦合过紧。2015年，谷歌发布了gRPC作为开源RPC框架；它是一种标准化、通用且跨平台的RPC基础设施。gRPC旨在向广大社区提供与Stubby相同的可扩展性、性能和功能。
-
-gRPC并非使用JSON或XML这类文本格式，而是采用基于协议缓冲区的二进制协议来与gRPC服务和客户端进行通信。此外，gRPC在HTTP/2之上实现了协议缓冲区，这使得它在进程间通信中更加高效。
-
-随着采用gRPC，Netflix在开发者生产力方面获得了巨大提升。例如，对于每个客户端，数百行自定义代码被替换为proto中仅需两到三行的配置。创建一个原本可能需要两到三周的客户端，如今使用gRPC只需几分钟即可完成。平台的整体稳定性也大为改善，因为大多数常规功能不再需要手写代码，并且有一种全面且安全的方式来定义服务接口.
-
-```ts
-// 指定Protobuf版本语法（Proto3）
-syntax = "proto3";
-
-// 从其他包导入消息类型
-import "google/protobuf/wrappers.proto";
-
-// 声明包名，用于避免消息类型命名冲突，并决定生成的代码命名空间
-package ecommerce;
-
-// 定义RPC服务接口
-service ProductInfo {
-    // 添加商品：接收Product消息，返回ProductID消息
-    rpc addProduct(Product) returns (ProductID);
-    // 获取商品：接收ProductID消息，返回Product消息
-    rpc getProduct(ProductID) returns (Product);
-}
-
-// 定义商品实体结构体
-message Product {
-    string id = 1;          // 商品唯一标识符（字段编号 1）
-    string name = 2;        // 商品名称（字段编号 2）
-    string description = 3; // 商品描述（字段编号 3）
-}
-
-// 定义商品ID结构体
-message ProductID {
-    string value = 1;       // 商品ID值（字段编号 1）
-}
-```
-可以看到,protobuf的格式相当清晰,比起OpenAPI规范的可读性要高了许多,不再需要强调路由,方法这些让人心累的无关参数.
-## 原理
-gRPC的通信过程很简单,以客户端调用getProduct函数为例:
-1. 客户端进程调用生成存根中的 `getProduct` 函数。
-2. 客户端存根会创建一个携带编码后消息的 HTTP POST 请求。在 gRPC 中，所有请求都是 HTTP POST 请求，其 `content-type` 以 `application/grpc` 为前缀。所调用的远程函数（`/ProductInfo/getProduct`）作为单独的 HTTP 头发送。
-3. HTTP 请求消息通过网络发送到服务器机器。
-4. 当消息到达服务器时，服务器会检查消息头以确定需要调用哪个服务功能，并将消息交给服务存根处理。
-5. 服务存根将消息字节解析为特定于语言的数据结构。
-6. 然后，服务使用解析后的消息，对 `getProduct` 函数进行本地调用。
-7. 服务函数的返回被编码后发送回客户端。响应消息遵循我们在客户端观察到的相同流程（响应→编码→线上的 HTTP 响应）；消息被解包，其值返回给等待的客户端进程。
-
-这些步骤与大多数RPC系统（如CORBA、Java RMI等）非常相似。这里gRPC的主要区别在于它对消息的编码方式--Protocol Buffers,这是一种语言无关的机制.
-
-事实上来讲,gRPC确实没什么革命的地方,只不过把以前要共同维护的OpenAPI文档换成了proto文档而已,但它简化了HTTP方法,路径依赖等比较边角料的参数,从而让程序员能够只专注于简单的函数调用即可.
-## 总结
-可以看的出来目前gRPC还不是那么的成熟,不然这本书的实战部分就不会讲的这么云山雾罩了.
 # Linkers and Loaders
+## 链接和加载
 
-# System Performance,2nd edition
 
+# Designing Data-Intensive Applications, Second Edition
+- 第一版于2017年出版,第二版于2026年出版,中间间隔了十年,所以章节内容上有了大幅度的改动.
+- 第一版出版后就被很多人奉为神书,那么再版后想必更厉害了吧.
+
+>There are hundreds of databases to choose from. Which one should you use for your application? The short answer is, “It depends.” The long answer is…​this book.
+
+这才是软件工程最美丽的地方,技术的变迁和环境的动荡迫使着程序员们殚精竭虑,设计出符合当前情况的最好架构.
+## 背景
+先看看两位作者的title: Martin Kleppmann and Chris Riccomini
+
+>Martin Kleppmann（马丁·克莱普曼）目前是英国剑桥大学计算机科学与技术系副教授（Associate Professor），主要研究去中心化系统、Local-first 协作软件和安全协议，并教授分布式系统和密码协议相关课程。此前曾在慕尼黑工业大学从事研究，并在剑桥大学获得博士学位。
+>
+>Kleppmann 在进入学术界以前做过多年互联网工程和创业。他曾共同创办并出售两家创业公司，也曾在 LinkedIn 等互联网公司从事大规模数据基础设施工作；其中还包括创业公司 Rapportive。
+
+第一版的作者只有他一个人,还是很厉害的,他甚至还有一个[博客](https://martin.kleppmann.com)
+
+Chris Riccomini,O'Reilly 对他的介绍是：拥有 15年以上软件工程经验，先后在 PayPal、LinkedIn、WePay 工作，目前经营 Materialized View Capital，投资基础设施类创业公司
+## 基本
+>如果一个应用程序开发过程中的主要挑战之一是数据管理，我们便称之为**数据密集型应用**.
+>在计算密集型系统中，挑战在于将极其庞大的计算任务并行化；而在数据密集型应用中，我们通常更关注存储和处理海量数据、管理数据变更、在面临故障和并发时确保一致性，以及保证服务的高可用性等问题。
 # Data Storage Architectures and Technologies
 
-# Responsive Web Design with HTML5 and CSS,Fourth Edition
-# Rust程序设计语言
-- 由浅入深,这才是正常的教科书,不吊打Go圣经几条街.
 
+
+# Rust 中文学习教程
+由于另一本书太难啃了,所以换这本书来试试咸淡.
+
+# Web Scraping with Python,3rd edition
+# Go Web Scraping Quick Start Guide
+## A simple request example
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+	"os"
+)
+
+func main(){
+	var r *http.Response
+	var err error
+	r,err=http.Get("https://www.example.com")
+	if err!=nil{
+		panic(err)
+	}
+	if r.StatusCode==200{
+		var Content []byte
+		var bodyLength int=1270
+		Content=make([]byte, bodyLength)
+
+		r.Body.Read((Content))
+		var out *os.File
+		out,err=os.OpenFile("index.html",os.O_CREATE|os.O_WRONLY,0664)
+		if err!=nil{
+			panic(err)
+		}
+		out.Write(Content)
+		out.Close()
+	}else{
+		log.Fatal("Failed",
+	r.StatusCode)
+	}
+}
+```
+不得不承认,Go的语法确实很简洁,但远不如Python形象
+## 总结
+一开始以为Go与Python的爬虫实现会有什么太大的不同,后来发现并没有什么区别,只不过Go的语法上要相对简洁一些.
+# Coding Video,A Practical Guide to HEVC and Beyond
+## 介绍
+>一秒标准的未压缩SD(576p)视频，每秒25帧，大约占用15.5 MB存储空间。这意味着，通过网络或广播频道实时传输这段视频，即每秒发送一秒可播放的视频内容，需要124 Mbit/s的带宽。而一秒未压缩的UHD/4K视频、每秒50帧捕捉，则大约占用620 MB存储空间，实时传输将需要高达5 Gbit/s的传输带宽。
+
+- 由此可知,我们在电子产品中存储的视频都是压缩形式的,只在播放时进行实时的解码.
+
+![说明图](PixPin_2026-08-09_10-23-28.webp)
+
+尽管我们拥有的存储容量和网络带宽比以往任何时候都要多，但存储和传输视频的需求仍在不断超出可用容量。到2023年，约三分之二的消费级电视机已达到4K分辨率或更高[1]。将高性能视频编解码器集成到智能手机和电视等消费设备中，以及对高分辨率视频的期望，使得在存储或传输前压缩或编码视频，并在显示前解码视频成为常态
+
+# Rust程序设计语言
 ## 基础
 ### 补充: 前瞻体验
 不得不承认,rust的代码非常丑陋,导致开发效率很低下:
@@ -747,50 +743,17 @@ crate 有两种形式：二进制 crate 和库 crate。二进制 crate（Binary 
 
 块让我们可以将一个 crate 中的代码进行分组，以提高可读性与重用性。因为一个模块中的代码默认是私有的，所以还可以利用模块控制项的私有性（privacy）。
 
+## 总结
+暂时弃坑,写的不如我想象中的好.# System Performance,2nd edition(待补充)
+非常好的书,待我工作后再来看
+## 介绍
+第一章的情景演练很有看头,可以明白运维平常都在干什么活儿.
 
-# Rust 中文学习教程
-由于另一本书太难啃了,所以换这本书来试试咸淡.
+系统性能的量度有以下几点:
+1. 延迟: 如I/O用时
+2. 可观测性: 运维使用不同工具来观测系统的运行情况
 
-# Web Scraping with Python,3rd edition
-# Go Web Scraping Quick Start Guide
-## A simple request example
-```go
-package main
-
-import (
-	"log"
-	"net/http"
-	"os"
-)
-
-func main(){
-	var r *http.Response
-	var err error
-	r,err=http.Get("https://www.example.com")
-	if err!=nil{
-		panic(err)
-	}
-	if r.StatusCode==200{
-		var Content []byte
-		var bodyLength int=1270
-		Content=make([]byte, bodyLength)
-
-		r.Body.Read((Content))
-		var out *os.File
-		out,err=os.OpenFile("index.html",os.O_CREATE|os.O_WRONLY,0664)
-		if err!=nil{
-			panic(err)
-		}
-		out.Write(Content)
-		out.Close()
-	}else{
-		log.Fatal("Failed",
-	r.StatusCode)
-	}
-}
-```
-不得不承认,Go的语法确实很简洁,但远不如Python形象
-# Fundamentals of Data Engineering
+# Fundamentals of Data Engineering(待补充)
 ## ch1
 这一章的数据工程历史介绍很有看头.
 
@@ -802,17 +765,7 @@ func main(){
 
 ![图示](PixPin_2026-08-09_14-08-51.webp)
 
-
-# Coding Video,A Practical Guide to HEVC and Beyond
-## 介绍
->一秒标准的未压缩SD(576p)视频，每秒25帧，大约占用15.5 MB存储空间。这意味着，通过网络或广播频道实时传输这段视频，即每秒发送一秒可播放的视频内容，需要124 Mbit/s的带宽。而一秒未压缩的UHD/4K视频、每秒50帧捕捉，则大约占用620 MB存储空间，实时传输将需要高达5 Gbit/s的传输带宽。
-
-- 由此可知,我们在电子产品中存储的视频都是压缩形式的,只在播放时进行实时的解码.
-
-![说明图](PixPin_2026-08-09_10-23-28.webp)
-
-尽管我们拥有的存储容量和网络带宽比以往任何时候都要多，但存储和传输视频的需求仍在不断超出可用容量。到2023年，约三分之二的消费级电视机已达到4K分辨率或更高[1]。将高性能视频编解码器集成到智能手机和电视等消费设备中，以及对高分辨率视频的期望，使得在存储或传输前压缩或编码视频，并在显示前解码视频成为常态
-
+# Responsive Web Design with HTML5 and CSS,Fourth Edition(待补充)
 # The Design of Web APIs, Second Edition(待补充)
 ## 介绍
 ### 前言
@@ -838,7 +791,109 @@ API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也
 # THE GHIDRA BOOK(待补充)
 ## 介绍
 Ghidra 是一款免费开源的软件逆向工程（SRE）工具套件。它最初是美国国家安全局（NSA）的一个项目，如今得到了日益壮大的 Ghidra爱好者社区的支持。
+# gRPC: Up and Running
+## 介绍
+- 江山代有才人出,各领风骚一两年
 
+>在构建现代云原生应用和微服务的同步请求-响应式通信时，最常用且传统的方法是将其构建为RESTful服务，即将应用或服务建模为可通过HTTP协议上的网络调用访问和更改状态的资源集合。然而，对于大多数用例而言，RESTful服务在构建进程间通信时往往较为笨重、效率低下且易出错。通常需要一种高度可扩展、松散耦合且比RESTful服务更高效的进程间通信技术。这正是gRPC——一种用于构建分布式应用和微服务的现代进程间通信方式——发挥作用的地方
+
+gRPC（“g”在每个gRPC版本中代表不同的含义）是一种进程间通信技术，它使您能够像进行本地函数调用一样轻松地连接、调用、操作和调试分布式异构应用程序。
+
+![本书示例](PixPin_2026-08-06_13-41-46.webp)
+
+作为有线传输协议，gRPC使用HTTP/2，这是一种高性能的二进制消息协议，支持双向消息传递。
+
+RPC是构建客户端-服务应用程序的一种流行的进程间通信技术。通过RPC，客户端可以像调用本地方法一样远程调用某个函数或方法。早期有几种流行的RPC实现，如公共对象请求代理架构（CORBA）和Java远程方法调用（RMI），它们用于构建和连接服务或应用程序。然而，这类传统RPC实现大多极其复杂，因为它们构建在像TCP这样的通信协议之上，这阻碍了互操作性，并且基于臃肿的规范。
+
+由于传统RPC实现（如CORBA）的局限性，Simple Object Access Protocol（SOAP）被设计并由微软、IBM等大型企业大力推广。SOAP是 service-oriented architecture（SOA）中的标准通信技术，用于在服务（在SOA上下文中通常称为Web服务）之间交换基于XML的结构化数据，并通过任何底层通信协议（如HTTP，最常用）进行通信。
+
+SOAP曾是一种相当流行的技术，但消息格式的复杂性以及围绕SOAP构建的规范复杂性，阻碍了分布式应用开发的敏捷性。因此，在现代分布式应用开发的背景下，SOAP web服务被视为一种遗留技术。相较于使用SOAP，当前大多数现有的分布式应用正采用REST架构风格进行开发。
+
+REST的事实标准实现是HTTP，而在HTTP中，你可以将RESTful Web应用建模为一系列资源，这些资源通过唯一标识符（URL）进行访问。状态变更操作以HTTP动词（如GET、POST、PUT、DELETE、PATCH等）的形式应用于这些资源之上。资源的状态以文本格式（如JSON、XML、HTML、YAML等）表示。
+
+使用REST架构风格配合HTTP和JSON构建应用程序已成为构建微服务的事实标准方法。然而，随着微服务数量及其网络交互的激增，RESTful服务已无法满足预期的现代需求。RESTful服务存在几个关键限制，阻碍了其作为基于微服务的现代应用程序的消息传递协议的能力。
+
+本质上，RESTful服务建立在基于文本的传输协议（如HTTP 1.x）之上，并利用可读的文本格式（如JSON）。在服务到服务的通信中，使用JSON这类文本格式效率并不高，因为通信双方无需采用这种面向人类的可读文本格式。
+
+作为一种架构风格，REST 包含许多“良好实践”，遵循这些实践才能构建出真正的 RESTful 服务。然而，这些实践并未作为实现协议（如HTTP）的强制部分，使得在实现阶段难以强制执行。因此，在实践中，大多数自称为 RESTful 的服务并未 properly 遵循 REST 风格的基础。由此，所谓的 RESTful 服务大多仅仅是通过网络暴露的 HTTP 服务。因此，开发团队不得不花费大量时间维护 RESTful 服务的一致性和纯粹性。
+
+Google一直使用一个名为Stubby的通用RPC框架，来连接数千个运行在多个数据中心、采用不同技术构建的微服务。其核心RPC层旨在处理每秒数百亿次请求的互联网规模。Stubby拥有众多优秀特性，但它并未被标准化为通用框架，因为它与Google的内部基础设施耦合过紧。2015年，谷歌发布了gRPC作为开源RPC框架；它是一种标准化、通用且跨平台的RPC基础设施。gRPC旨在向广大社区提供与Stubby相同的可扩展性、性能和功能。
+
+gRPC并非使用JSON或XML这类文本格式，而是采用基于协议缓冲区的二进制协议来与gRPC服务和客户端进行通信。此外，gRPC在HTTP/2之上实现了协议缓冲区，这使得它在进程间通信中更加高效。
+
+随着采用gRPC，Netflix在开发者生产力方面获得了巨大提升。例如，对于每个客户端，数百行自定义代码被替换为proto中仅需两到三行的配置。创建一个原本可能需要两到三周的客户端，如今使用gRPC只需几分钟即可完成。平台的整体稳定性也大为改善，因为大多数常规功能不再需要手写代码，并且有一种全面且安全的方式来定义服务接口.
+
+```ts
+// 指定Protobuf版本语法（Proto3）
+syntax = "proto3";
+
+// 从其他包导入消息类型
+import "google/protobuf/wrappers.proto";
+
+// 声明包名，用于避免消息类型命名冲突，并决定生成的代码命名空间
+package ecommerce;
+
+// 定义RPC服务接口
+service ProductInfo {
+    // 添加商品：接收Product消息，返回ProductID消息
+    rpc addProduct(Product) returns (ProductID);
+    // 获取商品：接收ProductID消息，返回Product消息
+    rpc getProduct(ProductID) returns (Product);
+}
+
+// 定义商品实体结构体
+message Product {
+    string id = 1;          // 商品唯一标识符（字段编号 1）
+    string name = 2;        // 商品名称（字段编号 2）
+    string description = 3; // 商品描述（字段编号 3）
+}
+
+// 定义商品ID结构体
+message ProductID {
+    string value = 1;       // 商品ID值（字段编号 1）
+}
+```
+可以看到,protobuf的格式相当清晰,比起OpenAPI规范的可读性要高了许多,不再需要强调路由,方法这些让人心累的无关参数.
+## 原理
+gRPC的通信过程很简单,以客户端调用getProduct函数为例:
+1. 客户端进程调用生成存根中的 `getProduct` 函数。
+2. 客户端存根会创建一个携带编码后消息的 HTTP POST 请求。在 gRPC 中，所有请求都是 HTTP POST 请求，其 `content-type` 以 `application/grpc` 为前缀。所调用的远程函数（`/ProductInfo/getProduct`）作为单独的 HTTP 头发送。
+3. HTTP 请求消息通过网络发送到服务器机器。
+4. 当消息到达服务器时，服务器会检查消息头以确定需要调用哪个服务功能，并将消息交给服务存根处理。
+5. 服务存根将消息字节解析为特定于语言的数据结构。
+6. 然后，服务使用解析后的消息，对 `getProduct` 函数进行本地调用。
+7. 服务函数的返回被编码后发送回客户端。响应消息遵循我们在客户端观察到的相同流程（响应→编码→线上的 HTTP 响应）；消息被解包，其值返回给等待的客户端进程。
+
+这些步骤与大多数RPC系统（如CORBA、Java RMI等）非常相似。这里gRPC的主要区别在于它对消息的编码方式--Protocol Buffers,这是一种语言无关的机制.
+
+事实上来讲,gRPC确实没什么革命的地方,只不过把以前要共同维护的OpenAPI文档换成了proto文档而已,但它简化了HTTP方法,路径依赖等比较边角料的参数,从而让程序员能够只专注于简单的函数调用即可.
+## 总结
+可以看的出来目前gRPC还不是那么的成熟,不然这本书的实战部分就不会讲的这么云山雾罩了.
+# Becoming SRE 
+## 介绍
+>**Site reliability engineering** is an engineering discipline devoted to helping organizations sustainably achieve the appropriate level of **reliability in their systems, services, and products**.
+
+>每当我与那些努力理解网站可靠性工程的人交谈时，几乎可以保证讨论迟早会涉及类似这样的问题：DevOps与SRE相比有何异同？它们之间有何关系？在同一个公司同时拥有这两种角色是否合理？
+
+1. SRE Implements Class DevOps
+2. SRE Is to Reliability as DevOps Is to Delivery
+3. It’s All About the Direction of Attention
+
+总的来说,SRE的职责更大,所以可以说是高级运维.
+## SRE思维
+![小测验](PixPin_2026-08-11_11-07-17.webp)
+
+![答案](PixPin_2026-08-11_11-08-06.webp)
+
+It was suggested that both the work was well suited to people with ADHD and that people with ADHD were some of the best at this work.
+
+- 说的确实很对,如果你愿意每天折腾各种各样的故障,甚至有在大半夜被叫起来去恢复系统的癖好,那你绝对有ADHD.
+
+`SREs can be prone to yak shaving.`,意思是为了解决一个问题你要解决一连串的连带问题,永远都搞不定.
+## 总结
+前三章看看就得了,后面还翻来覆去的讲这些经验就没看头了.
+# THE MISSING README
+很一般...
 # Building Evolutionary Architectures,2nd edition
 ## 介绍
 >当我们于2017年撰写《构建演进式架构》第一版时，软件架构可演进的想法仍显得有些激进。在一次关于该主题的早期演讲中，丽贝卡在结束后被某人指责，称她提出软件架构能随时间演进是职业上不负责任的表现——毕竟，架构是永远不变的东西。然而，正如现实所教导我们的，系统必须不断演变以满足用户的新需求，并反映不断变化的软件开发生态系统的变化。
