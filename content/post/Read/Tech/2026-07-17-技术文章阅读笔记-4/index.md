@@ -5,10 +5,7 @@ description:
 image: 62549331_p0-フランちゃんとチェス.webp
 math: 
 ---
-
-# Linkers and Loaders
-## 链接和加载
-
+# Data Storage Architectures and Technologies
 
 # Designing Data-Intensive Applications, Second Edition
 - 第一版于2017年出版,第二版于2026年出版,中间间隔了十年,所以章节内容上有了大幅度的改动.
@@ -30,54 +27,13 @@ Chris Riccomini,O'Reilly 对他的介绍是：拥有 15年以上软件工程经�
 ## 基本
 >如果一个应用程序开发过程中的主要挑战之一是数据管理，我们便称之为**数据密集型应用**.
 >在计算密集型系统中，挑战在于将极其庞大的计算任务并行化；而在数据密集型应用中，我们通常更关注存储和处理海量数据、管理数据变更、在面临故障和并发时确保一致性，以及保证服务的高可用性等问题。
-# Data Storage Architectures and Technologies
-
 
 
 # Rust 中文学习教程
 由于另一本书太难啃了,所以换这本书来试试咸淡.
 
 # Web Scraping with Python,3rd edition
-# Go Web Scraping Quick Start Guide
-## A simple request example
-```go
-package main
 
-import (
-	"log"
-	"net/http"
-	"os"
-)
-
-func main(){
-	var r *http.Response
-	var err error
-	r,err=http.Get("https://www.example.com")
-	if err!=nil{
-		panic(err)
-	}
-	if r.StatusCode==200{
-		var Content []byte
-		var bodyLength int=1270
-		Content=make([]byte, bodyLength)
-
-		r.Body.Read((Content))
-		var out *os.File
-		out,err=os.OpenFile("index.html",os.O_CREATE|os.O_WRONLY,0664)
-		if err!=nil{
-			panic(err)
-		}
-		out.Write(Content)
-		out.Close()
-	}else{
-		log.Fatal("Failed",
-	r.StatusCode)
-	}
-}
-```
-不得不承认,Go的语法确实很简洁,但远不如Python形象
-## 总结
-一开始以为Go与Python的爬虫实现会有什么太大的不同,后来发现并没有什么区别,只不过Go的语法上要相对简洁一些.
 # Coding Video,A Practical Guide to HEVC and Beyond
 ## 介绍
 >一秒标准的未压缩SD(576p)视频，每秒25帧，大约占用15.5 MB存储空间。这意味着，通过网络或广播频道实时传输这段视频，即每秒发送一秒可播放的视频内容，需要124 Mbit/s的带宽。而一秒未压缩的UHD/4K视频、每秒50帧捕捉，则大约占用620 MB存储空间，实时传输将需要高达5 Gbit/s的传输带宽。
@@ -764,7 +720,6 @@ crate 有两种形式：二进制 crate 和库 crate。二进制 crate（Binary 
 - 确实很对,大部分时间都是花在摆弄数据表格上了.
 
 ![图示](PixPin_2026-08-09_14-08-51.webp)
-
 # Responsive Web Design with HTML5 and CSS,Fourth Edition(待补充)
 # The Design of Web APIs, Second Edition(待补充)
 ## 介绍
@@ -791,6 +746,49 @@ API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也
 # THE GHIDRA BOOK(待补充)
 ## 介绍
 Ghidra 是一款免费开源的软件逆向工程（SRE）工具套件。它最初是美国国家安全局（NSA）的一个项目，如今得到了日益壮大的 Ghidra爱好者社区的支持。
+# Go Web Scraping Quick Start Guide
+## A simple request example
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+	"os"
+)
+
+func main(){
+	var r *http.Response
+	var err error
+	r,err=http.Get("https://www.example.com")
+	if err!=nil{
+		panic(err)
+	}
+	if r.StatusCode==200{
+		var Content []byte
+		var bodyLength int=1270
+		Content=make([]byte, bodyLength)
+
+		r.Body.Read((Content))
+		var out *os.File
+		out,err=os.OpenFile("index.html",os.O_CREATE|os.O_WRONLY,0664)
+		if err!=nil{
+			panic(err)
+		}
+		out.Write(Content)
+		out.Close()
+	}else{
+		log.Fatal("Failed",
+	r.StatusCode)
+	}
+}
+```
+不得不承认,Go的语法确实很简洁,但远不如Python形象
+## 总结
+一开始以为Go与Python的爬虫实现会有什么太大的不同,后来发现并没有什么区别,只不过Go的语法上要相对简洁一些.
+
+
+
 # gRPC: Up and Running
 ## 介绍
 - 江山代有才人出,各领风骚一两年

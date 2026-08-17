@@ -1,6 +1,6 @@
 ---
 title: "技术文章阅读笔记-5"
-date: 2026-08-09T14:14:44+08:00
+date: 2026-08-19T14:14:44+08:00
 description: 
 image: 53656198_p0-必殺。.webp 
 math: 
@@ -11,6 +11,8 @@ draft: true
 # Fluent C
 # C++ CRASH COURSE
 # PROFESSIONAL C++
+# Linkers and Loaders
+## 链接和加载
 # 深入理解 AI Agent
 
 # MySQL是怎样运行的
