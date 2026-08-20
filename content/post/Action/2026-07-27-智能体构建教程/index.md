@@ -4056,7 +4056,7 @@ pnpm add -D @hey-api/openapi-ts
 }
 ```
 
-在前端根目录创建：
+在前端根目录创建`openapi-ts.config.ts`文件,这个文件说明了我们从哪里获取openapi文档,又将输出的方法放到哪个文件夹中：
 ```ts
 import { defineConfig } from "@hey-api/openapi-ts"
 
@@ -4072,7 +4072,7 @@ export default defineConfig({
 })
 ```
 
-plugins字段是hey-api适配next.js的插件,需要我们在lib文件夹中的api文件夹中新建一个`hey-api.ts`文件,内容如下:
+plugins字段是hey-api适配next.js的插件,不是必须要用到的,需要我们在lib文件夹中的api文件夹中新建一个`hey-api.ts`文件,内容如下:
 
 ```ts
 import type { Config } from "./generated/client/types.gen"
@@ -4084,6 +4084,8 @@ export const createClientConfig = (config: Config): Config => ({
 })
 
 ```
+
+
 运行以下命令即可生成所有api:
 ```bash
 pnpm run api:generate
@@ -4094,7 +4096,7 @@ pnpm run api:generate
 
 import { type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { ChatApiUserMeChatPostData, ChatApiUserMeChatPostErrors, ChatApiUserMeChatPostResponses, GetChatListApiUserMeMessagesGetData, GetChatListApiUserMeMessagesGetErrors, GetChatListApiUserMeMessagesGetResponses, HealthCheckApiUtilsHealthGetData, HealthCheckApiUtilsHealthGetResponses, HomepageApiUserMeGetData, HomepageApiUserMeGetResponses, LoginAccessTokenApiLoginAccessTokenPostData, LoginAccessTokenApiLoginAccessTokenPostErrors, LoginAccessTokenApiLoginAccessTokenPostResponses, RegisterUserApiUserRegisterPostData, RegisterUserApiUserRegisterPostErrors, RegisterUserApiUserRegisterPostResponses } from './types.gen';
+
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -4194,7 +4196,7 @@ def get_chat_list(
 ```
 而名字的后半部分就是路由路径,这么看来,还是很好记忆的.
 #### fastapi再显神威
-不过,鉴于我糟糕的起名品味,只保留后半部分就足够了,一个简单粗暴的方式是,fastapi支持在函数名中直接指定自动生成的函数名字:
+不过,鉴于我糟糕的起名品味,只保留后半部分的路由名字和方法就足够了,一个简单粗暴的方式是,fastapi支持在函数名中直接指定自动生成的函数名字:
 ```py
 @router.get(
     "/api/user/me",
@@ -4266,7 +4268,6 @@ api_router.include_router(utils.router)
 
 import { type Client, type ClientMeta, type Options as Options2, type RequestResult, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { ApiLoginAccessPostData, ApiLoginAccessPostErrors, ApiLoginAccessPostResponses, ApiUserMeChatPostData, ApiUserMeChatPostErrors, ApiUserMeChatPostResponses, ApiUserMeGetData, ApiUserMeGetResponses, ApiUserMeMessagesGetData, ApiUserMeMessagesGetErrors, ApiUserMeMessagesGetResponses, ApiUserRegisterPostData, ApiUserRegisterPostErrors, ApiUserRegisterPostResponses, ApiUtilsHealthGetData, ApiUtilsHealthGetResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -4312,32 +4313,8 @@ export const apiUserMeChatPost = <ThrowOnError extends boolean = false>(options:
     ...options
 });
 
-/**
- * Get Chat List
- */
-export const apiUserMeMessagesGet = <ThrowOnError extends boolean = false>(options?: Options<ApiUserMeMessagesGetData, ThrowOnError>): RequestResult<ApiUserMeMessagesGetResponses, ApiUserMeMessagesGetErrors, ThrowOnError> => (options?.client ?? client).get<ApiUserMeMessagesGetResponses, ApiUserMeMessagesGetErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/user/me/messages',
-    ...options
-});
+// ...
 
-/**
- * Health Check
- */
-export const apiUtilsHealthGet = <ThrowOnError extends boolean = false>(options?: Options<ApiUtilsHealthGetData, ThrowOnError>): RequestResult<ApiUtilsHealthGetResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ApiUtilsHealthGetResponses, unknown, ThrowOnError>({ url: '/api/utils/health', ...options });
-
-/**
- * Login Access Token
- */
-export const apiLoginAccessPost = <ThrowOnError extends boolean = false>(options: Options<ApiLoginAccessPostData, ThrowOnError>): RequestResult<ApiLoginAccessPostResponses, ApiLoginAccessPostErrors, ThrowOnError> => (options.client ?? client).post<ApiLoginAccessPostResponses, ApiLoginAccessPostErrors, ThrowOnError>({
-    ...urlSearchParamsBodySerializer,
-    url: '/api/login/access-token',
-    ...options,
-    headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        ...options.headers
-    }
-});
 ```
 可以看到,这次的函数名字就眉清目秀多了.
 

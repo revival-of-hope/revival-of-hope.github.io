@@ -1,7 +1,7 @@
 ---
 title: "技术文章阅读笔记-3"
 date: 2026-06-13T20:26:43+08:00
-description: 
+description: 共计40本
 image: 72389353_p0-C95の頒布に関して - 副本.webp
 math: true
 ---

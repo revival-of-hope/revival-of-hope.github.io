@@ -1,7 +1,7 @@
 ---
 title: "技术文章阅读笔记-4"
 date: 2026-07-17T11:07:48+08:00
-description: 
+description: 共计40本
 image: 62549331_p0-フランちゃんとチェス.webp
 ---
 
