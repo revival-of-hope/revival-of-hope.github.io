@@ -3761,6 +3761,9 @@ router = APIRouter(prefix="/user", tags=["user"])
 @router.post("/register", response_model=UserPublic)
 def register_user(session: SessionDep, user_in: UserRegister) -> Any:
     user = crud.get_user_by_name(session=session, name=user_in.name)
+
+    # 由于没有邮箱,所以只好通过用户名来标记是否冲突
+
     if user:
         raise HTTPException(status_code=400, detail="Name exists")
     user_register = UserRegister.model_validate(user_in)
@@ -3869,7 +3872,7 @@ server: uvicorn
 
 可以看到,尽管我们还没有重构前端,但所有的基本功能我们都已经实现了,你可以自豪的跟面试官吹嘘,我自己一个人写了个智能体出来,代码都是自己写的哦!
 
-## ch9: 重构前端的初步尝试
+## ch9: 重构前端的准备
 ### 加入dockerfile
 #### 修改`next.config.ts`.
 
@@ -4457,18 +4460,90 @@ export default function RegisterPage() {
 
 但剩下的内容才是重中之重,要想完成我们这个智能体的前端,我们还需要学习以下知识:
 1. next.js的路由方法
-2. 
+2. React的状态管理
 3. 使用tailwind css修饰shadcn带入的组件
-## ch10: 重构前端
-### nextjs基础
-- [官方文档](https://nextjscn.org/docs/app/getting-started/updating-data)
+## ch10: 重构前端?
+>[!NOTE]
+>(8/20): 原谅我之前的不识好歹,真要掌握上面三个知识点还是太累了,但我现在时间却不太够用了,毕竟还想拿这个项目去面试的时候混一混呢~,所以先拿AI占个坑,待日后再战
+
+不管怎样,我先拿AI混了一版出来:
+
+![AI版](PixPin_2026-08-21_13-10-26.webp)
+
+尽管AI已经很努力了,但我的后端肉眼可见的有以下不足:
+1. 不支持多轮对话,无法根据以前的消息来回答
+2. 不支持对话组,每次对话没有一个统一的id
+3. 没有保存用户的提问信息,也没能将thinking和content分开输出
+4. 没有异常处理,也没有限制用户的使用量和调用额度.
+
+## ch11: 完善不足之处,实现多轮对话
+### models.py重构
+首先,看一下我们之前的`models.py`文件:
+```py
+class UserBase(SQLModel):
+    name: str | None = Field(default=None, max_length=255)
+    is_active: bool = True
 
 
-## ch11: 实现多轮对话和多智能体.
+class UserRegister(SQLModel):
+    password: str
+    name: str = Field(default=None, max_length=255)
 
+
+class UserCreate(UserBase):
+    password: str = Field(min_length=8, max_length=16)
+
+
+class UserPublic(UserBase):
+    id: int | None
+    created_at: datetime | None = None
+
+
+class User(UserBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str
+    created_at: datetime | None = Field(
+        default_factory=get_datetime,
+    )
+    chats: list["ChatMessage"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+
+
+class Message(SQLModel):
+    message: str
+
+
+class ChatMessage(SQLModel, table=True):
+    chat_id: int | None = Field(default=None, primary_key=True)
+    content: str | None = None
+    created_at: datetime | None = Field(
+        default_factory=get_datetime,
+    )
+    user_id: int | None = Field(foreign_key="user.id")
+    user: User | None = Relationship(back_populates="chats")
+
+
+class ChatMessagePublic(SQLModel):
+    chat_id: int
+    content: str | None
+    created_at: datetime | None
+
+
+class Token(SQLModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenPayload(SQLModel):
+    sub: str | None = None
+```
+我们需要进行下述修改:
+1. UserCreate实际上并没有用到,他与UserRegister实际上是冲突的,所以只用UserRegister就行了,这属于早期的决策失误,~~如果以后我能出书的话再直接去掉~~😉
 ## ch12: 完善CRUD和数据库管理,加入管理员用户
 ### 数据库管理系统选择
 - adminer与dbgate.
-
+## ch13: 加入文件上传,实现多模态和多智能体
 # 智能体进阶
 
