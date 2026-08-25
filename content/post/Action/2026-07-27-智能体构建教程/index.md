@@ -4541,6 +4541,9 @@ class TokenPayload(SQLModel):
 ```
 我们需要进行下述修改:
 1. UserCreate实际上并没有用到,他与UserRegister实际上是冲突的,所以只用UserRegister就行了,这属于早期的决策失误,~~如果以后我能出书的话再直接去掉~~😉
+2. UserRegister更好的写法是直接继承UserBase,这样一来,我就要把is_active字段直接拿出来,单独放入User表和UserPublic表中
+3. 之前的`ChatMessage`过于语义不明了,所以改成了更为合理的`Conversation`,对应的属性也做了相应的调整,加入了updated_at属性,用户可以在对话历史中重启对话
+4. 有了Conversation,那么就需要有单独的Message,表示本轮对话中的一条消息,所以我们需要再设置一个一对多关系,并实现Message
 ## ch12: 完善CRUD和数据库管理,加入管理员用户
 ### 数据库管理系统选择
 - adminer与dbgate.

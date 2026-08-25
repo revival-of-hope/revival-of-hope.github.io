@@ -1060,8 +1060,10 @@ Spring框架诞生于03年,主要的原因就是官方的Java EE太过于臃肿�
 
 当然,如果直接拿一个现成的Spring Boot项目来看的话,根本无从下手,所以需要好好了解Spring的基本知识和Spring Boot对它的改进.
 
-## 基础知识
-- [官方文档](https://docs.spring.io/spring-framework/reference/core)
-  - 非常遗憾的是,除了这个之外,网上根本就没有一个合适的教程
+>[!NOTE]
+>(26/8/25)突然发现我之前还是太蠢了,直接看现成项目才是学习Spring Boot的王道,扯什么基IoC,依赖注入,一点用都没有,毕竟无论是什么语言,什么框架,一旦涉及了CRUD,就几乎没有什么太大的架构差别.
+## 项目入门
 
-### IoC 
+## 基础知识(过)
+- [官方文档](https://docs.spring.io/spring-framework/reference/core)
+  - 非常遗憾的是,除了这个之外,网上根本就没有一个合适的教程,而即便是这个

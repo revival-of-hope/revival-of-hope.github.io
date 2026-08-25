@@ -34,15 +34,108 @@ Chris Riccomini,O'Reilly 对他的介绍是：拥有 15年以上软件工程经�
 
 >本章目前为止讨论的数据结构都是为了解决磁盘的限制问题。与主存相比，磁盘操作起来更为不便。无论是机械硬盘还是固态硬盘，若要实现良好的读写性能，都需要精心安排数据布局。我们容忍这种不便，是因为磁盘拥有两大显著优势：持久性（断电时内容不会丢失）以及每吉字节成本低于RAM。
 
+## 编码
+介绍了Avro,Protobuf,Json Schema等主流编码方式
+### Json Schema
+不看不知道,原来Json Schema这么出名,MCP,OpenAPI,OAuth都用的是它,格式如下:
+```json
+{
+  "type": "object",
+  "properties": {
+    "first_name": { "type": "string" },
+    "last_name": { "type": "string" },
+    "birthday": { "type": "string", "format": "date" },
+    "address": {
+       "type": "object",
+       "properties": {
+         "street_address": { "type": "string" },
+         "city": { "type": "string" },
+         "state": { "type": "string" },
+         "country": { "type" : "string" }
+       }
+    }
+  }
+}
+```
+
+### RPC介绍
+>本地函数调用是可预测的，其成功与否仅取决于你控制的参数。而网络请求则不可预测，原因完全不受你控制。例如，请求或响应可能因网络问题丢失，远程机器可能响应缓慢或不可用。网络问题很常见，因此应用程序必须预见这些问题（例如，通过重试失败的请求）。
+>
+>一个本地函数调用要么返回结果、抛出异常，要么永不返回（例如进入无限循环或进程崩溃）。而网络请求则有另一种可能的结果：可能因超时而无结果返回
+
+- 这也是网络游戏制作的一个难点之一
 
 
 
-
+# Building Microservices
+## 基础
 # Rust 中文学习教程
 由于另一本书太难啃了,所以换这本书来试试咸淡.
-# Data Storage Architectures and Technologies
-# MySQL是怎样运行的
+## 基础
+### 语句
+```rs
+fn add_with_extra(x: i32, y: i32) -> i32 {
+    let x = x + 1; // 语句
+    let y = y + 5; // 语句
+    x + y // 表达式
+}
+```
+语句会执行一些操作但是不会返回一个值，而表达式会在求值后返回一个值，因此在上述函数体的三行代码中，前两行是语句，最后一行是表达式。
+### 函数
+单元类型 ()，是一个零长度的元组。它没啥作用，但是可以用来表达一个函数没有返回值:
+```rs
+use std::fmt::Debug;
 
+// 隐式返回
+fn report<T: Debug>(item: T) {
+  println!("{:?}", item);
+
+}
+
+// 显式返回
+fn clear(text: &mut String) -> () {
+  *text = String::from("");
+}
+```
+### 所有权
+
+
+# MySQL是怎样运行的
+## 基本
+![原理图](PixPin_2026-08-24_12-10-56.webp)
+
+- MySQL的查询缓存过于低效,需要查询语句完全相同才可以生效,所以在8.0版本后被彻底废除
+
+
+>在客户端程序发起连接的时候，需要携带主机信息、用户名、密码，服务器程序会对客户端程序提供的这些信息进行认证，如果认证失败，服务器程序会拒绝连接
+
+MySQL中的存储引擎列举:
+| 存储引擎  | 描述                                 |
+| --------- | ------------------------------------ |
+| ARCHIVE   | 用于数据存档（行被插入后不能再修改） |
+| BLACKHOLE | 丢弃写操作，读操作会返回空内容       |
+| CSV       | 在存储数据时，以逗号分隔各个数据项   |
+| FEDERATED | 用来访问远程表                       |
+| InnoDB    | 具备外键支持功能的事务存储引擎       |
+| MEMORY    | 置于内存的表                         |
+| MERGE     | 用来管理多个MyISAM表构成的表集合     |
+| MyISAM    | 主要的非事务处理存储引擎             |
+| NDB       | MySQL集群专用存储引擎                |
+
+我们最常用的就是InnoDB(默认引擎)和MyISAM(旧系统),有时候会用Memory(临时数据),用法如下:
+```sql
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY,
+    name VARCHAR(100)
+) ENGINE = InnoDB;
+
+CREATE TABLE cache_data (
+    id INT PRIMARY KEY,
+    value VARCHAR(255)
+) ENGINE = MEMORY;
+```
+这被称为称为“可插拔存储引擎架构”
+# Data Storage Architectures and Technologies
 # Beginning C,From Beginner to Pro
 # EFFECTIVE C
 # Fluent C
