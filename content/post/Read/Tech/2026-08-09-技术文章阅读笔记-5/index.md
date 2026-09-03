@@ -4,7 +4,99 @@ date: 2026-08-19T14:14:44+08:00
 description: 新笔记,新气象~
 image: 53656198_p0-必殺。.webp 
 ---
-# Designing Data-Intensive Applications, Second Edition
+
+# Building Microservices
+## 基础
+# Rust 中文学习教程
+由于另一本书太难啃了,所以换这本书来试试咸淡.
+## 基础
+### 语句
+```rs
+fn add_with_extra(x: i32, y: i32) -> i32 {
+    let x = x + 1; // 语句
+    let y = y + 5; // 语句
+    x + y // 表达式
+}
+```
+语句会执行一些操作但是不会返回一个值，而表达式会在求值后返回一个值，因此在上述函数体的三行代码中，前两行是语句，最后一行是表达式。
+### 函数
+单元类型 ()，是一个零长度的元组。它没啥作用，但是可以用来表达一个函数没有返回值:
+```rs
+use std::fmt::Debug;
+
+// 隐式返回
+fn report<T: Debug>(item: T) {
+  println!("{:?}", item);
+
+}
+
+// 显式返回
+fn clear(text: &mut String) -> () {
+  *text = String::from("");
+}
+```
+### 所有权和引用
+Rust引入了所有权之后,我们写函数时就要尽量地通过引用来处理数据,不然一不小心就会发生所有权转移问题.
+
+- 正如变量默认不可变一样，引用指向的值默认也是不可变的,如果变量没写mut,自然无法修改引用的值,如果引用没写mut,也无法修改引用的值.
+
+### 复合类型
+#### 字符串
+
+# MySQL是怎样运行的
+## 基本
+### 架构
+![原理图](PixPin_2026-08-24_12-10-56.webp)
+
+- MySQL的查询缓存过于低效,需要查询语句完全相同才可以生效,所以在8.0版本后被彻底废除
+
+
+>在客户端程序发起连接的时候，需要携带主机信息、用户名、密码，服务器程序会对客户端程序提供的这些信息进行认证，如果认证失败，服务器程序会拒绝连接
+
+MySQL中的存储引擎列举:
+| 存储引擎  | 描述                                 |
+| --------- | ------------------------------------ |
+| ARCHIVE   | 用于数据存档（行被插入后不能再修改） |
+| BLACKHOLE | 丢弃写操作，读操作会返回空内容       |
+| CSV       | 在存储数据时，以逗号分隔各个数据项   |
+| FEDERATED | 用来访问远程表                       |
+| InnoDB    | 具备外键支持功能的事务存储引擎       |
+| MEMORY    | 置于内存的表                         |
+| MERGE     | 用来管理多个MyISAM表构成的表集合     |
+| MyISAM    | 主要的非事务处理存储引擎             |
+| NDB       | MySQL集群专用存储引擎                |
+
+我们最常用的就是InnoDB(默认引擎)和MyISAM(旧系统),有时候会用Memory(临时数据),用法如下:
+```sql
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY,
+    name VARCHAR(100)
+) ENGINE = InnoDB;
+
+CREATE TABLE cache_data (
+    id INT PRIMARY KEY,
+    value VARCHAR(255)
+) ENGINE = MEMORY;
+```
+这被称为“可插拔存储引擎架构”
+
+### 记录
+>真实数据在不同存储引擎中存放的格式一般是不同的，甚至有的存储引擎比如 Memory 都不用磁盘来存储数据，也就是说关闭服务器后表中的数据就消失了。
+
+>设计 InnoDB 存储引擎的大叔们到现在为止设计了4种不同类型的 行格式 ，分别是 Compact 、 Redundant 、Dynamic 和 Compressed 行格式
+# Linkers and Loaders
+## 链接和加载
+
+# Data Storage Architectures and Technologies
+# Beginning C,From Beginner to Pro
+# EFFECTIVE C
+# Fluent C
+# C++ CRASH COURSE
+# PROFESSIONAL C++
+
+# 深入理解 AI Agent
+
+# Designing Data-Intensive Applications, Second Edition(待补充)
 ## 前言
 - 第一版于2017年出版,第二版于2026年出版,中间间隔了十年,所以章节内容上有了大幅度的改动.
 - 第一版出版后就被很多人奉为神书,那么再版后想必更厉害了吧.
@@ -66,85 +158,14 @@ Chris Riccomini,O'Reilly 对他的介绍是：拥有 15年以上软件工程经�
 - 这也是网络游戏制作的一个难点之一
 
 
+## Replication
+>如果你复制的数据不随时间变化，复制操作就很简单：只需将数据一次性复制到所有节点即可完成任务。复制的所有难点在于处理被复制数据的变更
 
-# Building Microservices
-## 基础
-# Rust 中文学习教程
-由于另一本书太难啃了,所以换这本书来试试咸淡.
-## 基础
-### 语句
-```rs
-fn add_with_extra(x: i32, y: i32) -> i32 {
-    let x = x + 1; // 语句
-    let y = y + 5; // 语句
-    x + y // 表达式
-}
-```
-语句会执行一些操作但是不会返回一个值，而表达式会在求值后返回一个值，因此在上述函数体的三行代码中，前两行是语句，最后一行是表达式。
-### 函数
-单元类型 ()，是一个零长度的元组。它没啥作用，但是可以用来表达一个函数没有返回值:
-```rs
-use std::fmt::Debug;
+复制最大的难点在于如何保持同步,即便通过发送日志的方式来保持主从一致性,但如果SQL指令中有`Now,Rand`等结果未知的语句,或者具有无法预知的副作用如`trigger`,就会破坏这个一致性.
 
-// 隐式返回
-fn report<T: Debug>(item: T) {
-  println!("{:?}", item);
+更为特殊的地方是,由于我们不可避免地要使用异步复制,那么很容易就出现读写不一致的问题,为了保证用户体验,我们需要通过单调读(Monotonic reads)来解决用户读取到更老版本的问题.
 
-}
-
-// 显式返回
-fn clear(text: &mut String) -> () {
-  *text = String::from("");
-}
-```
-### 所有权
-
-
-# MySQL是怎样运行的
-## 基本
-![原理图](PixPin_2026-08-24_12-10-56.webp)
-
-- MySQL的查询缓存过于低效,需要查询语句完全相同才可以生效,所以在8.0版本后被彻底废除
-
-
->在客户端程序发起连接的时候，需要携带主机信息、用户名、密码，服务器程序会对客户端程序提供的这些信息进行认证，如果认证失败，服务器程序会拒绝连接
-
-MySQL中的存储引擎列举:
-| 存储引擎  | 描述                                 |
-| --------- | ------------------------------------ |
-| ARCHIVE   | 用于数据存档（行被插入后不能再修改） |
-| BLACKHOLE | 丢弃写操作，读操作会返回空内容       |
-| CSV       | 在存储数据时，以逗号分隔各个数据项   |
-| FEDERATED | 用来访问远程表                       |
-| InnoDB    | 具备外键支持功能的事务存储引擎       |
-| MEMORY    | 置于内存的表                         |
-| MERGE     | 用来管理多个MyISAM表构成的表集合     |
-| MyISAM    | 主要的非事务处理存储引擎             |
-| NDB       | MySQL集群专用存储引擎                |
-
-我们最常用的就是InnoDB(默认引擎)和MyISAM(旧系统),有时候会用Memory(临时数据),用法如下:
-```sql
-CREATE TABLE users (
-    id BIGINT PRIMARY KEY,
-    name VARCHAR(100)
-) ENGINE = InnoDB;
-
-CREATE TABLE cache_data (
-    id INT PRIMARY KEY,
-    value VARCHAR(255)
-) ENGINE = MEMORY;
-```
-这被称为称为“可插拔存储引擎架构”
-# Data Storage Architectures and Technologies
-# Beginning C,From Beginner to Pro
-# EFFECTIVE C
-# Fluent C
-# C++ CRASH COURSE
-# PROFESSIONAL C++
-# Linkers and Loaders
-## 链接和加载
-# 深入理解 AI Agent
-
+复制一共有三种方式: Single-leader,Multi-leader,Leaderless,各有千秋,只好看情况使用了.
 
 # Coding Video,A Practical Guide to HEVC and Beyond(待补充)
 ## 介绍

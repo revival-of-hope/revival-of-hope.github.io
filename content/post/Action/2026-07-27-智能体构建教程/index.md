@@ -4543,7 +4543,251 @@ class TokenPayload(SQLModel):
 1. UserCreate实际上并没有用到,他与UserRegister实际上是冲突的,所以只用UserRegister就行了,这属于早期的决策失误,~~如果以后我能出书的话再直接去掉~~😉
 2. UserRegister更好的写法是直接继承UserBase,这样一来,我就要把is_active字段直接拿出来,单独放入User表和UserPublic表中
 3. 之前的`ChatMessage`过于语义不明了,所以改成了更为合理的`Conversation`,对应的属性也做了相应的调整,加入了updated_at属性,用户可以在对话历史中重启对话
-4. 有了Conversation,那么就需要有单独的Message,表示本轮对话中的一条消息,所以我们需要再设置一个一对多关系,并实现Message
+4. 有了Conversation,那么就需要有单独的Message,表示本轮对话中的一条消息,所以我们需要再设置一个一对多关系,并单独实现Message
+
+最后的重构效果如下:
+```py
+# User
+
+class UserBase(SQLModel):
+    name: str = Field(default=None, min_length=1, max_length=30)
+
+
+class UserRegister(UserBase):
+    # 写成1是为了偷懒~
+    password: str = Field(min_length=1, max_length=15)
+
+
+class UserPublic(UserBase):
+    id: int
+    created_at: datetime
+    is_active: bool = True
+
+
+class User(UserBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str = Field(max_length=256)
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversations: list["Conversation"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+
+
+# Conversation
+class ConversationCreate(SQLModel):
+    title: str | None = Field(default=None, max_length=120)
+
+
+class ConversationBase(SQLModel):
+    title: str = Field(max_length=35)
+    conversation_id: int | None = Field(default=None, primary_key=True)
+
+
+class ConversationPublic(ConversationBase):
+    created_at: datetime
+    updated_at: datetime
+
+
+class Conversation(ConversationBase, table=True):
+    created_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+    update_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+    user_id: int | None = Field(foreign_key="user.id")
+
+    user: User | None = Relationship(back_populates="conversations")
+    messages: list["Message"] = Relationship(
+        back_populates="conversation",
+        cascade_delete=True,
+    )
+
+
+# Message
+class MessageRole(BaseModel):
+    USER = "user"
+    ASSISTANT = "assistant"
+    SYSTEM = "system"
+    TOOL = "tool"
+
+
+class ChatRequest(SQLModel):
+    # 根据id是否为空可以判断是否为已有对话
+    conversation_id: int | None = None
+    content: str = Field(min_length=3)
+
+
+class MessageBase(SQLModel):
+    message_id: int | None = Field(
+        default=None,
+        primary_key=True,
+    )
+    conversation_id: int = Field(
+        foreign_key="conversation.conversation_id",
+        ondelete="CASCADE",
+    )
+    role: MessageRole
+    # sa_type表示强制让引擎把content的类型改为Text,
+    # 从而可以支持存储AI输出的冗长文本
+    content: str = Field(sa_type=Text, nullable=False)
+
+
+class MessagePublic(MessageBase):
+    created_at: datetime
+
+
+class Message(MessageBase, table=True):
+
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversation: Conversation | None = Relationship(
+        back_populates="messages",
+    )
+
+
+class ConversationDetail(ConversationPublic):
+    messages: list[MessagePublic] = Field(default_factory=list)
+
+
+# Token
+
+
+class Token(SQLModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenPayload(SQLModel):
+    sub: str
+```
+很明显这个代码看上去就顺眼多了,也清晰了不少,现在轮到我们去修改其他的几个文件,把这些Model通通用上,好在我们之前的重构非常成功,大部分工具函数是不用动的,不然有得头疼了.
+### API构思
+在修改之前,先再想想我们要实现哪些API才可以让这个应用变成真正的Agent,先看看之前的API:
+
+**user.py**
+```py
+# 省略一大堆导入
+router = APIRouter(prefix="/user", tags=["user"])
+
+
+# response_model用于过滤密码
+@router.post("/register", response_model=UserPublic)
+def register_user(session: SessionDep, user_in: UserRegister) -> User:
+    user = crud.get_user_by_name(session=session, name=user_in.name)
+    if user:
+        raise HTTPException(status_code=400, detail="Name exists")
+    user_register = UserRegister.model_validate(user_in)
+    user = crud.register_user(session=session, user_register=user_register)
+    return user
+
+
+# 用户主页
+@router.get("/me", response_model=UserPublic)
+def homepage(current_user: CurrentUser) -> User:
+    return current_user
+
+
+# 新对话
+@router.post("/me/chat")
+async def chat(
+    user_message: str,
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> StreamingResponse:
+    if not current_user.id:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authenticated user",
+        )
+
+    return StreamingResponse(
+        stream_agent(current_user.id, user_message, session),
+        headers={
+            "Cache-Control": "no-cache",
+        },
+    )
+
+
+# 消息列表
+@router.get(
+    "/me/messages",
+    response_model=list[ChatMessagePublic],
+)
+def get_chat_list(
+    session: SessionDep,
+    current_user: CurrentUser,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=20)] = 10,
+) -> Any:
+    statement = (
+        select(ChatMessage)
+        .where(ChatMessage.user_id == current_user.id)
+        .order_by(desc(ChatMessage.created_at))
+        .offset(offset=offset)
+        .limit(limit=limit)
+    )
+    chatlist = session.exec(statement).all()
+    return chatlist
+```
+对于user路由,我们可以发现用户和对话需要拆分成两个文件`users.py`和`messages.py`才更为合理一点.
+
+user.py里保留的路由如下:
+1. Post `api/users`
+2. Get `api/users/me`
+
+这样一来,我们之后加入用户主页和充值界面也简单不少,目前来说这两个路由就够了.
+
+messages.py里目前的路由实际上就是一个路由:
+- Post/Get `api/messages`
+
+我们目前需要实现的主要功能如下:
+1. 开启新对话
+2. 查看对话列表并能够加入以往的对话继续发言
+
+所以我们需要把路由重构如下:
+1. Get `api/conversations` 获取对话列表
+2. Get `api/messages?conversation_id=xxx` 根据id获取单个对话
+3. Post `api/messages` 创建新对话时对应的
+
+
+**utils.py**
+```py
+# 省略一大堆导入
+router = APIRouter(tags=["utils"])
+
+TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+
+
+@router.get("/utils/health")
+async def health_check(session: SessionDep) -> bool:
+    return check_db(session=session)
+
+
+@router.post("/login/access-token")
+def login_access_token(
+    session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+) -> Token:
+    user = check_user(
+        session=session,
+        name=form_data.username,
+        password=form_data.password,
+    )
+    if not user:
+        raise HTTPException(status_code=400, detail="Incorrect name or password")
+    elif not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    token_expires = timedelta(minutes=TOKEN_EXPIRE_MINUTES)
+    return Token(
+        access_token=security.create_token(
+            user.id,
+            expires_delta=token_expires,
+        )
+    )
+```
+
+
 ## ch12: 完善CRUD和数据库管理,加入管理员用户
 ### 数据库管理系统选择
 - adminer与dbgate.

@@ -1141,5 +1141,7 @@ Kafka, the information about how much each consumer has consumed is not maintain
 整篇论文也只是简单地谈了谈Kafka的基本原理而已,真要学习的话还得去看专门的文档.
 
 ### In Search of an Understandable Consensus Algorithm(2014)
-- Raft
+- Raft,斯坦福大学出品
+
+
 
