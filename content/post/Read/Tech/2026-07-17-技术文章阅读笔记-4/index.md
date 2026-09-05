@@ -662,7 +662,8 @@ crate 有两种形式：二进制 crate 和库 crate。二进制 crate（Binary 
 块让我们可以将一个 crate 中的代码进行分组，以提高可读性与重用性。因为一个模块中的代码默认是私有的，所以还可以利用模块控制项的私有性（privacy）。
 
 ## 总结
-暂时弃坑,写的不如我想象中的好.# System Performance,2nd edition(待补充)
+暂时弃坑,写的不如我想象中的好.
+# System Performance,2nd edition(待补充)
 非常好的书,待我工作后再来看
 ## 介绍
 第一章的情景演练很有看头,可以明白运维平常都在干什么活儿.

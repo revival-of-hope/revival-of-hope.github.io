@@ -4477,194 +4477,86 @@ export default function RegisterPage() {
 4. 没有异常处理,也没有限制用户的使用量和调用额度.
 
 ## ch11: 完善不足之处,实现多轮对话
-### models.py重构
-首先,看一下我们之前的`models.py`文件:
-```py
-class UserBase(SQLModel):
-    name: str | None = Field(default=None, max_length=255)
-    is_active: bool = True
 
-
-class UserRegister(SQLModel):
-    password: str
-    name: str = Field(default=None, max_length=255)
-
-
-class UserCreate(UserBase):
-    password: str = Field(min_length=8, max_length=16)
-
-
-class UserPublic(UserBase):
-    id: int | None
-    created_at: datetime | None = None
-
-
-class User(UserBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    hashed_password: str
-    created_at: datetime | None = Field(
-        default_factory=get_datetime,
-    )
-    chats: list["ChatMessage"] = Relationship(
-        back_populates="user",
-        cascade_delete=True,
-    )
-
-
-class Message(SQLModel):
-    message: str
-
-
-class ChatMessage(SQLModel, table=True):
-    chat_id: int | None = Field(default=None, primary_key=True)
-    content: str | None = None
-    created_at: datetime | None = Field(
-        default_factory=get_datetime,
-    )
-    user_id: int | None = Field(foreign_key="user.id")
-    user: User | None = Relationship(back_populates="chats")
-
-
-class ChatMessagePublic(SQLModel):
-    chat_id: int
-    content: str | None
-    created_at: datetime | None
-
-
-class Token(SQLModel):
-    access_token: str
-    token_type: str = "bearer"
-
-
-class TokenPayload(SQLModel):
-    sub: str | None = None
-```
-我们需要进行下述修改:
-1. UserCreate实际上并没有用到,他与UserRegister实际上是冲突的,所以只用UserRegister就行了,这属于早期的决策失误,~~如果以后我能出书的话再直接去掉~~😉
-2. UserRegister更好的写法是直接继承UserBase,这样一来,我就要把is_active字段直接拿出来,单独放入User表和UserPublic表中
-3. 之前的`ChatMessage`过于语义不明了,所以改成了更为合理的`Conversation`,对应的属性也做了相应的调整,加入了updated_at属性,用户可以在对话历史中重启对话
-4. 有了Conversation,那么就需要有单独的Message,表示本轮对话中的一条消息,所以我们需要再设置一个一对多关系,并单独实现Message
-
-最后的重构效果如下:
-```py
-# User
-
-class UserBase(SQLModel):
-    name: str = Field(default=None, min_length=1, max_length=30)
-
-
-class UserRegister(UserBase):
-    # 写成1是为了偷懒~
-    password: str = Field(min_length=1, max_length=15)
-
-
-class UserPublic(UserBase):
-    id: int
-    created_at: datetime
-    is_active: bool = True
-
-
-class User(UserBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    hashed_password: str = Field(max_length=256)
-    is_active: bool = True
-    created_at: datetime = Field(default_factory=get_datetime)
-    conversations: list["Conversation"] = Relationship(
-        back_populates="user",
-        cascade_delete=True,
-    )
-
-
-# Conversation
-class ConversationCreate(SQLModel):
-    title: str | None = Field(default=None, max_length=120)
-
-
-class ConversationBase(SQLModel):
-    title: str = Field(max_length=35)
-    conversation_id: int | None = Field(default=None, primary_key=True)
-
-
-class ConversationPublic(ConversationBase):
-    created_at: datetime
-    updated_at: datetime
-
-
-class Conversation(ConversationBase, table=True):
-    created_at: datetime = Field(
-        default_factory=get_datetime,
-    )
-    update_at: datetime = Field(
-        default_factory=get_datetime,
-    )
-    user_id: int | None = Field(foreign_key="user.id")
-
-    user: User | None = Relationship(back_populates="conversations")
-    messages: list["Message"] = Relationship(
-        back_populates="conversation",
-        cascade_delete=True,
-    )
-
-
-# Message
-class MessageRole(BaseModel):
-    USER = "user"
-    ASSISTANT = "assistant"
-    SYSTEM = "system"
-    TOOL = "tool"
-
-
-class ChatRequest(SQLModel):
-    # 根据id是否为空可以判断是否为已有对话
-    conversation_id: int | None = None
-    content: str = Field(min_length=3)
-
-
-class MessageBase(SQLModel):
-    message_id: int | None = Field(
-        default=None,
-        primary_key=True,
-    )
-    conversation_id: int = Field(
-        foreign_key="conversation.conversation_id",
-        ondelete="CASCADE",
-    )
-    role: MessageRole
-    # sa_type表示强制让引擎把content的类型改为Text,
-    # 从而可以支持存储AI输出的冗长文本
-    content: str = Field(sa_type=Text, nullable=False)
-
-
-class MessagePublic(MessageBase):
-    created_at: datetime
-
-
-class Message(MessageBase, table=True):
-
-    created_at: datetime = Field(default_factory=get_datetime)
-    conversation: Conversation | None = Relationship(
-        back_populates="messages",
-    )
-
-
-class ConversationDetail(ConversationPublic):
-    messages: list[MessagePublic] = Field(default_factory=list)
-
-
-# Token
-
-
-class Token(SQLModel):
-    access_token: str
-    token_type: str = "bearer"
-
-
-class TokenPayload(SQLModel):
-    sub: str
-```
-很明显这个代码看上去就顺眼多了,也清晰了不少,现在轮到我们去修改其他的几个文件,把这些Model通通用上,好在我们之前的重构非常成功,大部分工具函数是不用动的,不然有得头疼了.
 ### API构思
 在修改之前,先再想想我们要实现哪些API才可以让这个应用变成真正的Agent,先看看之前的API:
+
+**utils.py**
+```py
+# 省略一大堆导入
+router = APIRouter(tags=["utils"])
+
+TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+
+
+@router.get("/utils/health")
+async def health_check(session: SessionDep) -> bool:
+    return check_db(session=session)
+
+
+@router.post("/login/access-token")
+def login_access_token(
+    session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+) -> Token:
+    user = check_user(
+        session=session,
+        name=form_data.username,
+        password=form_data.password,
+    )
+    if not user:
+        raise HTTPException(status_code=400, detail="Incorrect name or password")
+    elif not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    token_expires = timedelta(minutes=TOKEN_EXPIRE_MINUTES)
+    return Token(
+        access_token=security.create_token(
+            user.id,
+            expires_delta=token_expires,
+        )
+    )
+```
+
+很显然,healthcheck是完全不必要的,毕竟这个活儿最多是给程序员干的,用户不可能花时间去看数据库是否连接正常,所以可以直接删掉,留一个token获取接口就可以了.
+
+- Post `api/access-token`
+
+**重构后的utils.py**
+```py
+from typing import Annotated
+from datetime import timedelta
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from app.crud import check_user
+from app.api.deps import SessionDep
+from app.models import Token
+from app.core import security
+
+router = APIRouter(tags=["utils"])
+
+TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+
+
+@router.post("/access-token")
+def login_access_token(
+    session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+) -> Token:
+    user = check_user(
+        session=session,
+        name=form_data.username,
+        password=form_data.password,
+    )
+    if not user:
+        raise HTTPException(status_code=400, detail="Incorrect name or password")
+    elif not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    token_expires = timedelta(minutes=TOKEN_EXPIRE_MINUTES)
+    return Token(
+        access_token=security.create_token(
+            user.id,
+            expires_delta=token_expires,
+        )
+    )
+```
 
 **user.py**
 ```py
@@ -4734,10 +4626,38 @@ def get_chat_list(
 对于user路由,我们可以发现用户和对话需要拆分成两个文件`users.py`和`messages.py`才更为合理一点.
 
 user.py里保留的路由如下:
-1. Post `api/users`
-2. Get `api/users/me`
+1. Post `api/users` 注册用户
+2. Get `api/users/me` 进入用户主页
 
 这样一来,我们之后加入用户主页和充值界面也简单不少,目前来说这两个路由就够了.
+
+**重构后的users.py**
+```py
+from fastapi import APIRouter, HTTPException
+from app.api.deps import SessionDep, CurrentUser
+from app.models import User, UserPublic, UserRegister
+from app import crud
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+
+# response_model用于过滤不必要的信息返回
+@router.post("", response_model=UserPublic)
+def register_user(session: SessionDep, user_in: UserRegister) -> User:
+    user = crud.get_user_by_name(session=session, name=user_in.name)
+    if user:
+        # 由于没有邮箱,所以只好用名字来进行唯一标识
+        raise HTTPException(status_code=400, detail="Name exists")
+    user_register = UserRegister.model_validate(user_in)
+    user = crud.register_user(session=session, user_register=user_register)
+    return user
+
+
+# 获取用户个人信息
+@router.get("/me", response_model=UserPublic)
+def homepage(current_user: CurrentUser) -> User:
+    return current_user
+```
 
 messages.py里目前的路由实际上就是一个路由:
 - Post/Get `api/messages`
@@ -4747,47 +4667,223 @@ messages.py里目前的路由实际上就是一个路由:
 2. 查看对话列表并能够加入以往的对话继续发言
 
 所以我们需要把路由重构如下:
-1. Get `api/conversations` 获取对话列表
+1. Get `api/conversations` 获取对话列表,可以搞成只获取第一个问题的前10个字作为标题的形式
 2. Get `api/messages?conversation_id=xxx` 根据id获取单个对话
-3. Post `api/messages` 创建新对话时对应的
+3. Post `api/messages` 我们可能在已有对话中继续发消息,也可能是新建对话,还可能是新建了之后不发消息.
+   1. 对于新对话,我们可以弄成先将conversation_id置为None,直到真正发消息时才重置conversation_id创建数据表;而对于老对话,复用原来的conversation_id就可以了.
+
+由于这些改动都需要动models.py,所以先不给出最终版本.
+
+至于多轮对话,我们也可以简单地根据conversation_id是否为None来判断,如果不为None,则选取最新的三条消息打包发送过去即可,至于更复杂的写法就留到后面写吧.
 
 
-**utils.py**
+如此一来,我们的api就重构完成了,很明显的比之前清晰了很多.现在轮到我们去修改其他的几个文件,好在我们之前的重构非常成功,大部分工具函数是不用动的,不然有得头疼了.
+### models.py重构
+首先,看一下我们之前的`models.py`文件:
 ```py
-# 省略一大堆导入
-router = APIRouter(tags=["utils"])
-
-TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
-
-
-@router.get("/utils/health")
-async def health_check(session: SessionDep) -> bool:
-    return check_db(session=session)
+class UserBase(SQLModel):
+    name: str | None = Field(default=None, max_length=255)
+    is_active: bool = True
 
 
-@router.post("/login/access-token")
-def login_access_token(
-    session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
-) -> Token:
-    user = check_user(
-        session=session,
-        name=form_data.username,
-        password=form_data.password,
+class UserRegister(SQLModel):
+    password: str
+    name: str = Field(default=None, max_length=255)
+
+
+class UserCreate(UserBase):
+    password: str = Field(min_length=8, max_length=16)
+
+
+class UserPublic(UserBase):
+    id: int | None
+    created_at: datetime | None = None
+
+
+class User(UserBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str
+    created_at: datetime | None = Field(
+        default_factory=get_datetime,
     )
-    if not user:
-        raise HTTPException(status_code=400, detail="Incorrect name or password")
-    elif not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    token_expires = timedelta(minutes=TOKEN_EXPIRE_MINUTES)
-    return Token(
-        access_token=security.create_token(
-            user.id,
-            expires_delta=token_expires,
-        )
+    chats: list["ChatMessage"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
     )
+
+
+class Message(SQLModel):
+    message: str
+
+
+class ChatMessage(SQLModel, table=True):
+    chat_id: int | None = Field(default=None, primary_key=True)
+    content: str | None = None
+    created_at: datetime | None = Field(
+        default_factory=get_datetime,
+    )
+    user_id: int | None = Field(foreign_key="user.id")
+    user: User | None = Relationship(back_populates="chats")
+
+
+class ChatMessagePublic(SQLModel):
+    chat_id: int
+    content: str | None
+    created_at: datetime | None
+
+
+class Token(SQLModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenPayload(SQLModel):
+    sub: str | None = None
+```
+我们需要进行下述修改:
+1. UserCreate实际上并没有用到,他与UserRegister是冲突的,所以只用UserRegister就行了,这属于早期的决策失误,~~如果以后我能出书的话再直接去掉~~😉
+2. UserRegister更好的写法是直接继承UserBase,这样一来,我就要把is_active字段直接拿出来,单独放入User表和UserPublic表中
+3. 之前的`ChatMessage`过于语义不明了,所以改成了更为合理的`Conversation`,对应的属性也做了相应的调整,加入了updated_at属性,用户可以在对话历史中重启对话
+4. 有了Conversation,那么就需要有单独的Message,表示本轮对话中的一条消息,所以我们需要再设置一个一对多关系,并单独实现Message
+
+最后的重构效果如下:
+```py
+from enum import Enum
+from sqlmodel import Relationship, SQLModel, Field, Text
+from datetime import UTC, datetime
+
+
+def get_datetime() -> datetime:
+    return datetime.now(UTC)
+
+
+# User
+
+
+class UserBase(SQLModel):
+    name: str = Field(min_length=1, max_length=30)
+
+
+class UserRegister(UserBase):
+    # 写成1是为了偷懒~
+    password: str = Field(min_length=1, max_length=15)
+
+
+class UserPublic(UserBase):
+    id: int
+    created_at: datetime
+    is_active: bool = True
+
+
+class User(UserBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str = Field(max_length=256)
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversations: list["Conversation"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+
+
+# Conversation
+class ConversationCreate(SQLModel):
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+
+
+class ConversationBase(SQLModel):
+    title: str | None = Field(default="新对话", min_length=1, max_length=120)
+
+
+class ConversationPublic(ConversationBase):
+    conversation_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class Conversation(ConversationBase, table=True):
+    conversation_id: int | None = Field(default=None, primary_key=True)
+
+    user_id: int | None = Field(foreign_key="user.id")
+    user: User | None = Relationship(back_populates="conversations")
+
+    messages: list["Message"] = Relationship(
+        back_populates="conversation",
+        cascade_delete=True,
+    )
+    created_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+    updated_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+
+
+# Message
+
+
+# 用于判断消息类型,从而区分用户提问和AI回答
+class MessageRole(str, Enum):
+    USER = "user"
+    ASSISTANT = "assistant"
+    SYSTEM = "system"
+    TOOL = "tool"
+
+
+class ChatRequest(SQLModel):
+    # 根据id是否为空可以判断是否为已有对话
+    conversation_id: int | None = None
+    content: str = Field(min_length=1, max_length=20000)
+
+
+class MessageBase(SQLModel):
+
+    conversation_id: int = Field(
+        foreign_key="conversation.conversation_id",
+        ondelete="CASCADE",
+    )
+    role: MessageRole
+    # sa_type表示强制让引擎把content的类型改为Text,
+    # 从而可以支持存储AI输出的冗长文本
+    content: str = Field(sa_type=Text, nullable=False)
+
+
+class MessagePublic(MessageBase):
+    conversation_id: int
+    message_id: int
+    created_at: datetime
+
+
+class Message(MessageBase, table=True):
+    message_id: int | None = Field(
+        default=None,
+        primary_key=True,
+    )
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversation: Conversation | None = Relationship(
+        back_populates="messages",
+    )
+
+
+class ConversationDetail(ConversationPublic):
+    messages: list[MessagePublic] = Field(default_factory=list)
+
+
+# Token
+
+
+class Token(SQLModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenPayload(SQLModel):
+    sub: str
+
 ```
 
-
+### agent重构
+考虑到要实现多轮对话,我们就需要进入utils文件夹中加入多轮对话的函数,先看看原来的实现:
 ## ch12: 完善CRUD和数据库管理,加入管理员用户
 ### 数据库管理系统选择
 - adminer与dbgate.
