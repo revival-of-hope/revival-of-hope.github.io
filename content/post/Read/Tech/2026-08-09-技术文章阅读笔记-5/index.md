@@ -163,7 +163,142 @@ println!("{}", user1.active);
 println!("{:?}", user1);
 # }
 ```
+#### Enum
+```rs
+enum PokerSuit {
+  Clubs,
+  Spades,
+  Diamonds,
+  Hearts,
+}
 
+let heart = PokerSuit::Hearts;
+let diamond = PokerSuit::Diamonds;
+```
+可以看到rust使用`::`来访问枚举成员,这一点是继承了Cpp的写法的.
+
+枚举自然可以赋值:
+```rs
+enum PokerCard {
+    Clubs(u8),
+    Spades(u8),
+    Diamonds(u8),
+    Hearts(u8),
+}
+
+fn main() {
+   let c1 = PokerCard::Spades(5);
+   let c2 = PokerCard::Diamonds(13);
+}
+```
+#### 数组
+>在 Rust 中，最常用的数组有两种，第一种是速度很快但是长度固定的 array，第二种是可动态增长的但是有性能损耗的 Vector，在本书中，我们称 array 为数组，Vector 为动态数组。
+
+```rs
+use std::io;
+
+fn main() {
+    let a = [1, 2, 3, 4, 5];
+
+    println!("Please enter an array index.");
+
+    let mut index = String::new();
+    // 读取控制台的输出
+    io::stdin()
+        .read_line(&mut index)
+        .expect("Failed to read line");
+
+    let index: usize = index
+        .trim()
+        .parse()
+        .expect("Index entered was not a number");
+
+    let element = a[index];
+
+    println!(
+        "The value of the element at index {} is: {}",
+        index, element
+    );
+}
+```
+与Go一样,[u8; 3]和[u8; 4]是不同的类型，数组的长度也是类型的一部分.
+
+
+### 流程控制
+```rs
+fn main() {
+    let condition = true;
+    let number = if condition {
+        5
+    } else {
+        6
+    };
+
+    println!("The value of number is: {}", number);
+}
+```
+Rust中的流程控制可以返回语句,但也可以普通的执行:
+```rs
+fn main() {
+    let n = 6;
+
+    if n % 4 == 0 {
+        println!("number is divisible by 4");
+    } else if n % 3 == 0 {
+        println!("number is divisible by 3");
+    } else if n % 2 == 0 {
+        println!("number is divisible by 2");
+    } else {
+        println!("number is not divisible by 4, 3, or 2");
+    }
+}
+```
+
+for-in循环:
+```rs
+// 第一种
+let collection = [1, 2, 3, 4, 5];
+for i in 0..collection.len() {
+  let item = collection[i];
+  // ...
+}
+
+// 第二种
+for item in collection {
+
+}
+```
+普通循环while:
+
+```rs
+fn main() {
+    let mut n = 0;
+
+    while n <= 5  {
+        println!("{}!", n);
+
+        n = n + 1;
+    }
+
+    println!("我出来了！");
+}
+```
+无条件循环loop:
+```rs
+fn main() {
+    let mut n = 0;
+
+    loop {
+        if n > 5 {
+            break
+        }
+        println!("{}", n);
+        n+=1;
+    }
+
+    println!("我出来了！");
+}
+```
 # MySQL是怎样运行的
 ## 基本
 ### 架构
@@ -212,8 +347,28 @@ CREATE TABLE cache_data (
 MySQL采用B+树索引,叶子节点中存储了页号,行号等定位信息,InnoDB中一个B+树节点就是一个Page.
 
 >InnoDB 内节点记录存“索引键 + 子页号”；聚簇索引叶子存完整行；二级索引叶子存“二级键 + 主键”，不存聚簇数据页号。
+### 数据存储
+因为 MySQL 的数据都是存在文件系统中的，就不得不受到文件系统的一些制约，这在数据库和表的命名、表的大小和性能方面体现的比较明显，比如下边这些方面：
+- 数据库名称和表名称不得超过文件系统所允许的最大长度。
+- 每个数据库都对应 数据目录 的一个子目录，数据库名称就是这个子目录的名称
+- 文件长度受文件系统最大长度限制
+
+总的来说,MySQL使用frm格式的文件来描述表结构,使用ibd文件来标记表的具体数据存放位置,这被称为表空间(table space),一个表空间可以对应多个区(extent),每个区由连续的64页组成(默认为1MB大小),我们的数据就存储在页中.
+
+具体的文件结构就没必要去看了,看了也看不懂...
 
 # Data Storage Architectures and Technologies
+## 简要介绍
+### 目标
+>数据存储性能通常以**吞吐量和延迟**来衡量。吞吐量指单位时间内存储系统能处理的操作数量，而延迟则是完成单次操作所需的时间
+
+数据存储的另一个目标是高可用性(high usability)，这能提升上层应用与存储系统之间的交互效率，包括更快速的数据写入和更高效的读取操作,也就是说要能设计出一个良好的接口供其他人使用
+
+![示意图](PixPin_2026-09-06_11-02-22.webp)
+
+高可靠性(High Reliability)存储能够在系统异常（包括磁盘、服务器和网络故障以及人为错误）时防止数据丢失和服务中断,实现高可靠性最基础的方法之一是利用数据冗余,最著名的就是RAID了,通过多副本和纠错码,能够大幅度降低出错的概率.
+### 存储介质
+
 # Beginning C,From Beginner to Pro
 确实很适合入门,可惜的是当初没看到这本书
 ## 指针

@@ -4,6 +4,51 @@ date: 2026-08-18T11:04:38+08:00
 description: 
 image: 67994520_p0-沖田総司.webp
 ---
+## DBMS年表
+|   年份 | DBMS／节点                                                                                            | 类型与适用范围                           | 主要索引／存储结构                                 | 当前活跃度                 |
+| -----: | ----------------------------------------------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------- | -------------------------- |
+| 约1963 | [IDS](https://computerhistory.org/profile/charles-w-bachman/)                                         | 早期网状数据库；大型机、制造业数据处理   | 指针链、记录集合、导航式访问                       | △ 历史                     |
+|   1968 | [IBM IMS](https://www.ibm.com/history/information-management-system)                                  | 层次数据库；银行、电信、大型机高可靠事务 | 层次树、路径访问、二级索引                         | ◐ 仍在大型机核心系统中使用 |
+|   1973 | Ingres                                                                                                | 研究型关系库，后来商业化为 Actian X      | ISAM、B-tree、Hash                                 | ◐ 稳定、小众               |
+|   1975 | IBM System R                                                                                          | 研究型关系库；验证 SQL、查询优化器       | B-tree、基于代价的查询计划                         | △ 项目结束，影响深远       |
+|   1979 | [Oracle V2](https://www.oracle.com/database/50-years-relational-database/)                            | 首批商用 SQL RDBMS；企业 OLTP            | B-tree；后续加入 Bitmap、函数索引等                | 🔥 Oracle Database仍旺盛    |
+|   1981 | IBM SQL/DS                                                                                            | IBM首个商用关系数据库产品；大型机        | B-tree                                             | △ 被后续产品继承           |
+|   1983 | [IBM Db2](https://www.ibm.com/history/relational-database)                                            | 企业 OLTP、主机数据库、数据仓库          | B-tree；后续有列存储、分区和多维聚簇               | ● 活跃                     |
+|   1984 | Teradata DBC/1012                                                                                     | MPP并行数据仓库、大规模分析              | Hash主索引、二级索引、Join Index                   | ● 成熟活跃                 |
+|   1986 | [POSTGRES项目](https://www.postgresql.org/docs/current/history.html)                                  | 对象关系研究；PostgreSQL前身             | 可扩展索引、B-tree、R-tree等                       | △ 已演变为PostgreSQL       |
+|   1987 | Sybase SQL Server／SAP ASE                                                                            | 客户端—服务器 OLTP；金融、电信           | 聚簇／非聚簇B-tree                                 | ◐ 稳定维护、市场收缩       |
+|   1989 | [Microsoft SQL Server 1.0](https://learn.microsoft.com/en-us/shows/history/history-of-microsoft-1989) | 企业 OLTP、报表、微软技术栈              | 聚簇／非聚簇B-tree、列存、全文倒排                 | 🔥 旺盛                     |
+|   1995 | [MySQL](https://dev.mysql.com/doc/refman/5.7/en/history.html)                                         | Web应用、中小型及大型 OLTP               | InnoDB聚簇B-tree、二级B-tree、全文倒排、空间R-tree | 🔥 旺盛                     |
+|   1996 | [PostgreSQL](https://www.postgresql.org/docs/current/history.html)                                    | 通用关系库；复杂 SQL、GIS、扩展开发      | B-tree、Hash、GiST、SP-GiST、GIN、BRIN             | 🔥 旺盛                     |
+
+20年之后:
+
+|     年份 | DBMS                                                                                                          | 类型与适用范围                               | 主要索引／存储结构                                 | 当前活跃度            |
+| -------: | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------- | --------------------- |
+|     2000 | [SQLite](https://sqlite.org/hctree/dir?ci=e651ea3110aa726e)                                                   | 嵌入式关系库；手机、桌面软件、单机服务       | B-tree、FTS倒排、R-tree                            | 🔥 极其活跃、应用极广  |
+|     2005 | Apache CouchDB                                                                                                | 文档数据库；离线同步、HTTP应用               | 追加式B-tree、MapReduce视图索引                    | ◐ 稳定                |
+|     2007 | Apache HBase                                                                                                  | 宽列数据库；Hadoop生态、海量稀疏数据         | LSM、MemStore、HFile、Bloom Filter                 | ● 成熟活跃            |
+|     2008 | Apache Cassandra                                                                                              | 宽列分布式库；高写入、多地域、高可用         | LSM、MemTable、SSTable、Bloom、SAI/Trie            | ● 活跃                |
+|     2009 | [MongoDB](https://www.mongodb.com/company/our-story)                                                          | 文档数据库；内容、产品目录、快速迭代应用     | B-tree、文本倒排、地理与向量索引                   | 🔥 旺盛                |
+|     2009 | [Redis](https://redis.io/blog/redis-then-and-now-adapting-with-developers-through-every-era/)                 | 内存键值／数据结构库；缓存、会话、排行榜     | Hash表、跳表、Radix Tree；搜索模块含倒排/HNSW      | 🔥 Redis与Valkey双生态 |
+|     2009 | [MariaDB](https://mariadb.org/en/)                                                                            | MySQL分支；Web OLTP、MySQL替代               | InnoDB系B-tree、全文、空间索引                     | ● 活跃                |
+|     2010 | [Neo4j 1.0](https://neo4j.com/blog/news/neo4j-1-0-released/)                                                  | 图数据库；关系网络、风控、知识图谱           | 原生图邻接；Range、全文、Point、Vector索引         | ● 活跃                |
+|     2010 | [Elasticsearch](https://www.elastic.co/blog/licensing-change)                                                 | 搜索与分析；日志、全文检索、可观测性         | Lucene倒排、BKD Tree、Doc Values、HNSW             | 🔥 旺盛                |
+|     2010 | [OceanBase项目](https://oceanbase.github.io/)                                                                 | 分布式关系库；金融、电商、HTAP               | LSM、MemTable、SSTable、Bloom Filter               | ● 成熟活跃            |
+|     2011 | SAP HANA 1.0                                                                                                  | 内存列式数据库；ERP、实时分析、HTAP          | 字典编码列存、倒排和值索引                         | ● 活跃                |
+|     2012 | Amazon DynamoDB                                                                                               | 托管键值／文档库；Serverless、高并发服务     | 分区键、排序键、GSI、LSI；底层实现不公开           | 🔥 旺盛                |
+|     2012 | Snowflake项目                                                                                                 | 云数据仓库；BI、数据共享、弹性分析           | 微分区元数据裁剪、聚簇键、Search Access Path       | 🔥 旺盛                |
+|     2013 | InfluxDB                                                                                                      | 时序数据库；监控、IoT、指标                  | TSM/TSI；新架构转向Parquet及列统计                 | ● 活跃、架构换代中    |
+|     2013 | FoundationDB                                                                                                  | 有序分布式KV；作为其他数据库的事务底座       | 有序键区间；Redwood B-tree等，存储引擎持续演进     | ● 活跃但偏基础设施    |
+|     2016 | [ClickHouse开源](https://clickhouse.com/blog/open-source-10)                                                  | 列式 OLAP；日志、实时分析、可观测性          | 稀疏主索引、MinMax、Bloom、跳数索引、倒排/向量索引 | 🔥 旺盛                |
+|     2017 | [Apache Doris开源](https://doris.apache.org/docs/3.x/gettingStarted/what-is-apache-doris/)                    | MPP实时分析、数据仓库、湖仓查询              | Prefix、ZoneMap、Bloom、倒排、Bitmap               | 🔥 旺盛                |
+|     2017 | [Google Cloud Spanner GA](https://cloud.google.com/blog/products/gcp/cloud-natural-language-api-enters-beta/) | 全球分布式关系库；强一致、多地域 OLTP        | 有序主键区间、二级索引；内部结构专有               | ● 活跃                |
+|     2017 | [CockroachDB 1.0](https://www.cockroachlabs.com/blog/cockroachdb-1-0-release/)                                | 分布式 SQL；跨地域、云原生 OLTP              | Pebble LSM、MVCC、逻辑二级及倒排索引               | ● 活跃                |
+|     2017 | [TiDB 1.0](https://docs.pingcap.com/tidb/stable/release-1.0-ga/)                                              | MySQL兼容分布式 SQL、HTAP                    | TiKV/RocksDB LSM、KV编码二级索引、TiFlash列存      | ● 活跃                |
+|     2018 | [YugabyteDB 1.0](https://www.yugabyte.com/blog/announcing-yugabyte-db-1-0/)                                   | PostgreSQL兼容分布式 SQL、多地域事务         | DocDB/RocksDB LSM、分布式二级索引                  | ● 活跃                |
+| 2018／19 | [DuckDB](https://duckdb.org/history/)                                                                         | 嵌入式 OLAP；本地数据分析、Parquet、Python/R | 自动Zone Map、ART自适应基数树                      | 🔥 2020年代增长极快    |
+|     2019 | [Milvus开源](https://milvus.io/blog/journey-to-35k-github-stars-story-of-building-milvus-from-scratch.md)     | 分布式向量数据库；推荐、图像和RAG检索        | IVF、HNSW、DiskANN、PQ/SQ量化                      | 🔥 旺盛                |
+
 ## 数据结构
 学习数据库最重要的其实是用来构造索引的数据结构,而至于底层的详细存储形式我们不是很有必要了解,不仅是因为非常枯燥,而且就算这一块出了问题我们也解决不了,但索引不一样,索引构造得当可以大幅度加快查询/更新的速率.
 
@@ -16,7 +61,12 @@ image: 67994520_p0-沖田総司.webp
 
 上面5种可以涵盖所有的常见数据库.
 
+## 数据存储
+使用数据库的时候我们都很好奇,数据都存在了哪里呢,这主要有两种情况:
+1. 用一个特殊格式的文件存储在操作系统的文件系统中,这是绝大部分数据库的做法(从SQLite到Elasticsearch都是如此),如此一来,需要获取数据时就要通过文件系统的接口来实现I/O
+2. 把数据直接放在内存中,从而摆脱了每次查询都要读取磁盘的麻烦,如Redis和Memcached
 
+至于那些云服务器或者分布式数据库,自然都是存在远程服务器的硬盘之中.
 ## 心得与体会
 ### 26/8/18
 DBMS的诞生是程序员的福音,但也是各类生产事故的来源,从早期的关系数据库,迈步到MongoDB等文档数据库,再到焕发新生的NoSQL数据库,数据库的架构一直在演进,但我们却始终找不到一个可靠的方案去一次性解决所有的问题,我们只有一个万无一失的口诀: `It depends`.
