@@ -7,7 +7,7 @@ tags:
     - 调研
 ---
 
-# 大模型: 一切的开端
+# 大模型: 一切的开始
 ## OpenAI: 我一开始没想挣钱的
 - [wiki](https://en.wikipedia.org/wiki/OpenAI)
 ### 草莽开端
@@ -109,7 +109,7 @@ Anthropic于2022年暑期就已经训练出了Claude的测试版本,但直到202
 - [wiki](https://en.wikipedia.org/wiki/Doubao)
 
 
-# 多模态: 让暴风雨来得更猛烈些吧
+# 多模态: 让暴风雨来得更猛烈些吧(废)
 ## 语音理解
 
 ## 图像理解
@@ -122,6 +122,7 @@ Anthropic于2022年暑期就已经训练出了Claude的测试版本,但直到202
 
 
 # AI芯片公司: 上游市场
+## Nvidia
 
 # API中转站: 灰色市场
 
