@@ -4804,7 +4804,7 @@ class ConversationPublic(ConversationBase):
 class Conversation(ConversationBase, table=True):
     conversation_id: int | None = Field(default=None, primary_key=True)
 
-    user_id: int | None = Field(foreign_key="user.id")
+    user_id: int = Field(foreign_key="user.id")
     user: User | None = Relationship(back_populates="conversations")
 
     messages: list["Message"] = Relationship(
@@ -4855,7 +4855,7 @@ class MessagePublic(MessageBase):
 
 
 class Message(MessageBase, table=True):
-    message_id: int | None = Field(
+    message_id: int = Field(
         default=None,
         primary_key=True,
     )
@@ -4881,9 +4881,480 @@ class TokenPayload(SQLModel):
     sub: str
 
 ```
-
 ### agent重构
 考虑到要实现多轮对话,我们就需要进入utils文件夹中加入多轮对话的函数,先看看原来的实现:
+
+**chat.py**
+```py
+from typing import Generator
+from openai import Stream, OpenAI
+from openai.types.chat import ChatCompletionChunk
+
+
+def messages(user_message: str, system_prompt: str) -> list[dict]:
+    return [
+        {
+            "role": "system",
+            "content": system_prompt,
+        },
+        {
+            "role": "user",
+            "content": user_message,
+        },
+    ]
+
+
+def create_client(api_key: str, url: str):
+    return OpenAI(api_key=api_key, base_url=url)
+
+
+def stream_response(
+    stream: Stream[ChatCompletionChunk],
+) -> Generator[str, None, None]:
+    for chunk in stream:
+        # 某些 chunk 可能没有 choices
+        if not chunk.choices:
+            continue
+
+        # delta 表示“这一次新增的内容”。
+        delta = chunk.choices[0].delta
+
+        # delta.content 可能是 None。
+        if delta.content:
+            yield delta.content
+
+
+def create_stream(
+    client,
+    model: str,
+    user_message: str,
+    system_prompt: str,
+):
+    stream = client.chat.completions.create(
+        model=model,
+        messages=messages(user_message, system_prompt),
+        stream=True,
+        reasoning_effort="high",
+    )
+    return stream
+```
+很明显,这个文件比较基础,唯一一个要修改的地方反而是这个`messages`函数,折腾大半圈只返回了一个列表,为了方便我们以后进行多轮对话而不多加函数,最好的方法是把这个函数变成一个可插入的列表,具体写法如下:
+```py
+# history代表历史消息
+def messages(user_message: str, system_prompt: str, history) -> list[dict]:
+    return [
+        {
+            "role": "system",
+            "content": system_prompt,
+        },
+        history,
+        {
+            "role": "user",
+            "content": user_message,
+        },
+    ]
+```
+而我们的`create_stream`函数也应该直接接收这个`messages`函数,而非再将系统提示词和用户提示词拆开.
+
+这样一来,我们需要把`chat.py`改名为`stream.py`才更为合理一点,所以一个完整的重构文件如下:
+```py
+from typing import Generator
+from openai import Stream, OpenAI
+from openai.types.chat import ChatCompletionChunk
+
+
+# history代表历史消息
+def messages(user_message: str, system_prompt: str, history) -> list[dict]:
+    return [
+        {
+            "role": "system",
+            "content": system_prompt,
+        },
+        history,
+        {
+            "role": "user",
+            "content": user_message,
+        },
+    ]
+
+
+def create_client(api_key: str, url: str):
+    return OpenAI(api_key=api_key, base_url=url)
+
+
+def create_stream(
+    client: OpenAI,
+    model: str,
+    messages,
+):
+    stream = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        stream=True,
+        reasoning_effort="medium",
+    )
+    return stream
+
+
+def stream_response(
+    stream: Stream[ChatCompletionChunk],
+) -> Generator[str, None, None]:
+    for chunk in stream:
+        # 某些 chunk 可能没有 choices
+        if not chunk.choices:
+            continue
+
+        # delta 表示“这一次新增的内容”。
+        delta = chunk.choices[0].delta
+
+        # delta.content 可能是 None。
+        if delta.content:
+            yield delta.content
+```
+
+**client.py**
+```py
+from app.utils.chat import stream_response, create_stream, create_client
+from typing import Generator
+from app.core.config import settings
+from app.crud import stream_and_save
+from sqlmodel import Session
+
+client = create_client(settings.DEEPSEEK_API_KEY, settings.DEEPSEEK_URL)
+
+DEFAULT_MODEL = "deepseek-v4-pro"
+
+DEFAULT_SYSTEM_PROMPT = "以后的回答都要优先输出一句话,我是deepseek-v4-pro."
+
+
+def stream_agent(
+    user_id: int | None,
+    user_message: str,
+    session: Session,
+    model: str = DEFAULT_MODEL,
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+) -> Generator[str, None, None]:
+
+    # 创建流式请求。
+    stream = create_stream(client, model, user_message, system_prompt)
+    chunks = stream_response(stream)
+    yield from stream_and_save(
+        chunks=chunks,
+        user_id=user_id,
+        session=session,
+    )
+```
+可以看到,为了实现多轮对话,这个`stream_agent`函数相当关键,目前我们不好动他,因为我们需要从数据库中获取历史消息,这就需要我们先去修改`crud.py`后再回来.
+### crud.py重构
+原文件如下:
+```py
+from app.core.security import (
+    verify_password,
+    hashing_password,
+)
+from fastapi import HTTPException
+from sqlmodel import Session, select
+from app.models import User, UserRegister, Conversation
+
+# Dummy hash to use for timing attack prevention when user is not found
+DUMMY_HASH = "$argon2id$v=19$m=65536,t=3,p=4$MjQyZWE1MzBjYjJlZTI0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
+
+
+def check_db(*, session: Session):
+    result = session.exec(select(1)).one()
+    return result == 1
+
+
+def register_user(*, session: Session, user_register: UserRegister) -> User:
+    user_store = User.model_validate(
+        user_register,
+        update={"hashed_password": hashing_password(user_register.password)},
+    )
+
+    session.add(user_store)
+    session.commit()
+    session.refresh(user_store)
+
+    return user_store
+
+
+def get_user_by_name(*, session: Session, name: str) -> User | None:
+    statement = select(User).where(User.name == name)
+    user = session.exec(statement).first()
+    return user
+
+
+def check_user(session: Session, name: str, password: str) -> User | None:
+    db_user = get_user_by_name(session=session, name=name)
+    if not db_user:
+        verify_password(password, DUMMY_HASH)
+        return None
+    verified = verify_password(password, db_user.hashed_password)
+    if not verified:
+        return None
+    return db_user
+
+
+# 工具函数
+def save_chat_message(
+    *, session: Session, user_id: int | None, content: str
+) -> Conversation:
+    message = Conversation(
+        user_id=user_id,
+        content=content,
+    )
+    session.add(message)
+    session.commit()
+    session.refresh(message)
+
+    return message
+
+
+def stream_and_save(*, session: Session, user_id: int | None, chunks):
+    collected_chunks: list[str] = []
+    for chunk in chunks:
+        if not chunk:
+            continue
+        collected_chunks.append(chunk)
+        yield chunk
+    full_content = "".join(collected_chunks)
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not found")
+    if full_content:
+        save_chat_message(
+            user_id=user_id,
+            content=full_content,
+            session=session,
+        )
+```
+首先第一个函数由于用不到了所以可以直接删除,至于跟用户相关的函数都完全不用动,省了不少事,如此一来,就剩下agent部分了,先将两个函数修正到正确的格式,对于第一个函数`save_chat_message`,简化名字为`save_message`,我们这次要根据conversation_id是否为空来判断消息的存储,不过这个判断肯定不能由这个函数来搞,而是要在更高一级解决,所以我们就简单的增加参数即可,先看一下之前的models.py:
+```py
+class ConversationBase(SQLModel):
+    title: str | None = Field(default="新对话", min_length=1, max_length=120)
+class Conversation(ConversationBase, table=True):
+    conversation_id: int | None = Field(default=None, primary_key=True)
+
+    user_id: int  = Field(foreign_key="user.id")
+    user: User | None = Relationship(back_populates="conversations")
+
+    messages: list["Message"] = Relationship(
+        back_populates="conversation",
+        cascade_delete=True,
+    )
+    created_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+    updated_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+
+class MessageBase(SQLModel):
+
+    conversation_id: int = Field(
+        foreign_key="conversation.conversation_id",
+        ondelete="CASCADE",
+    )
+    role: MessageRole
+    # sa_type表示强制让引擎把content的类型改为Text,
+    # 从而可以支持存储AI输出的冗长文本
+    content: str = Field(sa_type=Text, nullable=False)
+
+
+class Message(MessageBase, table=True):
+    message_id: int | None = Field(
+        default=None,
+        primary_key=True,
+    )
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversation: Conversation | None = Relationship(
+        back_populates="messages",
+    )
+```
+非常明显,如果全都放到函数参数中是要完蛋的,最好的方法就是接收一个Conversation变量.
+
+第二个`stream_and_save`函数才是关键,对于流的输入我们可以保持原样不动,但与其如此不如单独将流部分作为函数拆分出去放到`stream.py`中,不过这还是放到下一章中解决吧,不然就乱成一团了.
+
+由于这个函数只负责接收AI的输出,所以角色可以固定为Assitant,那么这个函数也就和crud没有关系,应该直接放到`stream.py`中更好:
+
+**修改后的stream.py**
+```py
+from typing import Generator
+from openai import Stream, OpenAI
+from openai.types.chat import ChatCompletionChunk
+from sqlmodel import Session
+
+from app.crud import save_message
+from app.models import Conversation, MessageRole
+
+
+# history代表历史消息
+def messages(user_message: str, system_prompt: str, history) -> list[dict]:
+    return [
+        {
+            "role": "system",
+            "content": system_prompt,
+        },
+        history,
+        {
+            "role": "user",
+            "content": user_message,
+        },
+    ]
+
+
+def create_client(api_key: str, url: str):
+    return OpenAI(api_key=api_key, base_url=url)
+
+
+def create_stream(
+    client: OpenAI,
+    model: str,
+    messages,
+):
+    stream = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        stream=True,
+        reasoning_effort="medium",
+    )
+    return stream
+
+
+def stream_response(
+    stream: Stream[ChatCompletionChunk],
+) -> Generator[str, None, None]:
+    for chunk in stream:
+        # 某些 chunk 可能没有 choices
+        if not chunk.choices:
+            continue
+
+        # delta 表示“这一次新增的内容”。
+        delta = chunk.choices[0].delta
+
+        # delta.content 可能是 None。
+        if delta.content:
+            yield delta.content
+
+
+def stream_and_save(*, session: Session, conversation: Conversation, chunks):
+    collected_chunks: list[str] = []
+
+    for chunk in chunks:
+        if not chunk:
+            continue
+
+        collected_chunks.append(chunk)
+        yield chunk
+
+    full_content = "".join(collected_chunks)
+
+    if full_content:
+        save_message(
+            role=MessageRole.ASSISTANT,
+            conversation=conversation,
+            content=full_content,
+            session=session,
+        )
+```
+
+那么,现在就剩下增加一个获取历史消息的crud接口了,获取历史消息,需要根据`conversation_id`来获取最后的四条消息(两对问答),一个完整的改版如下:
+```py
+from typing import List
+from app.core.security import (
+    verify_password,
+    hashing_password,
+)
+from sqlmodel import Session, select, desc
+from app.models import (
+    Message,
+    MessageRole,
+    User,
+    UserRegister,
+    Conversation,
+    get_datetime,
+)
+
+# Dummy hash to use for timing attack prevention when user is not found
+DUMMY_HASH = "$argon2id$v=19$m=65536,t=3,p=4$MjQyZWE1MzBjYjJlZTI0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
+
+
+def register_user(*, session: Session, user_register: UserRegister) -> User:
+    user_store = User.model_validate(
+        user_register,
+        update={"hashed_password": hashing_password(user_register.password)},
+    )
+
+    session.add(user_store)
+    session.commit()
+    session.refresh(user_store)
+
+    return user_store
+
+
+def get_user_by_name(*, session: Session, name: str) -> User | None:
+    statement = select(User).where(User.name == name)
+    user = session.exec(statement).first()
+    return user
+
+
+def check_user(session: Session, name: str, password: str) -> User | None:
+    db_user = get_user_by_name(session=session, name=name)
+    if not db_user:
+        verify_password(password, DUMMY_HASH)
+        return None
+    verified = verify_password(password, db_user.hashed_password)
+    if not verified:
+        return None
+    return db_user
+
+
+# 保存消息
+def save_message(
+    *,
+    session: Session,
+    conversation: Conversation,
+    role: MessageRole,
+    content: str,
+) -> Message:
+    message = Message(
+        conversation_id=conversation.conversation_id,
+        role=role,
+        content=content,
+    )
+    conversation.updated_at = get_datetime()
+    session.add(message)
+    session.add(conversation)
+    session.commit()
+    session.refresh(message)
+
+    return message
+
+
+# 获取历史消息
+def get_history_message(
+    *,
+    session: Session,
+    conversation: Conversation,
+    limit: int = 4,
+) -> List[Message]:
+    id = conversation.conversation_id
+    if id is None:
+        return []
+    statement = (
+        select(Message)
+        .where(Message.conversation_id == id)
+        .order_by(
+            desc(Message.created_at),
+            desc(Message.message_id),
+        )
+        .limit(limit)
+    )
+    messages = list(session.exec(statement).all())
+    messages.reverse()
+    return messages
+```
+### 再次修改agent
+这次有了获取历史消息的接口后,原来的`client.py`就好改了:
 ## ch12: 完善CRUD和数据库管理,加入管理员用户
 ### 数据库管理系统选择
 - adminer与dbgate.

@@ -299,6 +299,107 @@ fn main() {
     println!("我出来了！");
 }
 ```
+### 模式匹配
+#### match
+```rs
+enum Direction {
+    East,
+    West,
+    North,
+    South,
+}
+
+fn main() {
+    let dire = Direction::South;
+    match dire {
+        Direction::East => println!("East"),
+        Direction::North | Direction::South => {
+            println!("South or North");
+        },
+        _ => println!("West"),
+    };
+}
+```
+- match 的匹配必须要穷举出所有可能，因此这里用 _ 来代表未列出的所有可能性
+- match 的每一个分支都必须是一个表达式，且所有分支的表达式最终返回值的类型必须相同
+
+- 这种简单的`=>`标记过于粗暴了
+
+复杂一些的模式匹配:
+```rs
+enum Action {
+    Say(String),
+    MoveTo(i32, i32),
+    ChangeColorRGB(u16, u16, u16),
+}
+
+fn main() {
+    let actions = [
+        Action::Say("Hello Rust".to_string()),
+        Action::MoveTo(1,2),
+        Action::ChangeColorRGB(255,255,0),
+    ];
+    for action in actions {
+        match action {
+            Action::Say(s) => {
+                println!("{}", s);
+            },
+            Action::MoveTo(x, y) => {
+                println!("point from (0, 0) move to ({}, {})", x, y);
+            },
+            Action::ChangeColorRGB(r, g, _) => {
+                println!("change color into '(r:{}, g:{}, b:0)', 'b' has been ignored",
+                    r, g,
+                );
+            }
+        }
+    }
+}
+```
+
+
+#### if let
+有时会遇到只有一个模式的值需要被处理，其它值直接忽略的场景，如果用 match 来处理就要写成下面这样：
+```rs
+let v = Some(3u8);
+match v {
+    Some(3) => println!("three"),
+    _ => (),
+}
+```
+简单的写法如下:
+```rs
+if let Some(3) = v {
+    println!("three");
+}
+```
+不管怎么看都很难看懂这个写法,不过这种情况使用if判断就足够了,不过可能之后有更高级的用法,所以就先放着.
+
+#### Option
+rust使用Option枚举来解决空指针问题
+```rs
+enum Option<T> {
+    None,
+    Some(T),
+}
+```
+
+匹配:
+```rs
+fn plus_one(x: Option<i32>) -> Option<i32> {
+    match x {
+        None => None,
+        Some(i) => Some(i + 1),
+    }
+}
+
+let five = Some(5);
+let six = plus_one(five);
+let none = plus_one(None);
+```
+### 方法
+
+
 # MySQL是怎样运行的
 ## 基本
 ### 架构
