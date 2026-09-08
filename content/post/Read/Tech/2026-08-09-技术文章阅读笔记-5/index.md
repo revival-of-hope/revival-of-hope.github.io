@@ -398,10 +398,81 @@ let six = plus_one(five);
 let none = plus_one(None);
 ```
 ### 方法
+Rust 使用 impl 来定义方法，例如以下代码：
+```rs
+struct Circle {
+    x: f64,
+    y: f64,
+    radius: f64,
+}
+
+impl Circle {
+    // new是Circle的关联函数，因为它的第一个参数不是self，且new并不是关键字
+    // 这种方法往往用于初始化当前结构体的实例
+    fn new(x: f64, y: f64, radius: f64) -> Circle {
+        Circle {
+            x: x,
+            y: y,
+            radius: radius,
+        }
+    }
+
+    // Circle的方法，&self表示借用当前的Circle结构体
+    fn area(&self) -> f64 {
+        std::f64::consts::PI * (self.radius * self.radius)
+    }
+}
+```
+因为是函数，所以不能用 . 的方式来调用，我们需要用 :: 来调用，例如 `let sq = Rectangle::new(3, 3);。`
 
 
+### 注释和文档
+Rust的代码注释和Cpp完全相同,但它额外有一个文档注释的神奇功能
+
+当查看一个 crates.io 上的包时，往往需要通过它提供的文档来浏览相关的功能特性、使用方式，这种文档就是通过文档注释实现的。
+
+Rust 提供了 cargo doc 的命令，可以用于把这些文档注释转换成 HTML 网页文件，最终展示给用户浏览，这样用户就知道这个包是做什么的以及该如何使用。
+
+格式如下:
+```rs
+/// `add_one` 将指定值加1
+///
+/// # Examples
+///
+/// ```
+/// let arg = 5;
+/// let answer = my_crate::add_one(arg);
+///
+/// assert_eq!(6, answer);
+/// ```
+pub fn add_one(x: i32) -> i32 {
+    x + 1
+}
+```
+使用单行的`///`或者多行的`/** ... */`标明文档注释,并可以使用md语法
+
+除了给函数加注释,还可以给包和模块加注释,包级别的注释也分为两种：行注释 `//!` 和块注释 `/*! ... */`。只要放在文件内部的最上方就可以:
+```rs
+/*! lib包是world_hello二进制包的依赖包，
+ 里面包含了compute等有用模块 */
+
+pub mod compute;
+```
+### 格式化输出
+```rs
+println!("Hello");                 // => "Hello"
+println!("Hello, {}!", "world");   // => "Hello, world!"
+println!("The number is {}", 1);   // => "The number is 1"
+println!("{:?}", (3, 4));          // => "(3, 4)"
+println!("{value}", value=4);      // => "4"
+println!("{} {}", 1, 2);           // => "1 2"
+println!("{:04}", 42);             // => "0042" with leading zeros
+```
+rust别具一格的使用`{}`作为占位符,并通过`"?`这样的简洁语法实现不同的格式化输出.
 
 # Data Storage Architectures and Technologies
+## 简介
+一开始是从Zlib上看到了英文版,觉得可能很适合我,随意地翻阅了一下,发现果然是本比较优秀的教材,后来发现原来这书是先出的中文版嘛,叫做`数据存储架构与技术 (第2版)`
 ## 简要介绍
 >数据存储性能通常以**吞吐量和延迟**来衡量。吞吐量指单位时间内存储系统能处理的操作数量，而延迟则是完成单次操作所需的时间
 
@@ -413,8 +484,40 @@ let none = plus_one(None);
 ## 存储介质
 >**磁存储介质**利用磁性粒子的磁极来记录数据，两种磁化方向分别代表数据“0”和“1”。采用磁存储介质的常见存储盘有**磁盘和磁带**。**电存储介质**利用存储单元中存储的电子数量来记录数据，电子数量影响位线的电平，表示数据“0”或“1”。采用电存储介质的常见存储盘包括**闪存和动态随机存取存储器**。对于**光存储介质**，使用激光照射介质，使介质发生物理或化学变化来表示“0”和“1”。采用光存储介质的常见存储盘有**CD光盘、DVD光盘、蓝光光盘和归档光盘**。
 ### HDD(hard disk drives)-硬盘驱动器,也被称为机械硬盘
+机械硬盘由于需要等待盘片的旋转和磁头的定位时间,所以在性能上并没有多好,但由于价格便宜,所以仍然在不断发展和改进中.
+### SSD(solid-state drives)-固态硬盘
+目前，固态硬盘主要使用闪存或其他非易失性内存芯片，如相变存储器。
+
+![示意图](PixPin_2026-09-08_11-37-27.webp)
+
+- 可以发现SSD的结构比起HDD来相当复杂.
+
+由于闪存是一种electrically erasable programmable read-only memory,所以每次写入新数据时都要进行擦写,而一个存储单元的擦写次数是有上限的,一旦达到这个上限,SSD也就等于失效了.为延长SSD寿命，闪存转换层采用磨损均衡策略，尽可能将擦写次数均匀分配给所有页面
+
+### Main Memory
+目前，主存储器普遍使用DRAM介质,如名字所说,是Random Access的,所以存取速度极快.
+### 剩余部分
+介绍了PCM,RRAM,MRAM等新型结构,不太需要关注.
+
+## Storage Arrays
+简单介绍了一下RAID等阵列结构
+## 存储协议
+>目前，计算机存储架构主要采用存储块协议，按照固定数据块大小的倍数对存储设备进行数据访问。典型的存储块协议包括SCSI协议和NVMe协议
+
+
 # SQL反模式
 
+
+# C++ CRASH COURSE
+>本书面向已经熟悉基本编程概念的中级到高级程序员。若您没有特定的系统编程经验也没关系，欢迎有经验的应用程序程序员阅读。
+
+## C++基础
+过于Crash了,讲的不够详细.只好摘抄重点了.
+### 对象生命周期
+
+
+# PROFESSIONAL C++
+# C++ High Performance
 # Beginning C,From Beginner to Pro
 确实很适合入门,可惜的是当初没看到这本书
 ## 指针与内存分配
@@ -485,7 +588,27 @@ u2.decval = 3.5*u1.decval;
 Union与结构体的不同之处在于,所有成员都共享最长变量的内存空间,赋值时会覆盖之前的变量值,同一时刻只有最后一次被赋值的成员是有效的,总的来说我们不会这么缺内存,所以Struct几乎永远是Union的上位替代.
 
 ## 处理文件
+简单涉及了几个文件操作函数的使用方法
+## The Preprocessor and Debugging
+直到这里才开始讲头文件和static关键字,完美诠释了真正的循序渐进是怎样的.
 
+避免头文件被包含多次:
+```c
+// MyHeader.h
+#if !defined MYHEADER_H
+#define MYHEADER_H
+// All the statements in the file...
+#endif
+```
+
+预处理中的选择语句:
+```c
+#if CPU == Intel_i7
+printf_s("Performance should be good.\n" );
+#else
+printf_s("Performance may not be so good.\n" );
+#endif
+```
 # EFFECTIVE C
 非常一般,实际上就是讲一遍C语言基础,远不如上面那本书
 # Fluent C
@@ -493,13 +616,6 @@ Union与结构体的不同之处在于,所有成员都共享最长变量的内�
 
 也正因为如此,不是精通C的程序员看了也记不住,精通C的程序员遇到了问题来看才差不多.
 
-# C++ CRASH COURSE
->本书面向已经熟悉基本编程概念的中级到高级程序员。若您没有特定的系统编程经验也没关系，欢迎有经验的应用程序程序员阅读。
-
-## C++基础
-
-# PROFESSIONAL C++
-# C++ High Performance
 # MySQL是怎样运行的(待补充)
 ## 基本
 ### 架构

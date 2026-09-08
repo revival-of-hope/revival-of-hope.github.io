@@ -1,36 +1,2153 @@
 ---
 title: c/cpp笔记
 date: 2026-04-23 08:00:00
+description: 早期文章,有空更新
 image: 45243652_p0-楽園の素敵な巫女.webp
-draft: true
+
 ---
 
-# 目录
+## 语法拾掇
+### cpp关键字
+
+### const问题(9/8)
+C/Cpp中最容易让人迷糊的就是指针了,但当指针和const混在一起时,这才是噩梦的开始
+
+先放出列表:
+| 声明                  | 更准确的名称       | 指针指向能否改变 | 指向的值能否通过该指针修改 |
+| --------------------- | ------------------ | ---------------: | -------------------------: |
+| `const int *p`        | 指向常量的指针     |             可以 |                     不可以 |
+| `int const *p`        | 指向常量的指针     |             可以 |                     不可以 |
+| `int * const p`       | 指针常量 / 常指针  |           不可以 |                       可以 |
+| `const int * const p` | 指向常量的指针常量 |           不可以 |                     不可以 |
+
+#### 指向常量的指针
+
+其中,下面两个式子完全等价:
+```c
+const int *p;
+int const *p;
+```
+至于为什么如此,对于`int const *p;`,显然不存在一个指向const的指针,所以这个指针只能是指向int,而const自然就是修饰int的了,所以叫做指向常量int的指针.
+
+尽管如此,这并不意味着对象真的是常量,而是表示**p以为自己指向的是常量**,所以无法通过p修改指向的对象,但对象本身可以是变量:
+```c
+int a = 10;
+const int *p = &a;
+
+a = 20;     // 正确：a本身不是常量
+*p = 20;    // 错误：不能通过p修改a
+```
+#### 指针常量
+既然这个指针是常量,也就不可以修改存储的地址了,但仍然可以修改指向对象的值,用处并不大,一个引用就可以完全代替了.
+#### 指向常量的指针常量
+双重const,额,根本看不出有什么好的用法.
+
+#### 总结
+如上所示,这几个概念屁用没有,可惜的是面试总喜欢考这个,莫名其妙的.
+### struct/class全解(9/8)
+Cpp中struct和class的区别比我想的还要小很多,它们都有访问控制符,有构造和析构函数,支持`->`访问符,唯一的区别在于,struct的默认成员权限为public,而class的默认成员权限为private.
+
+如此也看得出来,class完完全全就是struct的套皮而已.如此一来,我们完全不需要因为Go和Rust中没有class而难受,毕竟二者实际上并没有什么区别.
+
+一个完整的超长class用例如下:
+```cpp
+#include <algorithm>
+#include <compare>
+#include <cstddef>
+#include <initializer_list>
+#include <iostream>
+#include <memory>
+#include <new>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+// ============================================================
+// 1. 一个小型“值类”
+//
+// 演示：
+// - class定义
+// - private字段
+// - constexpr构造函数
+// - explicit
+// - 静态成员函数
+// - 运算符重载
+// - 默认生成的三路比较 <=>
+// - 显式类型转换
+// ============================================================
+
+class Money {
+private:
+    long long cents_ = 0;
+
+public:
+    // explicit阻止整数被隐式转换成Money
+    constexpr explicit Money(long long cents = 0) noexcept
+        : cents_(cents) {}
+
+    [[nodiscard]]
+    constexpr long long cents() const noexcept {
+        return cents_;
+    }
+
+    [[nodiscard]]
+    static Money from_dollars(double dollars) {
+        return Money{
+            static_cast<long long>(dollars * 100.0)
+        };
+    }
+
+    constexpr Money& operator+=(Money other) noexcept {
+        cents_ += other.cents_;
+        return *this;
+    }
+
+    constexpr Money& operator-=(Money other) noexcept {
+        cents_ -= other.cents_;
+        return *this;
+    }
+
+    friend constexpr Money operator+(Money left, Money right) noexcept {
+        left += right;
+        return left;
+    }
+
+    friend constexpr Money operator-(Money left, Money right) noexcept {
+        left -= right;
+        return left;
+    }
+
+    // 自动生成 ==、!=、<、<=、>、>=
+    constexpr auto operator<=>(const Money&) const noexcept = default;
+
+    // 必须显式转换：
+    //
+    // double value = static_cast<double>(money);
+    explicit constexpr operator double() const noexcept {
+        return static_cast<double>(cents_) / 100.0;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, Money money) {
+        const long long absolute =
+            money.cents_ >= 0 ? money.cents_ : -money.cents_;
+
+        if (money.cents_ < 0) {
+            os << '-';
+        }
+
+        os << absolute / 100
+           << '.';
+
+        const long long decimal = absolute % 100;
+
+        if (decimal < 10) {
+            os << '0';
+        }
+
+        os << decimal;
+        return os;
+    }
+};
+
+// 编译期使用constexpr类
+constexpr Money compile_time_money{12'345};
+
+static_assert(compile_time_money.cents() == 12'345);
 
 
-# cpp概览
-## cpp的历史
+// ============================================================
+// 2. 一个管理动态资源的类
+//
+// 演示：
+// - 类内默认成员初始化
+// - 默认构造函数
+// - 有参构造函数
+// - initializer_list构造函数
+// - 委托构造
+// - 拷贝构造
+// - 移动构造
+// - 拷贝赋值
+// - 移动赋值
+// - 析构函数
+// - Rule of Five
+// - 深拷贝
+// - copy-and-swap
+// - operator[]
+// - const与非const重载
+// - explicit operator bool
+// - friend函数
+// ============================================================
 
-# 语法
+class IntBuffer {
+private:
+    std::size_t size_ = 0;
+    std::unique_ptr<int[]> data_;
 
-## C++98
-- 第一个正式的C++标准,统一了cpp的各种语法,引入了STL,并在C++03中进行了大量的修正
+public:
+    // 默认构造函数
+    IntBuffer() noexcept {
+        std::cout << "[IntBuffer] default constructor\n";
+    }
+
+    // explicit避免下面这种隐式转换：
+    //
+    // IntBuffer buffer = 10;
+    explicit IntBuffer(std::size_t size)
+        : size_(size),
+          data_(size == 0
+                    ? nullptr
+                    : std::make_unique<int[]>(size)) {
+        std::cout << "[IntBuffer] size constructor: "
+                  << size_ << '\n';
+    }
+
+    // std::initializer_list构造函数
+    //
+    // IntBuffer buffer{1, 2, 3};
+    IntBuffer(std::initializer_list<int> values)
+        : IntBuffer(values.size()) {       // 委托给另一个构造函数
+        std::copy(values.begin(), values.end(), data_.get());
+
+        std::cout << "[IntBuffer] initializer_list constructor\n";
+    }
+
+    // 拷贝构造：执行深拷贝
+    IntBuffer(const IntBuffer& other)
+        : IntBuffer(other.size_) {
+        if (size_ > 0) {
+            std::copy_n(other.data_.get(), size_, data_.get());
+        }
+
+        std::cout << "[IntBuffer] copy constructor\n";
+    }
+
+    // 移动构造：转移资源所有权
+    IntBuffer(IntBuffer&& other) noexcept
+        : size_(std::exchange(other.size_, 0)),
+          data_(std::move(other.data_)) {
+        std::cout << "[IntBuffer] move constructor\n";
+    }
+
+    // 拷贝赋值：copy-and-swap写法
+    IntBuffer& operator=(const IntBuffer& other) {
+        std::cout << "[IntBuffer] copy assignment\n";
+
+        if (this == &other) {
+            // this是指向当前对象的指针
+            return *this;
+        }
+
+        IntBuffer temporary(other);
+        swap(*this, temporary);
+
+        return *this;
+    }
+
+    // 移动赋值
+    IntBuffer& operator=(IntBuffer&& other) noexcept {
+        std::cout << "[IntBuffer] move assignment\n";
+
+        if (this == &other) {
+            return *this;
+        }
+
+        size_ = std::exchange(other.size_, 0);
+        data_ = std::move(other.data_);
+
+        return *this;
+    }
+
+    ~IntBuffer() {
+        std::cout << "[IntBuffer] destructor, size="
+                  << size_ << '\n';
+
+        // 不需要手动delete[]。
+        // unique_ptr会自动释放数组。
+    }
+
+    friend void swap(IntBuffer& left, IntBuffer& right) noexcept {
+        using std::swap;
+
+        swap(left.size_, right.size_);
+        swap(left.data_, right.data_);
+    }
+
+    [[nodiscard]]
+    std::size_t size() const noexcept {
+        return size_;
+    }
+
+    int& operator[](std::size_t index) {
+        if (index >= size_) {
+            throw std::out_of_range("IntBuffer index out of range");
+        }
+
+        return data_[index];
+    }
+
+    const int& operator[](std::size_t index) const {
+        if (index >= size_) {
+            throw std::out_of_range("IntBuffer index out of range");
+        }
+
+        return data_[index];
+    }
+
+    explicit operator bool() const noexcept {
+        return size_ != 0;
+    }
+};
 
 
+// ============================================================
+// 3. 抽象基类
+//
+// 演示：
+// - protected构造函数
+// - private数据
+// - 纯虚函数
+// - 抽象类
+// - 虚析构函数
+// - 禁止拷贝
+// - protected成员函数
+// ============================================================
 
-### OOP
-## C++11
-- 现代C++的起点,引入了auto,智能指针等现在被广泛应用的新特性
+class Entity {
+private:
+    int id_ = 0;
+
+protected:
+    explicit Entity(int id)
+        : id_(id) {}
+
+    // 派生类可以使用，但外部不能使用
+    void set_id(int id) noexcept {
+        id_ = id;
+    }
+
+public:
+    // 基类析构函数必须为virtual，
+    // 才能安全地通过Entity*删除派生类对象。
+    virtual ~Entity() = default;
+
+    Entity(const Entity&) = delete;
+    Entity(Entity&&) = delete;
+    Entity& operator=(const Entity&) = delete;
+    Entity& operator=(Entity&&) = delete;
+
+    [[nodiscard]]
+    int id() const noexcept {
+        return id_;
+    }
+
+    // 纯虚函数：使Entity成为抽象类
+    [[nodiscard]]
+    virtual std::string describe() const = 0;
+
+    [[nodiscard]]
+    virtual std::unique_ptr<Entity> clone() const = 0;
+};
 
 
+// ============================================================
+// 4. 接口类
+//
+// C++没有interface关键字。
+// 只包含纯虚函数的抽象类通常充当接口。
+// ============================================================
+
+class Printable {
+public:
+    virtual ~Printable() = default;
+
+    virtual void print(std::ostream& os) const = 0;
+};
 
 
-# cpp的编译
-## 为什么需要cpp工程构建
+class Auditor;
+
+
+// ============================================================
+// 5. 核心Account类
+//
+// 集中演示：
+// - public/private/protected
+// - 嵌套类型
+// - enum class
+// - using类型别名
+// - inline static数据成员
+// - static constexpr
+// - 构造函数重载
+// - 默认构造
+// - explicit构造
+// - 委托构造
+// - 成员初始化列表
+// - initializer_list构造
+// - 拷贝/移动构造
+// - 拷贝/移动赋值
+// - 虚析构
+// - this指针
+// - const成员函数
+// - mutable
+// - 引用限定符 &、const &、&&
+// - 函数重载
+// - 默认参数
+// - static成员函数
+// - 虚函数、override
+// - NVI模式
+// - friend函数、friend类
+// - operator+=、operator+、operator[]
+// - operator()、operator++
+// - operator<<、operator bool、operator<=>
+// - 成员函数模板
+// - 自定义operator new/delete
+// ============================================================
+
+class Account : public Entity, public Printable {
+public:
+    // 嵌套枚举类型
+    enum class Status {
+        active,
+        frozen,
+        closed
+    };
+
+    // 嵌套结构体
+    struct Transaction {
+        Money amount;
+        std::string note;
+    };
+
+    // 类型别名
+    using TransactionList = std::vector<Transaction>;
+    using SizeType = TransactionList::size_type;
+
+    // 嵌套类
+    class SecretKey {
+    private:
+        unsigned long long value_ = 0;
+
+        explicit SecretKey(unsigned long long value)
+            : value_(value) {}
+
+        friend class Account;
+        friend class Auditor;
+    };
+
+private:
+    // 成员真正的初始化顺序永远按照这里的声明顺序，
+    // 与构造函数初始化列表中的书写顺序无关。
+
+    std::string owner_{"anonymous"};
+    Money balance_{};
+    Status status_ = Status::active;
+    IntBuffer monthly_samples_;
+    TransactionList transactions_;
+
+    // const成员函数也可以修改mutable字段
+    mutable std::size_t read_count_ = 0;
+
+    SecretKey secret_{0};
+
+    inline static int next_id_ = 1000;
+    inline static int live_accounts_ = 0;
+
+public:
+    static constexpr Money maximum_balance{
+        100'000'000'00LL
+    };
+
+    // --------------------------------------------------------
+    // 构造函数
+    // --------------------------------------------------------
+
+    // 默认构造函数，同时也是委托构造函数
+    Account()
+        : Account(std::string{"anonymous"}, Money{0}) {
+        std::cout << "[Account] default delegating constructor\n";
+    }
+
+    // 单参数构造函数
+    //
+    // explicit阻止：
+    // Account account = std::string{"Alice"};
+    explicit Account(std::string owner)
+        : Account(std::move(owner), Money{0}) {
+        std::cout << "[Account] owner delegating constructor\n";
+    }
+
+    // 主要构造函数
+    //
+    // 冒号后面的部分叫“成员初始化列表”。
+    // 它不是先默认构造再赋值，而是直接构造成目标值。
+    Account(std::string owner, Money initial_balance)
+        : Entity(generate_id()),
+          owner_(std::move(owner)),
+          balance_(initial_balance),
+          status_(Status::active),
+          monthly_samples_{0, 0, 0},
+          transactions_{},
+          read_count_(0),
+          secret_(
+              static_cast<unsigned long long>(id()) *
+              2'654'435'761ULL
+          ) {
+        validate_owner(owner_);
+
+        if (balance_ < Money{0}) {
+            throw std::invalid_argument(
+                "initial balance cannot be negative"
+            );
+        }
+
+        if (balance_ > maximum_balance) {
+            throw std::invalid_argument(
+                "initial balance exceeds maximum"
+            );
+        }
+
+        ++live_accounts_;
+
+        record(balance_, "initial balance");
+
+        std::cout << "[Account] main constructor, id="
+                  << id() << '\n';
+    }
+
+    // initializer_list构造函数
+    //
+    // 注意：
+    // “成员初始化列表”和“std::initializer_list”
+    // 是两个完全不同的概念。
+    Account(
+        std::string owner,
+        std::initializer_list<long long> initial_transactions
+    )
+        : Account(std::move(owner), Money{0}) {
+        for (long long cents : initial_transactions) {
+            (*this)(
+                Money{cents},
+                "initializer-list transaction"
+            );
+        }
+
+        std::cout
+            << "[Account] initializer_list constructor\n";
+    }
+
+    // 禁止从nullptr构造
+    Account(std::nullptr_t) = delete;
+
+    // --------------------------------------------------------
+    // 拷贝构造
+    // --------------------------------------------------------
+
+    Account(const Account& other)
+        : Entity(generate_id()),
+          owner_(other.owner_),
+          balance_(other.balance_),
+          status_(other.status_),
+          monthly_samples_(other.monthly_samples_),
+          transactions_(other.transactions_),
+          read_count_(0),
+          secret_(
+              static_cast<unsigned long long>(id()) *
+              2'654'435'761ULL
+          ) {
+        ++live_accounts_;
+
+        std::cout << "[Account] copy constructor: "
+                  << other.id() << " -> " << id() << '\n';
+    }
+
+    // --------------------------------------------------------
+    // 移动构造
+    // --------------------------------------------------------
+
+    Account(Account&& other) noexcept
+        : Entity(other.id()),
+          owner_(std::move(other.owner_)),
+          balance_(std::exchange(other.balance_, Money{0})),
+          status_(std::exchange(
+              other.status_,
+              Status::closed
+          )),
+          monthly_samples_(
+              std::move(other.monthly_samples_)
+          ),
+          transactions_(std::move(other.transactions_)),
+          read_count_(other.read_count_),
+          secret_(other.secret_) {
+        other.set_id(0);
+        other.read_count_ = 0;
+
+        ++live_accounts_;
+
+        std::cout << "[Account] move constructor, id="
+                  << id() << '\n';
+    }
+
+    // --------------------------------------------------------
+    // 拷贝赋值
+    //
+    // 与拷贝构造的区别：
+    //
+    // Account b = a;  // 拷贝构造
+    // b = a;          // 拷贝赋值
+    // --------------------------------------------------------
+
+    Account& operator=(const Account& other) {
+        std::cout << "[Account] copy assignment\n";
+
+        if (this == &other) {
+            return *this;
+        }
+
+        // 赋值时保留当前对象原来的id和secret
+        owner_ = other.owner_;
+        balance_ = other.balance_;
+        status_ = other.status_;
+        monthly_samples_ = other.monthly_samples_;
+        transactions_ = other.transactions_;
+        read_count_ = 0;
+
+        return *this;
+    }
+
+    // --------------------------------------------------------
+    // 移动赋值
+    // --------------------------------------------------------
+
+    Account& operator=(Account&& other) noexcept {
+        std::cout << "[Account] move assignment\n";
+
+        if (this == &other) {
+            return *this;
+        }
+
+        // 当前对象的身份id不变，只接收业务状态
+        owner_ = std::move(other.owner_);
+        balance_ = std::exchange(other.balance_, Money{0});
+        status_ = std::exchange(
+            other.status_,
+            Status::closed
+        );
+        monthly_samples_ = std::move(
+            other.monthly_samples_
+        );
+        transactions_ = std::move(other.transactions_);
+        read_count_ = 0;
+
+        return *this;
+    }
+
+    // --------------------------------------------------------
+    // 虚析构函数
+    // --------------------------------------------------------
+
+    ~Account() override {
+        std::cout << "[Account] destructor, id="
+                  << id() << ", owner="
+                  << owner_ << '\n';
+
+        --live_accounts_;
+    }
+
+    // --------------------------------------------------------
+    // 普通getter/setter
+    // --------------------------------------------------------
+
+    [[nodiscard]]
+    Money balance() const noexcept {
+        ++read_count_;
+        return balance_;
+    }
+
+    [[nodiscard]]
+    Status status() const noexcept {
+        ++read_count_;
+        return status_;
+    }
+
+    [[nodiscard]]
+    std::size_t read_count() const noexcept {
+        return read_count_;
+    }
+
+    // --------------------------------------------------------
+    // 根据对象值类别重载成员函数
+    // --------------------------------------------------------
+
+    // 只能在非const左值对象上调用
+    std::string& owner() & noexcept {
+        return owner_;
+    }
+
+    // 在const左值对象上调用
+    const std::string& owner() const & noexcept {
+        ++read_count_;
+        return owner_;
+    }
+
+    // 在右值对象上调用，可以移出字符串
+    std::string owner() && noexcept {
+        return std::move(owner_);
+    }
+
+    // --------------------------------------------------------
+    // this指针与链式调用
+    // --------------------------------------------------------
+
+    Account& rename(std::string new_owner) {
+        validate_owner(new_owner);
+
+        // this的类型近似为Account*
+        this->owner_ = std::move(new_owner);
+
+        // *this是当前对象本身
+        return *this;
+    }
+
+    Account* self_address() noexcept {
+        return this;
+    }
+
+    const Account* self_address() const noexcept {
+        return this;
+    }
+
+    // --------------------------------------------------------
+    // 函数重载
+    // --------------------------------------------------------
+
+    Account& deposit(Money amount) {
+        ensure_active();
+
+        if (amount <= Money{0}) {
+            throw std::invalid_argument(
+                "deposit must be positive"
+            );
+        }
+
+        if (balance_ + amount > maximum_balance) {
+            throw std::overflow_error(
+                "maximum balance exceeded"
+            );
+        }
+
+        balance_ += amount;
+        record(amount, "deposit");
+
+        return *this;
+    }
+
+    // 同名函数，参数类型不同
+    Account& deposit(std::string_view cents_text) {
+        long long cents = std::stoll(
+            std::string{cents_text}
+        );
+
+        return deposit(Money{cents});
+    }
+
+    // note具有默认参数
+    Account& withdraw(
+        Money amount,
+        std::string note = "withdraw"
+    ) {
+        ensure_active();
+
+        if (amount <= Money{0}) {
+            throw std::invalid_argument(
+                "withdrawal must be positive"
+            );
+        }
+
+        if (balance_ < amount) {
+            throw std::runtime_error(
+                "insufficient balance"
+            );
+        }
+
+        balance_ -= amount;
+        record(Money{-amount.cents()}, std::move(note));
+
+        return *this;
+    }
+
+    Account& freeze() noexcept {
+        status_ = Status::frozen;
+        return *this;
+    }
+
+    Account& unfreeze() noexcept {
+        if (status_ == Status::frozen) {
+            status_ = Status::active;
+        }
+
+        return *this;
+    }
+
+    Account& close() noexcept {
+        status_ = Status::closed;
+        return *this;
+    }
+
+    // --------------------------------------------------------
+    // static成员函数
+    //
+    // static成员函数没有this指针。
+    // --------------------------------------------------------
+
+    [[nodiscard]]
+    static int live_accounts() noexcept {
+        return live_accounts_;
+    }
+
+    [[nodiscard]]
+    static Account from_dollars(
+        std::string owner,
+        double dollars
+    ) {
+        return Account{
+            std::move(owner),
+            Money::from_dollars(dollars)
+        };
+    }
+
+    // --------------------------------------------------------
+    // virtual、override、多态
+    // --------------------------------------------------------
+
+    [[nodiscard]]
+    virtual std::string account_kind() const {
+        return "ordinary account";
+    }
+
+    [[nodiscard]]
+    std::string describe() const override {
+        std::ostringstream output;
+
+        output << "Account{id=" << id()
+               << ", kind=" << account_kind()
+               << ", owner=" << owner_
+               << ", balance=" << balance_
+               << ", status=" << status_name(status_)
+               << '}';
+
+        return output.str();
+    }
+
+    [[nodiscard]]
+    std::unique_ptr<Entity> clone() const override {
+        return std::make_unique<Account>(*this);
+    }
+
+    void print(std::ostream& os) const override {
+        os << *this;
+    }
+
+    // --------------------------------------------------------
+    // NVI：Non-Virtual Interface模式
+    //
+    // 外部调用固定的非虚接口month_end()，
+    // 派生类只覆盖do_month_end()钩子。
+    // --------------------------------------------------------
+
+    void month_end() {
+        if (status_ != Status::active) {
+            return;
+        }
+
+        do_month_end();
+
+        if (monthly_samples_.size() >= 3) {
+            monthly_samples_[2] = monthly_samples_[1];
+            monthly_samples_[1] = monthly_samples_[0];
+            monthly_samples_[0] =
+                static_cast<int>(balance_.cents());
+        }
+    }
+
+    // --------------------------------------------------------
+    // operator+=
+    // --------------------------------------------------------
+
+    Account& operator+=(Money amount) {
+        return deposit(amount);
+    }
+
+    // --------------------------------------------------------
+    // operator+
+    //
+    // 通常用成员operator+=实现非成员operator+。
+    // 这里为了演示friend访问，直接操作私有字段。
+    // --------------------------------------------------------
+
+    friend Account operator+(
+        Account left,
+        const Account& right
+    ) {
+        left.balance_ += right.balance_;
+        left.record(right.balance_, "operator+");
+
+        return left;
+    }
+
+    // --------------------------------------------------------
+    // operator[]
+    // --------------------------------------------------------
+
+    Transaction& operator[](SizeType index) {
+        return transactions_.at(index);
+    }
+
+    const Transaction& operator[](SizeType index) const {
+        return transactions_.at(index);
+    }
+
+    // --------------------------------------------------------
+    // operator()
+    //
+    // 使对象可以像函数一样调用。
+    // --------------------------------------------------------
+
+    Account& operator()(
+        Money delta,
+        std::string note = "operator() transaction"
+    ) {
+        if (delta >= Money{0}) {
+            if (delta == Money{0}) {
+                record(delta, std::move(note));
+                return *this;
+            }
+
+            return deposit(delta);
+        }
+
+        return withdraw(
+            Money{-delta.cents()},
+            std::move(note)
+        );
+    }
+
+    // --------------------------------------------------------
+    // 前置++与后置++
+    // --------------------------------------------------------
+
+    Account& operator++() {
+        // 前置++：先修改，再返回当前对象
+        deposit(Money{1});
+        return *this;
+    }
+
+    Account operator++(int) {
+        // int参数仅用于区分后置++
+        Account old_value(*this);
+        ++(*this);
+        return old_value;
+    }
+
+    // --------------------------------------------------------
+    // 比较运算符
+    // --------------------------------------------------------
+
+    bool operator==(const Account& other) const noexcept {
+        return id() == other.id();
+    }
+
+    auto operator<=>(const Account& other) const noexcept {
+        return id() <=> other.id();
+    }
+
+    // --------------------------------------------------------
+    // explicit operator bool
+    // --------------------------------------------------------
+
+    explicit operator bool() const noexcept {
+        return status_ == Status::active;
+    }
+
+    // --------------------------------------------------------
+    // 流输出运算符
+    //
+    // 因为左操作数是ostream，所以通常实现为friend非成员函数。
+    // --------------------------------------------------------
+
+    friend std::ostream& operator<<(
+        std::ostream& os,
+        const Account& account
+    ) {
+        os << "Account("
+           << "id=" << account.id()
+           << ", owner=" << account.owner_
+           << ", balance=" << account.balance_
+           << ", status="
+           << status_name(account.status_)
+           << ')';
+
+        return os;
+    }
+
+    // --------------------------------------------------------
+    // 成员函数模板
+    // --------------------------------------------------------
+
+    template<typename Function>
+    void for_each_transaction(Function&& function) const {
+        for (const Transaction& transaction : transactions_) {
+            std::forward<Function>(function)(transaction);
+        }
+    }
+
+    // --------------------------------------------------------
+    // 类专属operator new/delete
+    //
+    // 只有动态分配Account对象时才调用。
+    // 栈上对象不会调用operator new。
+    // --------------------------------------------------------
+
+    static void* operator new(std::size_t size) {
+        std::cout << "[Account::operator new] "
+                  << size << " bytes\n";
+
+        return ::operator new(size);
+    }
+
+    static void operator delete(void* pointer) noexcept {
+        std::cout << "[Account::operator delete]\n";
+
+        ::operator delete(pointer);
+    }
+
+protected:
+    // 派生类可以访问这些函数
+    // 但不能直接访问Account的private字段。
+
+    [[nodiscard]]
+    Money raw_balance() const noexcept {
+        return balance_;
+    }
+
+    void credit_without_validation(
+        Money amount,
+        std::string note
+    ) {
+        balance_ += amount;
+        record(amount, std::move(note));
+    }
+
+    virtual void do_month_end() {
+        record(Money{0}, "ordinary month end");
+    }
+
+private:
+    static int generate_id() noexcept {
+        return ++next_id_;
+    }
+
+    static void validate_owner(const std::string& owner) {
+        if (owner.empty()) {
+            throw std::invalid_argument(
+                "owner cannot be empty"
+            );
+        }
+    }
+
+    void ensure_active() const {
+        if (status_ != Status::active) {
+            throw std::logic_error(
+                "account is not active"
+            );
+        }
+    }
+
+    void record(Money amount, std::string note) {
+        transactions_.push_back(
+            Transaction{
+                amount,
+                std::move(note)
+            }
+        );
+    }
+
+    static std::string_view status_name(
+        Status status
+    ) noexcept {
+        switch (status) {
+            case Status::active:
+                return "active";
+
+            case Status::frozen:
+                return "frozen";
+
+            case Status::closed:
+                return "closed";
+        }
+
+        return "unknown";
+    }
+
+    // friend函数可以访问Account的private成员
+    friend void transfer(
+        Account& from,
+        Account& to,
+        Money amount
+    );
+
+    // Auditor类的所有成员函数都可以访问private成员
+    friend class Auditor;
+};
+
+
+// ============================================================
+// 6. friend非成员函数
+// ============================================================
+
+void transfer(
+    Account& from,
+    Account& to,
+    Money amount
+) {
+    if (amount <= Money{0}) {
+        throw std::invalid_argument(
+            "transfer amount must be positive"
+        );
+    }
+
+    from.ensure_active();
+    to.ensure_active();
+
+    if (from.balance_ < amount) {
+        throw std::runtime_error(
+            "insufficient balance for transfer"
+        );
+    }
+
+    from.balance_ -= amount;
+    to.balance_ += amount;
+
+    from.record(
+        Money{-amount.cents()},
+        "transfer out"
+    );
+
+    to.record(
+        amount,
+        "transfer in"
+    );
+}
+
+
+// ============================================================
+// 7. friend类
+// ============================================================
+
+class Auditor {
+public:
+    static void audit(const Account& account) {
+        std::cout
+            << "[Audit] id=" << account.id()
+            << ", owner=" << account.owner_
+            << ", secret=" << account.secret_.value_
+            << ", reads=" << account.read_count_
+            << '\n';
+    }
+};
+
+
+// ============================================================
+// 8. 继承与运行时多态
+//
+// 演示：
+// - public继承
+// - protected成员访问
+// - 基类构造函数调用
+// - using恢复基类重载
+// - override
+// - final
+// - 派生类拷贝/移动函数
+// ============================================================
+
+class SavingsAccount final : public Account {
+private:
+    int annual_interest_basis_points_ = 0;
+
+public:
+    // 防止派生类新增的deposit重载隐藏基类所有deposit
+    using Account::deposit;
+
+    SavingsAccount(
+        std::string owner,
+        Money initial_balance,
+        int annual_interest_basis_points
+    )
+        : Account(
+              std::move(owner),
+              initial_balance
+          ),
+          annual_interest_basis_points_(
+              annual_interest_basis_points
+          ) {
+        if (annual_interest_basis_points_ < 0) {
+            throw std::invalid_argument(
+                "interest rate cannot be negative"
+            );
+        }
+
+        std::cout
+            << "[SavingsAccount] constructor\n";
+    }
+
+    SavingsAccount(const SavingsAccount&) = default;
+    SavingsAccount(SavingsAccount&&) noexcept = default;
+
+    SavingsAccount& operator=(
+        const SavingsAccount&
+    ) = default;
+
+    SavingsAccount& operator=(
+        SavingsAccount&&
+    ) noexcept = default;
+
+    ~SavingsAccount() override {
+        std::cout
+            << "[SavingsAccount] destructor\n";
+    }
+
+    // 派生类自己的deposit重载
+    SavingsAccount& deposit(
+        Money amount,
+        bool add_reward
+    ) {
+        Account::deposit(amount);
+
+        if (add_reward) {
+            credit_without_validation(
+                Money{10},
+                "deposit reward"
+            );
+        }
+
+        return *this;
+    }
+
+    [[nodiscard]]
+    std::string account_kind() const override final {
+        return "savings account";
+    }
+
+    [[nodiscard]]
+    std::unique_ptr<Entity> clone() const override {
+        return std::make_unique<SavingsAccount>(*this);
+    }
+
+protected:
+    void do_month_end() override final {
+        const long long interest =
+            raw_balance().cents() *
+            annual_interest_basis_points_ /
+            10'000 /
+            12;
+
+        if (interest > 0) {
+            credit_without_validation(
+                Money{interest},
+                "monthly interest"
+            );
+        }
+
+        // 这里不能直接访问：
+        //
+        // balance_
+        // owner_
+        //
+        // 因为它们是Account的private成员。
+    }
+};
+
+
+// ============================================================
+// 9. 自定义智能指针式包装器
+//
+// 演示：
+// - class template
+// - operator->
+// - operator*
+// - 显式bool转换
+//
+// 普通指针的->由语言内置。
+// 类对象的->可以通过operator->重载。
+// ============================================================
+
+template<typename T>
+class ObjectPtr {
+private:
+    std::unique_ptr<T> pointer_;
+
+public:
+    explicit ObjectPtr(std::unique_ptr<T> pointer)
+        : pointer_(std::move(pointer)) {
+        if (!pointer_) {
+            throw std::invalid_argument(
+                "ObjectPtr cannot hold nullptr"
+            );
+        }
+    }
+
+    template<typename... Arguments>
+    static ObjectPtr make(Arguments&&... arguments) {
+        return ObjectPtr{
+            std::make_unique<T>(
+                std::forward<Arguments>(arguments)...
+            )
+        };
+    }
+
+    T* operator->() noexcept {
+        return pointer_.get();
+    }
+
+    const T* operator->() const noexcept {
+        return pointer_.get();
+    }
+
+    T& operator*() noexcept {
+        return *pointer_;
+    }
+
+    const T& operator*() const noexcept {
+        return *pointer_;
+    }
+
+    explicit operator bool() const noexcept {
+        return static_cast<bool>(pointer_);
+    }
+};
+
+
+// ============================================================
+// 10. 禁止拷贝的类
+//
+// 演示：
+// - = default
+// - = delete
+// - 只能移动，不能拷贝
+// ============================================================
+
+class UniqueSession {
+private:
+    int session_id_ = 0;
+
+public:
+    explicit UniqueSession(int session_id)
+        : session_id_(session_id) {}
+
+    ~UniqueSession() = default;
+
+    UniqueSession(const UniqueSession&) = delete;
+
+    UniqueSession& operator=(
+        const UniqueSession&
+    ) = delete;
+
+    UniqueSession(UniqueSession&&) noexcept = default;
+
+    UniqueSession& operator=(
+        UniqueSession&&
+    ) noexcept = default;
+
+    [[nodiscard]]
+    int id() const noexcept {
+        return session_id_;
+    }
+};
+
+
+// ============================================================
+// 11. constexpr类、consteval工厂
+// ============================================================
+
+class Point {
+private:
+    int x_ = 0;
+    int y_ = 0;
+
+public:
+    constexpr Point(int x, int y) noexcept
+        : x_(x),
+          y_(y) {}
+
+    [[nodiscard]]
+    constexpr int x() const noexcept {
+        return x_;
+    }
+
+    [[nodiscard]]
+    constexpr int y() const noexcept {
+        return y_;
+    }
+
+    [[nodiscard]]
+    constexpr int distance_squared() const noexcept {
+        return x_ * x_ + y_ * y_;
+    }
+
+    friend constexpr Point operator+(
+        Point left,
+        Point right
+    ) noexcept {
+        return Point{
+            left.x_ + right.x_,
+            left.y_ + right.y_
+        };
+    }
+
+    static consteval Point origin() {
+        return Point{0, 0};
+    }
+};
+
+constexpr Point origin = Point::origin();
+constexpr Point point{3, 4};
+
+static_assert(origin.distance_squared() == 0);
+static_assert(point.distance_squared() == 25);
+
+
+// ============================================================
+// 12. 位域与内存对齐
+// ============================================================
+
+class Permissions {
+private:
+    unsigned int can_read_ : 1 = 0;
+    unsigned int can_write_ : 1 = 0;
+    unsigned int can_execute_ : 1 = 0;
+
+public:
+    void allow_read() noexcept {
+        can_read_ = 1;
+    }
+
+    void allow_write() noexcept {
+        can_write_ = 1;
+    }
+
+    void allow_execute() noexcept {
+        can_execute_ = 1;
+    }
+
+    [[nodiscard]]
+    bool can_read() const noexcept {
+        return can_read_;
+    }
+
+    [[nodiscard]]
+    bool can_write() const noexcept {
+        return can_write_;
+    }
+
+    [[nodiscard]]
+    bool can_execute() const noexcept {
+        return can_execute_;
+    }
+};
+
+// 要求对象起始地址按照64字节对齐
+class alignas(64) CacheLineCounter {
+private:
+    long long value_ = 0;
+
+public:
+    void increment() noexcept {
+        ++value_;
+    }
+
+    [[nodiscard]]
+    long long value() const noexcept {
+        return value_;
+    }
+};
+
+
+// ============================================================
+// 13. 虚继承与菱形继承
+//
+//                Person
+//                /    \
+//         Employee    Shareholder
+//                \    /
+//               Executive
+//
+// virtual继承保证Executive中只有一个Person子对象。
+// ============================================================
+
+class Person {
+private:
+    std::string name_;
+
+public:
+    explicit Person(std::string name)
+        : name_(std::move(name)) {
+        std::cout << "[Person] constructor\n";
+    }
+
+    virtual ~Person() = default;
+
+    [[nodiscard]]
+    const std::string& name() const noexcept {
+        return name_;
+    }
+};
+
+
+class Employee : virtual public Person {
+protected:
+    int employee_id_ = 0;
+
+public:
+    Employee(std::string name, int employee_id)
+        : Person(std::move(name)),
+          employee_id_(employee_id) {}
+
+    virtual ~Employee() = default;
+};
+
+
+class Shareholder : virtual public Person {
+protected:
+    int shares_ = 0;
+
+public:
+    Shareholder(std::string name, int shares)
+        : Person(std::move(name)),
+          shares_(shares) {}
+
+    virtual ~Shareholder() = default;
+};
+
+
+class Executive final
+    : public Employee,
+      public Shareholder {
+public:
+    Executive(
+        std::string name,
+        int employee_id,
+        int shares
+    )
+        // 虚基类由最底层派生类负责初始化
+        : Person(name),
+          Employee(name, employee_id),
+          Shareholder(name, shares) {}
+
+    void show() const {
+        std::cout
+            << "Executive{name=" << name()
+            << ", employeeId=" << employee_id_
+            << ", shares=" << shares_
+            << "}\n";
+    }
+};
+
+
+// ============================================================
+// 14. struct与class的默认访问权限
+// ============================================================
+
+struct PublicByDefault {
+    int value = 0;
+
+    void show() const {
+        std::cout << value << '\n';
+    }
+};
+
+
+class PrivateByDefault {
+    // 默认是private
+    int value_ = 0;
+
+public:
+    explicit PrivateByDefault(int value)
+        : value_(value) {}
+
+    [[nodiscard]]
+    int value() const noexcept {
+        return value_;
+    }
+};
+
+
+// ============================================================
+// 15. 对象切片演示
+// ============================================================
+
+void show_by_value(Account account) {
+    // 如果传入SavingsAccount，派生类部分已经被切掉。
+    std::cout
+        << "By value: "
+        << account.account_kind()
+        << '\n';
+}
+
+
+void show_by_reference(const Account& account) {
+    // 引用保留运行时多态。
+    std::cout
+        << "By reference: "
+        << account.account_kind()
+        << '\n';
+}
+
+
+// ============================================================
+// 16. main：集中使用全部特性
+// ============================================================
+
+int main() {
+    std::cout << "========== 1. 构造函数 ==========\n";
+
+    // 默认构造
+    Account default_account;
+
+    // explicit单参数构造：必须直接构造
+    Account alice{std::string{"Alice"}};
+
+    // 下面不能通过编译，因为构造函数是explicit：
+    //
+    // Account error = std::string{"Alice"};
+
+    // 重载构造
+    Account bob{
+        std::string{"Bob"},
+        Money{20'000}
+    };
+
+    // initializer_list构造
+    Account carol{
+        std::string{"Carol"},
+        {
+            10'000,
+            -2'500,
+            3'000
+        }
+    };
+
+    // 静态工厂函数
+    Account david = Account::from_dollars(
+        "David",
+        250.75
+    );
+
+
+    std::cout << "\n========== 2. 初始化列表 ==========\n";
+
+    std::cout << bob << '\n';
+    std::cout << carol << '\n';
+
+    // Account构造函数里的：
+    //
+    // : Entity(...),
+    //   owner_(...),
+    //   balance_(...)
+    //
+    // 是“成员初始化列表”。
+    //
+    // carol构造中的：
+    //
+    // {10000, -2500, 3000}
+    //
+    // 是“std::initializer_list”。
+
+
+    std::cout << "\n========== 3. this与链式调用 ==========\n";
+
+    bob.rename("Robert")
+       .deposit(Money{5'000})
+       .withdraw(Money{1'500}, "buy book")
+       .deposit("250");
+
+    std::cout
+        << "this address equal: "
+        << std::boolalpha
+        << (bob.self_address() == &bob)
+        << '\n';
+
+
+    std::cout << "\n========== 4. 点号与箭头 ==========\n";
+
+    // 对象使用点号
+    bob.deposit(Money{100});
+
+    // 原始指针使用->
+    Account* raw_pointer = &bob;
+    raw_pointer->deposit(Money{200});
+
+    // 以下两种形式基本等价：
+    raw_pointer->deposit(Money{300});
+    (*raw_pointer).deposit(Money{300});
+
+    // 标准智能指针使用->
+    auto unique_account =
+        std::make_unique<Account>(
+            std::string{"HeapUser"},
+            Money{30'000}
+        );
+
+    unique_account->deposit(Money{500});
+
+    // 自定义类通过operator->模拟指针行为
+    auto wrapped_account =
+        ObjectPtr<Account>::make(
+            std::string{"WrappedUser"},
+            Money{40'000}
+        );
+
+    wrapped_account->deposit(Money{600});
+
+    // operator*返回对象引用
+    (*wrapped_account).withdraw(Money{100});
+
+
+    std::cout << "\n========== 5. 访问控制 ==========\n";
+
+    std::cout << bob.owner() << '\n';
+    std::cout << bob.balance() << '\n';
+
+    // 以下代码不能编译，因为字段是private：
+    //
+    // bob.owner_ = "Hacker";
+    // bob.balance_ = Money{999999};
+    // bob.secret_.value_ = 0;
+
+    // friend类可以访问private数据
+    Auditor::audit(bob);
+
+
+    std::cout << "\n========== 6. const成员函数 ==========\n";
+
+    const Account& const_bob = bob;
+
+    std::cout << const_bob.owner() << '\n';
+    std::cout << const_bob.balance() << '\n';
+
+    // const对象不能调用会修改普通成员的函数：
+    //
+    // const_bob.deposit(Money{100});
+
+    // 但balance()可以修改mutable read_count_
+    std::cout
+        << "read count: "
+        << const_bob.read_count()
+        << '\n';
+
+
+    std::cout << "\n========== 7. 拷贝构造 ==========\n";
+
+    Account bob_copy = bob;
+
+    std::cout << "original: " << bob << '\n';
+    std::cout << "copy:     " << bob_copy << '\n';
+
+    // 二者是不同对象，具有不同id
+    std::cout
+        << "same identity: "
+        << (bob == bob_copy)
+        << '\n';
+
+
+    std::cout << "\n========== 8. 拷贝赋值 ==========\n";
+
+    Account copy_assignment_target{
+        std::string{"Target"},
+        Money{100}
+    };
+
+    copy_assignment_target = bob;
+
+    std::cout
+        << copy_assignment_target
+        << '\n';
+
+
+    std::cout << "\n========== 9. 移动构造 ==========\n";
+
+    Account temporary{
+        std::string{"Temporary"},
+        Money{9'000}
+    };
+
+    Account moved_account = std::move(temporary);
+
+    std::cout << "moved: " << moved_account << '\n';
+
+    // temporary仍然存在，但已进入“有效但未指定/被移走”的状态。
+    // 当前实现把它设为closed、余额0、id=0。
+
+
+    std::cout << "\n========== 10. 移动赋值 ==========\n";
+
+    Account move_assignment_target;
+
+    move_assignment_target = std::move(moved_account);
+
+    std::cout
+        << move_assignment_target
+        << '\n';
+
+
+    std::cout << "\n========== 11. 运算符重载 ==========\n";
+
+    bob += Money{1'000};
+
+    bob(
+        Money{-200},
+        "service fee"
+    );
+
+    std::cout
+        << "First transaction: "
+        << bob[0].amount
+        << ", "
+        << bob[0].note
+        << '\n';
+
+    // 前置++
+    ++bob;
+
+    // 后置++
+    Account old_bob = bob++;
+
+    std::cout << "old bob: " << old_bob << '\n';
+    std::cout << "new bob: " << bob << '\n';
+
+    Account combined = bob + carol;
+
+    std::cout
+        << "combined: "
+        << combined
+        << '\n';
+
+    if (bob) {
+        std::cout << "Bob is active\n";
+    }
+
+    bob.freeze();
+
+    if (!static_cast<bool>(bob)) {
+        std::cout << "Bob is not active\n";
+    }
+
+    bob.unfreeze();
+
+
+    std::cout << "\n========== 12. friend转账 ==========\n";
+
+    transfer(
+        bob,
+        carol,
+        Money{1'000}
+    );
+
+    std::cout << bob << '\n';
+    std::cout << carol << '\n';
+
+
+    std::cout << "\n========== 13. static成员 ==========\n";
+
+    std::cout
+        << "Live accounts: "
+        << Account::live_accounts()
+        << '\n';
+
+    std::cout
+        << "Maximum balance: "
+        << Account::maximum_balance
+        << '\n';
+
+
+    std::cout << "\n========== 14. 成员函数模板 ==========\n";
+
+    bob.for_each_transaction(
+        [](const Account::Transaction& transaction) {
+            std::cout
+                << transaction.amount
+                << " : "
+                << transaction.note
+                << '\n';
+        }
+    );
+
+
+    std::cout << "\n========== 15. 继承与多态 ==========\n";
+
+    SavingsAccount savings{
+        "SavingsUser",
+        Money{100'000},
+        600
+    };
+
+    // 来自Account的deposit(Money)
+    savings.deposit(Money{5'000});
+
+    // SavingsAccount自己的重载
+    savings.deposit(
+        Money{10'000},
+        true
+    );
+
+    savings.month_end();
+
+    std::cout
+        << savings.describe()
+        << '\n';
+
+
+    std::cout << "\n========== 16. 对象切片 ==========\n";
+
+    show_by_value(savings);
+    show_by_reference(savings);
+
+    // 输出：
+    //
+    // By value: ordinary account
+    // By reference: savings account
+    //
+    // 按值传参会把SavingsAccount切成Account。
+    // 引用和指针不会发生对象切片。
+
+
+    std::cout << "\n========== 17. 多态容器 ==========\n";
+
+    std::vector<std::unique_ptr<Entity>> entities;
+
+    entities.push_back(
+        std::make_unique<Account>(
+            std::string{"Normal"},
+            Money{10'000}
+        )
+    );
+
+    entities.push_back(
+        std::make_unique<SavingsAccount>(
+            "Saver",
+            Money{20'000},
+            300
+        )
+    );
+
+    for (const auto& entity : entities) {
+        // 虚函数调用：根据对象实际类型选择实现
+        std::cout
+            << entity->describe()
+            << '\n';
+    }
+
+
+    std::cout << "\n========== 18. clone虚构造模式 ==========\n";
+
+    std::unique_ptr<Entity> cloned =
+        entities[1]->clone();
+
+    std::cout
+        << cloned->describe()
+        << '\n';
+
+
+    std::cout << "\n========== 19. dynamic_cast ==========\n";
+
+    Entity* base_pointer = entities[1].get();
+
+    if (
+        auto* saving_pointer =
+            dynamic_cast<SavingsAccount*>(base_pointer)
+    ) {
+        saving_pointer->deposit(Money{100});
+
+        std::cout
+            << "dynamic_cast succeeded\n";
+    }
+
+
+    std::cout << "\n========== 20. 指向成员的指针 ==========\n";
+
+    // 指向成员函数的指针
+    auto balance_function = &Account::balance;
+
+    Money balance1 =
+        (bob.*balance_function)();
+
+    Money balance2 =
+        (raw_pointer->*balance_function)();
+
+    std::cout << balance1 << '\n';
+    std::cout << balance2 << '\n';
+
+    // deposit存在重载，所以要明确函数指针类型
+    using DepositFunction =
+        Account& (Account::*)(Money);
+
+    DepositFunction deposit_function =
+        &Account::deposit;
+
+    (bob.*deposit_function)(Money{100});
+    (raw_pointer->*deposit_function)(Money{100});
+
+
+    std::cout << "\n========== 21. 禁止拷贝 ==========\n";
+
+    UniqueSession session1{123};
+
+    // 不能拷贝：
+    //
+    // UniqueSession session2 = session1;
+
+    // 可以移动：
+    UniqueSession session2 = std::move(session1);
+
+    std::cout
+        << "Session ID: "
+        << session2.id()
+        << '\n';
+
+
+    std::cout << "\n========== 22. constexpr对象 ==========\n";
+
+    constexpr Point p1{3, 4};
+    constexpr Point p2{1, 2};
+    constexpr Point p3 = p1 + p2;
+
+    static_assert(p3.x() == 4);
+    static_assert(p3.y() == 6);
+
+    std::cout
+        << "distance squared: "
+        << p3.distance_squared()
+        << '\n';
+
+
+    std::cout << "\n========== 23. 位域 ==========\n";
+
+    Permissions permissions;
+
+    permissions.allow_read();
+    permissions.allow_write();
+
+    std::cout
+        << "read=" << permissions.can_read()
+        << ", write=" << permissions.can_write()
+        << ", execute=" << permissions.can_execute()
+        << '\n';
+
+
+    std::cout << "\n========== 24. 对齐 ==========\n";
+
+    CacheLineCounter counter;
+    counter.increment();
+
+    std::cout
+        << "sizeof(CacheLineCounter) = "
+        << sizeof(CacheLineCounter)
+        << '\n';
+
+    std::cout
+        << "alignof(CacheLineCounter) = "
+        << alignof(CacheLineCounter)
+        << '\n';
+
+
+    std::cout << "\n========== 25. 菱形继承 ==========\n";
+
+    Executive executive{
+        "Alice CEO",
+        10001,
+        5000
+    };
+
+    executive.show();
+
+    // 因为Employee和Shareholder虚继承Person，
+    // Executive内部只有一份Person。
+
+
+    std::cout << "\n========== 26. placement new ==========\n";
+
+    // 只准备原始内存，不自动创建Account对象
+    alignas(Account)
+    std::byte storage[sizeof(Account)];
+
+    // ::new表示显式使用全局placement new，
+    // 在已经准备好的storage上构造对象。
+    Account* placed_account =
+        ::new (static_cast<void*>(storage))
+            Account{
+                std::string{"Placed"},
+                Money{1'000}
+            };
+
+    placed_account->deposit(Money{100});
+
+    std::cout
+        << *placed_account
+        << '\n';
+
+    // placement new创建的对象不能直接delete，
+    // 必须显式调用析构函数。
+    placed_account->~Account();
+
+
+    std::cout << "\n========== 27. sizeof与成员存储 ==========\n";
+
+    std::cout
+        << "sizeof(Money) = "
+        << sizeof(Money)
+        << '\n';
+
+    std::cout
+        << "sizeof(Account) = "
+        << sizeof(Account)
+        << '\n';
+
+    std::cout
+        << "sizeof(SavingsAccount) = "
+        << sizeof(SavingsAccount)
+        << '\n';
+
+    // 成员函数代码并不会在每个对象中各存一份。
+    // static字段也不属于单个对象。
+    //
+    // Account包含虚函数，所以实现通常会在对象中
+    // 保存一个隐藏的虚函数表指针vptr。
+    //
+    // 但C++标准不强制编译器必须用vtable/vptr实现。
+
+
+    std::cout << "\n========== 28. 程序即将结束 ==========\n";
+
+    std::cout
+        << "Live accounts before local destruction: "
+        << Account::live_accounts()
+        << '\n';
+
+    // main结束时，局部对象按照构造顺序的反方向析构。
+    // 派生类对象先执行派生类析构函数，
+    // 然后执行基类析构函数，
+    // 最后析构普通成员和基类子对象。
+
+    return 0;
+}
+```
+## cpp的编译
+### 为什么需要cpp工程构建
 - [参考1](https://docs.eesast.com/docs/languages/C&C++/multi-file_programming)
 - [参考2](https://learn.microsoft.com/zh-cn/cpp/cpp/header-files-cpp?view=msvc-170)
 
-### 多文件管理
+#### 多文件管理
 在一个文件里导入其他文件中的变量有两种方法:
 **1.使用extern关键字**
 ```cpp
@@ -123,7 +2240,7 @@ void AppDelegate::initGLContextAttrs()
 // ...诸如此类的实现
 ```
 
-#### 一个标准.h文件的例子
+##### 一个标准.h文件的例子
 - `#pragma once`: 'pragma' 源自希腊语 'pragma'（意为“行动”或“事项”）,代指编译指令,整体的意思是只编译一次,也就是第二次在同一个cpp文件里遇到这个头文件时跳过编译
   - 是msvc最早开始启用的预处理指令,之后GCC,Clang也开始支持这个指令,但至今都未纳入cpp标准中
   - 这个奇怪的名字显然是某个自以为很有修养的工程师提出来的,正常人是不会这么起名的
@@ -205,7 +2322,7 @@ namespace N  // namespace declaration
   - 函数的声明默认是为extern的
   - 而类和结构体的声明不需要extern,因为它们本身不产生任何内存分配,只有实例化的对象才需要内存分配
 
-#### 头文件的由来
+##### 头文件的由来
 我们需要明确一个事实:cpp标准从没有规定cpp文件和头文件名字的扩展名要求!
 事实上如果你将main函数放入x.txt文件中,照样可以正常编译:
 ```bash
@@ -213,7 +2330,7 @@ namespace N  // namespace declaration
 g++ -x c++ x.txt -o result.txt
 ```
 换句话说,`.cpp`,`.h`这些后缀只不过是人为约定的而已,你在里面写的内容与文件名可以毫无关系,也就是说,就算你在头文件里实现了函数的定义也没关系,只要你没有导入进两个或更多文件里,就不会导致函数的重定义进而引发编译器的报错.
-### 复杂项目的处理
+#### 复杂项目的处理
 当然,如果只有一两个文件的话,我们只用g++进行编译也够了,比如有一个`main.cpp`和一个`tools.cpp`文件,那么我们只要写:
 ```bash
 g++ main.cpp tools.cpp -o result.exe
@@ -335,13 +2452,14 @@ endif()
 ```
 - 这显然超出了g++的能力了...
 
-## 构建工具
+#### 构建工具
 - [GNU make](https://www.gnu.org/software/make/manual/make.html)
 - [ninja作者自述](https://aosabook.org/en/posa/ninja.html)
 - [ninja官网](https://ninja-build.org/)
+
 为了解决上述的问题,先后诞生了两种主流的cpp构建工具: make和ninja,它们可以指挥gcc或者其他编译器进行所需的构建.
 ### make
-### 是什么,怎么用
+#### 是什么,怎么用
 >The **make** utility automatically determines which pieces of a large program need to be **recompiled**, and issues commands to recompile them.
 
 为了执行make命令,我们需要将它写入makefile文档来执行.
@@ -387,7 +2505,7 @@ clean :
 ```
 - 很明显,这个makefile是面向Linux系统的,毕竟有`rm`和`cc`这样的终端命令.
 在当前目录输入`make`即可生成edit可执行文件,输入`make clean`即可清除中间文件
-### make处理makefile的原理
+#### make处理makefile的原理
 默认情况下,`make`命令会从makefile里的第一个target开始执行.
 
 >make reads the makefile in the current directory and begins by processing the first rule. In the example, this rule is for relinking edit; but before make can fully process this rule, it must process the rules for the files that edit depends on, which in this case are the object files. Each of these files is processed according to its own rule. These rules say to update each ‘.o’ file by compiling its source file. The recompilation must be done if the source file, or any of the header files named as prerequisites, is more recent than the object file, or if the object file does not exist.
@@ -404,7 +2522,7 @@ clean :
 事实上了解到这里就差不多了,毕竟现在真的没必要手写makefile了,电脑系统再怎么古老CMake应该还是能用的吧...
 
 ### ninja
-### 是什么,怎么用
+#### 是什么,怎么用
 >Ninja is yet another **build system**. It takes as input the interdependencies of files (typically source code and output executables) and orchestrates building them, **quickly**.
 - ninja能够代替古老的make的原因就在于它很快,比make快了十倍以上
 
@@ -510,10 +2628,10 @@ The following generators are available on this platform (* marks default):
 # ...省略一大堆支持的平台
 ```
 
-#### 编写CMakelist
+##### 编写CMakelist
 当我们运行的是别人的项目时,知道如何用CMake构建就足够了,但很多时候我们都要自己写CMake来构建项目,这就需要我们去深入了解CMakelists的写法了.
 - [官方教程](https://cmake.org/cmake/help/latest/guide/tutorial/index.html)
-##### CMakelists.txt的前置内容
+#### CMakelists.txt的前置内容
 **最低版本要求**
 这是每个`CMakeLists.txt`都必须包含的第一行:
 

@@ -1210,15 +1210,111 @@ NP完全问题至今都无法找到多项式时间内的解法,而在80年代就
 ### Consistent Hashing and Random Trees(1997)
 - 一致性哈希
 #### 摘要
+>我们的缓存协议建立在一种特殊的哈希方法之上，我们称之为一致性哈希。粗略地说，一致性哈希函数是这样一种哈希函数：当函数值域发生变化时，它的映射结果只发生尽可能小的变化。
+#### 引言
+当大量客户端试图同时访问某一台服务器上的数据时，就会形成热点。如果该站点没有配置足够的资源同时处理所有客户端，服务质量就可能下降，甚至完全中断。
+
+许多人都曾在万维网中遭遇过热点现象。一个网站可能突然变得非常流行，在很短的时间里收到远超原设计容量的请求。事实上，一个站点可能因为请求过多而被“压垮”，从而基本无法使用。
+
+人们已经提出了多种解决热点问题的方法。其中大多数使用某种复制策略，将热门页面的副本存储在互联网中的多个位置，从而把提供热门页面的工作分散到多台服务器上
+
+一种已经得到广泛使用的方法，是让多个客户端共享一个代理缓存。所有用户请求都被转发给代理，代理尝试保存经常访问的页面。如果缓存中已有页面副本，代理便直接满足请求；否则，它将请求转发给页面的源服务器。
+
+这种方案存在一个两难问题：共享同一缓存的用户越多，缓存带来的收益越大；但同时，缓存自身也越容易被压垮。
+
+我们提出一种新的哈希方案，我们称之为一致性哈希。
+
+它与 Plaxton／Rajaraman 以及其他实际系统中采用的哈希方法有很大区别。传统哈希方案能够很好地把负载分散到一个已知且固定的服务器集合中，但互联网中的机器集合不是固定的：机器会因为崩溃而离开，也会有新机器加入。
+
+更糟糕的是，有关机器是否正常运行的信息在网络中传播得很慢。因此，不同客户端可能对哪些机器可用于复制数据形成互不兼容的“视图”。
+
+这使得标准哈希变得无效，因为标准哈希依赖客户端就“哪台缓存负责提供特定页面”达成一致。
+
+- 上述的说明相当精炼,展示了当代互联网中负载均衡的难题.
+
+一致性哈希可能有助于解决这类问题。与大多数哈希方案一样，它把一组条目分配给桶，使每个桶获得大致相同数量的条目。但与标准哈希不同，对桶集合的一次小改动不会导致所有条目被重新映射。
+
+此外，把条目映射到略有差异的桶集合时，只会产生略有差异的分配结果。
+
+#### Random Trees
+我们为每个页面关联一棵有根的 \(d\) 叉树，称为抽象树,每棵树的节点数等于缓存数 \(C\)，并且树尽可能平衡，即除最底层外，其他各层都是满的。树节点按照广度优先搜索的顺序编号。
+
+不行了,看不了一点:
+![变态公式](PixPin_2026-09-08_14-33-57.webp)
+
+不管如何,这部分证明了这种缓存树的性能很好,而且可以避免单个服务器被压垮.
+
+#### 一致性哈希
+客户端利用一致性哈希函数，把对象映射到自己视图中的某台缓存。我们将分析并构造具有下列性质的哈希函数：
+- 平滑性：增加或删除缓存机器时，为保持负载均衡而必须迁移到新缓存的对象比例达到理论上的最小值；
+- 扩散度（spread）：在所有客户端视图中，一个对象被分配到的不同缓存总数很小；
+- 负载（load）：在所有客户端视图中，被分配给某台特定缓存的不同对象数量很小。
+
+经过一番复杂计算后,论文找到了该哈希函数的一些主要性质
+
 #### 总结
+尽管论文中没有提出一个真正合适的哈希函数,但后来的研究发现,即便是MD5函数都能够正常工作.
+
+| 系统                  | 底层哈希                        | 分配方式                                                                                                                                                               |
+| --------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cassandra             | MurmurHash3                     | Token Ring + 虚拟节点；官方默认是 `Murmur3Partitioner`。[Cassandra 文档](https://cassandra.apache.org/doc/latest/cassandra/managing/configuration/cass_yaml_file.html) |
+| Envoy                 | 默认 xxHash，也支持 MurmurHash2 | Ketama Ring Hash；默认环大小1024。[Envoy 文档](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/load_balancing_policies/ring_hash/v3/ring_hash.proto)     |
+| Nginx                 | 内部实现                        | `hash ... consistent` 使用 Ketama 一致性哈希。[Nginx 文档](https://nginx.org/en/docs/http/ngx_http_upstream_module.html)                                               |
+| Go groupcache         | 默认 CRC32                      | 哈希环 + 默认50个虚拟节点。[源码](https://github.com/golang/groupcache/blob/master/consistenthash/consistenthash.go)                                                   |
+| 早期 Memcached/Ketama | MD5                             | 哈希环 + 通常每节点160个位置                                                                                                                                           |
+| Redis Cluster         | CRC16                           | 并非经典一致性哈希，而是 `CRC16(key) mod 16384`，再显式迁移槽位。[Redis 文档](https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/)              |
+
 ### The Part-Time Parliament(1998)
 - Paxos算法
 #### 摘要
 #### 总结
 ### MapReduce: Simplified Data Processing on Large Clusters(2004)
-- MapReduce
+- MapReduce,Google出品
 #### 摘要
+MapReduce 是一种处理和生成大规模数据集的编程模型，以及与之配套的实现。
+
+用户需要指定一个 Map 函数：它处理一个键值对，并生成一组中间键值对；用户还需要指定一个 Reduce 函数：它把具有相同中间键的所有中间值合并起来。本文将说明，现实世界中的许多任务都可以使用这种模型表达。
+
+我们的 MapReduce 实现在大规模廉价机器集群上运行，并具有很强的可扩展性。一次典型的 MapReduce 计算，会利用数千台机器处理数 TB 数据
+#### 引言
+![背景](PixPin_2026-09-08_14-41-21.webp)
+#### 代码示例
+```java
+map(String key, String value):
+    // key：文档名称
+    // value：文档内容
+    for each word w in value:
+        EmitIntermediate(w, "1")
+
+reduce(String key, Iterator values):
+    // key：一个单词
+    // values：该单词对应的计数列表
+    int result = 0
+    for each v in values:
+        result += ParseInt(v)
+    Emit(AsString(result))
+```
+
 #### 总结
+原文的解释过于抽象了,也不够详细,只好自己去学了.
+#### 补充
+MapReduce的完整过程:
+```text
+原始数据
+   ↓
+Map：每条记录变成 (商品, 1)
+   ↓
+Shuffle：相同商品聚集到一起
+   ↓
+Reduce：把所有的 1 加起来
+   ↓
+最终结果
+```
+主任务由Master调度给几千个Worker(单个服务器),有的Worker负责Map,有的Worker负责Reduce.
+
+首先执行Map,给相同的商品/记录分配同一个ID,在Shuffle阶段合并所有相同ID的商品/记录,这是通过Master监控的网络传输实现的,然后再由Reduce函数执行汇总同类数据的任务,并得到最终的统计值,这个统计值是会发送到共享文件夹中的.
+
+
 ### Bitcoin: A Peer-to-Peer Electronic Cash System(2008)
 - Bitcoin
 
