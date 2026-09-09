@@ -425,6 +425,101 @@ impl Circle {
 ```
 因为是函数，所以不能用 . 的方式来调用，我们需要用 :: 来调用，例如 `let sq = Rectangle::new(3, 3);。`
 
+Rust中的self是需要显式声明的,如果用不到self,就说明这个函数与该结构体的内部没有关系,而是与结构体的构造有关系,这被称为关联函数.
+
+`&self`参数表示不获取所有权的指针,而`self`参数则会转移该结构体的所有权.所以一般都用`&self`的形式.
+### 泛型Generics
+```rs
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Point<T> {
+    fn x(&self) -> &T {
+        &self.x
+    }
+}
+
+fn main() {
+    let p = Point { x: 5, y: 10 };
+
+    println!("p.x = {}", p.x());
+}
+```
+
+Rust中的泛型在很多情况下都要加上特征的限制才可以正常运行,因为Rust不主动猜测,只有你的泛型可以在所有约束下都成立时才能编译成功:
+```rs
+use std::fmt::Display;
+
+fn create_and_print<T>() where T: From<i32> + Display {
+    let a: T = 100.into(); // 创建了类型为 T 的变量 a，它的初始值由 100 转换而来
+    println!("a is: {}", a);
+}
+
+fn main() {
+    create_and_print::<i64>();
+}
+```
+
+### 特征Trait
+如文中所说,Trait和其他语言中的Interface其实很相似,它定义了一组可以被共享的行为，只要实现了特征，你就能使用这组行为。
+
+一个自定义特征Summary的实现方式如下:
+```rs
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+pub struct Post {
+    pub title: String, // 标题
+    pub author: String, // 作者
+    pub content: String, // 内容
+}
+
+impl Summary for Post {
+    fn summarize(&self) -> String {
+        format!("文章{}, 作者是{}", self.title, self.author)
+    }
+}
+
+pub struct Weibo {
+    pub username: String,
+    pub content: String
+}
+
+impl Summary for Weibo {
+    fn summarize(&self) -> String {
+        format!("{}发表了微博{}", self.username, self.content)
+    }
+}
+
+fn main() {
+    let post = Post{title: "Rust语言简介".to_string(),author: "Sunface".to_string(), content: "Rust棒极了!".to_string()};
+    let weibo = Weibo{username: "sunface".to_string(),content: "好像微博没Tweet好用".to_string()};
+
+    println!("{}",post.summarize());
+    println!("{}",weibo.summarize());
+}
+
+```
+当然,我们可以直接给特征定义一个默认实现的方法,这样其他的类型只要象征性地实现一下就可以了:
+```rs
+pub trait Summary {
+    fn summarize(&self) -> String {
+        String::from("(Read more...)")
+    }
+}
+
+impl Summary for Post {}
+
+impl Summary for Weibo {
+    fn summarize(&self) -> String {
+        format!("{}发表了微博{}", self.username, self.content)
+    }
+}
+```
+
+
 
 ### 注释和文档
 Rust的代码注释和Cpp完全相同,但它额外有一个文档注释的神奇功能
@@ -502,11 +597,33 @@ rust别具一格的使用`{}`作为占位符,并通过`"?`这样的简洁语法�
 ## Storage Arrays
 简单介绍了一下RAID等阵列结构
 ## 存储协议
->目前，计算机存储架构主要采用存储块协议，按照固定数据块大小的倍数对存储设备进行数据访问。典型的存储块协议包括SCSI协议和NVMe协议
+>目前，计算机存储架构主要采用存储块协议，按照固定数据块大小的倍数对存储设备进行数据访问。典型的存储块协议包括SCSI(Small Computer System Interface)协议和专门为SSD设计的NVMe(non-volatile memory express)协议
 
+而具体原理可以说是相当的复杂,所以不深入了.
+## 键-值存储
+简单介绍了B+树,LSM树
+## 文件系统
+有一个非常好的引入!
+## 网络存储架构
 
 # SQL反模式
+## 引言
+- 什么是“反模式”？反模式是一种试图解决问题的方法，但通常会同时引发别的问题。
 
+换句话说,这本书通过不当使用SQL的例子来告诉读者如何正确使用SQL
+## 乱穿马路
+程序员通常使用逗号分隔的列表来避免在多对多的关系中创建交叉表，我将这种设计方式定义为一种反模式，称为**乱穿马路（Jaywalking）**，因为乱穿马路也是避免过十字路口的一种方式。
+
+
+# Hadoop: The Definitive Guide(4th)
+## 基础
+### 起源
+Hadoop这个名字并不是一个首字母缩略词；它是一个杜撰出来的名字。该项目的创建者Doug Cutting解释了这个名字的由来：
+
+>The name my kid gave a stuffed yellow elephant. Short, relatively easy to spell and pronounce, meaningless, and not used elsewhere
+
+Hadoop起源于Lucene的研发过程,结合了04年Google公开的MapReduce算法,并在08年成为Apache的顶级项目,在之后被主流企业广泛使用
+### MapReduce
 
 # C++ CRASH COURSE
 >本书面向已经熟悉基本编程概念的中级到高级程序员。若您没有特定的系统编程经验也没关系，欢迎有经验的应用程序程序员阅读。
@@ -517,7 +634,6 @@ rust别具一格的使用`{}`作为占位符,并通过`"?`这样的简洁语法�
 
 
 # PROFESSIONAL C++
-# C++ High Performance
 # Beginning C,From Beginner to Pro
 确实很适合入门,可惜的是当初没看到这本书
 ## 指针与内存分配
