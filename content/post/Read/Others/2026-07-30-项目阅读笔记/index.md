@@ -102,4 +102,16 @@ async def get_user_tools() -> ToolsResponse:
 >
 >Trojan is not a fixed program or protocol. It's an idea, an idea that imitating the most common service, to an extent that it behaves identically, could help you get across the *** permanently, without being identified ever. We are the GreatER Fire; we ship Trojan Horses.
 
-## 爬虫
+## python
+### full-stack-fastapi-template
+- (9/11): 最近心烦意乱,就来看看带我走入编程世界的奠基项目了
+```bash
+git clone https://github.com/fastapi/full-stack-fastapi-template.git
+```
+- 如此优美的项目是所有新人工程师要效仿的榜样.
+
+不过这项目半年来的变化也太大了,新人或许都找不到启动方法了😄
+
+#### 调研
+##### 启动方法
+首先定位到

@@ -931,9 +931,93 @@ public class MaxTemperature {
 
 ## C++基础
 过于Crash了,讲的不够详细.只好摘抄重点了.
-### 对象生命周期
+### 异常处理
+先在try代码中抛出异常,再在catch代码中处理异常:
+```cpp
+#include <stdexcept>
+#include <cstdio>
+
+struct Groucho {
+    void forget(int x) {
+        if (x == 0xFACE) {
+            throw std::runtime_error{"I'd be glad to make an exception."};
+        }
+        printf("Forgot 0x%x\n", x);
+    }
+};
+
+int main() {
+    Groucho groucho;
+
+    try {
+        groucho.forget(0xC0DE);
+        groucho.forget(0xFACE);
+        groucho.forget(0xC0FFEE);
+    } catch (const std::runtime_error& e) {
+        printf("exception caught with message: %s\n", e.what());
+    }
+}
+```
+
+我们可以给那些不可能抛出异常的函数加上`noexcept`标记,但如果发生了异常,程序会被强行终止:
+```cpp
+bool is_odd(int x) noexcept {
+    return 1 == (x % 2);
+}
+```
+### 构造与析构
+构造和析构的顺序和栈相同,遵循后构造先析构的顺序.
+
+成员的构造顺序由声明顺序决定:
+```cpp
+class Test {
+    A a;
+    B b;
+
+public:
+    Test()
+        : b(),
+          a()
+    {
+    }
+};
+```
+上述代码中,会先构造A,再构造B.
+### Copy Semantics
 
 
+
+# Effective Python,3rd edition
+
+## 并发
+### 68: Use Threads for Blocking I/O; Avoid for Parallelism
+GIL导致Python至今为止也无法支持真正的多线程
+
+
+# Learning Go
+## ch1: 搭建环境
+```bash
+# 创建go模块
+go mod init hello_word
+# 编译go程序
+go build hello.go
+# 格式化go程序,应用于当前目录及所有子目录
+go fmt ./...
+```
+### 使用make
+```makefile
+.DEFAULT_GOAL := build
+.PHONY:fmt vet build
+fmt:
+	go fmt ./...
+vet: fmt 
+	go vet ./...
+build: vet
+	go build
+```
+在终端敲上`make`这个单词就可以自动运行build命令了.
+
+## ch2: 类型和声明
 # PROFESSIONAL C++
 # Beginning C,From Beginner to Pro
 确实很适合入门,可惜的是当初没看到这本书
