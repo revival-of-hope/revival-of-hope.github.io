@@ -8,6 +8,8 @@ image: 53656198_p0-必殺。.webp
 
 # Rust 中文学习教程
 由于另一本书太难啃了,所以换这本书来试试咸淡.
+
+- 即便这个文档已经相当有耐心了,但看着依然很累,由此可见Rust是真的很难
 ## 基础
 ### 语句
 ```rs
@@ -519,6 +521,142 @@ impl Summary for Weibo {
 }
 ```
 
+#### 使用特征作为函数参数
+```rs
+pub fn notify(item: &impl Summary) {
+    println!("Breaking news! {}", item.summarize());
+}
+```
+`impl Summary`表示实现了该特征的任何数据类型,然后就可以在函数中调用该特征的任何方法
+
+上述写法只是语法糖,它的完整版本如下:
+```rs
+pub fn notify<T: Summary>(item: &T) {
+    println!("Breaking news! {}", item.summarize());
+}
+```
+形如 T: Summary 被称为特征约束。
+
+当特征约束很多时,函数的签名就会非常复杂,这时候可以用where关键字来改进:
+```rs
+fn some_function<T: Display + Clone, U: Clone + Debug>(t: &T, u: &U) -> i32 {}
+
+fn some_function<T, U>(t: &T, u: &U) -> i32
+    where T: Display + Clone,
+          U: Clone + Debug
+{}
+```
+#### 派生特征
+>在本书中，形如 #[derive(Debug)] 的代码已经出现了很多次，这种是一种特征派生语法，被 derive 标记的对象会自动实现对应的默认特征代码，继承相应的功能。
+#### 特征对象
+#### 特征的进阶
+
+### 动态数组Vector
+Vector只支持存放相同类型的元素.
+#### 创建方法
+1. new方法创建:
+```rs
+let v: Vec<i32> = Vec::new();
+```
+2. `vec!`宏创建,可以指定初始化值,如此就不用标注类型:
+
+```rs
+let v = vec![1, 2, 3];
+```
+#### 更新
+```rs
+let mut v = Vec::new();
+v.push(1);
+```
+#### 访问Vector
+```rs
+let v = vec![1, 2, 3, 4, 5];
+
+let third: &i32 = &v[2];
+println!("第三个元素是 {}", third);
+
+match v.get(2) {
+    // 新版本的格式化输出下显然好看得多
+    Some(third) => println!("第三个元素是 {third}"),
+    None => println!("去你的第三个元素，根本没有！"),
+}
+```
+>和其它语言一样，集合类型的索引下标都是从 0 开始，&v[2] 表示借用 v 中的第三个元素，最终会获得该元素的引用。而 v.get(2) 也是访问第三个元素，但是有所不同的是，它返回了 Option<&T>，因此还需要额外的 match 来匹配解构出具体的值。
+
+```rs
+let v = vec![1, 2, 3, 4, 5];
+
+let does_not_exist = &v[100];
+let does_not_exist = v.get(100);
+```
+>运行以上代码，&v[100] 的访问方式会导致程序无情报错退出，因为发生了数组越界访问。 但是 v.get 就不会，它在内部做了处理，有值的时候返回 Some(T)，无值的时候返回 None，因此 v.get 的使用方式非常安全。
+
+
+### KV存储HashMap
+- HashMap没有包含在Rust的Prelude中
+
+#### 
+- new方法
+```rs
+use std::collections::HashMap;
+
+// 创建一个HashMap，用于存储宝石种类和对应的数量
+let mut my_gems = HashMap::new();
+
+// 将宝石类型和对应的数量写入表中
+my_gems.insert("红宝石", 1);
+my_gems.insert("蓝宝石", 2);
+my_gems.insert("河边捡的误以为是宝石的破石头", 18);
+```
+
+- Vector转换:
+```rs
+fn main() {
+    use std::collections::HashMap;
+
+    let teams_list = vec![
+        ("中国队".to_string(), 100),
+        ("美国队".to_string(), 10),
+        ("日本队".to_string(), 50),
+    ];
+
+    let teams_map: HashMap<_,_> = teams_list.into_iter().collect();
+    
+    println!("{:?}",teams_map)
+}
+```
+#### 获取元素
+```rs
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+
+let team_name = String::from("Blue");
+let score: Option<&i32> = scores.get(&team_name);
+```
+查询到的是一个枚举类型,要想直接获得值,我们需要这么写:
+```rs
+let score: i32 = scores.get(&team_name).copied().unwrap_or(0);
+```
+其中,`copied`函数把枚举中的`&`去掉,即`&i32`变成了`i32`,然后`unwrap_or`负责从枚举中获得值
+
+如果想要简单的获取,只能通过遍历来处理:
+```rs
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+
+for (key, value) in &scores {
+    println!("{}: {}", key, value);
+}
+```
+### 认识生命周期
 
 
 ### 注释和文档
@@ -565,46 +703,6 @@ println!("{:04}", 42);             // => "0042" with leading zeros
 ```
 rust别具一格的使用`{}`作为占位符,并通过`"?`这样的简洁语法实现不同的格式化输出.
 
-# Data Storage Architectures and Technologies
-## 简介
-一开始是从Zlib上看到了英文版,觉得可能很适合我,随意地翻阅了一下,发现果然是本比较优秀的教材,后来发现原来这书是先出的中文版嘛,叫做`数据存储架构与技术 (第2版)`
-## 简要介绍
->数据存储性能通常以**吞吐量和延迟**来衡量。吞吐量指单位时间内存储系统能处理的操作数量，而延迟则是完成单次操作所需的时间
-
-数据存储的另一个目标是高可用性(high usability)，这能提升上层应用与存储系统之间的交互效率，包括更快速的数据写入和更高效的读取操作,也就是说要能设计出一个良好的接口供其他人使用
-
-![示意图](PixPin_2026-09-06_11-02-22.webp)
-
-高可靠性(High Reliability)存储能够在系统异常（包括磁盘、服务器和网络故障以及人为错误）时防止数据丢失和服务中断,实现高可靠性最基础的方法之一是利用数据冗余,最著名的就是RAID了,通过多副本和纠错码,能够大幅度降低出错的概率.
-## 存储介质
->**磁存储介质**利用磁性粒子的磁极来记录数据，两种磁化方向分别代表数据“0”和“1”。采用磁存储介质的常见存储盘有**磁盘和磁带**。**电存储介质**利用存储单元中存储的电子数量来记录数据，电子数量影响位线的电平，表示数据“0”或“1”。采用电存储介质的常见存储盘包括**闪存和动态随机存取存储器**。对于**光存储介质**，使用激光照射介质，使介质发生物理或化学变化来表示“0”和“1”。采用光存储介质的常见存储盘有**CD光盘、DVD光盘、蓝光光盘和归档光盘**。
-### HDD(hard disk drives)-硬盘驱动器,也被称为机械硬盘
-机械硬盘由于需要等待盘片的旋转和磁头的定位时间,所以在性能上并没有多好,但由于价格便宜,所以仍然在不断发展和改进中.
-### SSD(solid-state drives)-固态硬盘
-目前，固态硬盘主要使用闪存或其他非易失性内存芯片，如相变存储器。
-
-![示意图](PixPin_2026-09-08_11-37-27.webp)
-
-- 可以发现SSD的结构比起HDD来相当复杂.
-
-由于闪存是一种electrically erasable programmable read-only memory,所以每次写入新数据时都要进行擦写,而一个存储单元的擦写次数是有上限的,一旦达到这个上限,SSD也就等于失效了.为延长SSD寿命，闪存转换层采用磨损均衡策略，尽可能将擦写次数均匀分配给所有页面
-
-### Main Memory
-目前，主存储器普遍使用DRAM介质,如名字所说,是Random Access的,所以存取速度极快.
-### 剩余部分
-介绍了PCM,RRAM,MRAM等新型结构,不太需要关注.
-
-## Storage Arrays
-简单介绍了一下RAID等阵列结构
-## 存储协议
->目前，计算机存储架构主要采用存储块协议，按照固定数据块大小的倍数对存储设备进行数据访问。典型的存储块协议包括SCSI(Small Computer System Interface)协议和专门为SSD设计的NVMe(non-volatile memory express)协议
-
-而具体原理可以说是相当的复杂,所以不深入了.
-## 键-值存储
-简单介绍了B+树,LSM树
-## 文件系统
-有一个非常好的引入!
-## 网络存储架构
 
 # SQL反模式
 ## 引言
@@ -613,6 +711,79 @@ rust别具一格的使用`{}`作为占位符,并通过`"?`这样的简洁语法�
 换句话说,这本书通过不当使用SQL的例子来告诉读者如何正确使用SQL
 ## 乱穿马路
 程序员通常使用逗号分隔的列表来避免在多对多的关系中创建交叉表，我将这种设计方式定义为一种反模式，称为**乱穿马路（Jaywalking）**，因为乱穿马路也是避免过十字路口的一种方式。
+
+也就是说,本来是这样的:
+
+| product_id | product_name | account_id |
+| ---------: | ------------ | ---------: |
+|          1 | iPhone       |        101 |
+|          2 | MacBook      |        102 |
+
+
+结果魔改成这样了:
+
+| product_id | product_name | account_id    |
+| ---------: | ------------ | ------------- |
+|          1 | iPhone       | `101,102,108` |
+|          2 | MacBook      | `102,205`     |
+|          3 | iPad         | `101`         |
+
+本来加一个关联表就能解决的事情被折腾的一塌糊涂
+
+## 单纯的树
+```sql
+CREATE TABLE Comments (
+    comment_id SERIAL PRIMARY KEY,
+    parent_id BIGINT UNSIGNED,
+    comment TEXT NOT NULL,
+    FOREIGN KEY (parent_id) REFERENCES Comments(comment_id)
+);
+```
+如果评论允许多级嵌套(如Reddit中所做的那样),那么就可能出现一个深度过高的评论树,大幅度降低查询性能.
+
+![情景](PixPin_2026-09-11_10-07-38.webp)
+
+容易想到的嵌套查询方法如下:
+```sql
+SELECT c1.*, c2.*, c3.*, c4.*
+FROM Comments c1                     -- 1st level
+LEFT OUTER JOIN Comments c2
+    ON c2.parent_id = c1.comment_id   -- 2nd level
+LEFT OUTER JOIN Comments c3
+    ON c3.parent_id = c2.comment_id   -- 3rd level
+LEFT OUTER JOIN Comments c4
+    ON c4.parent_id = c3.comment_id;  -- 4th level
+```
+如果对树高有一定限制的话(这是大多数网站的做法,到了2级评论就结束了),这个做法还是可行的.
+
+>之所以使用左外连接,是因为无论 c1 有没有子评论，都必须保留 c1。
+### 解决方案
+1. 使用动态数组来存储路径:
+
+| comment_id | path     | author | comment             |
+| ---------: | :------- | :----- | :------------------ |
+|          1 | 1/       | Fran   | 这个Bug的成因是什么 |
+|          2 | 1/2/     | Ollie  | 我觉得是一个空指针  |
+|          3 | 1/2/3/   | Fran   | 不，我查过了        |
+|          4 | 1/4/     | Kukla  | 我们需要查无效输入  |
+|          5 | 1/4/5/   | Ollie  | 是的，那是个问题    |
+|          6 | 1/4/6/   | Fran   | 好，查一下吧        |
+|          7 | 1/4/6/7/ | Kukla  | 解决了              |
+
+2. 使用嵌套集,即反过来,存储子节点的id,而不是存储父节点的id
+
+3. 闭包表(Closure Table),将任何具有祖先-后代关系的节点都记录在一张表中,如图所示:
+
+![示意图](PixPin_2026-09-11_10-21-56.webp)
+### 补充说明
+不过,如果是社交平台的话,我们可以通过好友找到好友的好友,再通过好友的好友,找到好友的好友的好友,不断迭代下去,永远不会有一个尽头.这就是图数据库大展神威的地方了,这本书出版的时候显然还没有这个概念吧.
+
+## 需要ID
+
+# System Design Interview: An Insider’s Guide
+## ch1
+一个非常好的网络服务进阶流程概览
+## ch4
 
 
 # Hadoop: The Definitive Guide(4th)
@@ -624,7 +795,137 @@ Hadoop这个名字并不是一个首字母缩略词；它是一个杜撰出来�
 
 Hadoop起源于Lucene的研发过程,结合了04年Google公开的MapReduce算法,并在08年成为Apache的顶级项目,在之后被主流企业广泛使用
 ### MapReduce
+#### 简单例子
+1. 首先我们有一个数据集,想要从中找出每一年的最大数
+```text
+(0,   0067011990999991950051507004...9999999N9+00001+99999999999...)
+(106, 0043011990999991950051512004...9999999N9+00221+99999999999...)
+(212, 0043011990999991950051518004...9999999N9-00111+99999999999...)
+(318, 0043012650999991949032412004...0500001N9+01111+99999999999...)
+(424, 0043012650999991949032418004...0500001N9+00781+99999999999...)
+```
+2. 设置一个Map函数,从中过滤后并提取出标准格式的信息:
+```text
+(1950, 0)
+(1950, 22)
+(1950, -11)
+(1949, 111)
+(1949, 78)
+```
+整理得到:
+```text
+(1949, [111, 78])
+(1950, [0, 22, -11])
+```
+3. 设置一个Reduce函数,遍历Map函数的结果得到最终值:
+```text
+(1949, 111)
+(1950, 22)
+```
 
+流程图如下:
+
+![示意图](PixPin_2026-09-11_11-28-10.webp)
+
+Map函数:
+```java
+import java.io.IOException;
+
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+
+public class MaxTemperatureMapper
+        extends Mapper<LongWritable, Text, Text, IntWritable> {
+
+    private static final int MISSING = 9999;
+
+    @Override
+    public void map(LongWritable key, Text value, Context context)
+            throws IOException, InterruptedException {
+
+        String line = value.toString();
+        String year = line.substring(15, 19);
+
+        int airTemperature;
+
+        if (line.charAt(87) == '+') { // parseInt doesn't like leading plus signs
+            airTemperature = Integer.parseInt(line.substring(88, 92));
+        } else {
+            airTemperature = Integer.parseInt(line.substring(87, 92));
+        }
+
+        String quality = line.substring(92, 93);
+
+        if (airTemperature != MISSING && quality.matches("[01459]")) {
+            context.write(new Text(year), new IntWritable(airTemperature));
+        }
+    }
+}
+```
+Reduce函数:
+```java
+import java.io.IOException;
+
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
+
+public class MaxTemperatureReducer
+        extends Reducer<Text, IntWritable, Text, IntWritable> {
+
+    @Override
+    public void reduce(Text key, Iterable<IntWritable> values, Context context)
+            throws IOException, InterruptedException {
+
+        int maxValue = Integer.MIN_VALUE;
+
+        for (IntWritable value : values) {
+            maxValue = Math.max(maxValue, value.get());
+        }
+
+        context.write(key, new IntWritable(maxValue));
+    }
+}
+```
+
+
+在实现了Map和Reduce方法后,调用方法如下:
+```java
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class MaxTemperature {
+
+    public static void main(String[] args) throws Exception {
+        if (args.length != 2) {
+            System.err.println("Usage: MaxTemperature <input path> <output path>");
+            System.exit(-1);
+        }
+
+        Job job = new Job();
+        job.setJarByClass(MaxTemperature.class);
+        job.setJobName("Max temperature");
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        job.setMapperClass(MaxTemperatureMapper.class);
+        job.setReducerClass(MaxTemperatureReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+```
+### The Hadoop Distributed Filesystem(HDFS)
 # C++ CRASH COURSE
 >本书面向已经熟悉基本编程概念的中级到高级程序员。若您没有特定的系统编程经验也没关系，欢迎有经验的应用程序程序员阅读。
 
@@ -795,6 +1096,64 @@ MySQL采用B+树索引,叶子节点中存储了页号,行号等定位信息,Inno
 # 深入理解 AI Agent(待补充)
 # Linkers and Loaders
 本来以为这么有名的书内容一定很充实吧,结果发现完全比不上修养那本书,白期待一场.
+# Data Storage Architectures and Technologies
+## 简介
+一开始是从Zlib上看到了英文版,觉得可能很适合我,随意地翻阅了一下,发现果然是本比较优秀的教材,后来发现原来这书是先出的中文版嘛,叫做`数据存储架构与技术 (第2版)`
+## 简要介绍
+>数据存储性能通常以**吞吐量和延迟**来衡量。吞吐量指单位时间内存储系统能处理的操作数量，而延迟则是完成单次操作所需的时间
+
+数据存储的另一个目标是高可用性(high usability)，这能提升上层应用与存储系统之间的交互效率，包括更快速的数据写入和更高效的读取操作,也就是说要能设计出一个良好的接口供其他人使用
+
+![示意图](PixPin_2026-09-06_11-02-22.webp)
+
+高可靠性(High Reliability)存储能够在系统异常（包括磁盘、服务器和网络故障以及人为错误）时防止数据丢失和服务中断,实现高可靠性最基础的方法之一是利用数据冗余,最著名的就是RAID了,通过多副本和纠错码,能够大幅度降低出错的概率.
+## 存储介质
+>**磁存储介质**利用磁性粒子的磁极来记录数据，两种磁化方向分别代表数据“0”和“1”。采用磁存储介质的常见存储盘有**磁盘和磁带**。**电存储介质**利用存储单元中存储的电子数量来记录数据，电子数量影响位线的电平，表示数据“0”或“1”。采用电存储介质的常见存储盘包括**闪存和动态随机存取存储器**。对于**光存储介质**，使用激光照射介质，使介质发生物理或化学变化来表示“0”和“1”。采用光存储介质的常见存储盘有**CD光盘、DVD光盘、蓝光光盘和归档光盘**。
+### HDD(hard disk drives)-硬盘驱动器,也被称为机械硬盘
+机械硬盘由于需要等待盘片的旋转和磁头的定位时间,所以在性能上并没有多好,但由于价格便宜,所以仍然在不断发展和改进中.
+### SSD(solid-state drives)-固态硬盘
+目前，固态硬盘主要使用闪存或其他非易失性内存芯片，如相变存储器。
+
+![示意图](PixPin_2026-09-08_11-37-27.webp)
+
+- 可以发现SSD的结构比起HDD来相当复杂.
+
+由于闪存是一种electrically erasable programmable read-only memory,所以每次写入新数据时都要进行擦写,而一个存储单元的擦写次数是有上限的,一旦达到这个上限,SSD也就等于失效了.为延长SSD寿命，闪存转换层采用磨损均衡策略，尽可能将擦写次数均匀分配给所有页面
+
+### Main Memory
+目前，主存储器普遍使用DRAM介质,如名字所说,是Random Access的,所以存取速度极快.
+### 剩余部分
+介绍了PCM,RRAM,MRAM等新型结构,不太需要关注.
+
+## Storage Arrays
+简单介绍了一下RAID等阵列结构
+## 存储协议
+>目前，计算机存储架构主要采用存储块协议，按照固定数据块大小的倍数对存储设备进行数据访问。典型的存储块协议包括SCSI(Small Computer System Interface)协议和专门为SSD设计的NVMe(non-volatile memory express)协议
+
+而具体原理可以说是相当的复杂,所以不深入了.
+## 键-值存储
+简单介绍了B+树,LSM树
+## 文件系统
+有一个非常好的引入!
+## 网络存储架构
+### DAS: direct-attached storage
+DAS这一概念是在网络存储技术出现后才被提出的。与网络存储不同，DAS不涉及网络或网络设备。任何将硬盘驱动器（HDD）或固态硬盘（SSD）直接连接至计算机的存储架构，均可称为DAS。
+
+### NAS: network-attached storage
+![结构图](PixPin_2026-09-10_10-37-28.webp)
+
+客户可以通过各种基于网络的文件访问协议（如NFS和CIFS）在NAS系统上操作文件
+
+NFS协议由SUN公司于1984年提出，允许用户如同访问本地文件一样访问远程服务器上的文件。该协议采用基于远程过程调用（RPC）机制的客户端/服务器模型。由于具有高性能和高灵活性，NFS已成为UNIX和Linux系统中最流行的网络文件访问协议。
+
+CIFS 由微软提出，通常用于 Windows 主机之间的网络文件共享。与 NFS 协议不同，CIFS 协议是面向网络连接的，要求网络可靠性较高。此外，CIFS 是一种有状态协议，对故障非常敏感。
+
+
+### SAN:  storage area network
+广义而言，任何能够实现计算机、专用存储网络与存储设备互联的存储形式均可称为SAN。不过，由于光纤通道（FC）协议在商业上的成功，SAN这一术语已逐渐成为基于FC的网络存储架构的代名词。
+
+## 总结
+总的来说还是比较全面详细的.值得一读
 
 # Designing Data-Intensive Applications, Second Edition(待补充)
 ## 前言

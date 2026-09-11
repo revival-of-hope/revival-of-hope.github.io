@@ -5355,6 +5355,67 @@ def get_history_message(
 ```
 ### 再次修改agent
 这次有了获取历史消息的接口后,原来的`client.py`就好改了:
+```py
+from app.models import Conversation, MessageRole
+from app.utils.stream import (
+    build_messages,
+    stream_response,
+    create_stream,
+    create_client,
+)
+from typing import Generator
+from app.core.config import settings
+from app.utils.stream import stream_and_save
+from sqlmodel import Session
+
+from app.crud import get_history_message, save_message
+
+client = create_client(settings.DEEPSEEK_API_KEY, settings.DEEPSEEK_URL)
+
+DEFAULT_MODEL = "deepseek-v4-pro"
+
+DEFAULT_SYSTEM_PROMPT = "以后的回答都要优先输出一句话,我是deepseek-v4-pro."
+
+
+def stream_agent(
+    *,
+    session: Session,
+    conversation: Conversation,
+    model: str = DEFAULT_MODEL,
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    user_message: str
+) -> Generator[str, None, None]:
+    
+    # 保存用户消息
+    save_message(
+        session=session,
+        conversation=conversation,
+        role=MessageRole.USER,
+        content=user_message,
+    )
+
+    # 获取历史消息
+    history_message = get_history_message(session=session, conversation=conversation)
+
+    # 构造消息列表
+    message_list = build_messages(user_message, system_prompt, history_message)
+
+    # 打开通信流
+    stream = create_stream(client, model, message_list)
+
+    # 获取流式消息
+    chunks = stream_response(stream)
+
+    # 保存AI消息
+    yield from stream_and_save(
+        chunks=chunks,
+        conversation=conversation,
+        session=session,
+    )
+```
+保存用户消息和发送API请求本来应该是分离的,但这里为了方便,先写在一起,日后再拆分.
+
+
 ## ch12: 完善CRUD和数据库管理,加入管理员用户
 ### 数据库管理系统选择
 - adminer与dbgate.
