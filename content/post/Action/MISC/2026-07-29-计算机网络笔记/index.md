@@ -1413,7 +1413,3191 @@ Across the Great Wall we can reach every corner in the world.
 ### 碎碎念
 总的来说,无论客户端和协议再怎么演进,重点是服务器没有出问题,如果使用的节点是钓鱼的或者被破解了,那么这个加密链接自然就失效了.
 
-### Shadowsocks(待补充)
+### Shadowsocks
+
+理解 Shadowsocks，首先需要把“代理”与“VPN”区分开。
+
+Shadowsocks 最核心的结构其实非常简单：
+
+```text
+Application
+    │
+    ↓
+SOCKS5 / TUN
+    │
+    ↓
+Shadowsocks Client
+    │
+    │ 加密连接
+    ↓
+Shadowsocks Server
+    │
+    ↓
+Target Server
+```
+
+官方对经典 Shadowsocks 的描述也是一个典型的 Split Proxy：
+
+```text
+client
+  ↕
+ss-local
+  ↕ encrypted
+ss-remote
+  ↕
+target
+```
+
+也就是说，Shadowsocks 并不是让浏览器直接理解一种特殊协议，而是在本机放置一个代理程序。应用程序首先把正常的网络请求交给本地 Shadowsocks Client，然后客户端把“我要访问哪个地址”以及真正的数据一起加密，发送给远端 Shadowsocks Server；服务器解密以后，再代替客户端访问真正的目标。
+
+**1. Shadowsocks真正加密的是哪一段？**
+
+假设你要访问：
+
+```text
+www.example.com:443
+```
+
+正常直连是：
+
+```text
+Your Computer
+     │
+     │ Internet
+     ↓
+www.example.com
+```
+
+Shadowsocks 则增加一个中间节点：
+
+```text
+Your Computer
+     │
+     │ Shadowsocks encrypted tunnel
+     ↓
+Proxy Server
+     │
+     │ normal Internet connection
+     ↓
+www.example.com
+```
+
+因此真正由 Shadowsocks 保护的是：
+
+```text
+客户端
+   ↕
+Shadowsocks服务器
+```
+
+这一段。
+
+服务器之后到目标网站之间：
+
+```text
+Shadowsocks Server
+       ↓
+Target
+```
+
+是否加密，则取决于应用本身使用什么协议。
+
+如果访问：
+
+```text
+HTTP
+```
+
+那么出口服务器理论上可以看到 HTTP 明文。
+
+如果访问：
+
+```text
+HTTPS
+```
+
+结构实际上是：
+
+```text
+Application Data
+      ↓
+HTTPS / TLS
+      ↓
+Shadowsocks Encryption
+      ↓
+Internet
+```
+
+服务器解除 Shadowsocks 外层以后，看到的仍然主要是：
+
+```text
+TLS ciphertext
+```
+
+而不是网页正文。
+
+所以这里其实存在：
+
+```text
+两层加密
+```
+
+即：
+
+```text
+网页应用层
+      │
+      ↓
+HTTPS
+      │
+      ↓
+Shadowsocks
+      │
+      ↓
+网络
+```
+
+这也是理解所有代理协议时极其重要的一点：
+
+> **代理协议的加密与网站本身 HTTPS 的加密并不是同一层。**
+
+---
+
+**2. Shadowsocks的数据包里究竟有什么？**
+
+Shadowsocks 并不是简单地：
+
+```text
+encrypt(TCP bytes)
+```
+
+因为远端服务器还需要知道：
+
+> 这些数据最终应该发给谁？
+
+所以客户端需要把目标地址放进加密数据。
+
+经典 Shadowsocks 地址格式借用了 SOCKS5 的设计：
+
+```text
+Address Type
++
+Target Address
++
+Target Port
++
+Payload
+```
+
+例如逻辑上类似：
+
+```text
+DOMAIN
+example.com
+443
+<application data>
+```
+
+整个部分经过 Shadowsocks 加密后：
+
+```text
+[ Target Address + Port + Data ]
+              ↓
+           Encrypt
+              ↓
+       Random-looking bytes
+```
+
+服务器解密之后才知道：
+
+```text
+目标 = example.com:443
+```
+
+再建立真正的外部连接。Shadowsocks 的协议资料明确规定了 IPv4、IPv6 和域名三种 SOCKS5 风格的目标地址编码。
+
+因此代理服务器承担的工作可以总结为：
+
+```text
+客户端：
+应用流量
+↓
+加入目标地址
+↓
+加密
+↓
+发送
+
+服务器：
+接收
+↓
+解密
+↓
+读取目标地址
+↓
+连接目标服务器
+↓
+转发
+```
+
+---
+
+**3. 为什么Shadowsocks当时显得如此轻量？**
+
+Shadowsocks 的设计没有试图重新发明：
+
+```text
+完整VPN
+完整虚拟网卡协议
+复杂身份体系
+完整PKI
+庞大的握手机制
+```
+
+它本质上只做了几件事情：
+
+```text
+目标地址封装
++
+对称加密
++
+TCP/UDP转发
+```
+
+这意味着：
+
+```text
+协议头较小
+实现简单
+运行开销低
+部署成本低
+```
+
+也是它早期迅速流行的重要原因。
+
+---
+
+**4. 早期Stream Cipher时代**
+
+早期 Shadowsocks 大量使用：
+
+```text
+AES-CFB
+ChaCha20
+Salsa20
+RC4-MD5
+```
+
+之类的 Stream Cipher。
+
+基本思想可以理解成：
+
+```text
+Plaintext
+    ↓
+Key Stream
+    ↓ XOR
+Ciphertext
+```
+
+问题是：
+
+> **仅仅“不可读”还不够。**
+
+攻击者即使不知道明文，也可能修改 Ciphertext。
+
+如果协议没有完善的：
+
+```text
+Integrity
+完整性认证
+```
+
+接收方可能无法判断数据是否被恶意篡改。
+
+这也是现代密码协议越来越强调：
+
+```text
+Authenticated Encryption
+```
+
+而不只是：
+
+```text
+Encryption
+```
+
+的原因。
+
+---
+
+**5. 从Stream Cipher到AEAD**
+
+后来 Shadowsocks 转向：
+
+```text
+AEAD
+Authenticated Encryption with Associated Data
+```
+
+常见算法包括：
+
+```text
+AES-128-GCM
+AES-256-GCM
+ChaCha20-Poly1305
+```
+
+AEAD 同时提供：
+
+```text
+Confidentiality
+机密性
+
++
+
+Integrity
+完整性
+
++
+
+Authentication
+认证
+```
+
+如果攻击者修改 Ciphertext：
+
+```text
+Ciphertext
+↓
+被篡改
+↓
+Authentication Tag验证失败
+↓
+拒绝解密
+```
+
+而不会把被修改的数据悄悄交给应用。
+
+Shadowsocks 官方目前仍建议使用 AEAD，并明确指出旧 Stream Cipher 已被弃用；当前 shadowsocks-rust 也把传统 Stream Cipher 标记为不安全的兼容功能。
+
+---
+
+**6. Shadowsocks AEAD内部如何工作？**
+
+以一条 TCP 会话为例。
+
+连接开始时会生成：
+
+```text
+Salt
+```
+
+然后根据：
+
+```text
+Master Key
++
+Salt
+```
+
+通过 Key Derivation Function 导出：
+
+```text
+Session Subkey
+```
+
+也就是说：
+
+```text
+长期密钥
+   │
+   ├── Session A Salt
+   │        ↓
+   │     Key A
+   │
+   ├── Session B Salt
+   │        ↓
+   │     Key B
+   │
+   └── Session C Salt
+            ↓
+         Key C
+```
+
+这样不同连接不会简单重复使用完全相同的实际加密密钥。
+
+TCP 数据随后被切成 Chunk：
+
+```text
+Encrypted Length
+      +
+Encrypted Payload
+```
+
+每一个部分都经过 AEAD 认证。
+
+官方 AEAD 规范中，每条 TCP Stream 首先携带随机 Salt，然后使用派生出的 Session Subkey 对长度和 Payload 分别进行 AEAD 处理。
+
+这比早期：
+
+```text
+一条长Stream Cipher一路加密到底
+```
+
+更加健壮。
+
+---
+
+**7. Shadowsocks 2022**
+
+Shadowsocks 后来进一步提出：
+
+```text
+AEAD-2022
+```
+
+即 SIP022。
+
+官方将它描述为对 2017 年 AEAD 方案的升级，主要目标包括：
+
+```text
+更完整的Replay Protection
+淘汰旧密码学组件
+提升性能
+改善UDP会话设计
+为协议扩展预留空间
+```
+
+Shadowsocks 2022 仍然基于 Pre-Shared Key 和 AEAD，并特别强调完整 Replay Protection。
+
+这里出现一个重要概念：
+
+```text
+Replay Attack
+重放攻击
+```
+
+攻击者虽然看不懂一段数据：
+
+```text
+9f 83 a1 ...
+```
+
+但可以：
+
+```text
+截获
+↓
+原样保存
+↓
+过一段时间重新发送
+```
+
+如果服务器无法识别：
+
+> “这个合法数据包其实已经使用过。”
+
+就可能被利用。
+
+因此现代加密协议除了：
+
+```text
+防窃听
+防篡改
+```
+
+还经常必须考虑：
+
+```text
+防重放
+```
+
+---
+
+**8. Shadowsocks的根本特点**
+
+Shadowsocks 的安全设计可以概括为：
+
+```text
+共享密钥
++
+现代AEAD
++
+简单代理封装
+```
+
+它并没有建立完整的：
+
+```text
+TLS PKI
+Certificate
+Server Certificate Chain
+```
+
+系统。
+
+因此双方必须提前知道同一个秘密：
+
+```text
+Client
+  │
+Shared Secret
+  │
+Server
+```
+
+这就是：
+
+```text
+Pre-Shared Key
+PSK
+```
+
+模型。
+
+这种模式非常轻，但也意味着经典 Shadowsocks 并不提供像 TLS 1.3 某些密钥交换模式那样天然的 Forward Secrecy。SIP022 本身也明确说明 Shadowsocks 2022 仍采用预共享密钥、无握手的设计，因此不提供 Forward Secrecy。
+
+它体现的是一种非常鲜明的工程哲学：
+
+> **尽量少做事情，只构建一个快速、轻量、加密的代理通道。**
+
+### ShadowsocksR
+
+ShadowsocksR，也就是：
+
+```text
+SSR
+```
+
+可以看成是对 Shadowsocks 第一次大规模的：
+
+```text
+“协议层扩展”
+```
+
+尝试。
+
+Shadowsocks 原本可以粗略表示为：
+
+```text
+Proxy Data
+    ↓
+Encryption
+    ↓
+TCP / UDP
+```
+
+SSR 则试图拆成更多层：
+
+```text
+Application
+    ↓
+Protocol
+    ↓
+Encryption
+    ↓
+Obfuscation
+    ↓
+TCP
+```
+
+在现存的 SSR 实现中，可以明显看到三个独立配置：
+
+```text
+method
+protocol
+obfs
+```
+
+例如其社区代码中仍存在：
+
+```text
+protocol:
+auth_sha1_v4
+auth_aes128_md5
+auth_chain_a
+...
+
+obfs:
+http_simple
+tls1.2_ticket_auth
+...
+```
+
+也就是说，SSR 不仅选择：
+
+```text
+“用什么算法加密”
+```
+
+还额外选择：
+
+```text
+“如何认证和封装”
+```
+
+以及：
+
+```text
+“网络流量表面上长什么样”
+```
+
+。
+
+---
+
+**1. Protocol层**
+
+SSR 增加的：
+
+```text
+protocol
+```
+
+层主要试图承担：
+
+```text
+用户认证
+数据包认证
+重放抵抗
+协议封装
+```
+
+等工作。
+
+也就是说：
+
+```text
+Shadowsocks：
+Encryption ≈ 很多事情集中在一层
+
+SSR：
+Protocol
++
+Encryption
++
+Obfs
+```
+
+开始把功能拆开。
+
+---
+
+**2. Obfs层**
+
+`obfs` 即：
+
+```text
+Obfuscation
+混淆
+```
+
+它解决的不是：
+
+> “别人是否能够解密。”
+
+而是另外一个问题：
+
+> “别人是否能够判断这是一种特殊代理协议。”
+
+这是两个完全不同的问题。
+
+假设一种协议加密以后产生：
+
+```text
+高熵随机字节
+```
+
+攻击者虽然无法解密：
+
+```text
+????
+```
+
+但可能发现：
+
+```text
+这种连接建立方式
++
+包长
++
+方向
++
+时间关系
++
+首包特征
+```
+
+和普通 HTTPS 并不一样。
+
+于是可能进行：
+
+```text
+Traffic Classification
+流量分类
+```
+
+SSR 试图通过：
+
+```text
+http_simple
+tls1.2_ticket_auth
+```
+
+等 Obfs 模式，让外部观察者看到的结构更加接近某些普通协议。
+
+但这里也出现了后来的核心问题：
+
+> **“自己模拟HTTP/TLS”远比真正运行HTTP/TLS困难。**
+
+因为真实 TLS 的：
+
+```text
+Cipher Suites
+Extensions
+ALPN
+Session Ticket
+Key Share
+ClientHello顺序
+包长度
+握手状态机
+```
+
+非常复杂。
+
+仅仅：
+
+```text
+“看起来有点像TLS”
+```
+
+并不一定等于：
+
+```text
+“与真实TLS实现难以区分”
+```
+
+因此 SSR 代表了一个重要阶段，却也暴露出“自定义混淆协议越来越复杂”的局限。
+
+后面的 Trojan 会提出完全不同的思路：
+
+> **既然模拟 TLS 很难，那为什么不直接使用真正的 TLS？**
+
+### VMess / V2Ray
+
+V2Ray 的出现带来了一个非常重要的变化：
+
+> **代理协议与代理平台开始分离。**
+
+需要严格区分：
+
+```text
+VMess
+```
+
+和：
+
+```text
+V2Ray
+```
+
+VMess 是：
+
+```text
+一种代理协议
+```
+
+V2Ray 则是：
+
+```text
+一个可编排多种协议、传输方式和路由逻辑的平台
+```
+
+。
+
+---
+
+**1. V2Ray的基本思想**
+
+早期 Shadowsocks 的结构大致是：
+
+```text
+SOCKS
+↓
+Shadowsocks
+↓
+TCP
+```
+
+V2Ray 则更像：
+
+```text
+Inbound
+   ↓
+Routing
+   ↓
+Proxy Protocol
+   ↓
+Transport
+   ↓
+Security
+   ↓
+Outbound
+```
+
+例如：
+
+```text
+SOCKS
+ ↓
+VMess
+ ↓
+WebSocket
+ ↓
+TLS
+ ↓
+TCP
+```
+
+或者：
+
+```text
+TUN
+ ↓
+VLESS
+ ↓
+gRPC
+ ↓
+TLS
+ ↓
+TCP
+```
+
+于是：
+
+> **代理协议不再必须和底层传输绑定死。**
+
+这成为 V2Ray/Xray 生态此后最重要的设计思想之一。
+
+---
+
+**2. VMess是什么？**
+
+VMess 是 V2Ray 最早的核心加密协议。
+
+客户端与服务器共享：
+
+```text
+UUID
+```
+
+这个 UUID 相当于：
+
+```text
+User Token
+```
+
+。
+
+一条 VMess 请求大致可以理解成：
+
+```text
+Authentication
++
+Command/Header
++
+Payload
+```
+
+官方 VMess 规范中，现代 AEAD Header 包括加密认证 ID、加密后的 Header 长度、Nonce、加密指令区以及 Data Section。VMess 仍支持历史 MD5 认证格式，但官方已经将其标记为 Deprecated。
+
+---
+
+**3. VMess为什么依赖时间？**
+
+传统 VMess 身份认证中会使用：
+
+```text
+UUID
++
+Timestamp
+```
+
+等信息。
+
+目的是让每一次认证并不是：
+
+```text
+永远发送同一个固定Token
+```
+
+而形成一个随时间变化的认证结构。
+
+这样可以降低：
+
+```text
+简单复制认证数据
+↓
+以后再次使用
+```
+
+的可行性。
+
+但代价就是：
+
+> 客户端和服务器的系统时间不能相差得过于离谱。
+
+这也是后来 VLESS 特意强调：
+
+```text
+“不依赖系统时间”
+```
+
+的原因之一。VLESS 官方文档明确将这一点列为其与 VMess 的区别。
+
+---
+
+**4. VMess为什么越来越复杂？**
+
+因为 VMess 一度同时承担：
+
+```text
+用户认证
++
+Header保护
++
+Payload加密
++
+协议封装
++
+Padding
+```
+
+等大量职责。
+
+现代 VMess 已经使用 AEAD 来保护协议头，并支持：
+
+```text
+AES-128-GCM
+ChaCha20-Poly1305
+```
+
+等数据加密方式，同时还存在 Metadata Masking、Padding 等设计。
+
+这就形成一个问题：
+
+> 如果外面已经套了一层 TLS，那么 VMess 内部为什么还必须再次完成一整套复杂加密？
+
+例如：
+
+```text
+VMess Encryption
+      ↓
+TLS Encryption
+      ↓
+TCP
+```
+
+实际上发生：
+
+```text
+两次协议加密
+```
+
+于是 VLESS 后来走向完全相反的方向：
+
+> **代理协议本身尽量简单，把真正的安全交给外层。**
+
+### Trojan
+
+Trojan 的设计思想是整个演进过程中一次非常重要的转折。
+
+此前的思路经常是：
+
+```text
+我设计一个代理协议
+↓
+再努力把它伪装成TLS
+```
+
+Trojan 则反过来说：
+
+> **为什么要伪装成 TLS？直接真正使用 TLS 不就行了？**
+
+---
+
+**1. Trojan的基本结构**
+
+Trojan 的数据路径可以理解为：
+
+```text
+Application
+    ↓
+Trojan Request
+    ↓
+Real TLS
+    ↓
+TCP
+```
+
+客户端首先和服务器完成：
+
+```text
+真实TLS Handshake
+```
+
+TLS 成功之后，后续 Trojan 协议内容全部位于真正的 TLS Application Data 内。
+
+Trojan 官方协议文档明确规定：客户端首先进行真正的 TLS Handshake；成功之后，后续 Traffic 全部由 TLS 保护。
+
+所以外部看到：
+
+```text
+ClientHello
+ServerHello
+Certificate
+TLS Application Data
+...
+```
+
+这一点与 HTTPS 的基础结构一致。
+
+---
+
+**2. TLS里面装什么？**
+
+TLS 建立以后，客户端发送：
+
+```text
+Password Hash
++
+CRLF
++
+Trojan Request
++
+CRLF
++
+Payload
+```
+
+其中 Trojan Request 与 SOCKS5 请求结构相似：
+
+```text
+Command
+Destination Address
+Destination Port
+```
+
+服务器验证密码以后：
+
+```text
+客户端
+   ↓
+TLS
+   ↓
+Trojan Server
+   ↓
+Target Server
+```
+
+建立转发通道。
+
+所以 Trojan 自己并不需要重新设计：
+
+```text
+AES
+ChaCha
+Nonce
+Tag
+Certificate
+```
+
+这些加密细节。
+
+它把真正的密码学安全交给成熟 TLS 实现。
+
+---
+
+**3. 为什么Trojan是重要的思想变化？**
+
+SSR 的思路可以简化成：
+
+```text
+特殊协议
+↓
+模拟TLS外观
+```
+
+Trojan 则是：
+
+```text
+特殊协议
+↓
+真正TLS
+```
+
+这其实反映了一种非常重要的设计原则：
+
+> **不要自己模拟成熟协议，尽量复用成熟协议。**
+
+同时 TLS 还天然带来了：
+
+```text
+Certificate
+Server Authentication
+Forward Secrecy
+AEAD
+成熟密码套件
+成熟实现
+```
+
+等能力。
+
+---
+
+**4. Fallback**
+
+Trojan 的另一个经典设计是：
+
+```text
+如果认证失败
+↓
+把连接交给普通Web服务
+```
+
+也就是说：
+
+```text
+正常Trojan客户端
+↓
+认证成功
+↓
+Proxy
+
+普通TLS访问 / 无效请求
+↓
+认证失败
+↓
+Web Server
+```
+
+原始 Trojan 文档明确描述了这种行为：如果 TLS 后的第一段数据不能被识别成合法 Trojan Request，可以把连接交给预设的普通 Web Endpoint。
+
+这意味着：
+
+```text
+同一个443端口
+```
+
+表面上仍可以表现得像：
+
+```text
+正常HTTPS站点
+```
+
+。
+
+这种思路后来对 Xray 的：
+
+```text
+Fallback
+REALITY
+```
+
+等设计产生了明显影响。
+
+### VLESS / Xray
+
+VLESS 可以理解成：
+
+> **对 VMess “协议承担太多职责”的一次反思。**
+
+VMess 是：
+
+```text
+认证
++
+加密
++
+代理
+```
+
+VLESS 的经典思路则是：
+
+```text
+认证
++
+代理
+```
+
+把：
+
+```text
+真正的Transport Security
+```
+
+交给：
+
+```text
+TLS
+REALITY
+XTLS
+```
+
+等外层机制。
+
+Xray 官方文档将 VLESS 定义为：
+
+```text
+Stateless
+Lightweight
+Transport Protocol
+```
+
+并明确指出其认证同样使用 UUID，但不像 VMess 那样依赖系统时间。
+
+---
+
+**1. VLESS为什么可以更轻？**
+
+逻辑上可以表示为：
+
+```text
+VLESS
+│
+├── 用户是谁？
+│
+├── 要连接哪里？
+│
+└── 数据是什么？
+```
+
+但它并不一定自己解决：
+
+```text
+网络加密
+```
+
+。
+
+于是：
+
+```text
+VLESS
+ ↓
+TLS / REALITY
+ ↓
+Transport
+```
+
+形成明确分层。
+
+Xray 当前文档仍要求：除非链路本身可信，或者启用了新的 VLESS Encryption，否则 VLESS 应当与外部 Transport Security 一同使用。
+
+因此千万不能理解成：
+
+```text
+VLESS = 更先进的VMess加密算法
+```
+
+因为经典 VLESS 恰恰相反：
+
+> **它主动减少协议内部的加密职责。**
+
+---
+
+**2. Xray是什么？**
+
+Xray 又不能和 VLESS 混为一谈。
+
+Xray 是：
+
+```text
+Proxy Platform / Core
+```
+
+VLESS 是：
+
+```text
+Protocol
+```
+
+REALITY 是：
+
+```text
+Transport Security
+```
+
+XTLS Vision 是：
+
+```text
+Flow / Data Processing Mechanism
+```
+
+所以：
+
+```text
+Xray
+ ├── VMess
+ ├── VLESS
+ ├── Trojan
+ ├── Shadowsocks
+ └── ...
+```
+
+而某一条具体连接又可能是：
+
+```text
+VLESS
++
+RAW
++
+REALITY
++
+XTLS Vision
+```
+
+这就是现代代理生态为什么看起来如此复杂：
+
+> 很多名词其实位于完全不同的协议层。
+
+---
+
+**3. XTLS Vision主要解决什么？**
+
+如果外层已经是 TLS：
+
+```text
+HTTPS Payload
+      ↓
+Proxy
+      ↓
+TLS
+```
+
+数据可能经历大量：
+
+```text
+用户态读取
+解包
+复制
+重新写入
+```
+
+。
+
+XTLS Vision 的一个重要目标，就是尽量减少不必要的数据复制和重复处理。
+
+当前 Xray 文档甚至支持在特定 Linux/TCP 场景中使用：
+
+```text
+splice()
+```
+
+让 Kernel 直接转发已经加密的数据，减少数据在：
+
+```text
+Kernel
+↕
+User Space
+```
+
+之间反复拷贝，从而降低 CPU 和 I/O 开销。
+
+这说明代理技术的优化方向已经从早期：
+
+```text
+“怎样设计一个加密协议”
+```
+
+发展到：
+
+```text
+“怎样减少系统调用和内存复制”
+```
+
+这种更加底层的系统性能问题。
+
+### REALITY
+
+REALITY 又是一个很容易被误解的名字。
+
+它不是：
+
+```text
+VLESS的替代品
+```
+
+也不是：
+
+```text
+另一种完整代理协议
+```
+
+而主要位于：
+
+```text
+Transport Security
+```
+
+这一层。
+
+Xray 当前文档对它的描述是：
+
+> REALITY 是 TLS 的一种修改形式，利用目标站点的 TLS 外观和握手特征进行伪装。
+
+所以典型分层是：
+
+```text
+VLESS
+    ↓
+REALITY
+    ↓
+RAW / XHTTP / gRPC
+    ↓
+TCP
+```
+
+而不是：
+
+```text
+VLESS
+↓
+REALITY
+```
+
+二者“二选一”。
+
+---
+
+**1. 为什么已经有TLS还需要REALITY？**
+
+普通 TLS 通常要求服务器拥有：
+
+```text
+Domain
++
+Certificate
++
+Private Key
+```
+
+于是你需要：
+
+```text
+注册域名
+DNS解析
+申请证书
+运行真实站点
+```
+
+。
+
+而且一个自己部署的小型 TLS Server 的：
+
+```text
+证书
+域名
+IP
+握手特征
+```
+
+本身就形成一种非常明确的服务器身份。
+
+REALITY 试图改变这一点。
+
+它修改 TLS 的部分握手和认证逻辑，使外部观察到的行为能够借用目标网站的一些 TLS 特征，而真正的 REALITY 客户端又可以通过额外的密码学认证判断：
+
+```text
+这是真正的REALITY Server
+```
+
+还是：
+
+```text
+普通目标网站
+```
+
+。
+
+---
+
+**2. REALITY仍然依赖TLS思想**
+
+它并没有重新设计一个：
+
+```text
+完全独立的密码系统
+```
+
+而是在 TLS 基础上改造。
+
+当前 REALITY 实现本身就是对 Go TLS 包的分支修改，服务端和客户端具有专门的证书验证和认证逻辑。
+
+所以它代表的是：
+
+```text
+自定义加密协议
+        ↓
+真实TLS
+        ↓
+修改TLS握手与身份体系
+```
+
+这一条技术演进路线。
+
+---
+
+**3. REALITY为什么通常和VLESS一起出现？**
+
+因为两者非常互补。
+
+VLESS：
+
+```text
+轻量代理层
+```
+
+REALITY：
+
+```text
+外部安全传输层
+```
+
+XTLS Vision：
+
+```text
+数据处理/性能优化
+```
+
+于是组合起来：
+
+```text
+Application
+    ↓
+VLESS
+    ↓
+XTLS Vision
+    ↓
+REALITY
+    ↓
+TCP
+```
+
+每一层只解决一部分问题。
+
+这体现了现代代理框架非常明显的趋势：
+
+> **不再做一个“万能协议”，而是把认证、代理、传输、安全、性能优化拆成可以组合的模块。**
+
+### Hysteria / Hysteria 2
+
+Shadowsocks、VMess、Trojan、VLESS 这一整条路线长期主要围绕：
+
+```text
+TCP
+```
+
+展开。
+
+Hysteria 则换了一个方向：
+
+> **如果网络本身高延迟、高丢包，能不能直接换掉底层传输模型？**
+
+于是它选择：
+
+```text
+QUIC
+```
+
+。
+
+Hysteria 2 官方协议目前明确规定其运行于标准 QUIC RFC 9000 之上，并使用 QUIC Datagram Extension；它可以承载 TCP 与 UDP Proxy。
+
+---
+
+**1. QUIC不是“UDP裸传输”**
+
+这是理解 Hysteria 最重要的一点。
+
+很多人看到：
+
+```text
+QUIC → UDP
+```
+
+便认为：
+
+```text
+UDP不可靠
+所以Hysteria也不可靠
+```
+
+这是错误的。
+
+QUIC 实际上：
+
+```text
+建立在UDP上
+```
+
+但自己实现了：
+
+```text
+可靠传输
+拥塞控制
+重传
+流量控制
+多路复用
+TLS 1.3安全
+```
+
+。
+
+可以粗略理解：
+
+```text
+TCP + TLS + 多路复用的一部分能力
+            ↓
+          QUIC
+            ↓
+           UDP
+```
+
+所以 UDP 只是 QUIC 使用的：
+
+```text
+底层Datagram Carrier
+```
+
+。
+
+---
+
+**2. QUIC为什么对代理很有吸引力？**
+
+如果一个代理使用：
+
+```text
+TCP tunnel
+```
+
+而 Tunnel 中又承载：
+
+```text
+TCP connection
+```
+
+就可能出现经典的：
+
+```text
+TCP-over-TCP
+```
+
+问题。
+
+结构类似：
+
+```text
+Inner TCP
+   ↓
+Outer TCP Tunnel
+```
+
+外层 TCP 一旦发生丢包：
+
+```text
+Outer TCP等待重传
+```
+
+内层 TCP 又可能：
+
+```text
+自己判断发生丢包
+↓
+再次降低窗口
+```
+
+两个拥塞控制机制相互影响。
+
+而 QUIC 可以在一个 UDP Connection 内维护：
+
+```text
+Stream 1
+Stream 2
+Stream 3
+...
+```
+
+不同 Stream 拥有相对独立的传输状态。
+
+某个 Stream 出现丢包，不必像传统单 TCP Byte Stream 那样阻塞所有逻辑流。
+
+因此在：
+
+```text
+高延迟
+高丢包
+不稳定移动网络
+```
+
+环境中，它具有明显的架构优势。
+
+---
+
+**3. Hysteria 2中的数据路径**
+
+可以粗略表示为：
+
+```text
+Application
+    ↓
+SOCKS / HTTP / TUN
+    ↓
+Hysteria 2
+    ↓
+QUIC Streams / Datagram
+    ↓
+UDP
+```
+
+TCP 类型业务可以映射到：
+
+```text
+QUIC Stream
+```
+
+UDP 类型业务则可以使用：
+
+```text
+QUIC Datagram
+```
+
+。
+
+因此 Hysteria 不是：
+
+```text
+“把TCP简单装进UDP包”
+```
+
+而是：
+
+> **让 QUIC 重新承担一整套传输控制。**
+
+---
+
+**4. 为什么Hysteria强调Congestion Control？**
+
+网络传输速度并不是：
+
+```text
+想发多快就发多快
+```
+
+而必须遵守：
+
+```text
+Congestion Control
+```
+
+即：
+
+> 根据网络容量决定发送速率。
+
+TCP 中经典算法会在检测到：
+
+```text
+丢包
+RTT上升
+```
+
+时降低发送速度。
+
+Hysteria 的设计特别关注：
+
+```text
+High Bandwidth
++
+High Latency
++
+Lossy Network
+```
+
+环境。
+
+因此它不仅是：
+
+```text
+“另一种加密协议”
+```
+
+而很大程度上属于：
+
+```text
+Transport Optimization
+```
+
+。
+
+这也是它和 Shadowsocks/VLESS 最根本的区别之一。
+
+---
+
+**5. Hysteria 2仍然依赖TLS**
+
+Hysteria 2 并没有抛弃成熟密码学体系。
+
+它建立在：
+
+```text
+QUIC
+```
+
+之上，而 QUIC 本身深度整合 TLS 1.3。
+
+此外 Hysteria 2 还包含认证、HTTP/3 Masquerading 以及可选 Obfuscation 等机制。官方协议明确将：
+
+```text
+Authentication
+HTTP/3 masquerading
+Congestion Control
+Salamander / Gecko Obfuscation
+```
+
+列为协议组成部分。
+
+因此 Hysteria 代表的是另外一条路线：
+
+```text
+Shadowsocks路线：
+TCP
++
+自定义代理加密
+
+Trojan/VLESS路线：
+TCP
++
+TLS/REALITY
+
+Hysteria路线：
+QUIC
++
+TLS
++
+Proxy
+```
+
+### mieru
+
+mieru 又代表了一次比较有意思的“回归”。
+
+在 Trojan、REALITY、Hysteria 越来越依赖：
+
+```text
+TLS
+QUIC
+HTTP/3
+```
+
+的时候，mieru 选择：
+
+> **不依赖 TLS，重新设计自己的加密和流量结构。**
+
+当前 mieru 官方资料说明其同时支持 TCP 和 UDP，并使用：
+
+```text
+XChaCha20-Poly1305
+```
+
+作为现行 AEAD 算法，同时加入随机 Padding 和 Replay Detection。
+
+---
+
+**1. mieru为什么不用TLS？**
+
+TLS 的优点很多：
+
+```text
+成熟
+安全
+生态完善
+```
+
+但它同时具有非常明确的：
+
+```text
+TLS Handshake
+```
+
+。
+
+例如：
+
+```text
+ClientHello
+ServerHello
+Certificate
+EncryptedExtensions
+...
+```
+
+这意味着：
+
+> TLS 本身就是一种可以被识别的协议。
+
+mieru 的思路则是：
+
+```text
+我不希望表现成TLS
+```
+
+而希望：
+
+```text
+自己的Traffic Pattern难以被稳定分类
+```
+
+。
+
+所以它不再采取：
+
+```text
+“像HTTPS”
+```
+
+的路线，而采取：
+
+```text
+“尽量减少固定可分类特征”
+```
+
+的路线。
+
+---
+
+**2. mieru如何生成密钥？**
+
+mieru 的协议文档描述了一套基于：
+
+```text
+username
++
+password
++
+system time
+```
+
+的密钥派生机制。
+
+逻辑上类似：
+
+```text
+username + password
+        ↓
+      Hash
+        ↓
+Time-dependent Salt
+        ↓
+      PBKDF2
+        ↓
+Session Encryption Key
+```
+
+然后用：
+
+```text
+XChaCha20-Poly1305
+```
+
+执行 AEAD 加密。
+
+所以它与 VLESS 的：
+
+```text
+UUID只负责认证
++
+安全交给外层
+```
+
+完全不同。
+
+mieru 更接近 Shadowsocks：
+
+> **协议自己负责数据加密。**
+
+---
+
+**3. Random Padding的作用**
+
+假设一个协议每次连接的首包永远是：
+
+```text
+100 bytes
+```
+
+第二包：
+
+```text
+64 bytes
+```
+
+第三包：
+
+```text
+1370 bytes
+```
+
+即使所有内容都经过加密：
+
+```text
+不可读
+```
+
+这个：
+
+```text
+Packet Length Pattern
+```
+
+本身仍然可能形成特征。
+
+因此 mieru 会插入随机 Padding：
+
+```text
+真实数据
++
+Random Padding
+```
+
+于是：
+
+```text
+相同业务
+```
+
+在不同连接中的：
+
+```text
+Packet Size
+```
+
+不必完全一样。
+
+其协议甚至把 Padding 分散在 Metadata 和 Payload 的不同位置，并允许调整传输段的信息熵和可打印字符特征。
+
+这体现了现代流量分析对抗中的一个核心认识：
+
+> **加密隐藏内容，但不自动隐藏形状。**
+
+攻击者仍可能观察：
+
+```text
+什么时候连接
+持续多久
+每个方向多少Byte
+Packet长度
+Packet间隔
+Burst模式
+```
+
+。
+
+所以：
+
+```text
+Encryption
+```
+
+与：
+
+```text
+Traffic Obfuscation
+```
+
+始终是两个问题。
+
+### 从协议到客户端：为什么现在一个客户端能支持十几种协议？
+
+到这里需要再次强调：
+
+```text
+协议
+≠
+核心程序
+≠
+GUI客户端
+```
+
+例如：
+
+```text
+VLESS
+```
+
+只是协议。
+
+```text
+Xray-core
+```
+
+是实现协议并处理网络流量的 Core。
+
+```text
+某个Windows GUI
+```
+
+则可能只是：
+
+```text
+配置界面
++
+订阅管理
++
+启动Xray-core
++
+系统代理设置
+```
+
+。
+
+真正执行数据转发的仍然是底层 Core。
+
+现代客户端逐渐形成这样一个架构：
+
+```text
+GUI
+ ↓
+Configuration Manager
+ ↓
+Proxy Core
+ ↓
+┌──────────────────────────┐
+│ SS / VMess / VLESS       │
+│ Trojan / Hysteria / ...  │
+└──────────────────────────┘
+ ↓
+Routing Engine
+ ↓
+Network
+```
+
+于是：
+
+> 客户端的发展已经从“某个协议的专用客户端”，走向“统一流量平台”。
+
+### V2Ray / Xray：协议编排型Core
+
+V2Ray/Xray 的核心优势不只是：
+
+```text
+支持VMess/VLESS
+```
+
+而是它们具有明显的：
+
+```text
+Inbound
+→ Routing
+→ Outbound
+```
+
+模型。
+
+例如：
+
+```text
+Browser
+   ↓
+SOCKS Inbound
+   ↓
+Routing
+   ↓
+VLESS Outbound
+```
+
+另一类流量可以：
+
+```text
+LAN
+ ↓
+Transparent Inbound
+ ↓
+Routing
+ ↓
+Direct
+```
+
+所以 Core 真正处理的是：
+
+```text
+“流量应该从哪里进来？”
++
+“应该采用什么规则？”
++
+“应该从哪里出去？”
+```
+
+。
+
+这已经比最早的：
+
+```text
+ss-local
+```
+
+复杂了一个层级。
+
+### sing-box：把“代理工具”进一步变成网络平台
+
+sing-box 的方向更加明显。
+
+它今天支持的 Outbound 已经包括：
+
+```text
+Shadowsocks
+VMess
+VLESS
+Trojan
+WireGuard
+Hysteria
+Hysteria2
+TUIC
+SSH
+Tor
+Naive
+...
+```
+
+同时也存在对应的多种 Inbound。
+
+所以 sing-box 的抽象不是：
+
+```text
+一个VLESS客户端
+```
+
+而是：
+
+```text
+Network Proxy Platform
+```
+
+。
+
+---
+
+**1. TUN为什么如此重要？**
+
+传统代理模式：
+
+```text
+Browser
+↓
+SOCKS5
+↓
+Proxy
+```
+
+要求 Application 自己支持：
+
+```text
+HTTP Proxy / SOCKS
+```
+
+。
+
+但很多程序：
+
+```text
+游戏
+部分系统服务
+UDP应用
+某些后台进程
+```
+
+根本不会读取系统 SOCKS Proxy。
+
+于是现代代理程序大量采用：
+
+```text
+TUN
+```
+
+。
+
+操作系统看到的是一个：
+
+```text
+Virtual Network Interface
+```
+
+例如：
+
+```text
+tun0
+```
+
+系统会认为：
+
+```text
+这是一张网卡
+```
+
+。
+
+于是：
+
+```text
+Application
+    ↓
+Operating System
+    ↓
+TUN
+    ↓
+sing-box
+    ↓
+Routing
+    ↓
+Proxy / Direct
+```
+
+应用甚至不知道：
+
+```text
+自己正在使用代理
+```
+
+。
+
+sing-box 当前仍提供完整 TUN Inbound，并可以自动配置 Route、DNS Hijacking 和透明转发等行为。
+
+这就是为什么今天：
+
+```text
+“代理客户端”
+```
+
+越来越接近：
+
+```text
+用户态网络栈
+```
+
+而不仅是：
+
+```text
+SOCKS5程序
+```
+
+。
+
+### Mihomo：从Clash的“规则分流”思想继续发展
+
+Mihomo 的核心特色又和 Xray 不完全一样。
+
+Clash 体系最重要的创新之一，并不是某一种代理协议，而是：
+
+> **把流量策略放在第一位。**
+
+假设设备上同时存在：
+
+```text
+Node A
+Node B
+Node C
+DIRECT
+```
+
+传统思维是：
+
+```text
+我现在选择Node A
+```
+
+Clash/Mihomo 的思维则是：
+
+```text
+Google
+→ Proxy Group A
+
+GitHub
+→ Proxy Group B
+
+LAN
+→ DIRECT
+
+某些应用
+→ Node C
+```
+
+于是形成：
+
+```text
+Traffic
+  ↓
+Rule Engine
+  ↓
+Proxy Group
+  ↓
+Proxy Node
+```
+
+。
+
+---
+
+**1. Proxy Group**
+
+例如一个逻辑组：
+
+```text
+Auto
+```
+
+内部可以包含：
+
+```text
+Node A
+Node B
+Node C
+```
+
+客户端进行：
+
+```text
+Health Check
+Latency Test
+Failure Detection
+```
+
+然后自动选择。
+
+Mihomo 当前文档仍提供：
+
+```text
+select
+url-test
+fallback
+```
+
+等类型的 Proxy Group，并支持 Health Check。
+
+于是：
+
+```text
+协议
+```
+
+成为底层能力；
+
+```text
+策略
+```
+
+反而成为用户真正操作的东西。
+
+---
+
+**2. Proxy Provider**
+
+进一步地：
+
+```text
+节点列表
+```
+
+甚至可以由：
+
+```text
+Provider
+```
+
+动态提供。
+
+逻辑上：
+
+```text
+Subscription
+    ↓
+Proxy Provider
+    ↓
+Node A
+Node B
+Node C
+    ↓
+Proxy Group
+    ↓
+Routing Rule
+```
+
+。
+
+Mihomo 当前仍保留完整的 Proxy Provider 体系，并可以从 HTTP、File 等来源加载节点集合。
+
+---
+
+**3. Mihomo为什么能够支持这么多协议？**
+
+因为现代代理 Core 已经把：
+
+```text
+Routing
+```
+
+与：
+
+```text
+Outbound Protocol
+```
+
+解耦。
+
+例如：
+
+```text
+Rule Engine
+    ↓
+Proxy A
+```
+
+Proxy A 究竟是：
+
+```text
+Shadowsocks
+VLESS
+Trojan
+Hysteria2
+mieru
+```
+
+对上层 Routing Engine 来说并不重要。
+
+Mihomo 当前的 Inbound 类型已经包括 Shadowsocks、VMess、VLESS、Trojan、Hysteria2、Mieru 等，同时提供 TUN、TProxy、Redirect 等流量接入方式。
+
+它甚至已经加入了 mieru 原生支持，包括 TCP/UDP Transport 和 Multiplexing 等能力。
+
+所以现代代理软件越来越像：
+
+```text
+模块化网络操作系统
+```
+
+。
+
+### 把所有协议重新分层
+
+看完这些协议以后，最容易混乱的地方就在于：
+
+```text
+Shadowsocks
+VMess
+VLESS
+Trojan
+REALITY
+XTLS
+Hysteria
+Xray
+sing-box
+Mihomo
+```
+
+这些词并不属于同一层。
+
+更加准确的分类应该是：
+
+```text
+应用
+│
+│
+├── 浏览器
+├── 游戏
+├── Git
+└── 其他程序
+│
+↓
+流量接入层
+│
+├── SOCKS5
+├── HTTP Proxy
+├── TUN
+├── TProxy
+└── Redirect
+│
+↓
+代理协议层
+│
+├── Shadowsocks
+├── VMess
+├── VLESS
+├── Trojan
+├── Hysteria2
+└── mieru
+│
+↓
+传输/封装层
+│
+├── RAW TCP
+├── WebSocket
+├── gRPC
+├── HTTP
+├── XHTTP
+└── QUIC
+│
+↓
+安全层
+│
+├── Shadowsocks AEAD
+├── VMess AEAD
+├── TLS
+├── REALITY
+└── mieru AEAD
+│
+↓
+TCP / UDP
+│
+↓
+IP
+```
+
+而：
+
+```text
+V2Ray
+Xray
+sing-box
+Mihomo
+```
+
+则是：
+
+```text
+把这些组件组织起来的Core
+```
+
+。
+
+因此不能简单地问：
+
+> “REALITY 和 VLESS 哪个更好？”
+
+因为它们甚至不是一类东西。
+
+更像是在问：
+
+> “HTTPS 和 HTTP 哪个更好？”
+
+正确关系是：
+
+```text
+VLESS
++
+REALITY
+```
+
+。
+
+同理：
+
+```text
+VLESS
++
+gRPC
++
+TLS
+```
+
+也是一个组合。
+
+### 这些协议的技术路线究竟是怎样演进的？
+
+如果只看名字，会觉得：
+
+```text
+SS
+SSR
+VMess
+Trojan
+VLESS
+REALITY
+Hysteria
+mieru
+```
+
+非常杂乱。
+
+但如果从设计问题看，其实演进路线非常清晰。
+
+最初的问题是：
+
+```text
+如何建立一个简单加密代理？
+```
+
+于是有：
+
+```text
+Shadowsocks
+```
+
+它的答案是：
+
+> **SOCKS式代理 + 对称加密。**
+
+随后出现：
+
+```text
+如何抵抗流量识别？
+```
+
+于是 SSR 的答案是：
+
+> **在加密之外再加入Protocol与Obfuscation。**
+
+但新的问题出现：
+
+```text
+自己模拟HTTP/TLS越来越复杂。
+```
+
+于是 Trojan 回答：
+
+> **不要模拟TLS，直接运行真正的TLS。**
+
+与此同时 V2Ray 提出另外一个问题：
+
+```text
+为什么代理协议、传输协议和路由策略必须绑在一起？
+```
+
+答案是：
+
+> **全部模块化。**
+
+于是出现：
+
+```text
+VMess
++
+WS
++
+TLS
+```
+
+各种组合。
+
+随后人们发现：
+
+```text
+VMess自己承担的加密和认证职责仍然太重。
+```
+
+于是 VLESS 回答：
+
+> **代理层做轻，把安全交给TLS/REALITY。**
+
+REALITY 又进一步问：
+
+```text
+能不能保留TLS级别的安全和外观，
+但改变传统证书/站点部署模式？
+```
+
+于是产生新的 TLS Transport Security 设计。
+
+另一边 Hysteria 则问：
+
+```text
+如果问题根本不是协议识别，
+而是网络高延迟、高丢包怎么办？
+```
+
+于是：
+
+> **直接转向QUIC和新的拥塞控制。**
+
+mieru 又重新问：
+
+```text
+是否一定要表现成TLS/HTTPS？
+```
+
+它给出的答案是：
+
+> **不依赖TLS，通过自己的AEAD、Padding和流量结构降低分类特征。**
+
+所以真正的演进其实是：
+
+```text
+Shadowsocks
+│
+│ 重点：加密
+↓
+SSR
+│
+│ 重点：加密 + 混淆
+↓
+V2Ray / VMess
+│
+│ 重点：模块化代理平台
+↓
+Trojan
+│
+│ 重点：真正TLS
+↓
+VLESS / Xray
+│
+│ 重点：协议轻量化、职责分离
+↓
+REALITY
+│
+│ 重点：重新设计TLS式传输安全与外观
+↓
+Hysteria2
+│
+│ 重点：QUIC和弱网络性能
+↓
+mieru
+│
+│ 重点：非TLS路线 + AEAD + Traffic Pattern控制
+```
+
+它不是简单的：
+
+```text
+新协议性能 > 旧协议性能
+```
+
+而是每一代都在重新回答几个不同问题：
+
+```text
+怎么加密？
+怎么认证？
+怎么发现恶意连接？
+怎么隐藏协议特征？
+怎么降低延迟？
+怎么抗丢包？
+怎么减少CPU开销？
+怎么支持UDP？
+怎么让一个Core支持十种协议？
+```
+
+### 加密、混淆和匿名必须严格区分
+
+最后还需要澄清一个非常重要的问题。
+
+这些技术经常被统称为：
+
+```text
+“加密代理”
+```
+
+但：
+
+```text
+Encryption
+Obfuscation
+Anonymity
+```
+
+实际上是三件完全不同的事情。
+
+**Encryption：**
+
+解决：
+
+> 别人能不能读懂通信内容？
+
+例如：
+
+```text
+AES-GCM
+ChaCha20-Poly1305
+TLS
+```
+
+。
+
+---
+
+**Obfuscation：**
+
+解决：
+
+> 别人能不能判断你运行的是什么协议？
+
+例如：
+
+```text
+Padding
+TLS-like traffic
+HTTP-like traffic
+REALITY
+某些随机化机制
+```
+
+。
+
+---
+
+**Anonymity：**
+
+解决：
+
+> 对方能不能知道通信者是谁？
+
+而一个普通单跳 Proxy：
+
+```text
+User
+ ↓
+Proxy
+ ↓
+Website
+```
+
+并没有解决完整匿名问题。
+
+Proxy Server 至少可能知道：
+
+```text
+客户端IP
+连接时间
+流量大小
+部分目标信息
+```
+
+。
+
+网站则看到：
+
+```text
+Proxy Server IP
+```
+
+而不是用户原始 IP。
+
+所以单跳代理本质上更接近：
+
+```text
+Encrypted Proxy
+```
+
+而不是：
+
+```text
+Anonymous Network
+```
+
+。
+
+Tor 那种：
+
+```text
+Client
+ ↓
+Entry
+ ↓
+Relay
+ ↓
+Exit
+ ↓
+Destination
+```
+
+才是在完全不同的架构层面处理匿名问题。
+
+### 节点到底能看到什么？
+
+这也可以补充你前面“碎碎念”中的判断。
+
+假设：
+
+```text
+User
+ ↓
+Encrypted Proxy Tunnel
+ ↓
+Proxy Server
+ ↓
+HTTPS Website
+```
+
+本地 ISP 通常能够看到：
+
+```text
+User IP
+↓
+正在连接某个Proxy IP
+↓
+时间
+流量大小
+协议特征
+```
+
+但因为代理隧道加密：
+
+```text
+通常看不到最终应用数据
+```
+
+。
+
+Proxy Server 则知道更多：
+
+```text
+User IP
+连接时间
+连接大小
+目的地址相关信息
+```
+
+。
+
+但是如果内部应用本身仍然是：
+
+```text
+HTTPS
+```
+
+那么：
+
+```text
+HTTP正文
+Cookie内容
+密码
+页面数据
+```
+
+通常仍由：
+
+```text
+Browser
+↔
+Website
+```
+
+之间的 TLS 保护。
+
+可以把它想象成：
+
+```text
+HTTPS ciphertext
+        ↓
+再装进Proxy ciphertext
+```
+
+到了 Proxy：
+
+```text
+拆掉Proxy Encryption
+↓
+仍然剩HTTPS ciphertext
+```
+
+。
+
+因此：
+
+> **代理服务器被攻破，并不自动等于所有 HTTPS 内容都变成明文。**
+
+但是攻击者仍然可能获得大量重要的：
+
+```text
+Metadata
+Traffic Log
+DNS信息
+目标IP
+访问时间
+账户与节点对应关系
+```
+
+并且如果客户端忽略：
+
+```text
+Certificate Validation
+```
+
+或者安装了恶意根证书，情况又会完全不同。
+
+所以更加准确的安全模型是：
+
+```text
+安全性
+=
+协议密码学
+×
+客户端实现
+×
+服务器可信度
+×
+密钥安全
+×
+目标网站HTTPS
+×
+DNS安全
+×
+操作系统安全
+```
+
+而绝不是：
+
+```text
+“用了REALITY”
+=
+绝对安全
+```
+
+或者：
+
+```text
+“用了AES-256”
+=
+绝对安全
+```
+
+。
+
+一套现代代理连接实际上是一条很长的信任链：
+
+```text
+Application
+   ↓
+Operating System
+   ↓
+Proxy Client
+   ↓
+Protocol Implementation
+   ↓
+Encryption Keys
+   ↓
+Proxy Server
+   ↓
+DNS / Routing
+   ↓
+Target TLS
+   ↓
+Target Website
+```
+
+其中任何一个环节发生：
+
+```text
+恶意软件
+密钥泄露
+客户端后门
+服务器入侵
+TLS证书验证关闭
+错误DNS
+错误路由
+```
+
+都可能改变最终安全性。
+
+这也解释了为什么过去十多年中代理协议不断变化，但一个最基本的原则始终没有变化：
+
+> **真正的安全从来不是“找到一种神奇协议”，而是明确每一层在保护什么、信任谁，以及哪一部分仍然暴露。**
 
 
 ## P2P与磁力链接(AI版)

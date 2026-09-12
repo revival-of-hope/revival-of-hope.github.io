@@ -595,7 +595,7 @@ let does_not_exist = v.get(100);
 ### KV存储HashMap
 - HashMap没有包含在Rust的Prelude中
 
-#### 
+#### 创建方法
 - new方法
 ```rs
 use std::collections::HashMap;
@@ -779,6 +779,9 @@ LEFT OUTER JOIN Comments c4
 不过,如果是社交平台的话,我们可以通过好友找到好友的好友,再通过好友的好友,找到好友的好友的好友,不断迭代下去,永远不会有一个尽头.这就是图数据库大展神威的地方了,这本书出版的时候显然还没有这个概念吧.
 
 ## 需要ID
+>这章的目标就是要确认那些使用了主键，却混淆了主键的本质而造成的一种反模式。
+
+
 
 # System Design Interview: An Insider’s Guide
 ## ch1

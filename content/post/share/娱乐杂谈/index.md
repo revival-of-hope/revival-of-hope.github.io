@@ -281,6 +281,10 @@ Hades的模仿作,机制简单不少,难度也要低一点,玩起来也挺爽的
 有两作的战斗系统还行,奈何没一点剧情,尽管部分角色确实建模不错,可惜是全年龄.
 ### 崩溃大陆1&&2-10.0
 第一次还是在初中的手机上玩的移植版,后来又在电脑上玩了一遍,体验一如既往的好.
+### 以撒的结合-8.5
+>想考古：原版 + 羔羊之怒 → Repentance；想正常入坑：直接 Repentance；想联机：Repentance + Repentance+。原版、Rebirth、Afterbirth、Afterbirth+ 没有必要逐个通关后再升级。
+
+以撒的结合从头到尾只有一款游戏,新人很容易被搞蒙,直接上手补全Afterbirth,Repentance这几个DLC的Rebirth版本即可.
 
 ## 大型游戏
 ### SWORD ART ONLINE-碎梦边境(26/7)-6.0
