@@ -9,16 +9,17 @@ favicon        = "img/topbar.webp"
 # lastmod = sort by last modified date, in descending order
 SortBy              = "lastmod"
 
+# 尝试自动给frontmatter加上lastmod字段
 enableGitInfo = true
 
 [frontmatter]
     lastmod = ["lastmod", ":git", "date", "publishDate"]
-    
+
 [footer]
     since      = 2025
-    customText = """网站总访客数：<span id='busuanzi_value_site_uv'>Loading</span><br/>
-      网站总访问量：<span id='busuanzi_value_site_pv'>Loading</span>
-     """
+    # customText = """网站总访客数：<span id='busuanzi_value_site_uv'>Loading</span><br/>
+    #   网站总访问量：<span id='busuanzi_value_site_pv'>Loading</span>
+    #  """
 
 [dateFormat]
     published   = ":date_full"
