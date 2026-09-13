@@ -784,12 +784,118 @@ LEFT OUTER JOIN Comments c4
 
 
 # System Design Interview: An Insider’s Guide
-## ch1
+你就读吧,很久没见过这么干净利落的技术书籍了,对我的感触远比DDIA要震撼的多.
+## ch1: 网络扩展
 一个非常好的网络服务进阶流程概览
-## ch4
+## ch4: 限流器
+
+## ch10: 通知系统设计
+![示意图](PixPin_2026-09-13_10-29-30.webp)
+
+尽管TCP的重传机制保证了我们的消息一定能够发送到用户设备里,但是这只是到了传输层为止,而在应用层,完全可能出现断连(如手机突然关机)等情况,这个时候由于我们收不到用户的通知反馈,只能选择重传,并通过`通知ID`来去重.
 
 
-# Hadoop: The Definitive Guide(4th)
+
+# Effective Python,3rd edition
+
+## 并发
+### 68: Use Threads for Blocking I/O; Avoid for Parallelism
+GIL导致Python至今为止也无法支持真正的多线程
+
+
+# Learning Go
+## ch1: 搭建环境
+```bash
+# 创建go模块
+go mod init hello_word
+# 编译go程序
+go build hello.go
+# 格式化go程序,应用于当前目录及所有子目录
+go fmt ./...
+```
+### 使用make
+```makefile
+.DEFAULT_GOAL := build
+.PHONY:fmt vet build
+fmt:
+	go fmt ./...
+vet: fmt 
+	go vet ./...
+build: vet
+	go build
+```
+在终端敲上`make`这个单词就可以自动运行build命令了.
+
+## ch2: 类型和声明
+# PROFESSIONAL C++
+# A Tour of C++,Third Edition
+事实证明,任何由Bjarne Stroustrup亲自动笔的C++书都不具备任何的可读性.
+# C++ CRASH COURSE(待补充)
+>本书面向已经熟悉基本编程概念的中级到高级程序员。若您没有特定的系统编程经验也没关系，欢迎有经验的应用程序程序员阅读。
+
+## C++基础
+过于Crash了,讲的不够详细.只好摘抄重点了.
+### 异常处理
+先在try代码中抛出异常,再在catch代码中处理异常:
+```cpp
+#include <stdexcept>
+#include <cstdio>
+
+struct Groucho {
+    void forget(int x) {
+        if (x == 0xFACE) {
+            throw std::runtime_error{"I'd be glad to make an exception."};
+        }
+        printf("Forgot 0x%x\n", x);
+    }
+};
+
+int main() {
+    Groucho groucho;
+
+    try {
+        groucho.forget(0xC0DE);
+        groucho.forget(0xFACE);
+        groucho.forget(0xC0FFEE);
+    } catch (const std::runtime_error& e) {
+        printf("exception caught with message: %s\n", e.what());
+    }
+}
+```
+
+我们可以给那些不可能抛出异常的函数加上`noexcept`标记,但如果发生了异常,程序会被强行终止:
+```cpp
+bool is_odd(int x) noexcept {
+    return 1 == (x % 2);
+}
+```
+### 构造与析构
+构造和析构的顺序和栈相同,遵循后构造先析构的顺序.
+
+成员的构造顺序由声明顺序决定:
+```cpp
+class Test {
+    A a;
+    B b;
+
+public:
+    Test()
+        : b(),
+          a()
+    {
+    }
+};
+```
+上述代码中,会先构造A,再构造B.
+### Copy Semantics
+>Copy semantics is “the meaning of copy.” 
+
+也就是说,x被复制到y后,二者是相互独立的,对x的修改不会影响到y.
+### Move Semantics
+移动语义是拷贝语义在移动操作上的对应概念，它要求将对象 y 移入对象x后，x等价于 y原先的值。移动完成后，y 处于一种特殊状态，称为 “ 已移动状态 ” 。对于已移动状态的对象，你只能执行两种操作：（重新）赋值或销毁它们
+
+
+# Hadoop: The Definitive Guide(4th)(待补充)
 ## 基础
 ### 起源
 Hadoop这个名字并不是一个首字母缩略词；它是一个杜撰出来的名字。该项目的创建者Doug Cutting解释了这个名字的由来：
@@ -929,99 +1035,6 @@ public class MaxTemperature {
 }
 ```
 ### The Hadoop Distributed Filesystem(HDFS)
-# C++ CRASH COURSE
->本书面向已经熟悉基本编程概念的中级到高级程序员。若您没有特定的系统编程经验也没关系，欢迎有经验的应用程序程序员阅读。
-
-## C++基础
-过于Crash了,讲的不够详细.只好摘抄重点了.
-### 异常处理
-先在try代码中抛出异常,再在catch代码中处理异常:
-```cpp
-#include <stdexcept>
-#include <cstdio>
-
-struct Groucho {
-    void forget(int x) {
-        if (x == 0xFACE) {
-            throw std::runtime_error{"I'd be glad to make an exception."};
-        }
-        printf("Forgot 0x%x\n", x);
-    }
-};
-
-int main() {
-    Groucho groucho;
-
-    try {
-        groucho.forget(0xC0DE);
-        groucho.forget(0xFACE);
-        groucho.forget(0xC0FFEE);
-    } catch (const std::runtime_error& e) {
-        printf("exception caught with message: %s\n", e.what());
-    }
-}
-```
-
-我们可以给那些不可能抛出异常的函数加上`noexcept`标记,但如果发生了异常,程序会被强行终止:
-```cpp
-bool is_odd(int x) noexcept {
-    return 1 == (x % 2);
-}
-```
-### 构造与析构
-构造和析构的顺序和栈相同,遵循后构造先析构的顺序.
-
-成员的构造顺序由声明顺序决定:
-```cpp
-class Test {
-    A a;
-    B b;
-
-public:
-    Test()
-        : b(),
-          a()
-    {
-    }
-};
-```
-上述代码中,会先构造A,再构造B.
-### Copy Semantics
-
-
-
-# Effective Python,3rd edition
-
-## 并发
-### 68: Use Threads for Blocking I/O; Avoid for Parallelism
-GIL导致Python至今为止也无法支持真正的多线程
-
-
-# Learning Go
-## ch1: 搭建环境
-```bash
-# 创建go模块
-go mod init hello_word
-# 编译go程序
-go build hello.go
-# 格式化go程序,应用于当前目录及所有子目录
-go fmt ./...
-```
-### 使用make
-```makefile
-.DEFAULT_GOAL := build
-.PHONY:fmt vet build
-fmt:
-	go fmt ./...
-vet: fmt 
-	go vet ./...
-build: vet
-	go build
-```
-在终端敲上`make`这个单词就可以自动运行build命令了.
-
-## ch2: 类型和声明
-# PROFESSIONAL C++
 # Beginning C,From Beginner to Pro
 确实很适合入门,可惜的是当初没看到这本书
 ## 指针与内存分配
