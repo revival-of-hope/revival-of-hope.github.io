@@ -1,17 +1,21 @@
 ---
 title: "Golang笔记"
-date: 2026-05-23T19:09:06+08:00
-description: 
+date: 2026-09-13T19:09:06+08:00
+description: 重构一下
 image: 38431299_p0-式さん.webp
-math: 
 ---
 
-# Go基础
+## Go基础
 - 鉴于Go是从多个前辈语言中吸收了各种精华后诞生的,学习Go之前最好有一门甚至两门主流后端语言的基础.
-## Go的历史
+### Go的历史
 - [wiki](https://en.wikipedia.org/wiki/Go_(programming_language))
 
 >Go语言由Google的Robert Griesemer、Rob Pike和Ken Thompson于2007年开始设计，其初衷是因不满C++的复杂性，旨在解决多核、网络化机器及大规模代码库带来的开发效率、静态类型安全与并发性能问题；该语言于2009年11月正式开源发布，并在2012年3月推出1.0稳定版本，凭借结合了C语言的运行效率与Python般的易读性，以及内置的CSP并发模型和围绕软件工程流程（如包管理、构建、测试）的生态优化，现已在Google及全球开源项目与生产环境中得到广泛应用。
+
+## Go学习资料
+
+
+# Archive
 
 ## w3schools
 - [w3schools](https://www.w3schools.com/go/go_getting_started.php)
@@ -1037,7 +1041,6 @@ Go是一个非常有特点的语言,一方面,他继承了多门语言的精华,
 4. `go run xxx.go`: 运行go文件
 
 需要注意的是,由于Go不支持相对路径的写法,每次跨包导入时,只能在包名前加上全名,比如说你的mod名字叫做`xk`那么导入`writer`包就要写成`import xk/writer`.
-# Go实战
 
 ## Go网络库
 ### net/http

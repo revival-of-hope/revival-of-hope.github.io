@@ -114,4 +114,7 @@ git clone https://github.com/fastapi/full-stack-fastapi-template.git
 
 #### 调研
 ##### 启动方法
-首先定位到
+首先定位到`deployment-docker-compose.md`文件,找到启动方法:
+```bash
+docker compose -f compose.yml up -d
+```
