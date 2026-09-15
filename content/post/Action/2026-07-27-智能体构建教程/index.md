@@ -5555,15 +5555,749 @@ def prepare_chat(
 先捋一下思路:
 1. 如果请求id为None,说明是新对话,所以要先创建一个对话
 2. 如果请求id不为None,说明是老对话,但这个对话id既有可能是瞎编的,也有可能是失效的,还有可能是其他用户的,所以需要经过一轮判断,这也是这里的处理函数带有两个属性参数的原因,如果没找到,就抛出异常.
+3. 如果没有抛出异常,则保存message到与之相关联的conversation中
+
+但关键就在这个异常上面,将`ConversationNotFoundError`和普通的`Exception`分开处理是有点扯淡了,如果没找到对话,自然不会触发数据库修改,那也就不存在`rollback`一说,如果触发了数据库修改`commit`,那也无法rollback了,所以直接合并异常处理就可以,但出于简化结构,甚至不需要异常处理都可以,于是,整个代码处理如下,看上去也清晰多了:
+```py
+def prepare_chat(
+    *,
+    session: Session,
+    user_id: int,
+    request: ChatRequest,
+) -> Conversation:
+    if request.conversation_id is None:
+        conversation = crud.create_conversation(
+            session=session,
+            user_id=user_id,
+            title=build_conversation_title(request.content),
+        )
+    else:
+        conversation = crud.get_conversation_for_user(
+            session=session,
+            conversation_id=request.conversation_id,
+            user_id=user_id,
+        )
+        if conversation is None:
+            raise ConversationNotFoundError
+    crud.save_message(
+        session=session,
+        conversation=conversation,
+        role=MessageRole.USER,
+        content=request.content,
+    )
+    return conversation
+```
+
+最后剩一个保存AI输出的函数,先看看样式:
+```py
+def stream_and_persist_assistant(
+    *,
+    conversation_id: int,
+    chunks: Iterator[str],
+) -> Iterator[str]:
+    collected_chunks: list[str] = []
+    completed = False
+
+    try:
+        for chunk in chunks:
+            if not chunk:
+                continue
+            collected_chunks.append(chunk)
+            yield chunk
+        completed = True
+    finally:
+        full_content = "".join(collected_chunks)
+        if completed and full_content:
+            with Session(engine) as session:
+                conversation = session.get(Conversation, conversation_id)
+                if conversation is not None:
+                    crud.save_message(
+                        session=session,
+                        conversation=conversation,
+                        role=MessageRole.ASSISTANT,
+                        content=full_content,
+                    )
+```
+
+首先是接收来自`stream_agent`函数的`chunks`,然后拼接成完整的文本,再存入数据库中
+
+但是,这里重新弄个session出来显然是有点离谱了,明明复用SessionDep才是明智的选择,而且呢,明明不需要异常处理却加个try-finally链还是太蠢了,重构版如下:
+```py
+def stream_and_save(
+    *,
+    session: Session,
+    conversation_id: int,
+    chunks: Iterator[str],
+) -> Iterator[str]:
+    collected_chunks: list[str] = []
+
+    for chunk in chunks:
+        if not chunk:
+            continue
+        collected_chunks.append(chunk)
+        yield chunk
+
+    full_content = "".join(collected_chunks)
+
+    if full_content:
+
+        conversation = session.get(Conversation, conversation_id)
+        if conversation is not None:
+            crud.save_message(
+                session=session,
+                conversation=conversation,
+                role=MessageRole.ASSISTANT,
+                content=full_content,
+            )
+```
+
+> `if full_content`和`if full_content is not None`的区别是什么呢
+>
+>当full_content为空字符串""时,前者依然判定为假,但后者判定为真
 
 
 
 #### 核心文件重构
 ##### crud.py
+用户部分的函数都没有改动,但对话部分确实需要一点经验来处理:
+```py
+def create_conversation(
+    *,
+    session: Session,
+    user_id: int,
+    title: str,
+) -> Conversation:
+    conversation = Conversation(user_id=user_id, title=title)
+    session.add(conversation)
+    session.flush()
+    return conversation
 
-## ch12: 完善CRUD和数据库管理,加入管理员用户
+
+def get_conversation_for_user(
+    *,
+    session: Session,
+    conversation_id: int,
+    user_id: int,
+) -> Conversation | None:
+    statement = select(Conversation).where(
+        Conversation.conversation_id == conversation_id,
+        Conversation.user_id == user_id,
+    )
+    return session.exec(statement).first()
+
+
+def list_conversations(
+    *,
+    session: Session,
+    user_id: int,
+    offset: int = 0,
+    limit: int = 20,
+) -> Sequence[Conversation]:
+    statement = (
+        select(Conversation)
+        .where(Conversation.user_id == user_id)
+        .order_by(
+            desc(Conversation.updated_at),
+            desc(Conversation.conversation_id),
+        )
+        .offset(offset)
+        .limit(limit)
+    )
+    return session.exec(statement).all()
+
+
+def save_message(
+    *,
+    session: Session,
+    conversation: Conversation,
+    role: MessageRole,
+    content: str,
+) -> Message:
+    if conversation.conversation_id is None:
+        raise ValueError("Conversation must be persisted before saving messages")
+
+    message = Message(
+        conversation_id=conversation.conversation_id,
+        role=role,
+        content=content,
+    )
+    conversation.updated_at = get_datetime()
+    session.add(message)
+    session.add(conversation)
+    session.commit()
+    session.refresh(message)
+    return message
+
+
+def list_messages(
+    *,
+    session: Session,
+    conversation_id: int,
+    offset: int = 0,
+    limit: int = 100,
+) -> Sequence[Message]:
+    statement = (
+        select(Message)
+        .where(Message.conversation_id == conversation_id)
+        .order_by(Message.created_at, Message.message_id)
+        .offset(offset)
+        .limit(limit)
+    )
+    return session.exec(statement).all()
+
+
+def get_history_message(
+    *,
+    session: Session,
+    conversation_id: int,
+    limit: int = 4,
+) -> list[Message]:
+    if limit < 1:
+        return []
+
+    statement = (
+        select(Message)
+        .where(Message.conversation_id == conversation_id)
+        .order_by(
+            desc(Message.created_at),
+            desc(Message.message_id),
+        )
+        .limit(limit)
+    )
+    messages = list(session.exec(statement).all())
+    messages.reverse()
+    return messages
+```
+
+1. `create_conversation`
+   1. 明明Conversation有那么多参数,这怎么就用了两个呢,因为`default_factory`参数会自动触发生成函数
+   2. 这里为什么用的是`flush`来执行SQL呢,那是因为我们之前的agent里考虑到要通过`rollback`来撤销修改,但要我说就是脱裤子放屁,对于一般的网站项目来说,直接`commit`就行了
+2. `get_conversation_for_user`
+   1. 没什么好说的,用于定位特定的对话
+3. `list_conversations`
+   1. 用`Sequence`是完全没必要的,用list注解就足够了,但由于SQLModel执行语句`all`时返回的结果类型注解为`Sequence`,所以只好照用了.
+4. `save_message`
+   1. 首先这个异常处理是不需要的,毕竟我们会在用到函数前处理掉所以id为None的情况
+   2. 之所以需要传入`conversation`整体,而非直接传入`conversation_id`属性,是因为我们刚好需要更新`conversation`这个整体,如果换成`conversation_id`,不仅这里要重新根据id找到`conversation`,还要在上层函数里额外处理传入一次,显然不合理了
+5. `list_messages`与`get_history_message`
+   1. 定位conversation,然后获取所有/部分消息
+   2. 不过这里的类型注解比较混乱,还是直接统一为好.
+
+最后,只剩下路由部分了,我们来看看AI大人是怎么处理的
+##### user.py
+```py
+from fastapi import APIRouter, HTTPException, status
+from sqlalchemy.exc import IntegrityError
+
+from app import crud
+from app.api.deps import CurrentUser, SessionDep
+from app.models import User, UserPublic, UserRegister
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+
+@router.post("", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
+def register_user(session: SessionDep, user_in: UserRegister) -> User:
+    if crud.get_user_by_name(session=session, name=user_in.name):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Name already exists",
+        )
+    try:
+        return crud.register_user(session=session, user_register=user_in)
+    except IntegrityError as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Name already exists",
+        ) from exc
+
+
+@router.get("/me", response_model=UserPublic)
+def get_current_user_profile(current_user: CurrentUser) -> User:
+    return current_user
+```
+基本没什么改动,但我原来的`model_validate`调用确实是多余的,AI直接帮我删掉了.
+
+然后`utils.py`是没动过的,关键就在于`messages.py`了
+##### message.py
+```py
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
+from openai import OpenAIError
+
+from app import crud
+from app.api.deps import CurrentUser, SessionDep
+from app.models import (
+    ChatRequest,
+    Conversation,
+    ConversationPublic,
+    Message,
+    MessagePublic,
+)
+from app.services.chat import (
+    ConversationNotFoundError,
+    prepare_chat,
+    stream_and_persist_assistant,
+)
+from app.utils.client import stream_agent
+
+router = APIRouter(tags=["conversations"])
+HISTORY_MESSAGE_LIMIT = 4
+
+
+def _current_user_id(current_user: CurrentUser) -> int:
+    if current_user.id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authenticated user",
+        )
+    return current_user.id
+
+
+@router.get("/conversations", response_model=list[ConversationPublic])
+def get_conversations(
+    session: SessionDep,
+    current_user: CurrentUser,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> list[Conversation]:
+    conversations = crud.list_conversations(
+        session=session,
+        user_id=_current_user_id(current_user),
+        offset=offset,
+        limit=limit,
+    )
+    return list(conversations)
+
+
+@router.get("/messages", response_model=list[MessagePublic])
+def get_messages(
+    conversation_id: Annotated[int, Query(ge=1)],
+    session: SessionDep,
+    current_user: CurrentUser,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 100,
+) -> list[Message]:
+    conversation = crud.get_conversation_for_user(
+        session=session,
+        conversation_id=conversation_id,
+        user_id=_current_user_id(current_user),
+    )
+    if conversation is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+
+    messages = crud.list_messages(
+        session=session,
+        conversation_id=conversation_id,
+        offset=offset,
+        limit=limit,
+    )
+    return list(messages)
+
+
+@router.post("/messages")
+def chat(
+    request: ChatRequest,
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> StreamingResponse:
+    try:
+        conversation = prepare_chat(
+            session=session,
+            user_id=_current_user_id(current_user),
+            request=request,
+        )
+    except ConversationNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        ) from exc
+
+    if conversation.conversation_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Conversation could not be created",
+        )
+
+    history = crud.get_history_message(
+        session=session,
+        conversation_id=conversation.conversation_id,
+        # The current user message is already stored. Keep it plus four
+        # preceding messages (two completed turns) in the model context.
+        limit=HISTORY_MESSAGE_LIMIT + 1,
+    )
+    try:
+        chunks = stream_agent(history=history)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    except OpenAIError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Model service is unavailable",
+        ) from exc
+
+    return StreamingResponse(
+        stream_and_persist_assistant(
+            conversation_id=conversation.conversation_id,
+            chunks=chunks,
+        ),
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "X-Conversation-ID": str(conversation.conversation_id),
+        },
+    )
+```
+1. 这个`_current_user_id`可以说是惊为天人的设计好不好,毕竟这些请求都需要验证用户的id是否为None,如此一来简化了很多验证流程呢
+2. 前面几个API都没有任何问题,特别的美观,但最后一个实在是有点过分了,我们先看看流程:
+   1. (创建)返回conversation
+   2. 然后是获取历史消息,并用stream_agent向API发送请求获取AI输出
+   3. 最后返回输出流
+
+除去不必要的异常处理后,代码精简如下:
+```py
+@router.post("/messages")
+def chat(
+    request: ChatRequest,
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> StreamingResponse:
+    try:
+        conversation = prepare_chat(
+            session=session,
+            user_id=_current_user_id(current_user),
+            request=request,
+        )
+    except ConversationNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+
+    if conversation.conversation_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Conversation could not be created",
+        )
+
+    history = crud.get_history_message(
+        session=session,
+        conversation_id=conversation.conversation_id,
+        # The current user message is already stored. Keep it plus four
+        # preceding messages (two completed turns) in the model context.
+        limit=HISTORY_MESSAGE_LIMIT + 1,
+    )
+
+    chunks = stream_agent(history=history)
+
+    return StreamingResponse(
+        stream_and_save(
+            session=session,
+            conversation_id=conversation.conversation_id,
+            chunks=chunks,
+        ),
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "X-Conversation-ID": str(conversation.conversation_id),
+        },
+    )
+```
+
+### models.py拆分
+先看看我们原来的设计:
+```py
+from enum import Enum
+from sqlmodel import Relationship, SQLModel, Field, Text
+from datetime import UTC, datetime
+
+
+def get_datetime() -> datetime:
+    return datetime.now(UTC)
+
+
+# User
+
+
+class UserBase(SQLModel):
+    name: str = Field(min_length=1, max_length=30)
+
+
+class UserRegister(UserBase):
+    # 写成1是为了偷懒~
+    password: str = Field(min_length=1, max_length=15)
+
+
+class UserPublic(UserBase):
+    id: int
+    created_at: datetime
+    is_active: bool
+
+
+class User(UserBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str = Field(max_length=256)
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversations: list["Conversation"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+
+
+# Conversation
+class ConversationBase(SQLModel):
+    title: str | None = Field(default="新对话", min_length=1, max_length=120)
+
+
+class ConversationPublic(ConversationBase):
+    conversation_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class Conversation(ConversationBase, table=True):
+    conversation_id: int | None = Field(default=None, primary_key=True)
+
+    user_id: int = Field(foreign_key="user.id")
+    user: User | None = Relationship(back_populates="conversations")
+
+    messages: list["Message"] = Relationship(
+        back_populates="conversation",
+        cascade_delete=True,
+    )
+    created_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+    updated_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+
+
+# Message
+
+
+# 用于判断消息类型,从而区分用户提问和AI回答
+class MessageRole(str, Enum):
+    USER = "user"
+    ASSISTANT = "assistant"
+
+
+class ChatRequest(SQLModel):
+    # 根据id是否为空可以判断是否为已有对话
+    conversation_id: int | None = Field(default=None, ge=1)
+    content: str = Field(min_length=1, max_length=20_000)
+
+
+class MessageBase(SQLModel):
+
+    conversation_id: int | None = Field(
+        foreign_key="conversation.conversation_id",
+        ondelete="CASCADE",
+    )
+    role: MessageRole
+    # sa_type表示强制让引擎把content的类型改为Text,
+    # 从而可以支持存储AI输出的冗长文本
+    content: str = Field(sa_type=Text, nullable=False)
+
+
+class MessagePublic(MessageBase):
+    message_id: int
+    created_at: datetime
+
+
+class Message(MessageBase, table=True):
+    message_id: int = Field(
+        default=None,
+        primary_key=True,
+    )
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversation: Conversation | None = Relationship(
+        back_populates="messages",
+    )
+
+
+class ConversationDetail(ConversationPublic):
+    messages: list[MessagePublic] = Field(default_factory=list)
+
+
+# Token
+
+
+class Token(SQLModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenPayload(SQLModel):
+    sub: str
+```
+看起来很累对不对,这也不奇怪,毕竟schema和model混在一起了,但一个是用于API返回的数据校验,一个是用于真实存储数据库中的表,本来就是应该分离的,不过由于目前的模型还不多,简单的拆分成`schemas.py`和`tables.py`就可以了,做法上很简单,将不涉及CRUD的全部拆分出去,保留基础表就可以了.
+
+看下效果:
+
+**models.py**
+```py
+from enum import Enum
+from sqlmodel import Relationship, SQLModel, Field, Text
+from datetime import UTC, datetime
+
+
+# 用于判断消息类型,从而区分用户提问和AI回答
+class MessageRole(str, Enum):
+    USER = "user"
+    ASSISTANT = "assistant"
+
+
+def get_datetime() -> datetime:
+    return datetime.now(UTC)
+
+
+# User
+class UserBase(SQLModel):
+    name: str = Field(min_length=1, max_length=30)
+
+
+class User(UserBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str = Field(max_length=256)
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversations: list["Conversation"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+
+
+# Conversation
+class ConversationBase(SQLModel):
+    title: str | None = Field(default="新对话", min_length=1, max_length=120)
+
+
+class Conversation(ConversationBase, table=True):
+    conversation_id: int | None = Field(default=None, primary_key=True)
+
+    user_id: int = Field(foreign_key="user.id")
+    user: User | None = Relationship(back_populates="conversations")
+
+    messages: list["Message"] = Relationship(
+        back_populates="conversation",
+        cascade_delete=True,
+    )
+    created_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+    updated_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+
+
+# Message
+
+
+class MessageBase(SQLModel):
+    conversation_id: int | None = Field(
+        foreign_key="conversation.conversation_id",
+        ondelete="CASCADE",
+    )
+    role: MessageRole
+    # sa_type表示强制让引擎把content的类型改为Text,
+    # 从而可以支持存储AI输出的冗长文本
+    content: str = Field(sa_type=Text, nullable=False)
+
+
+class Message(MessageBase, table=True):
+    message_id: int = Field(
+        default=None,
+        primary_key=True,
+    )
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversation: Conversation | None = Relationship(
+        back_populates="messages",
+    )
+```
+**schemas.py**
+```py
+from sqlmodel import SQLModel, Field
+from datetime import UTC, datetime
+from app.models.models import UserBase, MessageBase, ConversationBase
+
+
+# User
+class UserPublic(UserBase):
+    id: int
+    created_at: datetime
+    is_active: bool
+
+
+class UserRegister(UserBase):
+    # 写成1是为了偷懒~
+    password: str = Field(min_length=1, max_length=15)
+
+
+# Message
+class MessagePublic(MessageBase):
+    message_id: int
+    created_at: datetime
+
+
+# Conversation
+class ConversationPublic(ConversationBase):
+    conversation_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+# Request
+class ChatRequest(SQLModel):
+    # 根据id是否为空可以判断是否为已有对话
+    conversation_id: int | None = Field(default=None, ge=1)
+    content: str = Field(min_length=1, max_length=20_000)
+
+# Token
+class Token(SQLModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenPayload(SQLModel):
+    sub: str
+```
+
+可以看到原来的models.py美观了很多呢.
+
+不过一个个重新改导入路径也太low了,有一个非常强力的方法,新建一个`__init__.py`,并将所有模型导入即可保证依赖路径不变:
+
+![示意图](PixPin_2026-09-15_15-44-52.webp)
+
+
+### 查收效果
+怎么查收呢,自然是重新让AI生成一个适配新版后端的前端啦😄
+
+![效果](PixPin_2026-09-15_20-11-48.webp)
+
+成功实现多轮对话,但这一步确实远比我想象的要麻烦的多.
+
+
+## ch12: 加入管理员和数据库管理系统
+
+### 加入管理员(superuser)
+#### 管理员功能构思
+首先
+
 ### 数据库管理系统选择
 - adminer与dbgate.
-## ch13: 加入文件上传,实现多模态和多智能体
+## ch13: 加入文件上传功能,实现多模态
 # 智能体进阶
 
