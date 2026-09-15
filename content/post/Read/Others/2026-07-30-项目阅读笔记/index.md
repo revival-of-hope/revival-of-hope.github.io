@@ -102,7 +102,7 @@ async def get_user_tools() -> ToolsResponse:
 >
 >Trojan is not a fixed program or protocol. It's an idea, an idea that imitating the most common service, to an extent that it behaves identically, could help you get across the *** permanently, without being identified ever. We are the GreatER Fire; we ship Trojan Horses.
 
-## python
+## Full-Stack
 ### full-stack-fastapi-template
 - (9/11): 最近心烦意乱,就来看看带我走入编程世界的奠基项目了
 ```bash
@@ -112,9 +112,199 @@ git clone https://github.com/fastapi/full-stack-fastapi-template.git
 
 不过这项目半年来的变化也太大了,新人或许都找不到启动方法了😄
 
-#### 调研
-##### 启动方法
+
+#### 启动方法
 首先定位到`deployment-docker-compose.md`文件,找到启动方法:
 ```bash
 docker compose -f compose.yml up -d
 ```
+结果发现只有backend容器,而没有以前的frontend容器了.
+
+打开`compose.yml`一看,发现原来的frontend镜像消失了,然后在文档里是这么说的:
+
+>The backend Docker image builds the frontend, so the server does not need Bun or prebuilt frontend files.
+
+?还能这么玩,看一下后端的dockerfile:
+
+```dockerfile
+FROM oven/bun:1 AS frontend-build
+
+WORKDIR /app
+
+COPY package.json bun.lock /app/
+COPY frontend/package.json /app/frontend/
+
+WORKDIR /app/frontend
+
+RUN bun install
+
+COPY ./frontend /app/frontend
+
+ARG VITE_API_URL=
+
+RUN bun run build
+
+
+FROM python:3.14
+
+ENV PYTHONUNBUFFERED=1
+
+# Install uv
+# Ref: https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
+COPY --from=ghcr.io/astral-sh/uv:0.9.26 /uv /uvx /bin/
+
+# Compile bytecode
+# Ref: https://docs.astral.sh/uv/guides/integration/docker/#compiling-bytecode
+ENV UV_COMPILE_BYTECODE=1
+
+# uv Cache
+# Ref: https://docs.astral.sh/uv/guides/integration/docker/#caching
+ENV UV_LINK_MODE=copy
+
+WORKDIR /app/
+
+# Place executables in the environment at the front of the path
+# Ref: https://docs.astral.sh/uv/guides/integration/docker/#using-the-environment
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Install dependencies
+# Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-workspace --package app
+
+COPY ./backend/scripts /app/backend/scripts
+
+COPY ./backend/pyproject.toml ./backend/alembic.ini /app/backend/
+
+COPY ./backend/app /app/backend/app
+
+COPY --from=frontend-build /app/backend/app/frontend /app/backend/app/frontend
+
+# Sync the project
+# Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --package app
+
+WORKDIR /app/backend/
+
+CMD ["fastapi", "run", "--workers", "4"]
+```
+
+仔细一看,这前端岂不是完全没有考虑到缓存删除的问题,而且每次修改前端都会触发镜像的重新构建,不过确实是这样,毕竟UI的修改确实是有必要每次都触发重新构建的.
+
+可以说这是精简镜像,但我觉得反而有点过于优化了,作为普通的网站项目,不够清晰.
+
+#### 外文件
+##### main.py
+```py
+from pathlib import Path
+
+import sentry_sdk
+from fastapi import FastAPI
+from fastapi.routing import APIRoute
+from starlette.middleware.cors import CORSMiddleware
+
+from app.api.main import api_router
+from app.core.config import settings
+
+FRONTEND_DIR = Path(__file__).parent / "frontend"
+
+
+def custom_generate_unique_id(route: APIRoute) -> str:
+    return f"{route.tags[0]}-{route.name}"
+
+
+if settings.SENTRY_DSN and settings.FASTAPI_ENV != "development":
+    sentry_sdk.init(dsn=str(settings.SENTRY_DSN), enable_tracing=True)
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    generate_unique_id_function=custom_generate_unique_id,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.FRONTEND_HOST],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(api_router, prefix=settings.API_V1_STR)
+app.frontend("/", directory=FRONTEND_DIR)
+```
+
+最后一行这个方法真没见过,发现是今年6月份才引入的,更新的确实快.
+
+##### models.py
+```py
+# Shared properties
+class UserBase(SQLModel):
+    email: EmailStr = Field(unique=True, index=True, max_length=255)
+    is_active: bool = True
+    is_superuser: bool = False
+    full_name: str | None = Field(default=None, max_length=255)
+
+class UserCreate(UserBase):
+    password: str = Field(min_length=8, max_length=128)
+
+
+class UserRegister(SQLModel):
+    email: EmailStr = Field(max_length=255)
+    password: str = Field(min_length=8, max_length=128)
+    full_name: str | None = Field(default=None, max_length=255)
+```
+
+看一下路由代码便知道,`UserRegister`用于用户在前端的输入返回模型,而`UserCreate`用于最终的CRUD验证,还是很合理的.
+
+唯一需要吐槽的地方就是schema和model放在一起了,看起来其实非常麻烦,我认为更好的方式是分成两个文件,甚至分成两个文件夹.
+
+
+
+#### API设计
+##### item.py
+```py
+@router.get("/", response_model=ItemsPublic)
+def read_items(
+    session: SessionDep, current_user: CurrentUser, skip: int = 0, limit: int = 100
+) -> Any:
+    """
+    Retrieve items.
+    """
+
+    if current_user.is_superuser:
+        count_statement = select(func.count()).select_from(Item)
+        count = session.exec(count_statement).one()
+        statement = (
+            select(Item).order_by(col(Item.created_at).desc()).offset(skip).limit(limit)
+        )
+        items = session.exec(statement).all()
+    else:
+        count_statement = (
+            select(func.count())
+            .select_from(Item)
+            .where(Item.owner_id == current_user.id)
+        )
+        count = session.exec(count_statement).one()
+        statement = (
+            select(Item)
+            .where(Item.owner_id == current_user.id)
+            .order_by(col(Item.created_at).desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        items = session.exec(statement).all()
+
+    items_public = [ItemPublic.model_validate(item) for item in items]
+    return ItemsPublic(data=items_public, count=count)
+```
+没有单独为管理员另外设计一个路由,而是通过条件判断直接分离,还是很有想法的.
+
+### [Zulip](https://zulip.com/)
+
+

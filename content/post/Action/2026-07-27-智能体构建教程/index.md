@@ -5353,68 +5353,213 @@ def get_history_message(
     messages.reverse()
     return messages
 ```
-### 再次修改agent
-这次有了获取历史消息的接口后,原来的`client.py`就好改了:
+### AI神力
+- 俗话说的好,`干不了就别逞强`,要学会适当地放下😅
+
+剩余部分的重构超出我目前的能力范围了,改了最少三四版,但总觉得API设计有问题,怎么改都觉得模型不够美观和清晰,毕竟Github上都找不到适合我这个技术栈的人工仓库,想借鉴都没地方查呢,所以只好将这一部分交给AI解决了,最后的版本在仓库中可以看到.
+
+我们先来看看AI的重构是怎样的,好从中学习到多轮对话的标准写法.
+
+#### Agent重构
+##### stream.py
 ```py
-from app.models import Conversation, MessageRole
-from app.utils.stream import (
-    build_messages,
-    stream_response,
-    create_stream,
-    create_client,
-)
-from typing import Generator
-from app.core.config import settings
-from app.utils.stream import stream_and_save
+def build_messages(
+    *,
+    system_prompt: str,
+    history: Sequence[Message],
+) -> list[ChatCompletionMessageParam]:
+    messages: list[ChatCompletionMessageParam] = [
+        ChatCompletionSystemMessageParam(role="system", content=system_prompt)
+    ]
+    for message in history:
+        if message.role is MessageRole.USER:
+            messages.append(
+                ChatCompletionUserMessageParam(
+                    role="user",
+                    content=message.content,
+                )
+            )
+        else:
+            messages.append(
+                ChatCompletionAssistantMessageParam(
+                    role="assistant",
+                    content=message.content,
+                )
+            )
+    return messages
+```
+我一开始的`build_messages`可是直接把history加入列表的,如今来看,确实不够美观,但这里的`ChatCompletionSystemMessageParam`实在是跟天书没有什么区别了,毕竟,就连官方文档里都查不到呢:
+
+![搜索结果](PixPin_2026-09-14_23-17-42.webp)
+
+简单来说,我们平常的消息列表是这么写的:
+```py
+messages = [
+    {
+        "role": "system",
+        "content": "You are a helpful assistant."
+    },
+    {
+        "role": "user",
+        "content": "Hello"
+    }
+]
+```
+但openAI python库在1.1.0版本中引入了更为规范的格式写法:
+```py
+from openai.types.chat import ChatCompletionSystemMessageParam
+
+system_message: ChatCompletionSystemMessageParam = {
+    "role": "system",
+    "content": "You are a helpful assistant."
+}
+```
+其实也很好理解,这是在通过模型强制要求要有`"role": "system"`字段和`content`字段罢了.
+
+那么,另外两个`ChatCompletionUserMessageParam`和`ChatCompletionMessageParam`模型就很好理解了,分别对应的用户消息和总消息模型而已.
+
+所以,上述代码只不过是先弄了一个初始化列表,然后从历史消息中将消息逐个按照角色加入列表中.
+
+##### chat.py
+AI给我分离了一个`chat.py`出来,将流式消息收发和对话分离,这确实做得很好,看一下实现:
+```py
+from collections.abc import Iterator
+
 from sqlmodel import Session
 
-from app.crud import get_history_message, save_message
+from app import crud
+from app.core.db import engine
+from app.models import ChatRequest, Conversation, MessageRole
 
-client = create_client(settings.DEEPSEEK_API_KEY, settings.DEEPSEEK_URL)
-
-DEFAULT_MODEL = "deepseek-v4-pro"
-
-DEFAULT_SYSTEM_PROMPT = "以后的回答都要优先输出一句话,我是deepseek-v4-pro."
+TITLE_LENGTH = 10
 
 
-def stream_agent(
+class ConversationNotFoundError(Exception):
+    """Raised when a conversation is absent or belongs to another user."""
+
+
+def build_conversation_title(content: str) -> str:
+    normalized = " ".join(content.split())
+    return normalized[:TITLE_LENGTH] or "新对话"
+
+
+def prepare_chat(
     *,
     session: Session,
-    conversation: Conversation,
-    model: str = DEFAULT_MODEL,
-    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
-    user_message: str
-) -> Generator[str, None, None]:
-    
-    # 保存用户消息
-    save_message(
-        session=session,
-        conversation=conversation,
-        role=MessageRole.USER,
-        content=user_message,
-    )
+    user_id: int,
+    request: ChatRequest,
+) -> Conversation:
+    try:
+        if request.conversation_id is None:
+            conversation = crud.create_conversation(
+                session=session,
+                user_id=user_id,
+                title=build_conversation_title(request.content),
+            )
+        else:
+            conversation = crud.get_conversation_for_user(
+                session=session,
+                conversation_id=request.conversation_id,
+                user_id=user_id,
+            )
+            if conversation is None:
+                raise ConversationNotFoundError
 
-    # 获取历史消息
-    history_message = get_history_message(session=session, conversation=conversation)
+        crud.save_message(
+            session=session,
+            conversation=conversation,
+            role=MessageRole.USER,
+            content=request.content,
+        )
+    except ConversationNotFoundError:
+        raise
+    except Exception:
+        session.rollback()
+        raise
 
-    # 构造消息列表
-    message_list = build_messages(user_message, system_prompt, history_message)
+    return conversation
 
-    # 打开通信流
-    stream = create_stream(client, model, message_list)
 
-    # 获取流式消息
-    chunks = stream_response(stream)
+def stream_and_persist_assistant(
+    *,
+    conversation_id: int,
+    chunks: Iterator[str],
+) -> Iterator[str]:
+    collected_chunks: list[str] = []
+    completed = False
 
-    # 保存AI消息
-    yield from stream_and_save(
-        chunks=chunks,
-        conversation=conversation,
-        session=session,
-    )
+    try:
+        for chunk in chunks:
+            if not chunk:
+                continue
+            collected_chunks.append(chunk)
+            yield chunk
+        completed = True
+    finally:
+        full_content = "".join(collected_chunks)
+        if completed and full_content:
+            with Session(engine) as session:
+                conversation = session.get(Conversation, conversation_id)
+                if conversation is not None:
+                    crud.save_message(
+                        session=session,
+                        conversation=conversation,
+                        role=MessageRole.ASSISTANT,
+                        content=full_content,
+                    )
 ```
-保存用户消息和发送API请求本来应该是分离的,但这里为了方便,先写在一起,日后再拆分.
 
+1. 首先是引入了一个关于对话id的一个异常,不用说,确实很有必要.
+2. 接着构建一个产生标题的函数,首先设置`TITLE_LENGTH`为10,然后删除首尾空白，并把连续空格、换行符、制表符统一整理成一个普通空格,然后如果截取后的标题不是空字符串，就返回标题,确实很美丽,但拆分一下的话我认为才具有可读性.
+
+再来看一下重头戏`prepare_chat`:
+
+```py
+def prepare_chat(
+    *,
+    session: Session,
+    user_id: int,
+    request: ChatRequest,
+) -> Conversation:
+    try:
+        if request.conversation_id is None:
+            conversation = crud.create_conversation(
+                session=session,
+                user_id=user_id,
+                title=build_conversation_title(request.content),
+            )
+        else:
+            conversation = crud.get_conversation_for_user(
+                session=session,
+                conversation_id=request.conversation_id,
+                user_id=user_id,
+            )
+            if conversation is None:
+                raise ConversationNotFoundError
+
+        crud.save_message(
+            session=session,
+            conversation=conversation,
+            role=MessageRole.USER,
+            content=request.content,
+        )
+    except ConversationNotFoundError:
+        raise
+    except Exception:
+        session.rollback()
+        raise
+
+    return conversation
+```
+
+先捋一下思路:
+1. 如果请求id为None,说明是新对话,所以要先创建一个对话
+2. 如果请求id不为None,说明是老对话,但这个对话id既有可能是瞎编的,也有可能是失效的,还有可能是其他用户的,所以需要经过一轮判断,这也是这里的处理函数带有两个属性参数的原因,如果没找到,就抛出异常.
+
+
+
+#### 核心文件重构
+##### crud.py
 
 ## ch12: 完善CRUD和数据库管理,加入管理员用户
 ### 数据库管理系统选择

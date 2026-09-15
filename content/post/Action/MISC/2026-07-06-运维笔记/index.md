@@ -52,8 +52,12 @@ image: 57793944_p0-浴衣とお面.webp
 |       2022 | [Tetragon](https://tetragon.io/docs/)                                                             | 运行时安全、可观测性 | Kubernetes、容器和Linux主机            | ● 快速增长       |
 |       2023 | [OpenTofu](https://opentofu.org/blog/opentofu-announces-fork-of-terraform/)                       | 开源基础设施即代码   | Terraform替代、云资源和SaaS资源管理    | 🔥 快速增长       |
 |       2023 | [OpenBao](https://openbao.org/blog/cipherboy-ossna-26-talk/)                                      | 开源密钥管理         |                                        |                  |
+# 容器,服务器与虚拟机
+## Linux命令
+### 学习资料
+- [在线学习](https://cmdchallenge.com/#/move_file)
 
-# 容器
+
 ## Docker 
 推荐阅读: [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice)
 # 自动部署与自动构建

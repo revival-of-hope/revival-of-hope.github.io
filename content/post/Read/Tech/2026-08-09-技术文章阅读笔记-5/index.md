@@ -49,6 +49,24 @@ str 类型是硬编码进可执行文件，也无法被修改，但是 String �
 
 - 这一段话太关键了,之前那本rust书都没有清楚的指出这一点,导致我之前都懵懵懂懂的
 
+简单来说,`String`可以自动被编译器转换成`&str`:
+```rs
+fn print_text(s: &str) {
+    println!("{}", s);
+}
+
+let s = String::from("hello");
+
+print_text(&s);
+// 自动解引用
+```
+而`&str`想要转换成`&String`,则需要用到转换函数,并发生新的内存分配:
+```rs
+let s: &str = "hello";
+
+let owned: String = s.to_string();
+```
+
 ##### 切片
 切片的写法如下:
 ```rs
@@ -657,7 +675,258 @@ for (key, value) in &scores {
 }
 ```
 ### 认识生命周期
+```rs
+{
+    let r;                // ---------+-- 'a
+                          //          |
+    {                     //          |
+        let x = 5;        // -+-- 'b  |
+        r = &x;           //  |       |
+    }                     // -+       |
+                          //          |
+    println!("r: {}", r); //          |
+}                         // ---------+
+```
+上述的`'a`和`'b`表示生命周期,即变量的存活时间.为了使得程序正常运行,生命周期更长的变量不能借用生命周期更短的变量,否则容易引发悬垂指针等问题.
 
+```rs
+fn main() {
+    let string1 = String::from("abcd");
+    let string2 = "xyz";
+
+    let result = longest(string1.as_str(), string2);
+    println!("The longest string is {}", result);
+}
+
+fn longest(x: &str, y: &str) -> &str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+```
+![报错信息](PixPin_2026-09-14_09-45-55.webp)
+
+尽管确实无法提前得知这个返回值是引用的哪个变量,但直接报错也太过分了吧.
+
+为了让编译器听话,我们需要加上生命周期的注释,跟Java中的注解作用类似,只不过我们的目的是为了不报错而已.
+
+生命周期的语法也颇为与众不同，以 ' 开头，名称往往是一个单独的小写字母，大多数人都用 'a 来作为生命周期的名称。 如果是引用类型的参数，那么生命周期会位于引用符号 & 之后，并用一个空格来将生命周期和引用参数分隔开:
+```rs
+&i32        // 一个引用
+&'a i32     // 具有显式生命周期的引用
+&'a mut i32 // 具有显式生命周期的可变引用
+```
+
+上述的代码我们可以这么改:
+```rs
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+```
+此处生命周期标注仅仅说明，这两个参数至少活得和'a 一样久，至于到底活多久或者哪个活得更久，抱歉我们都无法得知.
+
+实际上，在 Rust 1.0 版本之前， Rust 要求必须显式的为所有引用标注生命周期：
+```rs
+fn first_word<'a>(s: &'a str) -> &'a str {}
+```
+>在写了大量的类似代码后，Rust 社区抱怨声四起，包括开发者自己都忍不了了，最终揭锅而起，这才有了我们今日的幸福。
+#### 编译规则
+
+编译器使用三条消除规则来确定哪些场景不需要显式地去标注生命周期。其中第一条规则应用在输入生命周期上，第二、三条应用在输出生命周期上。若编译器发现三条规则都不适用时，就会报错，提示你需要手动标注生命周期。
+
+1. 每一个引用参数都会获得独自的生命周期
+
+例如一个引用参数的函数就有一个生命周期标注：
+
+```rust
+fn foo<'a>(x: &'a i32)
+````
+
+两个引用参数的有两个生命周期标注：
+
+```rust
+fn foo<'a, 'b>(x: &'a i32, y: &'b i32)
+```
+
+依此类推。
+
+1. 若只有一个输入生命周期（函数参数中只有一个引用类型），那么该生命周期会被赋给所有的输出生命周期
+
+也就是所有返回值的生命周期都等于该输入生命周期。
+
+例如函数：
+
+```rust
+fn foo(x: &i32) -> &i32
+```
+
+`x` 参数的生命周期会被自动赋给返回值 `&i32`，因此该函数等同于：
+
+```rust
+fn foo<'a>(x: &'a i32) -> &'a i32
+```
+
+1. 若存在多个输入生命周期，且其中一个是 `&self` 或 `&mut self`，则 `&self` 的生命周期被赋给所有的输出生命周期
+
+拥有 `&self` 形式的参数，说明该函数是一个方法，该规则让方法的使用便利度大幅提升。
+
+
+
+#### 方法中的生命周期
+```rs
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Point<T> {
+    fn x(&self) -> &T {
+        &self.x
+    }
+}
+```
+生命周期的语法和泛型相同:
+```rs
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+
+impl<'a> ImportantExcerpt<'a> {
+    fn level(&self) -> i32 {
+        3
+    }
+}
+```
+- impl 中必须使用结构体的完整名称，包括 <'a>，因为生命周期标注也是结构体类型的一部分！
+- 方法签名中，往往不需要标注生命周期，得益于生命周期消除的第一和第三规则
+
+#### 静态生命周期
+在 Rust 中有一个非常特殊的生命周期，那就是 'static，拥有该生命周期的引用可以和整个程序活得一样久。
+
+>这时候，有些聪明的小脑瓜就开始开动了：当生命周期不知道怎么标时，对类型施加一个静态生命周期的约束 T: 'static 是不是很爽？这样我和编译器再也不用操心它到底活多久了。
+
+### 返回值和错误处理
+#### panic 深入剖析
+在某些特殊场景中，开发者想要主动抛出一个异常，例如开头提到的在系统启动阶段读取文件失败。
+
+对此，Rust 为我们提供了 panic! 宏，当调用执行该宏时，程序会打印出一个错误信息，展开报错点往前的函数调用堆栈，最后退出程序。
+```rs
+fn main() {
+    panic!("crash and burn");
+}
+
+thread 'main' panicked at 'crash and burn', src/main.rs:2:5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+```
+
+>长话短说，如果是 main 线程，则程序会终止，如果是其它子线程，该线程会终止，但是不会影响 main 线程。因此，尽量不要在 main 线程中做太多任务，将这些任务交由子线程去做，就算子线程 panic 也不会导致整个程序的结束。
+
+显然,panic是一个大杀器,只适合于抛出那些一定有严重影响的异常,如果仅仅是用户的输入错误,那用普通的异常处理就够了.
+
+#### 异常枚举Result
+Result的定义如下:
+```rs
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
+用法如下:
+```rs
+use std::fs::File;
+
+fn main() {
+    // open返回一个Result枚举类型
+    let f = File::open("hello.txt");
+
+    let f = match f {
+        Ok(file) => file,
+        Err(error) => {
+            panic!("Problem opening the file: {:?}", error)
+        },
+    };
+}
+```
+直接panic有点过了,还可以这样写:
+```rs
+use std::fs::File;
+use std::io::ErrorKind;
+
+fn main() {
+    let f = File::open("hello.txt");
+
+    let f = match f {
+        Ok(file) => file,
+        Err(error) => match error.kind() {
+            ErrorKind::NotFound => match File::create("hello.txt") {
+                Ok(fc) => fc,
+                Err(e) => panic!("Problem creating the file: {:?}", e),
+            },
+            other_error => panic!("Problem opening the file: {:?}", other_error),
+        },
+    };
+}
+```
+#### 失败就 panic: unwrap 和 expect
+expect 跟 unwrap 很像，也是遇到错误直接 panic, 但是会带上自定义的错误提示信息，相当于重载了错误打印的函数：
+```rs
+use std::fs::File;
+
+fn main() {
+    let f = File::open("hello.txt").unwrap();
+}
+
+use std::fs::File;
+
+fn main() {
+    let f = File::open("hello.txt").expect("Failed to open hello.txt");
+}
+```
+#### 大杀器?
+```rs
+use std::fs::File;
+use std::io;
+use std::io::Read;
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut f = File::open("hello.txt")?;
+    let mut s = String::new();
+    f.read_to_string(&mut s)?;
+    Ok(s)
+}
+```
+其实 ? 就是一个宏，它的作用跟 match 几乎一模一样：
+```rs
+let mut f = match f {
+    // 打开文件成功，将file句柄赋值给f
+    Ok(file) => file,
+    // 打开文件失败，将错误返回(向上传播)
+    Err(e) => return Err(e),
+};
+```
+
+甚至还有调用链:
+```rs
+use std::fs::File;
+use std::io;
+use std::io::Read;
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut s = String::new();
+
+    File::open("hello.txt")?.read_to_string(&mut s)?;
+
+    Ok(s)
+}
+```
+看着很吓人,但联想一下Ts中的`?.`可选链,其实还是挺好看懂的.
+### 包和模块
 
 ### 注释和文档
 Rust的代码注释和Cpp完全相同,但它额外有一个文档注释的神奇功能
@@ -704,12 +973,251 @@ println!("{:04}", 42);             // => "0042" with leading zeros
 rust别具一格的使用`{}`作为占位符,并通过`"?`这样的简洁语法实现不同的格式化输出.
 
 
+
+# System Design Interview: An Insider’s Guide
+你就读吧,很久没见过这么干净利落的技术书籍了,对我的感触远比DDIA要震撼的多.
+## ch1: 网络扩展
+一个非常好的网络服务进阶流程概览
+
+## ch10: 通知系统设计
+![示意图](PixPin_2026-09-13_10-29-30.webp)
+
+尽管TCP的重传机制保证了我们的消息一定能够发送到用户设备里,但是这只是到了传输层为止,而在应用层,完全可能出现断连(如手机突然关机)等情况,这个时候由于我们收不到用户的通知反馈,只能选择重传,并通过`通知ID`来去重.
+
+## ch12: 聊天系统
+聊天系统中,尽管发送端发送消息是实时的,但接收端接收消息却不可能是这样的,一个简单的方法是通过长时的轮询(polling),每过一段时间就重新连接消息系统,查看有没有新消息.
+
+而官方的解决方案是WebSocket,这是一个由客户端发起的双向且持续的HTTP连接,从而保证用户能够实时地接收到消息.
+
+![应用架构](PixPin_2026-09-14_13-06-42.webp)
+
+### 用户连接断开
+
+>我们都希望互联网连接是稳定可靠的，但实际上并非总是如此，因此我们在设计中必须为这个问题给出应对方法。当用户与互联网断开连接时，客户端和服务器之间的持久连接就丢失了。处理用户断开连接的一个简单方法是，把用户状态标记为离线，然后当连接被重新建立时再将用户状态改为在线。但是，这个方法有个大缺陷。用户在短时间内频繁地断开连接和重新连接互联网是很常见的。举个例子，当用户正在穿越隧道时，网络连接会时有时无。在每次断开连接/重新连接时都更新在线状态，会让在线状态指示器变化太频繁，导致用户体验很差。
+
+
+这个问题可以通过心跳机制解决,客户端定期向服务器发送一次心跳,如果服务器在x秒内收到了信号,那么就认为用户是在线的.
+## ch13: Google补全
+一般的字典树每个节点存储一个前缀符或者单词,但这样一来在自动补全时就要经过大量的查询,一个非常合理的方法是在每个节点保留最高频的几个查询词,结构如下:
+
+![改良图](PixPin_2026-09-15_09-37-19.webp)
+
+![架构](PixPin_2026-09-15_09-45-01.webp)
+
+
+# Learning Go
+## ch1: 搭建环境
+```bash
+# 创建go模块
+go mod init hello_word
+# 编译go程序
+go build hello.go
+# 格式化go程序,应用于当前目录及所有子目录
+go fmt ./...
+```
+### 使用make
+```makefile
+.DEFAULT_GOAL := build
+.PHONY:fmt vet build
+fmt:
+	go fmt ./...
+vet: fmt 
+	go vet ./...
+build: vet
+	go build
+```
+在终端敲上`make`这个单词就可以自动运行build命令了.
+
+## ch2: 类型和声明
+### 字符串
+>Go 语言中的字符串是不可变的；你可以重新赋值给一个字符串变量，但你不能改变赋值给它的字符串的值。
+### 变量声明
+
+如果有初始化值,Go中的var声明都可以省略类型:
+```go
+var x = 10
+var x, y int = 10, 20
+var x, y = 10, "hello"
+var x int
+// 如果不写初始化值则构造为零值
+```
+
+
+另一个则是只能写在函数中作为局部变量声明的`:=`,同样不用指定类型:
+```go
+var x, y = 10, "hello"
+x, y := 10, "hello"
+```
+
+Go中的const声明如下:
+```go
+const x int64 = 10
+const (
+    idKey = "id"
+    nameKey = "name"
+)
+const z = 20 * 10
+```
+其中第二种声明方式显然比较有特色
+
+## ch3: 复合类型
+### 数组
+```go
+var x [3]int
+var x = [3]int{10, 20, 30}
+var x = [...]int{10, 20, 30} //自动推断长度
+```
+>Go 语言中的数组很少被显式使用。这是因为它们有一个特殊的限制：Go 将数组的大小视为数组类型的一部分。这使得声明为[3]int 的数组与声明为 [4]int 的数组类型不同
+### 切片
+切片的用法与数组类似,但声明时不用指定数组大小:
+```go
+var x = []int{10, 20, 30}
+```
+#### make内置函数
+指定切片类型,零值数量,总容量.
+```go
+x := make([]int, 5,10)
+```
+#### 从数组/切片中创建切片
+```go
+x := []string{"a", "b", "c", "d"}
+y := x[:2]
+z := x[1:]
+d := x[1:3]
+e := x[:]
+fmt.Println("x:", x)
+fmt.Println("y:", y)
+fmt.Println("z:", z)
+fmt.Println("d:", d)
+fmt.Println("e:", e)
+```
+依然遵循前闭后开的准则.
+
+切片彼此之间是相互引用的,修改一个切片会影响到其他相同位置的切片.
+
+```go
+xArray := [4]int{5, 6, 7, 8}
+xSlice := xArray[:]
+```
+数组转换成切片.
+
+```go
+xSlice := []int{1, 2, 3, 4}
+xArray := [4]int(xSlice)
+smallArray := [2]int(xSlice)
+xSlice[0] = 10
+```
+切片转换成数组.
+
+
+#### copy内置函数
+```go
+x := []int{1, 2, 3, 4}
+y := make([]int, 4)
+num := copy(y, x)
+fmt.Println(y, num)
+```
+copy函数可以创建一个独立于原始切片的切片.
+
+
+# Redis设计与实现
+- 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
+## 数据结构与对象
+### simple dynamic string，SDS
+>Redis没有直接使用C语言传统的字符串表示（以空字符结尾的字符数组，以下简称C字符串），而是自己构建了一种名为简单动态字符串（simple dynamic string，SDS）的抽象类型，并将SDS用作Redis的默认字符串表示。
+
+主要原因自然是C字符串本身的问题,如字符串拼接函数`strcat`不会自动扩容,C字符串默认以`./0`结尾,并不会记录自身的长度,而是需要程序员自己控制.
+
+格式如下:
+![格式图](PixPin_2026-09-13_12-38-08.webp)
+
+- len记载占用空间,free记载剩余空间,通过结构体实现
+### 链表
+Redis中的链表设计如下:
+* 双端：链表节点带有 `prev` 和 `next` 指针，获取某个节点的前置节点和后置节点的复杂度都是 O(1)。
+
+* 无环：表头节点的 `prev` 指针和表尾节点的 `next` 指针都指向 `NULL`，对链表的访问以 `NULL` 为终点。
+
+* 带表头指针和表尾指针：通过 `list` 结构的 `head` 指针和 `tail` 指针，程序获取链表的表头节点和表尾节点的复杂度为 O(1)。
+
+* 带链表长度计数器：程序使用 `list` 结构的 `len` 属性来对 `list` 持有的链表节点进行计数，程序获取链表中节点数量的复杂度为 O(1)。
+
+* 多态：链表节点使用 `void*` 指针来保存节点值，并且可以通过 `list` 结构的 `dup`、`free`、`match` 三个属性为节点值设置类型特定函数，所以链表可以用于保存各种不同类型的值。
+
+### 字典
+>字典在Redis中的应用相当广泛，比如Redis的数据库就是使用字典来作为底层实现的，对数据库的增、删、查、改操作也是构建在对字典的操作之上的。
+#### 哈希表
+Redis的字典使用哈希表实现:
+```c
+typedef struct dictht {
+    // 哈希表数组
+    dictEntry **table;//指针数组
+
+    // 哈希表大小
+    unsigned long size;
+
+    // 哈希表大小掩码，用于计算索引值
+    // 总是等于 size - 1
+    unsigned long sizemask;
+
+    // 该哈希表已有节点的数量
+    unsigned long used;
+} dictht;
+```
+具体的单节点结构如下:
+```c
+typedef struct dictEntry {
+    // 键
+    void *key;
+
+    // 值
+    union {
+        void *val;
+        uint64_t u64;
+        int64_t s64;
+    } v;
+
+    // 指向下一个哈希表节点，形成链表
+    struct dictEntry *next;
+} dictEntry;
+```
+- 这里的union非常有意思,完美解决了节点的替换问题.
+
+#### 哈希算法
+Redis计算哈希值和索引值的方法如下：
+```c
+// 使用字典设置的哈希函数，计算键 key 的哈希值
+hash = dict->type->hashFunction(key);
+
+// 使用哈希表的 sizemask 属性和哈希值，计算出索引值
+// 根据情况不同，ht[x] 可以是 ht[0] 或者 ht[1]
+index = hash & dict->ht[x].sizemask;
+```
+hashFunction用的算法是MurmurHash2算法,而现在用的则是SipHash算法
+#### 哈希冲突
+发生哈希冲突时,由于没有指向尾部的指针,所以Redis会将新节点放在链表的头部
+#### rehash
+当哈希冲突过多/加入节点过多时,Redis会自动执行Rehash来渐进式地扩展哈希表,详细步骤如下:
+1. 为 `ht[1]` 分配空间，让字典同时持有 `ht[0]` 和 `ht[1]` 两个哈希表。
+
+2. 在字典中维持一个索引计数器变量 `rehashidx`，并将它的值设置为 `0`，表示 rehash 工作正式开始。
+
+3. 在 rehash 进行期间，每次对字典执行添加、删除、查找或者更新操作时，程序除了执行指定的操作以外，还会顺带将 `ht[0]` 哈希表在 `rehashidx` 索引上的所有键值对 rehash 到 `ht[1]`。当 rehash 工作完成之后，程序将 `rehashidx` 属性的值增一。
+
+4. 随着字典操作的不断执行，最终在某个时间点上，`ht[0]` 的所有键值对都会被 rehash 至 `ht[1]`。这时程序将 `rehashidx` 属性的值设为 `-1`，表示 rehash 操作已完成。
+
+设计上确实很简单,但不是那么容易想得到的.
+
+
+# Effective Python,3rd edition
+尽管东西很多,但不到真正要用的时候也根本记不住呢
 # SQL Antipatterns: Avoiding the Pitfalls of Database Programming
 - 原版出版于2010年,中文版是2011年的,不过后来在22年出了一个重制版,并在今年3月出了第二卷,叫做`More SQL Antipatterns`(很惊人的是在网上找不到资源),不过既然有中文版就先看中文版吧.
+
 ## 引言
 - 什么是“反模式”？反模式是一种试图解决问题的方法，但通常会同时引发别的问题。
 
-换句话说,这本书通过不当使用SQL的例子来告诉读者如何正确使用SQL
+换句话说,这本书通过不当使用SQL的例子来告诉读者如何正确使用SQL,每一章都有一个具体的例子,所以只看有需要的几章就可以了.
 ## 乱穿马路
 程序员通常使用逗号分隔的列表来避免在多对多的关系中创建交叉表，我将这种设计方式定义为一种反模式，称为**乱穿马路（Jaywalking）**，因为乱穿马路也是避免过十字路口的一种方式。
 
@@ -797,96 +1305,26 @@ LEFT OUTER JOIN Comments c4
 
 EAV或许看着很美观,插入起来也更简单,但却让查询操作变得痛苦无比,所以不要轻易把列变成行,而是老老实实写关系型数据库.
 
+## 幽灵文件
+>当一个理论看上去像是唯一可能的理论时，那意味着你既不理解这个理论，也不理解它所要解决的问题。
 
-# System Design Interview: An Insider’s Guide
-你就读吧,很久没见过这么干净利落的技术书籍了,对我的感触远比DDIA要震撼的多.
-## ch1: 网络扩展
-一个非常好的网络服务进阶流程概览
-## ch4: 限流器
+理论上来说，图片是一张表中的一个字段，在 Accounts 表中可能会有一个 portrait_image 列。
 
-## ch10: 通知系统设计
-![示意图](PixPin_2026-09-13_10-29-30.webp)
-
-尽管TCP的重传机制保证了我们的消息一定能够发送到用户设备里,但是这只是到了传输层为止,而在应用层,完全可能出现断连(如手机突然关机)等情况,这个时候由于我们收不到用户的通知反馈,只能选择重传,并通过`通知ID`来去重.
-
-
-
-# Effective Python,3rd edition
-
-## 并发
-### 68: Use Threads for Blocking I/O; Avoid for Parallelism
-GIL导致Python至今为止也无法支持真正的多线程
-
-
-# Learning Go
-## ch1: 搭建环境
-```bash
-# 创建go模块
-go mod init hello_word
-# 编译go程序
-go build hello.go
-# 格式化go程序,应用于当前目录及所有子目录
-go fmt ./...
+```sql
+CREATE TABLE Accounts (
+    account_id     SERIAL PRIMARY KEY,
+    account_name   VARCHAR(20),
+    portrait_image BLOB
+);
 ```
-### 使用make
-```makefile
-.DEFAULT_GOAL := build
-.PHONY:fmt vet build
-fmt:
-	go fmt ./...
-vet: fmt 
-	go vet ./...
-build: vet
-	go build
-```
-在终端敲上`make`这个单词就可以自动运行build命令了.
+我们可以选择BLOB类型存储,也可以选择存在文件系统中,并通过VARCHAR记录对应的文件系统路径.
 
-## ch2: 类型和声明
-### 字符串
->Go 语言中的字符串是不可变的；你可以重新赋值给一个字符串变量，但你不能改变赋值给它的字符串的值。
-### 变量声明
+但对于后一种方法,有以下缺点:
+1. 删除路径属性并不能自动删除路径所在的文件,然后图片就会堆积在那里,除非自己再写一个后端处理函数
+2. 不支持事务隔离,其他客户端也可以找到图片文件
+3. 不支持数据库备份和访问权限设置
 
-如果有初始化值,Go中的var声明都可以省略类型:
-```go
-var x = 10
-var x, y int = 10, 20
-var x, y = 10, "hello"
-var x int
-// 如果不写初始化值则构造为零值
-```
-
-
-另一个则是只能写在函数中作为局部变量声明的`:=`,同样不用指定类型:
-```go
-var x, y = 10, "hello"
-x, y := 10, "hello"
-```
-
-Go中的const声明如下:
-```go
-const x int64 = 10
-const (
-    idKey = "id"
-    nameKey = "name"
-)
-const z = 20 * 10
-```
-# Redis设计与实现
-- 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
-## 数据结构与对象
-### simple dynamic string，SDS
->Redis没有直接使用C语言传统的字符串表示（以空字符结尾的字符数组，以下简称C字符串），而是自己构建了一种名为简单动态字符串（simple dynamic string，SDS）的抽象类型，并将SDS用作Redis的默认字符串表示。
-
-主要原因自然是C字符串本身的问题,如字符串拼接函数`strcat`不会自动扩容,C字符串默认以`./0`结尾,并不会记录自身的长度,而是需要程序员自己控制.
-
-格式如下:
-![格式图](PixPin_2026-09-13_12-38-08.webp)
-
-- len记载占用空间,free记载剩余空间,通过结构体实现
-### 链表
-
-
-
+如果我们简单直接一点,可以把图片直接存储在数据库之外,与数据库管理分离,显然也是一个不错的选择.
 
 # PROFESSIONAL C++(待补充)
 # A Tour of C++,Third Edition
