@@ -198,7 +198,7 @@ CMD ["fastapi", "run", "--workers", "4"]
 
 可以说这是精简镜像,但我觉得反而有点过于优化了,作为普通的网站项目,不够清晰.
 
-#### 外文件
+#### 核心文件
 ##### main.py
 ```py
 from pathlib import Path
@@ -262,6 +262,8 @@ class UserRegister(SQLModel):
 
 看一下路由代码便知道,`UserRegister`用于用户在前端的输入返回模型,而`UserCreate`用于最终的CRUD验证,还是很合理的.
 
+对于管理员账户,只是简单地添加了一个`is_superuser`字段,而没有专门新建一个诸如名字为`SuperUser`的类,非常干净
+
 唯一需要吐槽的地方就是schema和model放在一起了,看起来其实非常麻烦,我认为更好的方式是分成两个文件,甚至分成两个文件夹.
 
 
@@ -303,7 +305,20 @@ def read_items(
     items_public = [ItemPublic.model_validate(item) for item in items]
     return ItemsPublic(data=items_public, count=count)
 ```
-没有单独为管理员另外设计一个路由,而是通过条件判断直接分离,还是很有想法的.
+没有单独为管理员另外设计一个路由,而是通过条件判断直接分离,还是很有想法的.而在`dep.py`中,通过一个简单的条件判断就实现了管理员的依赖:
+```py
+def get_current_active_superuser(current_user: CurrentUser) -> User:
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=403, detail="The user doesn't have enough privileges"
+        )
+    return current_user
+```
+
+##### users.py
+首先看一下路由设计,管理员使用的是`/users/`路由,有读取用户列表,创建新用户两个职责,而普通用户使用的是`/users/me`路由,可以更新用户信息;更新,删除,查询单个id对应的用户信息则用的是`/users/{user_id}`路由
+#### 邮件服务(待补充)
+##### utils.py
 
 ### [Zulip](https://zulip.com/)
 

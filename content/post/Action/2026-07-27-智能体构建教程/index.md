@@ -6294,10 +6294,187 @@ class TokenPayload(SQLModel):
 
 ### 加入管理员(superuser)
 #### 管理员功能构思
-首先
+首先想一下管理员的职责有哪些:
+1. 查看用户列表,并支持删除用户
+   1. 但是,是怎么删除呢,我们有两种方法: 一个是将`is_active`字段置为0但还是保留用户数据,当用户重新注册时数据都照常保留;另一个是真的通过`session`直接删除这个id对应的用户,数据通过级联删除全部清除
+   2. 可以说,两种方法都挑不出毛病,但是,为了多折腾一下,还是用第二种方法吧,毕竟用户注销了就是注销了,不存在还给你留着数据呢.
+2. 查看API调用次数和对话的基本流量情况
+
+第一个功能其实很好实现,在`users/`路由返回一个`UsersPublic`就可以了,具体返回什么数据反而是要看前端的需求.
+#### 用户管理实现
+##### 重构数据模型
+先看看原文件:
+```py
+class UserBase(SQLModel):
+    name: str = Field(min_length=1, max_length=30)
+
+
+class User(UserBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str = Field(max_length=256)
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversations: list["Conversation"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+```
+仔细思考,这个`is_active`字段放到`UserBase`中反而更好吧,顺便再加上一个`is_superuser`字段就可以了:
+```py
+# User
+class UserBase(SQLModel):
+    name: str = Field(min_length=1, max_length=30)
+    is_active: bool = True
+    is_superuser: bool = False
+
+
+class User(UserBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str = Field(max_length=256)
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversations: list["Conversation"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+```
+
+然后再加一个UsersPublic的schema:
+```py
+# User
+class UserRegister(SQLModel):
+    # 写成1是为了偷懒~
+    name: str = Field(min_length=1, max_length=30)
+    password: str = Field(min_length=1, max_length=15)
+
+
+class UserPublic(UserBase):
+    id: int
+    created_at: datetime
+
+
+class UsersPublic(SQLModel):
+    data: list[UserPublic]
+    count: int
+```
+
+##### 加入管理员判断依赖
+在`deps.py`中加入依赖即可,写法简单,判断一下`is_superuser`字段,不是管理员就抛出异常:
+```py
+def get_current_superuser(user: CurrentUser) -> User:
+    if not user.is_superuser:
+        raise HTTPException(
+            status_code=403, detail="The user doesn't have enough privileges"
+        )
+    return user
+
+
+Superuser = Annotated[User, Depends(get_current_superuser)]
+```
+##### 更新crud.py
+一个函数就够了:
+```py
+def get_users(*, session: Session, offset: int, limit: int) -> UsersPublic:
+    count_statement = select(func.count()).select_from(User)
+    count = session.exec(count_statement).one()
+
+    statement = select(User).order_by(desc(User.created_at)).offset(offset).limit(limit)
+    users = session.exec(statement).all()
+
+    users_public = [UserPublic.model_validate(user) for user in users]
+    return UsersPublic(data=users_public, count=count)
+```
+##### API更新
+先看看原来的`users.py`:
+```py
+from fastapi import APIRouter, HTTPException, status
+from app.api.deps import SessionDep, CurrentUser, Superuser
+from app.models import User, UserPublic, UserRegister
+from app import crud
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+
+@router.post(
+    "",
+    response_model=UserPublic,
+    status_code=status.HTTP_201_CREATED,
+)
+def register_user(session: SessionDep, user_in: UserRegister) -> User:
+    user = crud.get_user_by_name(session=session, name=user_in.name)
+    if user:
+        # 由于没有邮箱,所以只好用名字来进行唯一标识
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Name already exists")
+    user = crud.register_user(session=session, user_register=user_in)
+    return user
+
+
+# 获取用户个人信息
+@router.get("/me", response_model=UserPublic)
+def user_homepage(current_user: CurrentUser) -> User:
+    return current_user
+```
+只有非常简单的两个路由,现在来看,用户注册果然还是要单独引导一下,所以换成`users/register`路由比较好
+
+重构后内容如下:
+```py
+from fastapi import APIRouter, HTTPException, status
+from app.api.deps import SessionDep, CurrentUser, Superuser
+from app.models import User, UserPublic, UserRegister
+from app import crud
+from app.models.schemas import UsersPublic
+from typing import Any
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+
+@router.post(
+    "/register",
+    response_model=UserPublic,
+    status_code=status.HTTP_201_CREATED,
+)
+def register_user(session: SessionDep, user_in: UserRegister) -> User:
+    user = crud.get_user_by_name(session=session, name=user_in.name)
+    if user:
+        # 由于没有邮箱,所以只好用名字来进行唯一标识
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Name already exists")
+    user = crud.register_user(session=session, user_register=user_in)
+    return user
+
+
+# 获取用户个人信息
+@router.get("/me", response_model=UserPublic)
+def user_homepage(current_user: CurrentUser) -> User:
+    return current_user
+
+
+# 获取用户列表
+@router.get("", response_model=UsersPublic)
+def read_users(
+    _: Superuser, session: SessionDep, skip: int, limit: int = 100
+) -> UsersPublic:
+    return crud.get_users(session=session, offset=skip, limit=limit)
+
+
+# 删除用户
+@router.delete("/{user_id}")
+def delete_user(current_user: Superuser, session: SessionDep, user_id: int) -> str:
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user == current_user:
+        raise HTTPException(
+            status_code=403, detail="Super users are not allowed to delete themselves"
+        )
+    session.delete(user)
+    session.commit()
+    return "User deleted successfully"
+```
+整体来看是非常清晰的.
+
+#### 对话统计实现
 
 ### 数据库管理系统选择
 - adminer与dbgate.
-## ch13: 加入文件上传功能,实现多模态
+###
 # 智能体进阶
-
+## ch14: RAG功能引入
