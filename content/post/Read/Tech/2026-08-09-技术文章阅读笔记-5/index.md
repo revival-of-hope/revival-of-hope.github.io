@@ -1730,6 +1730,10 @@ volumes:
 
 ![网页](PixPin_2026-09-17_11-54-18.webp)
 
+# Hugging Face in Action
+## 简介
+HuggingFace有Transformers库和各种pipeline,大量的预训练模型,构建网页UI的Gradio库(21年被Hugging Face收购).
+
 
 # The Architecture of Open Source Applications
 ## 引言

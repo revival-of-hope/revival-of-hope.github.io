@@ -4359,6 +4359,49 @@ async def read_item(item_id):
 因此,更为实际的道路是在了解了基本的机器学习知识后,先使用Langchain等高级框架来实战,等稍微精通后再来学习底层库.
 
 - 可惜的是,我也是在走了不少弯路后才认识到这点的.
+## 搭建GPU环境
+先在nvidia官网下载cuda13.0,然后根据这个toml运行uv sync即可:
+```toml
+[project]
+name = "ml"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-Python = ">=3.13"
+dependencies = [
+    "torch",
+    "torchvision",
+    "torchaudio",
+]
+
+[tool.uv]
+# 1. 物理定义 PyTorch 的专用硬件加速索引库
+[tool.uv.index]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true # 强制：只有在 sources 中明确指定的包才去这里找，防止污染其他依赖
+
+[tool.uv.sources]
+# 2. 将核心组件物理绑定到上述索引
+torch = { index = "pytorch-cu130" }
+torchvision = { index = "pytorch-cu130" }
+torchaudio = { index = "pytorch-cu130" }
+```
+
+测试代码:
+```py
+import torch
+print(f"CUDA status: {torch.cuda.is_available()}")
+print(f"CUDA version: {torch.version.cuda}")
+```
+输出结果:
+```bash
+uv run ch1.py
+CUDA status: True
+CUDA version: 13.0
+```
+
+
 
 # Python多线程
 

@@ -24,3 +24,14 @@ draft: true
 
 # Essential Cell Biology(5th)
 ## Cells: The Fundamental Units of Life
+
+# 医学导论
+垃圾
+
+# 病理学
+## 绪论
+>病 理 学（pathology）是 研 究 和 明 确 疾 病 的 病 因（etiology）、发 病 机 制（pathogenesis）、病 理 变 化（pathological change）、结局和转归的医学学科，目的是认识和掌握疾病本质与规律，为疾病诊治和防控提供科学依据
+
+
+# 药理学
+

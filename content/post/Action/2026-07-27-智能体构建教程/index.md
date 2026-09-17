@@ -6298,9 +6298,17 @@ class TokenPayload(SQLModel):
 1. 查看用户列表,并支持删除用户
    1. 但是,是怎么删除呢,我们有两种方法: 一个是将`is_active`字段置为0但还是保留用户数据,当用户重新注册时数据都照常保留;另一个是真的通过`session`直接删除这个id对应的用户,数据通过级联删除全部清除
    2. 可以说,两种方法都挑不出毛病,但是,为了多折腾一下,还是用第二种方法吧,毕竟用户注销了就是注销了,不存在还给你留着数据呢.
-2. 查看API调用次数和对话的基本流量情况
+2. 查看API调用次数和基本流量情况
+   1. 首先,我们新建一个表`UserUsage`用来存储`messages_count`,只要在用户每次调用`messages`API时将该属性加一即可
+   2. 然后再新增一个路由,用来获取所有用户的的messages_count并累加起来返回
+
+
 
 第一个功能其实很好实现,在`users/`路由返回一个`UsersPublic`就可以了,而删除操作加一个端点也足够了.
+
+对于第二个功能来说,有几个问题,如果用户在前端中断对话了,我们并不会存储该对话,但对话次数却已经加一了,这显然是非常不合理的.但是,deepseek API目前返回的token统计是附着在最后一个chunk中的,这也就意味着如果用户中断消息我们就收不到token统计了,所以一个折衷的方式就是**前端不显示,但后端继续输出**.
+
+
 #### 用户管理实现
 ##### 重构数据模型
 先看看原文件:
@@ -6472,7 +6480,93 @@ def delete_user(current_user: Superuser, session: SessionDep, user_id: int) -> s
 整体来看是非常清晰的.
 
 #### 对话统计实现
+##### 修改模型
+首先是user部分的tables:
+```py
+# User
+class UserBase(SQLModel):
+    name: str = Field(min_length=1, max_length=30)
+    is_active: bool = True
+    is_superuser: bool = False
 
+
+class User(UserBase, table=True):
+    user_id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str = Field(max_length=256)
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversations: list["Conversation"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+
+    usage: "UserUsage" = Relationship(back_populates="user", cascade_delete=True)
+
+
+class UserUsage(SQLModel, table=True):
+    user_id: int = Field(
+        foreign_key="user.user_id",
+        primary_key=True,
+    )
+
+    # 对话次数统计
+    messages_count: int = 0
+
+    # Token 统计
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+
+    user: User = Relationship(back_populates="usage")
+```
+
+然后是schema:
+```py
+# User
+class UserRegister(SQLModel):
+    # 写成1是为了偷懒~
+    name: str = Field(min_length=1, max_length=30)
+    password: str = Field(min_length=1, max_length=15)
+
+
+class UserUsagePublic(SQLModel):
+    """
+    单个用户统计
+    """
+
+    # 对话次数统计
+    messages_count: int = 0
+
+    # Token 统计
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+
+
+class UsagePublic(SQLModel):
+    """
+    总用户统计
+    """
+
+    messages_count: int = 0
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+
+
+class UserPublic(UserBase):
+    user_id: int
+    created_at: datetime
+    usage: UserUsagePublic | None = None
+
+
+class UsersPublic(SQLModel):
+    data: list[UserPublic]
+    count: int
+```
+
+##### 修改Agent部分
+仔细一看,所有agent相关的文件都放在了`utils`文件夹中,不如就改成`agents`吧.
 ### 数据库管理系统选择
 - adminer与dbgate.
 ###

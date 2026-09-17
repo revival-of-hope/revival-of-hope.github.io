@@ -4758,3 +4758,6 @@ function PostComponent() {
 }
 ```
 - 由于官方文档写的太烂了,我先缓缓吧.
+# Svelte
+## 介绍
+- [官方文档](https://svelte.dev/tutorial/svelte/welcome-to-svelte)

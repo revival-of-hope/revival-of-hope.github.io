@@ -83,6 +83,12 @@ async def get_user_tools() -> ToolsResponse:
     return ToolsResponse(tools=formatted_tools)
 ```
 混乱的架构与难以解耦的代码,希望这种事情不要发生在我负责的项目里.
+### [WebUI](https://github.com/open-webui/open-webui)
+![示意图](PixPin_2026-09-17_14-35-00.webp)
+
+- 无论怎么看都不太好维护吧,这与项目的150kStar数量完全不匹配.
+
+
 ## Games
 ### [Zdoom](https://zdoom.org/index)
 由于GZdoom是手搓的引擎,所以源码不太是正常人能看懂的,这种离谱的硬编码应该很难在现代工程中看到了吧:
@@ -321,5 +327,5 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
 ##### utils.py
 
 ### [Zulip](https://zulip.com/)
-
-
+### NetBox
+#### 介绍
