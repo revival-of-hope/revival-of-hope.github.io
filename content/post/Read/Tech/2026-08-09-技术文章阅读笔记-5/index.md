@@ -1003,6 +1003,113 @@ rust别具一格的使用`{}`作为占位符,并通过`"?`这样的简洁语法�
 
 ## 高级
 ### 生命周期
+看力竭了,速度跳过
+### 函数式编程
+#### 闭包
+闭包是一种匿名函数，它可以赋值给变量也可以作为参数传递给其它函数，不同于函数的是，它允许捕获调用者作用域中的值，例如：
+```rs
+fn main() {
+   let x = 1;
+   let sum = |y| x + y;
+
+    assert_eq!(3, sum(2));
+}
+```
+
+如果不用闭包,我们需要这么写代码:
+```rs
+use std::thread;
+use std::time::Duration;
+
+// 开始健身，好累，我得发出声音：muuuu...
+fn muuuuu(intensity: u32) -> u32 {
+    println!("muuuu.....");
+    thread::sleep(Duration::from_secs(2));
+    intensity
+}
+
+fn workout(intensity: u32, random_number: u32) {
+    let action = muuuuu;
+    if intensity < 25 {
+        println!(
+            "今天活力满满, 先做 {} 个俯卧撑!",
+            action(intensity)
+        );
+        println!(
+            "旁边有妹子在看，俯卧撑太low, 再来 {} 组卧推!",
+            action(intensity)
+        );
+    } else if random_number == 3 {
+        println!("昨天练过度了，今天还是休息下吧！");
+    } else {
+        println!(
+            "昨天练过度了，今天干干有氧, 跑步 {} 分钟!",
+            action(intensity)
+        );
+    }
+}
+
+fn main() {
+    // 强度
+    let intensity = 10;
+    // 随机值用来决定某个选择
+    let random_number = 7;
+
+    // 开始健身
+    workout(intensity, random_number);
+}
+```
+但如果用闭包,就可以省略掉参数的传递:
+```rs
+use std::thread;
+use std::time::Duration;
+
+fn workout(intensity: u32, random_number: u32) {
+    let action = || {
+        println!("muuuu.....");
+        thread::sleep(Duration::from_secs(2));
+        intensity
+    };
+
+    if intensity < 25 {
+        println!(
+            "今天活力满满，先做 {} 个俯卧撑!",
+            action()
+        );
+        println!(
+            "旁边有妹子在看，俯卧撑太low，再来 {} 组卧推!",
+            action()
+        );
+    } else if random_number == 3 {
+        println!("昨天练过度了，今天还是休息下吧！");
+    } else {
+        println!(
+            "昨天练过度了，今天干干有氧，跑步 {} 分钟!",
+            action()
+        );
+    }
+}
+
+fn main() {
+    // 动作次数
+    let intensity = 10;
+    // 随机值用来决定某个选择
+    let random_number = 7;
+
+    // 开始健身
+    workout(intensity, random_number);
+}
+```
+
+闭包可以由编译器自己进行类型推导,但是必须在声明后使用,否则编译器是无从下手的.
+
+```rs
+fn  add_one_v1   (x: u32) -> u32 { x + 1 }
+let add_one_v2 = |x: u32| -> u32 { x + 1 };
+let add_one_v3 = |x|             { x + 1 };
+let add_one_v4 = |x|               x + 1  ;
+```
+
 
 
 # Learning Go
@@ -1147,6 +1254,147 @@ fmt.Println(v, ok)
 可以看到,Map访问内置了异常处理,还是很方便的.
 
 ### Structs
+#### 声明
+```go
+type person struct {
+    name string
+    age int
+    pet string
+}
+```
+
+对于结构体来说,赋值一个空结构体字面量和完全不赋值之间没有区别,都会将所有字段初始化为零值:
+```go
+var fred person
+
+bob := person{}
+```
+
+和python一样,go支持指名赋值或者按照成员声明的顺序来进行不指名赋值.
+
+
+#### 匿名结构体
+```go
+var person struct {
+	name string
+	age  int
+	pet  string
+}
+
+person.name = "bob"
+person.age = 50
+person.pet = "dog"
+
+pet := struct {
+	name string
+	kind string
+}{
+	name: "Fido",
+	kind: "dog",
+}
+```
+pet还比较好理解,是一个经典的匿名结构体,在声明后立即使用.但person就比较神奇了,原来的`type person struct`变成了`var person struct`,然后就同时完成了类型声明和初始化变量两件事情.
+
+匿名结构体显然是那种只会用到一两次的数据仓库.
+## ch4: 逻辑结构
+### Blocks
+# R Cookbook
+## 补充: 安装流程
+首先上官网下载base包,并将安装路径下的`bin`文件夹添加到环境变量,然后在Vscode里安装R的官方扩展,接着在R自带的console中下载R的官方包:
+```bash
+install.packages("languageserver")
+```
+
+之后在vscode中新建r扩展名的文件即可,初始测试文件如下:
+```r
+x <- c(1, 2, 3, 4, 5)
+
+mean(x)
+
+print("Hello R")
+```
+然后,按下`Ctrl + A`后再按`Ctrl + Enter`即可一键运行整个文件,看到输出结果.
+
+自然,每输入一行,按一下`Ctrl + Enter`就可以运行该行代码,还是很方便的
+## 基本概念
+### 打印
+```r
+pi
+#> [1] 3.14
+sqrt(2)
+#> [1] 1.41
+```
+当你输入这些表达式时，R 会运算表达式，然后隐式调用 print 函数。因此，上一个示例实际上等同于：
+```r
+print(pi)
+#> [1] 3.14
+print(sqrt(2))
+#> [1] 1.41
+```
+
+但是print只支持逐一打印,不能一次性打印多个变量,所以可以换成`cat`函数:
+```r
+cat("The zero occurs at", 2 * pi, "radians.", "\n")
+#> The zero occurs at 6.28 radians.
+```
+### 变量声明
+R中的变量声明与我之前学过的语言相比,非常的反直觉:
+```r
+x <- 3
+y <- 4
+```
+尽管阅读起来很清晰,但是打字时却一点都不习惯.
+
+>本着完全公开的原则，我们将揭示R语言还支持另外两种赋值语句形式：单等号（=）可用作赋值运算符；右向赋值运算符（->）可在任何左向赋值运算符（<-）使用的地方使用（但参数顺序相反）。
+```r
+foo = 3
+print(foo)
+#> [1] 3
+5 -> fum
+print(fum)
+#> [1] 5
+```
+- 我们也建议您避免使用这些。等号赋值容易与相等性测试混淆。右箭头赋值在某些上下文中可能很有用，但对于不熟悉它的人来说可能造成困惑
+  - 有点扯淡了,反正我以后就用`=`了
+
+### 向量
+- 使用 `c(...)` 运算符从给定值构造向量。
+```r
+c(1, 1, 2, 3, 5, 8, 13, 21)
+#> [1] 1 1 2 3 5 8 13 21
+c(1 * pi, 2 * pi, 3 * pi, 4 * pi)
+#> [1] 3.14 6.28 9.42 12.57
+c("My", "twitter", "handle", "is", "@cmastication")
+#> [1] "My"
+ "twitter"
+ "handle"
+#> [5] "@cmastication"
+c(TRUE, TRUE, FALSE, TRUE)
+#> [1] TRUE TRUE FALSE TRUE
+```
+
+1. 向量合并:
+
+```r
+v1 <- c(1, 2, 3)
+v2 <- c(4, 5, 6)
+c(v1, v2)
+#> [1] 1 2 3 4 5 6
+
+v1 <- c(1, 2, 3)
+v3 <- c("A", "B", "C")
+c(v1, v3)
+#> [1] "1" "2" "3" "A" "B" "C"
+```
+- R在创建向量前将所有数字转换为字符，从而使数据元素保持兼容
+
+### 基本运算
+* `mean(x)` —— 均值（Mean）
+* `median(x)` —— 中位数（Median）
+* `sd(x)` —— 标准差（Standard Deviation）
+* `var(x)` —— 方差（Variance）
+* `cor(x, y)` —— 相关系数（Correlation）
+* `cov(x, y)` —— 协方差（Covariance）
 
 # Redis设计与实现
 - 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
@@ -1237,12 +1485,35 @@ hashFunction用的算法是MurmurHash2算法,而现在用的则是SipHash算法
 设计上确实很简单,但不是那么容易想得到的.
 ### 跳表
 >和链表、字典等数据结构被广泛地应用在Redis内部不同，Redis只在两个地方用到了跳跃表，一个是实现有序集合键，另一个是在集群节点中用作内部数据结构，除此之外，跳跃表在Redis里面没有其他用途
+
+- 我以前还以为Redis主要靠跳表呢,结果并没有我想的那么简单
 ### 整数集合
 >整数集合（intset）是集合键的底层实现之一，当一个集合只包含整数值元素，并且这个集合的元素数量不多时，Redis就会使用整数集合作为集合键的底层实现。
-
 ### 压缩列表
+>压缩列表（ziplist）是列表键和哈希键的底层实现之一。当一个列表键只包含少量列表项，并且每个列表项要么就是小整数值，要么就是长度比较短的字符串，那么Redis就会使用压缩列表来做列表键的底层实现。
 
-## 启动
+可以说是一个优化过的链表而已.
+
+### 对象
+>在前面的数个章节里，我们陆续介绍了Redis用到的所有主要数据结构，比如简单动态字符串（SDS）、双端链表、字典、压缩列表、整数集合等等。
+>
+>Redis并没有直接使用这些数据结构来实现键值对数据库，而是基于这些数据结构创建了一个对象系统，这个系统包含字符串对象、列表对象、哈希对象、集合对象和有序集合对象这五种类型的对象，每种对象都用到了至少一种我们前面所介绍的数据结构。
+#### 对象类型
+Redis使用对象来表示数据库中的键和值，每次当我们在Redis的数据库中新创建一个键值对时，我们至少会创建两个对象，一个对象用作键值对的键（键对象），另一个对象用作键值对的值（值对象）。
+
+经典的5个对象类型如下:
+
+| 类型常量       | 对象的名称   |
+| -------------- | ------------ |
+| `REDIS_STRING` | 字符串对象   |
+| `REDIS_LIST`   | 列表对象     |
+| `REDIS_HASH`   | 哈希对象     |
+| `REDIS_SET`    | 集合对象     |
+| `REDIS_ZSET`   | 有序集合对象 |
+
+>对于Redis数据库保存的键值对来说，键总是一个字符串对象，而值则可以是字符串对象、列表对象、哈希对象、集合对象或者有序集合对象的其中一种，
+
+
 # RAG with Python Cookbook
 ## RAG介绍
 | RAG 拟合度 | 用例                                              | 适配理由                                                                                                                         |
@@ -1272,8 +1543,194 @@ RAG常用的库和框架如下:
 | **评估与监控**                    | Ragas、Phoenix、LangSmith、Prometheus-Eval                                      | 提供预定义的评估指标，用于衡量检索器、生成器以及整个 RAG 应用的准确性、质量和运行表现。                                         |
 | **Web 框架与部署**                | Streamlit、Gradio、Flask、Django                                                | 用于构建 RAG 应用的用户界面和 Web 服务。其中 Streamlit、Gradio 更适合快速原型，Flask、Django 更适合完整应用开发。               |
 | **数据库与存储**                  | SQLAlchemy、Psycopg 2、SQLite3                                                  | 用于连接传统 SQL 数据库，并通过数据库连接器或 ORM 将关系型数据作为 RAG 系统的数据来源。                                         |
-
 ## 基础模型
+### Ollama
+>Ollama 在http://localhost:11434/v1 公开了一个与 OpenAI 兼容的端点，因此您现有的代码几乎无需更改。
+
+```py
+from openai import OpenAI
+
+# Point the client to your local Ollama server
+client = OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="ollama",  # Ollama does not require a real key,
+                       # but the SDK expects one
+)
+
+response = client.chat.completions.create(
+    model="qwen3:4b",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {
+            "role": "user",
+            "content": "What is retrieval augmented generation?"
+        },
+    ],
+)
+
+print(response.choices[0].message.content)
+```
+还可以试试选用多个模型:
+```py
+from openai import OpenAI
+
+models = ["llama2", "mistral", "codellama"]
+
+client = OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="ollama"
+)
+
+for model in models:
+    print(f"\n--- Testing {model} ---")
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "user", "content": "Explain RAG in one sentence."}
+        ]
+    )
+
+    print(response.choices[0].message.content)
+```
+
+
+> **将公开排行榜视为筛选工具，而非最终决策标准。常见的局限性包括以下几点：**
+>
+> **基准泄漏或数据污染**
+> 一些基准测试题及答案是公开的，可能已被直接或间接包含在训练数据中，从而抬高模型分数。
+>
+> **古德哈特定律或过度优化**
+> 一旦某个基准成为目标，模型开发者可能会专门针对该基准进行调整，从而提高分数，但并不会相应提高模型的通用能力。
+>
+> **与实际使用情况不符**
+> 生产环境中的具体配置——包括提示模板、检索质量、工具使用、长上下文、多语言内容、量化方式以及延迟限制——都会显著影响最终结果。
+> 因此，即使某个模型在公开排行榜上“胜出”，在你自己的 RAG 查询或真实业务场景中，也可能表现得更差。
+
+
+### 图片解析
+```py
+from pydantic import BaseModel
+from openai import OpenAI
+import base64
+
+
+class Invoice(BaseModel):
+    invoice_number: str
+    vendor: str
+    total: float
+    currency: str
+
+
+client = OpenAI()
+
+with open("invoice.png", "rb") as f:
+    image_base64 = base64.b64encode(f.read()).decode("utf-8")
+
+result = client.responses.parse(
+    model="gpt-5-mini",
+    input=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_text",
+                    "text": "Extract the invoice data."
+                },
+                {
+                    "type": "input_image",
+                    "image_url": f"data:image/png;base64,{image_base64}"
+                },
+            ],
+        }
+    ],
+    text_format=Invoice,
+)
+```
+
+第一次知道API还可以定制返回模型,不过对话中是不需要的,工具调用时却很有必要
+## 加载数据
+# Prometheus: Up & Running
+## 介绍
+- Prometheus是一个开源的、基于指标的监控系统.
+
+监控(monitor)可以定义如下:
+* **告警（Alerting）**：知道事情何时出错，通常是监控最重要的用途。监控系统应能够在出现异常时通知人工介入检查。
+
+* **调试（Debugging）**：当人工介入后，需要进一步调查问题，确定根本原因，并最终解决已经出现的故障。
+
+* **热门趋势（Trending）**：告警和调试通常发生在几分钟到几小时的时间尺度上。虽然趋势分析没有那么紧急，但了解系统如何被使用、如何随时间变化同样重要。趋势信息可以为设计决策、容量规划等工作提供依据。
+
+* **水管工程（Plumbing）**：监控系统本质上也是一套数据处理管道。在实践中，有时可以复用监控系统的部分能力去完成其他任务，而不必重新构建专门的解决方案。严格来说这不完全属于监控，但实际工程中很常见。
+
+
+![架构图](PixPin_2026-09-17_11-37-00.webp)
+
+## 入门
+### 补充: 使用docker运行Prometheus
+新建一个文件夹,放三个文件:
+
+**prometheus.yml**
+```yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # 监控 Prometheus 自身
+  - job_name: "prometheus"
+
+    static_configs:
+      - targets:
+          - "localhost:9090"
+```
+**dockerfile**
+```dockerfile
+FROM prom/prometheus:latest
+
+COPY prometheus.yml /etc/prometheus/prometheus.yml
+
+EXPOSE 9090
+```
+
+**compose.yml**
+```yml
+services:
+  prometheus:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: prometheus
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      # 持久化 Prometheus 时序数据
+      - prometheus_data:/prometheus
+
+      # 开发时推荐挂载配置文件，
+      # 修改配置后不需要重新 build 镜像
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+```
+
+然后用`docker compose up -d`运行,成功打开页面:
+
+![网页](PixPin_2026-09-17_11-54-18.webp)
+
+
 # The Architecture of Open Source Applications
 ## 引言
 >建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。

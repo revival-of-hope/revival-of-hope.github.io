@@ -1,7 +1,7 @@
 ---
 title: "运维笔记"
 date: 2026-09-07T12:34:42+08:00
-description: 
+description: 更新中...
 image: 57793944_p0-浴衣とお面.webp
 ---
 运维的职责相当广泛,所以值得专门来进行学习,为了方便写文章,我把所有能跟运维扯上关系的技术都放进来了.
@@ -56,8 +56,31 @@ image: 57793944_p0-浴衣とお面.webp
 ## Linux命令
 ### 学习资料
 - [在线学习](https://cmdchallenge.com/#/move_file)
+### 学习方法
+这个年代还要开虚拟机就太low了,用docker运行不就行了.
 
+先写一个`compose.yml`:
+```yml
+services:
+  linux:
+    image: ubuntu:24.04
+    container_name: linux-lab
+    stdin_open: true
+    tty: true
+    command: bash
+```
+然后运行以下命令启动并运行bash:
+```bash
+docker compose up -d
+docker exec -it linux-lab bash
+```
 
+![示意图](PixPin_2026-09-17_12-02-10.webp)
+
+效果杠杠的好不好!
+### 学习体验
+#### 软件包下载方式
+##### apt
 ## Docker 
 推荐阅读: [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice)
 # 自动部署与自动构建
@@ -87,7 +110,7 @@ image: 57793944_p0-浴衣とお面.webp
 ```
 ![图示](PixPin_2026-07-31_16-14-52.webp)
 
-在hexo上的效果如下:
+在hugo上的效果如下:
 > [!NOTE]
 > 这是一个提示信息
 
