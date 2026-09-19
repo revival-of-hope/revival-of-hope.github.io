@@ -497,6 +497,7 @@ hashtable使用前面所说的字典实现.
 如果是ziplist,每次插入都要重新排序
 
 # RAG with Python Cookbook
+- 原来学不会RAG不是我的问题,只是其他的教材太烂了
 ## RAG介绍
 | RAG 拟合度 | 用例                                              | 适配理由                                                                                                                         |
 | ---------: | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -632,6 +633,112 @@ result = client.responses.parse(
 
 第一次知道API还可以定制返回模型,不过对话中是不需要的,工具调用时却很有必要
 ## 加载数据
+![数据分布](PixPin_2026-09-19_13-31-13.webp)
+
+大多数RAG 检索器都使用文本嵌入，因此，一个切实可行的第一步是将不同的格式转换为一致的文本表示形式
+
+![架构图](PixPin_2026-09-19_13-31-57.webp)
+
+>本书从零开始构建核心组件，以阐明其基本概念。在生产环境中，诸如 LangChain 或LlamaIndex 之类的编排框架可以加速开发，但它们也引入了频繁的破坏性变更、快速演进的 API 和额外的抽象等问题。
+
+- 找了这么多书终于有个愿意认真做RAG的了.
+
+### 加载Word
+>当您不需要区分元素类型时，可以使用 python-docx 进行简单的文本提取。当您需要保留文档结构（标题、段落、列表、图像）以便对元素进行针对性处理时，请使用 Unstructured。
+
+![基本流程](PixPin_2026-09-19_13-38-00.webp)
+
+首先安装所需的库:
+```bash
+pip install python-docx unstructured pandas
+```
+#### python-docx
+**示例代码**
+```py
+import os
+from docx import Document
+
+file_path = "./test.docx"
+
+doc = Document(file_path)
+
+text = []
+for paragraph in doc.paragraphs:
+    text.append(paragraph.text)
+
+full_text = "\n".join(text)
+
+print(full_text)
+```
+运行代码,效果确实可以:
+![效果图](PixPin_2026-09-19_13-42-08.webp)
+
+尽管代码中将所有的结构信息都被除去,只剩下了文本信息,但是原本的`python-docx`库肯定不止这点功能.
+
+看一下[官网](https://python-docx.readthedocs.io/en/latest/user/quickstart.html),发现这个库反而主要是用来生成和加工docx的,单纯提取docx反而是一个比较边角料的功能.
+
+>`.docx` 不是一个二进制 Word 文件，而本质上是一个 ZIP 压缩包，内部包含大量 XML、图片和关系文件。
+
+如:
+```text
+test.docx
+│
+├── [Content_Types].xml
+├── _rels/
+├── docProps/
+│   ├── core.xml
+│   └── app.xml
+│
+└── word/
+    ├── document.xml 放置正文
+    ├── styles.xml
+    ├── settings.xml
+    ├── numbering.xml
+    ├── comments.xml
+    ├── header1.xml
+    ├── footer1.xml
+    ├── media/
+    │   ├── image1.png
+    │   └── image2.jpeg
+    └── _rels/
+```
+
+不过对于做RAG来说,确实文本信息就已经足够了...
+
+
+#### unstructured
+unstructured库更多的像是一个集成库,可以支持多种文档,先看看示例代码:
+
+```py
+from unstructured.partition.docx import partition_docx
+
+file_path = "./test.docx"
+elements = partition_docx(filename=file_path)
+
+list_of_elements = []
+
+for element in elements:
+    element_dict = {
+        "element_id": element.id,
+        "file_path": file_path,
+        "category": element.category,
+        # e.g., "Title", "NarrativeText", "ListItem"
+        "text": element.text,
+        "last_modified": element.metadata.last_modified,
+    }
+
+    list_of_elements.append(element_dict)
+
+
+for v in list_of_elements:
+    print(v, "\n")
+```
+![效果图](PixPin_2026-09-19_13-59-38.webp)
+
+简单来说就是`python-docx`库的粒度太细了,毕竟RAG完全不需要docx的样式信息,像这样就刚刚好.
+
+### 加载PDF
+
 # Prometheus: Up & Running
 ## 介绍
 - Prometheus是一个开源的、基于指标的监控系统.
