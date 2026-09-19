@@ -4,6 +4,9 @@ date: 2026-09-17T20:43:52+08:00
 image: 63809324_p0-Sunshine！.webp
 
 ---
+# Models
+## 语音识别
+
 # Agent工具
 ## Ollama
 
@@ -164,7 +167,7 @@ Your working directory is F:\codes\learn\backend\python\MediaCrawler.
 
 - 这个工具编排还是很有意思的.
 ## 其他工具
-# 落地调研
+# 历史调研
 ## 大模型: 一切的开始
 
 ### OpenAI: 我一开始没想挣钱的

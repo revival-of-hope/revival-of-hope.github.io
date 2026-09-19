@@ -818,10 +818,63 @@ volumes:
 然后用`docker compose up -d`运行,成功打开页面:
 
 ![网页](PixPin_2026-09-17_11-54-18.webp)
+### 表达式浏览器(Expression Browser)
+![查询执行](PixPin_2026-09-19_18-50-22.webp)
+
+>我们的Prometheus大约使用了73 MB内存。你可能会好奇，为什么这个指标用字节而非兆字节或千兆字节来展示，那样可能更易读。答案是，可读性很大程度上取决于上下文，即使在不同环境中使用同一二进制，其数值也可能相差多个数量级：一个内部RPC可能只需微秒级完成，而轮询一个长期运行的进程则可能耗时数小时甚至数天。因此，Prometheus的惯例是采用基础单位，如字节和秒，并将美化显示的职责交给像Grafana这样的前端工具。
+
+![图标查看](PixPin_2026-09-19_18-52-47.webp)
+### Alert(告警)
+运行目标:
+```yml
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+rule_files:
+  - rules.yml
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - localhost:9093
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090
+  - job_name: node
+    static_configs:
+      - targets:
+          - localhost:9100
+```
+要想设定报警规则,就要写一个`rules.yml`出来:
+```yml
+groups:
+  - name: example
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+```
+除此之外,我们还需要将alert发送到我们指定的alertmanager上,所以还需要编写一个`alertmanager.yml`:
+```yml
+global:
+  smtp_smarthost: 'localhost:25'
+  smtp_from: 'yourprometheus@example.org'
+route:
+  receiver: example-email
+  group_by: [alertname]
+receivers:
+  - name: example-email
+    email_configs:
+      - to: 'youraddress@example.org'
+```
+## Application Monitoring
+### Instrumentation
 
 # Hugging Face in Action
 ## 简介
-HuggingFace有Transformers库和各种pipeline,大量的预训练模型,构建网页UI的Gradio库(21年被Hugging Face收购).
+HuggingFace有Transformers库和各种pipeline,大量的预训练模型(通过huggingface_hub下载),构建网页UI的Gradio库(21年被Hugging Face收购).
 # Vision Language Models
 ## 导论
 ### Brief Introduction to Computer Vision
