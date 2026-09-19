@@ -74,7 +74,7 @@ public class Main {
   }
 }
 ```
-包含了这个代码的文件必须叫做Main.Java,区分大小写.
+包含了这个代码的文件必须叫做Main.java,区分大小写.
 
 ### 主函数
 上述代码中的main函数是Java程序的入口,其作用与c/cpp中的main函数别无二致:
@@ -826,7 +826,7 @@ public class Main {
 >Annotations are **special notes** you add to your Java code. They start with the `@` symbol.
 
 
-注解并不会改变程序的运行方式,但是会为编译器和构建工具提供额外的信息,这与Python中的`@`语法糖完全不同.
+注解并不会改变程序的运行方式,但是会为编译器和构建工具提供额外的信息,这与Python中的`@`装饰器完全不同.
 
 最常用的注解有三个:
 1. `@Override`: Indicates that a method overrides a method in a superclass
@@ -1061,9 +1061,10 @@ Spring框架诞生于03年,主要的原因就是官方的Java EE太过于臃肿�
 当然,如果直接拿一个现成的Spring Boot项目来看的话,根本无从下手,所以需要好好了解Spring的基本知识和Spring Boot对它的改进.
 
 >[!NOTE]
->(26/8/25)突然发现我之前还是太蠢了,直接看现成项目才是学习Spring Boot的王道,扯什么基IoC,依赖注入,一点用都没有,毕竟无论是什么语言,什么框架,一旦涉及了CRUD,就几乎没有什么太大的架构差别.
+>(26/8/25)突然发现我之前还是太蠢了,直接看现成项目才是学习Spring Boot的王道,扯什么IoC,依赖注入,一点用都没有,毕竟无论是什么语言,什么框架,一旦涉及了CRUD,就几乎没有什么太大的架构差别.
 ## 项目入门
 
 ## 基础知识(过)
 - [官方文档](https://docs.spring.io/spring-framework/reference/core)
-  - 非常遗憾的是,除了这个之外,网上根本就没有一个合适的教程,而即便是这个
+  - 非常遗憾的是,除了这个之外,网上根本就没有一个合适的教程,而即便是这个文档,看着也非常难受.
+

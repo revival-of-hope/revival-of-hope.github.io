@@ -6,6 +6,727 @@ image: 53656198_p0-必殺。.webp
 ---
 
 
+# Learning Go
+## ch1: 搭建环境
+```bash
+# 创建go模块
+go mod init hello_word
+# 编译go程序
+go build hello.go
+# 格式化go程序,应用于当前目录及所有子目录
+go fmt ./...
+```
+### 使用make
+```makefile
+.DEFAULT_GOAL := build
+.PHONY:fmt vet build
+fmt:
+	go fmt ./...
+vet: fmt 
+	go vet ./...
+build: vet
+	go build
+```
+在终端敲上`make`这个单词就可以自动运行build命令了.
+
+## ch2: 类型和声明
+### 字符串
+>Go 语言中的字符串是不可变的；你可以重新赋值给一个字符串变量，但你不能改变赋值给它的字符串的值。
+### 变量声明
+
+如果有初始化值,Go中的var声明都可以省略类型:
+```go
+var x = 10
+var x, y int = 10, 20
+var x, y = 10, "hello"
+var x int
+// 如果不写初始化值则构造为零值
+```
+
+
+另一个则是只能写在函数中作为局部变量声明的`:=`,同样不用指定类型:
+```go
+var x, y = 10, "hello"
+x, y := 10, "hello"
+```
+
+Go中的const声明如下:
+```go
+const x int64 = 10
+const (
+    idKey = "id"
+    nameKey = "name"
+)
+const z = 20 * 10
+```
+其中第二种声明方式显然比较有特色
+
+## ch3: 复合类型
+### 数组
+```go
+var x [3]int
+var x = [3]int{10, 20, 30}
+var x = [...]int{10, 20, 30} //自动推断长度
+```
+>Go 语言中的数组很少被显式使用。这是因为它们有一个特殊的限制：Go 将数组的大小视为数组类型的一部分。这使得声明为[3]int 的数组与声明为 [4]int 的数组类型不同
+### 切片
+切片的用法与数组类似,但声明时不用指定数组大小:
+```go
+var x = []int{10, 20, 30}
+```
+#### make内置函数
+指定切片类型,零值数量,总容量.
+```go
+x := make([]int, 5,10)
+```
+#### 从数组/切片中创建切片
+```go
+x := []string{"a", "b", "c", "d"}
+y := x[:2]
+z := x[1:]
+d := x[1:3]
+e := x[:]
+fmt.Println("x:", x)
+fmt.Println("y:", y)
+fmt.Println("z:", z)
+fmt.Println("d:", d)
+fmt.Println("e:", e)
+```
+依然遵循前闭后开的准则.
+
+切片彼此之间是相互引用的,修改一个切片会影响到其他相同位置的切片.
+
+```go
+xArray := [4]int{5, 6, 7, 8}
+xSlice := xArray[:]
+```
+数组转换成切片.
+
+```go
+xSlice := []int{1, 2, 3, 4}
+xArray := [4]int(xSlice)
+smallArray := [2]int(xSlice)
+xSlice[0] = 10
+```
+切片转换成数组.
+
+
+#### copy内置函数
+```go
+x := []int{1, 2, 3, 4}
+y := make([]int, 4)
+num := copy(y, x)
+fmt.Println(y, num)
+```
+copy函数可以创建一个独立于原始切片的切片.
+
+### Maps
+#### 声明与创建
+普通的声明方式如下,`[]`中写key,后面跟着任何可映射的value类型:
+```go
+var nilMap map[string]int
+totalWins := map[string]int{}
+```
+
+通用的make函数声明:
+```go
+ages := make(map[int][]string, 10)
+```
+#### 访问Map
+```go
+m := map[string]int{
+    "hello": 5,
+    "world": 0,
+}
+v, ok := m["hello"]
+fmt.Println(v, ok)
+v, ok = m["world"]
+fmt.Println(v, ok)
+v, ok = m["goodbye"]
+fmt.Println(v, ok)
+```
+可以看到,Map访问内置了异常处理,还是很方便的.
+
+### Structs
+#### 声明
+```go
+type person struct {
+    name string
+    age int
+    pet string
+}
+```
+Go中的结构体不支持默认值,只有零值.
+
+对于结构体来说,赋值一个空结构体字面量和完全不赋值之间没有区别,都会将所有字段初始化为零值:
+```go
+var fred person
+
+bob := person{}
+```
+
+和python一样,go支持指名赋值或者按照成员声明的顺序来进行不指名赋值.
+
+
+#### 匿名结构体
+```go
+var person struct {
+	name string
+	age  int
+	pet  string
+}
+
+person.name = "bob"
+person.age = 50
+person.pet = "dog"
+
+pet := struct {
+	name string
+	kind string
+}{
+	name: "Fido",
+	kind: "dog",
+}
+```
+pet还比较好理解,是一个经典的匿名结构体,在声明后立即使用.但person就比较神奇了,原来的`type person struct`变成了`var person struct`,然后就同时完成了类型声明和初始化变量两件事情.
+
+匿名结构体显然是那种只会用到一两次的数据仓库.
+## ch4: 逻辑结构
+### if
+```go
+if n := rand.Intn(10); n == 0 {
+    fmt.Println("That's too low")
+} else if n > 5 {
+    fmt.Println("That's too big:", n)
+} else {
+    fmt.Println("That's a good number:", n)
+}
+```
+Go中的if语句可以定义存活到else语句结束时的变量,很容易用在那些当属性名称太长时的简写.
+
+### for
+Go中的for有四种形式:
+- A complete, C-style `for`
+- A condition-only `for`
+- An infinite `for`
+- `for-range`
+```go
+package main
+
+import "fmt"
+
+func main() {
+	// 一、完整的、C 风格的 for (A complete, C-style for)
+	// 包含初始化语句、条件表达式和后置语句
+	fmt.Println("--- 一、完整的、C 风格的 for ---")
+	for i := 0; i < 3; i++ {
+		fmt.Println("C-style:", i)
+	}
+
+	// 二、仅限条件的 for (A condition-only for)
+	// 只有条件表达式，相当于其他语言中的 while
+	fmt.Println("--- 二、仅限条件的 for ---")
+	j := 0
+	for j < 3 {
+		fmt.Println("Condition-only:", j)
+		j++
+	}
+
+	// 三、无限的 for (An infinite for)
+	// 没有条件表达式，如果不使用 break 跳出，会一直循环
+	fmt.Println("--- 三、无限的 for ---")
+	count := 0
+	for {
+		fmt.Println("Infinite:", count)
+		count++
+		if count >= 3 {
+			break // 必须使用 break 跳出循环，否则会造成死循环
+		}
+	}
+
+	// 四、for-range
+	// 用于遍历数组、切片、字符串、map 或 channel
+	fmt.Println("--- 四、for-range ---")
+	nums := []int{10, 20, 30}
+	for index, value := range nums {
+		fmt.Printf("Index: %d, Value: %d\n", index, value)
+	}
+}
+```
+
+>需要注意的是，每次 `for-range` 循环遍历复合类型时，它都会将复合类型的值复制到 value 变量中。修改 value 变量不会修改复合类型的值
+
+如果要修改原复合类型,就必须要通过下标来处理:
+```go
+for i := range nums {
+    nums[i] *= 10
+}
+
+
+m := map[string]User{
+    "tom": {"Tom", 18},
+}
+
+for key, user := range m {
+    user.Age++
+    m[key] = user
+}
+```
+## ch5: 函数
+### 基本形式
+在Go中,你必须为函数提供所有参数,并不存在命名参数和可选参数,如果参数过多,可以包裹在一个结构体里面再传入:
+```go
+func DefaultConfig() Config {
+    return Config{
+        Host:    "localhost",
+        Port:    8080,
+        Timeout: 30,
+    }
+}
+
+func NewServer(cfg Config) *Server {
+    // ...
+}
+```
+
+但Go支持可变参数,也就是说可以传入任意数量的参数:
+```go
+func addTo(base int, vals ...int) []int {
+	out := make([]int, 0, len(vals))
+	for _, v := range vals {
+		out = append(out, base+v)
+	}
+	return out
+}
+
+func main() {
+	fmt.Println(addTo(3))
+	fmt.Println(addTo(3, 2))
+	fmt.Println(addTo(3, 2, 4, 6, 8))
+	a := []int{4, 3}
+	fmt.Println(addTo(3, a...))
+	fmt.Println(addTo(3, []int{1, 2, 3, 4, 5}...))
+}
+```
+
+Go的另一个独特之处就是支持多个返回值:
+```go
+func divAndRemainder(num, denom int) (int, int, error) {
+	if denom == 0 {
+		return 0, 0, errors.New("cannot divide by zero")
+	}
+	return num / denom, num % denom, nil
+}
+```
+接受变量需要与返回值的数量一一对应,如果有不需要的值,则用`_`表示,如` result, _, err := divAndRemainder(5, 2)`
+
+Go还支持对返回值命名:
+```go
+func divAndRemainder(num, denom int) (result int, remainder int, err error) {
+	if denom == 0 {
+		err = errors.New("cannot divide by zero")
+		return result, remainder, err
+	}
+	result, remainder = num/denom, num%denom
+	return result, remainder, err
+}
+```
+>命名的返回值在创建时会被初始化为零。这意味着你可以在任何显式使用或赋值之前直接返回它们。
+
+
+
+# Redis设计与实现
+- 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
+## 数据结构与对象
+### simple dynamic string，SDS
+>Redis没有直接使用C语言传统的字符串表示（以空字符结尾的字符数组，以下简称C字符串），而是自己构建了一种名为简单动态字符串（simple dynamic string，SDS）的抽象类型，并将SDS用作Redis的默认字符串表示。
+
+主要原因自然是C字符串本身的问题,如字符串拼接函数`strcat`不会自动扩容,C字符串默认以`./0`结尾,并不会记录自身的长度,而是需要程序员自己控制.
+
+格式如下:
+![格式图](PixPin_2026-09-13_12-38-08.webp)
+
+- len记载占用空间,free记载剩余空间,通过结构体实现
+### 链表
+Redis中的链表设计如下:
+* 双端：链表节点带有 `prev` 和 `next` 指针，获取某个节点的前置节点和后置节点的复杂度都是 O(1)。
+
+* 无环：表头节点的 `prev` 指针和表尾节点的 `next` 指针都指向 `NULL`，对链表的访问以 `NULL` 为终点。
+
+* 带表头指针和表尾指针：通过 `list` 结构的 `head` 指针和 `tail` 指针，程序获取链表的表头节点和表尾节点的复杂度为 O(1)。
+
+* 带链表长度计数器：程序使用 `list` 结构的 `len` 属性来对 `list` 持有的链表节点进行计数，程序获取链表中节点数量的复杂度为 O(1)。
+
+* 多态：链表节点使用 `void*` 指针来保存节点值，并且可以通过 `list` 结构的 `dup`、`free`、`match` 三个属性为节点值设置类型特定函数，所以链表可以用于保存各种不同类型的值。
+
+### 字典
+>字典在Redis中的应用相当广泛，比如Redis的数据库就是使用字典来作为底层实现的，对数据库的增、删、查、改操作也是构建在对字典的操作之上的。
+#### 哈希表
+Redis的字典使用哈希表实现:
+```c
+typedef struct dictht {
+    // 哈希表数组
+    dictEntry **table;//指针数组
+
+    // 哈希表大小
+    unsigned long size;
+
+    // 哈希表大小掩码，用于计算索引值
+    // 总是等于 size - 1
+    unsigned long sizemask;
+
+    // 该哈希表已有节点的数量
+    unsigned long used;
+} dictht;
+```
+具体的单节点结构如下:
+```c
+typedef struct dictEntry {
+    // 键
+    void *key;
+
+    // 值
+    union {
+        void *val;
+        uint64_t u64;
+        int64_t s64;
+    } v;
+
+    // 指向下一个哈希表节点，形成链表
+    struct dictEntry *next;
+} dictEntry;
+```
+- 这里的union非常有意思,完美解决了节点的替换问题.
+
+#### 哈希算法
+Redis计算哈希值和索引值的方法如下：
+```c
+// 使用字典设置的哈希函数，计算键 key 的哈希值
+hash = dict->type->hashFunction(key);
+
+// 使用哈希表的 sizemask 属性和哈希值，计算出索引值
+// 根据情况不同，ht[x] 可以是 ht[0] 或者 ht[1]
+index = hash & dict->ht[x].sizemask;
+```
+hashFunction用的算法是MurmurHash2算法,而现在用的则是SipHash算法
+#### 哈希冲突
+发生哈希冲突时,由于没有指向尾部的指针,所以Redis会将新节点放在链表的头部
+#### rehash
+当哈希冲突过多/加入节点过多时,Redis会自动执行Rehash来渐进式地扩展哈希表,详细步骤如下:
+1. 为 `ht[1]` 分配空间，让字典同时持有 `ht[0]` 和 `ht[1]` 两个哈希表。
+
+2. 在字典中维持一个索引计数器变量 `rehashidx`，并将它的值设置为 `0`，表示 rehash 工作正式开始。
+
+3. 在 rehash 进行期间，每次对字典执行添加、删除、查找或者更新操作时，程序除了执行指定的操作以外，还会顺带将 `ht[0]` 哈希表在 `rehashidx` 索引上的所有键值对 rehash 到 `ht[1]`。当 rehash 工作完成之后，程序将 `rehashidx` 属性的值增一。
+
+4. 随着字典操作的不断执行，最终在某个时间点上，`ht[0]` 的所有键值对都会被 rehash 至 `ht[1]`。这时程序将 `rehashidx` 属性的值设为 `-1`，表示 rehash 操作已完成。
+
+设计上确实很简单,但不是那么容易想得到的.
+### 跳表
+>和链表、字典等数据结构被广泛地应用在Redis内部不同，Redis只在两个地方用到了跳跃表，一个是实现有序集合键，另一个是在集群节点中用作内部数据结构，除此之外，跳跃表在Redis里面没有其他用途
+
+- 我以前还以为Redis主要靠跳表呢,结果并没有我想的那么简单
+### 整数集合
+>整数集合（intset）是集合键的底层实现之一，当一个集合只包含整数值元素，并且这个集合的元素数量不多时，Redis就会使用整数集合作为集合键的底层实现。
+
+基本原理就是把整数按照顺序放进一块连续内存中,所有元素的类型统一,有三种类型:
+```text
+INTSET_ENC_INT16
+INTSET_ENC_INT32
+INTSET_ENC_INT64
+```
+### 压缩列表
+>压缩列表（ziplist）是列表键和哈希键的底层实现之一。当一个列表键只包含少量列表项，并且每个列表项要么就是小整数值，要么就是长度比较短的字符串，那么Redis就会使用压缩列表来做列表键的底层实现。
+
+可以说只是一个优化过的链表而已.
+
+### 对象
+>在前面的数个章节里，我们陆续介绍了Redis用到的所有主要数据结构，比如简单动态字符串（SDS）、双端链表、字典、压缩列表、整数集合等等。
+>
+>Redis并没有直接使用这些数据结构来实现键值对数据库，而是基于这些数据结构创建了一个对象系统，这个系统包含字符串对象、列表对象、哈希对象、集合对象和有序集合对象这五种类型的对象，每种对象都用到了至少一种我们前面所介绍的数据结构。
+#### 对象类型
+Redis使用对象来表示数据库中的键和值，每次当我们在Redis的数据库中新创建一个键值对时，我们至少会创建两个对象，一个对象用作键值对的键（键对象），另一个对象用作键值对的值（值对象）。
+
+经典的5个对象类型如下:
+
+| 类型常量       | 对象的名称   |
+| -------------- | ------------ |
+| `REDIS_STRING` | 字符串对象   |
+| `REDIS_LIST`   | 列表对象     |
+| `REDIS_HASH`   | 哈希对象     |
+| `REDIS_SET`    | 集合对象     |
+| `REDIS_ZSET`   | 有序集合对象 |
+
+>对于Redis数据库保存的键值对来说，键总是一个字符串对象，而值则可以是字符串对象、列表对象、哈希对象、集合对象或者有序集合对象的其中一种，
+#### 字符串对象
+字符串对象的编码可以是int、raw或者embstr,分别对应整数,长字符串,短于32字节的字符串
+#### 列表对象
+列表对象的编码可以是ziplist或者linkedlist,当列表中所有字符串元素的长度都小于64字节,且保存元素少于512个时,使用zpilist,否则就用linkedlist,二者的实现方式上有一点不同:
+
+linkedlist是一个真正的双端列表,而ziplist中所有元素紧凑排列在一段连续内存中.
+
+
+
+|     命令      | ziplist 编码的实现方法                                                                                                     | linkedlist 编码的实现方法                                                                                          |
+| :-----------: | :------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------- |
+|  **`LPUSH`**  | 调用 `ziplistPush` 函数，将新元素推入到压缩列表的表头                                                                      | 调用 `listAddNodeHead` 函数，将新元素推入到双端链表的表头                                                          |
+|  **`RPUSH`**  | 调用 `ziplistPush` 函数，将新元素推入到压缩列表的表尾                                                                      | 调用 `listAddNodeTail` 函数，将新元素推入到双端链表的表尾                                                          |
+|  **`LPOP`**   | 调用 `ziplistIndex` 函数定位压缩列表的表头节点，在向用户返回节点所保存的元素之后，调用 `ziplistDelete` 函数删除表头节点    | 调用 `listFirst` 函数定位双端链表的表头节点，在向用户返回节点所保存的元素之后，调用 `listDelNode` 函数删除表头节点 |
+|  **`RPOP`**   | 调用 `ziplistIndex` 函数定位压缩列表的表尾节点，在向用户返回节点所保存的元素之后，调用 `ziplistDelete` 函数删除表尾节点    | 调用 `listLast` 函数定位双端链表的表尾节点，在向用户返回节点所保存的元素之后，调用 `listDelNode` 函数删除表尾节点  |
+| **`LINDEX`**  | 调用 `ziplistIndex` 函数定位压缩列表中的指定节点，然后返回节点所保存的元素                                                 | 调用 `listIndex` 函数定位双端链表中的指定节点，然后返回节点所保存的元素                                            |
+|  **`LLEN`**   | 调用 `ziplistLen` 函数返回压缩列表的长度                                                                                   | 调用 `listLength` 函数返回双端链表的长度                                                                           |
+| **`LINSERT`** | 插入新节点到压缩列表的表头或者表尾时，使用 `ziplistPush` 函数；插入新节点到压缩列表的其他位置时，使用 `ziplistInsert` 函数 | 调用 `listInsertNode` 函数，将新节点插入到双端链表的指定位置                                                       |
+
+
+问了一下AI,现在list的主要实现变成了`quicklist`,是一个由多个`ziplist`组成的链表,这个设计确实很不错
+#### 哈希对象
+哈希对象的编码可以是ziplist或者hashtable。
+
+如果使用ziplist,那么就满足以下性质:
+- **保存了同一键值对的两个节点总是紧挨在一起**，保存键的节点在前，保存值的节点在后；
+- **先添加到哈希对象中的键值对**会被放在压缩列表的表头方向，而**后来添加到哈希对象中的键值对**会被放在压缩列表的表尾方向。
+
+这与列表其实没有任何区别,只不过存储的量多了一倍而已,同样,当所有元素的字符串长度小于64字节,键值对数量小于512时才会启用ziplist,否则使用hashtable.
+
+hashtable使用前面所说的字典实现.
+#### 集合对象
+集合对象的编码可以是intset或者hashtable。同样也是根据元素数量来进行转换的.
+#### 有序集合对象
+有序集合的编码可以是ziplist或者skiplist。
+
+如果是ziplist,每次插入都要重新排序
+
+# RAG with Python Cookbook
+## RAG介绍
+| RAG 拟合度 | 用例                                              | 适配理由                                                                                                                         |
+| ---------: | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+|      **1** | 我想和我的季度报告聊聊                            | 只有单份文档，数据量较小。直接阅读或使用 ChatGPT、Claude 等通用大模型即可完成，自建 RAG 的收益很低。                             |
+|      **2** | 请帮我总结这一份文档                              | 通用大模型已经能够较好地完成单文档总结任务，引入 RAG 通常不会带来明显额外价值。                                                  |
+|      **2** | 自动执行需要作出高风险决策的任务                  | 技术上可以实现，但大模型仍可能出错。若缺少人工审核、审计机制和故障保护等措施，风险较高，因此不适合单纯依赖 RAG 自动完成。        |
+|      **4** | 大量会议录音不断积累，但其中的信息无法进入知识库  | RAG 可以将音频、视频、长篇非结构化笔记等难以检索的信息转化为可搜索、可查询的知识，具有持续价值；最终效果会受到语音转录质量影响。 |
+|      **4** | 将技术图纸与规格文档进行核对                      | 适合利用多模态模型结合 RAG 进行跨材料比对，可以减少大量人工核查工作；但需要完善的评估机制和异常处理流程。                        |
+|      **5** | 有 1 万份合同，需要找出其中包含自动续约条款的合同 | 文档规模很大，人工逐份检查成本过高；任务目标明确，可以通过检索和信息提取定位相关合同，结果也容易人工验证。                       |
+|      **5** | 客户支持工单中包含大量产品问题，但无法有效汇总    | RAG 适合跨大量文档检索、聚合和发现重复模式，可以从大量工单中识别共同问题及趋势，这是人工难以大规模完成的任务。                   |
+|      **5** | 每天收到数百条客户咨询，需要自动分配给合适的团队  | 属于高频、重复的分类与路由任务，任务标准清晰，结果容易评估，并且可以通过自动化显著降低人工成本。                                 |
+
+**核心判断原则：**RAG 的价值通常随着**数据量、跨文档检索需求、信息更新频率和人工处理成本**的增加而提高。对于单份、短小且可以直接放入大模型上下文的文档，通常没有必要专门构建 RAG 系统。
+
+>当数据结构不规则且变化多端时，这种能力尤为重要。当每个输入略有不同但处理方式类似时，例如客户电子邮件、合同条款或事件报告，可以使用 RAG。不要将 RAG 用于简单的查找、固定格式的数据提取或基于不变规则的任务。如果您可以编写正则表达式（regex）或 SQL 查询来处理 95% 的情况，那么 RAG 只会增加不必要的复杂性和成本。
+
+RAG常用的库和框架如下:
+| 类别                              | 示例库                                                                          | 主要作用                                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **RAG 与代理式 RAG 编排**         | LangChain、LangGraph、LlamaIndex                                                | 将检索器、生成器、提示词、记忆等常见 RAG 组件封装为统一抽象，并负责连接向量数据库、LLM 和传统数据库，使开发者更专注于业务逻辑。 |
+| **大语言模型与嵌入模型**          | OpenAI、Anthropic、Transformers、Sentence Transformers                          | 为 RAG 系统提供核心智能能力，用于理解用户查询、生成向量嵌入以及生成最终回答。                                                   |
+| **向量存储**                      | Chroma、FAISS、Pinecone、Milvus、Weaviate                                       | 存储和检索向量嵌入，通过相似度搜索快速找到与用户查询相关的内容。                                                                |
+| **数据处理**                      | pandas、NumPy、PyPDF2、pypdf、python-docx、Unstructured、openpyxl、scikit-learn | 用于数据处理、文件读取、清洗和预处理，在文档进入 RAG 系统之前将原始数据转换为可处理的形式。                                     |
+| **多模态与媒体处理**              | Pillow、Pytesseract、MoviePy、pdf2image、OpenCV                                 | 用于加载和处理图片、视频、播客、PDF、Word、PowerPoint 等不同媒体和文件格式。                                                    |
+| **文本处理与自然语言处理（NLP）** | NLTK、Transformers、Rank-BM25、Beautiful Soup 4                                 | 用于文本清洗、分词、关键词检索、传统 NLP 分析等任务，避免所有文本处理步骤都依赖大语言模型。                                     |
+| **评估与监控**                    | Ragas、Phoenix、LangSmith、Prometheus-Eval                                      | 提供预定义的评估指标，用于衡量检索器、生成器以及整个 RAG 应用的准确性、质量和运行表现。                                         |
+| **Web 框架与部署**                | Streamlit、Gradio、Flask、Django                                                | 用于构建 RAG 应用的用户界面和 Web 服务。其中 Streamlit、Gradio 更适合快速原型，Flask、Django 更适合完整应用开发。               |
+| **数据库与存储**                  | SQLAlchemy、Psycopg 2、SQLite3                                                  | 用于连接传统 SQL 数据库，并通过数据库连接器或 ORM 将关系型数据作为 RAG 系统的数据来源。                                         |
+## 基础模型
+### Ollama
+>Ollama 在http://localhost:11434/v1 公开了一个与 OpenAI 兼容的端点，因此您现有的代码几乎无需更改。
+
+```py
+from openai import OpenAI
+
+# Point the client to your local Ollama server
+client = OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="ollama",  # Ollama does not require a real key,
+                       # but the SDK expects one
+)
+
+response = client.chat.completions.create(
+    model="qwen3:4b",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {
+            "role": "user",
+            "content": "What is retrieval augmented generation?"
+        },
+    ],
+)
+
+print(response.choices[0].message.content)
+```
+还可以试试选用多个模型:
+```py
+from openai import OpenAI
+
+models = ["llama2", "mistral", "codellama"]
+
+client = OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="ollama"
+)
+
+for model in models:
+    print(f"\n--- Testing {model} ---")
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "user", "content": "Explain RAG in one sentence."}
+        ]
+    )
+
+    print(response.choices[0].message.content)
+```
+
+
+> **将公开排行榜视为筛选工具，而非最终决策标准。常见的局限性包括以下几点：**
+>
+> **基准泄漏或数据污染**
+> 一些基准测试题及答案是公开的，可能已被直接或间接包含在训练数据中，从而抬高模型分数。
+>
+> **古德哈特定律或过度优化**
+> 一旦某个基准成为目标，模型开发者可能会专门针对该基准进行调整，从而提高分数，但并不会相应提高模型的通用能力。
+>
+> **与实际使用情况不符**
+> 生产环境中的具体配置——包括提示模板、检索质量、工具使用、长上下文、多语言内容、量化方式以及延迟限制——都会显著影响最终结果。
+> 因此，即使某个模型在公开排行榜上“胜出”，在你自己的 RAG 查询或真实业务场景中，也可能表现得更差。
+
+
+### 图片解析
+```py
+from pydantic import BaseModel
+from openai import OpenAI
+import base64
+
+
+class Invoice(BaseModel):
+    invoice_number: str
+    vendor: str
+    total: float
+    currency: str
+
+
+client = OpenAI()
+
+with open("invoice.png", "rb") as f:
+    image_base64 = base64.b64encode(f.read()).decode("utf-8")
+
+result = client.responses.parse(
+    model="gpt-5-mini",
+    input=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_text",
+                    "text": "Extract the invoice data."
+                },
+                {
+                    "type": "input_image",
+                    "image_url": f"data:image/png;base64,{image_base64}"
+                },
+            ],
+        }
+    ],
+    text_format=Invoice,
+)
+```
+
+第一次知道API还可以定制返回模型,不过对话中是不需要的,工具调用时却很有必要
+## 加载数据
+# Prometheus: Up & Running
+## 介绍
+- Prometheus是一个开源的、基于指标的监控系统.
+
+监控(monitor)可以定义如下:
+* **告警（Alerting）**：知道事情何时出错，通常是监控最重要的用途。监控系统应能够在出现异常时通知人工介入检查。
+
+* **调试（Debugging）**：当人工介入后，需要进一步调查问题，确定根本原因，并最终解决已经出现的故障。
+
+* **热门趋势（Trending）**：告警和调试通常发生在几分钟到几小时的时间尺度上。虽然趋势分析没有那么紧急，但了解系统如何被使用、如何随时间变化同样重要。趋势信息可以为设计决策、容量规划等工作提供依据。
+
+* **水管工程（Plumbing）**：监控系统本质上也是一套数据处理管道。在实践中，有时可以复用监控系统的部分能力去完成其他任务，而不必重新构建专门的解决方案。严格来说这不完全属于监控，但实际工程中很常见。
+
+
+![架构图](PixPin_2026-09-17_11-37-00.webp)
+
+## 入门
+### 补充: 使用docker运行Prometheus
+新建一个文件夹,放三个文件:
+
+**prometheus.yml**
+```yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # 监控 Prometheus 自身
+  - job_name: "prometheus"
+
+    static_configs:
+      - targets:
+          - "localhost:9090"
+```
+**dockerfile**
+```dockerfile
+FROM prom/prometheus:latest
+
+COPY prometheus.yml /etc/prometheus/prometheus.yml
+
+EXPOSE 9090
+```
+
+**compose.yml**
+```yml
+services:
+  prometheus:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: prometheus
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      # 持久化 Prometheus 时序数据
+      - prometheus_data:/prometheus
+
+      # 开发时推荐挂载配置文件，
+      # 修改配置后不需要重新 build 镜像
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+```
+
+然后用`docker compose up -d`运行,成功打开页面:
+
+![网页](PixPin_2026-09-17_11-54-18.webp)
+
+# Hugging Face in Action
+## 简介
+HuggingFace有Transformers库和各种pipeline,大量的预训练模型,构建网页UI的Gradio库(21年被Hugging Face收购).
+# Vision Language Models
+## 导论
+### Brief Introduction to Computer Vision
+
+
+# The Architecture of Open Source Applications
+## 引言
+>建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
+
+
+# Zero To Production In Rust
+# Minimal CMake
 # Rust 中文学习教程
 由于另一本书太难啃了,所以换这本书来试试咸淡.
 
@@ -1109,639 +1830,99 @@ let add_one_v2 = |x: u32| -> u32 { x + 1 };
 let add_one_v3 = |x|             { x + 1 };
 let add_one_v4 = |x|               x + 1  ;
 ```
-
-
-
-# Learning Go
-## ch1: 搭建环境
-```bash
-# 创建go模块
-go mod init hello_word
-# 编译go程序
-go build hello.go
-# 格式化go程序,应用于当前目录及所有子目录
-go fmt ./...
+在rust中,即使是两个签名一摸一样的闭包的,它们的类型也是不同的:
+```rs
+let a = |x: i32| x + 1;
+let b = |x: i32| x + 1;
 ```
-### 使用make
-```makefile
-.DEFAULT_GOAL := build
-.PHONY:fmt vet build
-fmt:
-	go fmt ./...
-vet: fmt 
-	go vet ./...
-build: vet
-	go build
-```
-在终端敲上`make`这个单词就可以自动运行build命令了.
+- 这太反直觉了
 
-## ch2: 类型和声明
-### 字符串
->Go 语言中的字符串是不可变的；你可以重新赋值给一个字符串变量，但你不能改变赋值给它的字符串的值。
-### 变量声明
-
-如果有初始化值,Go中的var声明都可以省略类型:
-```go
-var x = 10
-var x, y int = 10, 20
-var x, y = 10, "hello"
-var x int
-// 如果不写初始化值则构造为零值
-```
-
-
-另一个则是只能写在函数中作为局部变量声明的`:=`,同样不用指定类型:
-```go
-var x, y = 10, "hello"
-x, y := 10, "hello"
-```
-
-Go中的const声明如下:
-```go
-const x int64 = 10
-const (
-    idKey = "id"
-    nameKey = "name"
-)
-const z = 20 * 10
-```
-其中第二种声明方式显然比较有特色
-
-## ch3: 复合类型
-### 数组
-```go
-var x [3]int
-var x = [3]int{10, 20, 30}
-var x = [...]int{10, 20, 30} //自动推断长度
-```
->Go 语言中的数组很少被显式使用。这是因为它们有一个特殊的限制：Go 将数组的大小视为数组类型的一部分。这使得声明为[3]int 的数组与声明为 [4]int 的数组类型不同
-### 切片
-切片的用法与数组类似,但声明时不用指定数组大小:
-```go
-var x = []int{10, 20, 30}
-```
-#### make内置函数
-指定切片类型,零值数量,总容量.
-```go
-x := make([]int, 5,10)
-```
-#### 从数组/切片中创建切片
-```go
-x := []string{"a", "b", "c", "d"}
-y := x[:2]
-z := x[1:]
-d := x[1:3]
-e := x[:]
-fmt.Println("x:", x)
-fmt.Println("y:", y)
-fmt.Println("z:", z)
-fmt.Println("d:", d)
-fmt.Println("e:", e)
-```
-依然遵循前闭后开的准则.
-
-切片彼此之间是相互引用的,修改一个切片会影响到其他相同位置的切片.
-
-```go
-xArray := [4]int{5, 6, 7, 8}
-xSlice := xArray[:]
-```
-数组转换成切片.
-
-```go
-xSlice := []int{1, 2, 3, 4}
-xArray := [4]int(xSlice)
-smallArray := [2]int(xSlice)
-xSlice[0] = 10
-```
-切片转换成数组.
-
-
-#### copy内置函数
-```go
-x := []int{1, 2, 3, 4}
-y := make([]int, 4)
-num := copy(y, x)
-fmt.Println(y, num)
-```
-copy函数可以创建一个独立于原始切片的切片.
-
-### Maps
-#### 声明与创建
-普通的声明方式如下,`[]`中写key,后面跟着任何可映射的value类型:
-```go
-var nilMap map[string]int
-totalWins := map[string]int{}
-```
-
-通用的make函数声明:
-```go
-ages := make(map[int][]string, 10)
-```
-#### 访问Map
-```go
-m := map[string]int{
-    "hello": 5,
-    "world": 0,
-}
-v, ok := m["hello"]
-fmt.Println(v, ok)
-v, ok = m["world"]
-fmt.Println(v, ok)
-v, ok = m["goodbye"]
-fmt.Println(v, ok)
-```
-可以看到,Map访问内置了异常处理,还是很方便的.
-
-### Structs
-#### 声明
-```go
-type person struct {
-    name string
-    age int
-    pet string
-}
-```
-
-对于结构体来说,赋值一个空结构体字面量和完全不赋值之间没有区别,都会将所有字段初始化为零值:
-```go
-var fred person
-
-bob := person{}
-```
-
-和python一样,go支持指名赋值或者按照成员声明的顺序来进行不指名赋值.
-
-
-#### 匿名结构体
-```go
-var person struct {
-	name string
-	age  int
-	pet  string
+因此,要在结构体中声明闭包就必须要通过泛型来解决,并用特征来说明闭包:
+```rs
+struct Cacher<T>
+where
+    T: Fn(u32) -> u32,
+{
+    query: T,
+    value: Option<u32>,
 }
 
-person.name = "bob"
-person.age = 50
-person.pet = "dog"
-
-pet := struct {
-	name string
-	kind string
-}{
-	name: "Fido",
-	kind: "dog",
-}
-```
-pet还比较好理解,是一个经典的匿名结构体,在声明后立即使用.但person就比较神奇了,原来的`type person struct`变成了`var person struct`,然后就同时完成了类型声明和初始化变量两件事情.
-
-匿名结构体显然是那种只会用到一两次的数据仓库.
-## ch4: 逻辑结构
-### Blocks
-# R Cookbook
-## 补充: 安装流程
-首先上官网下载base包,并将安装路径下的`bin`文件夹添加到环境变量,然后在Vscode里安装R的官方扩展,接着在R自带的console中下载R的官方包:
-```bash
-install.packages("languageserver")
-```
-
-之后在vscode中新建r扩展名的文件即可,初始测试文件如下:
-```r
-x <- c(1, 2, 3, 4, 5)
-
-mean(x)
-
-print("Hello R")
-```
-然后,按下`Ctrl + A`后再按`Ctrl + Enter`即可一键运行整个文件,看到输出结果.
-
-自然,每输入一行,按一下`Ctrl + Enter`就可以运行该行代码,还是很方便的
-## 基本概念
-### 打印
-```r
-pi
-#> [1] 3.14
-sqrt(2)
-#> [1] 1.41
-```
-当你输入这些表达式时，R 会运算表达式，然后隐式调用 print 函数。因此，上一个示例实际上等同于：
-```r
-print(pi)
-#> [1] 3.14
-print(sqrt(2))
-#> [1] 1.41
-```
-
-但是print只支持逐一打印,不能一次性打印多个变量,所以可以换成`cat`函数:
-```r
-cat("The zero occurs at", 2 * pi, "radians.", "\n")
-#> The zero occurs at 6.28 radians.
-```
-### 变量声明
-R中的变量声明与我之前学过的语言相比,非常的反直觉:
-```r
-x <- 3
-y <- 4
-```
-尽管阅读起来很清晰,但是打字时却一点都不习惯.
-
->本着完全公开的原则，我们将揭示R语言还支持另外两种赋值语句形式：单等号（=）可用作赋值运算符；右向赋值运算符（->）可在任何左向赋值运算符（<-）使用的地方使用（但参数顺序相反）。
-```r
-foo = 3
-print(foo)
-#> [1] 3
-5 -> fum
-print(fum)
-#> [1] 5
-```
-- 我们也建议您避免使用这些。等号赋值容易与相等性测试混淆。右箭头赋值在某些上下文中可能很有用，但对于不熟悉它的人来说可能造成困惑
-  - 有点扯淡了,反正我以后就用`=`了
-
-### 向量
-- 使用 `c(...)` 运算符从给定值构造向量。
-```r
-c(1, 1, 2, 3, 5, 8, 13, 21)
-#> [1] 1 1 2 3 5 8 13 21
-c(1 * pi, 2 * pi, 3 * pi, 4 * pi)
-#> [1] 3.14 6.28 9.42 12.57
-c("My", "twitter", "handle", "is", "@cmastication")
-#> [1] "My"
- "twitter"
- "handle"
-#> [5] "@cmastication"
-c(TRUE, TRUE, FALSE, TRUE)
-#> [1] TRUE TRUE FALSE TRUE
-```
-
-1. 向量合并:
-
-```r
-v1 <- c(1, 2, 3)
-v2 <- c(4, 5, 6)
-c(v1, v2)
-#> [1] 1 2 3 4 5 6
-
-v1 <- c(1, 2, 3)
-v3 <- c("A", "B", "C")
-c(v1, v3)
-#> [1] "1" "2" "3" "A" "B" "C"
-```
-- R在创建向量前将所有数字转换为字符，从而使数据元素保持兼容
-
-### 基本运算
-* `mean(x)` —— 均值（Mean）
-* `median(x)` —— 中位数（Median）
-* `sd(x)` —— 标准差（Standard Deviation）
-* `var(x)` —— 方差（Variance）
-* `cor(x, y)` —— 相关系数（Correlation）
-* `cov(x, y)` —— 协方差（Covariance）
-
-# Redis设计与实现
-- 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
-## 数据结构与对象
-### simple dynamic string，SDS
->Redis没有直接使用C语言传统的字符串表示（以空字符结尾的字符数组，以下简称C字符串），而是自己构建了一种名为简单动态字符串（simple dynamic string，SDS）的抽象类型，并将SDS用作Redis的默认字符串表示。
-
-主要原因自然是C字符串本身的问题,如字符串拼接函数`strcat`不会自动扩容,C字符串默认以`./0`结尾,并不会记录自身的长度,而是需要程序员自己控制.
-
-格式如下:
-![格式图](PixPin_2026-09-13_12-38-08.webp)
-
-- len记载占用空间,free记载剩余空间,通过结构体实现
-### 链表
-Redis中的链表设计如下:
-* 双端：链表节点带有 `prev` 和 `next` 指针，获取某个节点的前置节点和后置节点的复杂度都是 O(1)。
-
-* 无环：表头节点的 `prev` 指针和表尾节点的 `next` 指针都指向 `NULL`，对链表的访问以 `NULL` 为终点。
-
-* 带表头指针和表尾指针：通过 `list` 结构的 `head` 指针和 `tail` 指针，程序获取链表的表头节点和表尾节点的复杂度为 O(1)。
-
-* 带链表长度计数器：程序使用 `list` 结构的 `len` 属性来对 `list` 持有的链表节点进行计数，程序获取链表中节点数量的复杂度为 O(1)。
-
-* 多态：链表节点使用 `void*` 指针来保存节点值，并且可以通过 `list` 结构的 `dup`、`free`、`match` 三个属性为节点值设置类型特定函数，所以链表可以用于保存各种不同类型的值。
-
-### 字典
->字典在Redis中的应用相当广泛，比如Redis的数据库就是使用字典来作为底层实现的，对数据库的增、删、查、改操作也是构建在对字典的操作之上的。
-#### 哈希表
-Redis的字典使用哈希表实现:
-```c
-typedef struct dictht {
-    // 哈希表数组
-    dictEntry **table;//指针数组
-
-    // 哈希表大小
-    unsigned long size;
-
-    // 哈希表大小掩码，用于计算索引值
-    // 总是等于 size - 1
-    unsigned long sizemask;
-
-    // 该哈希表已有节点的数量
-    unsigned long used;
-} dictht;
-```
-具体的单节点结构如下:
-```c
-typedef struct dictEntry {
-    // 键
-    void *key;
-
-    // 值
-    union {
-        void *val;
-        uint64_t u64;
-        int64_t s64;
-    } v;
-
-    // 指向下一个哈希表节点，形成链表
-    struct dictEntry *next;
-} dictEntry;
-```
-- 这里的union非常有意思,完美解决了节点的替换问题.
-
-#### 哈希算法
-Redis计算哈希值和索引值的方法如下：
-```c
-// 使用字典设置的哈希函数，计算键 key 的哈希值
-hash = dict->type->hashFunction(key);
-
-// 使用哈希表的 sizemask 属性和哈希值，计算出索引值
-// 根据情况不同，ht[x] 可以是 ht[0] 或者 ht[1]
-index = hash & dict->ht[x].sizemask;
-```
-hashFunction用的算法是MurmurHash2算法,而现在用的则是SipHash算法
-#### 哈希冲突
-发生哈希冲突时,由于没有指向尾部的指针,所以Redis会将新节点放在链表的头部
-#### rehash
-当哈希冲突过多/加入节点过多时,Redis会自动执行Rehash来渐进式地扩展哈希表,详细步骤如下:
-1. 为 `ht[1]` 分配空间，让字典同时持有 `ht[0]` 和 `ht[1]` 两个哈希表。
-
-2. 在字典中维持一个索引计数器变量 `rehashidx`，并将它的值设置为 `0`，表示 rehash 工作正式开始。
-
-3. 在 rehash 进行期间，每次对字典执行添加、删除、查找或者更新操作时，程序除了执行指定的操作以外，还会顺带将 `ht[0]` 哈希表在 `rehashidx` 索引上的所有键值对 rehash 到 `ht[1]`。当 rehash 工作完成之后，程序将 `rehashidx` 属性的值增一。
-
-4. 随着字典操作的不断执行，最终在某个时间点上，`ht[0]` 的所有键值对都会被 rehash 至 `ht[1]`。这时程序将 `rehashidx` 属性的值设为 `-1`，表示 rehash 操作已完成。
-
-设计上确实很简单,但不是那么容易想得到的.
-### 跳表
->和链表、字典等数据结构被广泛地应用在Redis内部不同，Redis只在两个地方用到了跳跃表，一个是实现有序集合键，另一个是在集群节点中用作内部数据结构，除此之外，跳跃表在Redis里面没有其他用途
-
-- 我以前还以为Redis主要靠跳表呢,结果并没有我想的那么简单
-### 整数集合
->整数集合（intset）是集合键的底层实现之一，当一个集合只包含整数值元素，并且这个集合的元素数量不多时，Redis就会使用整数集合作为集合键的底层实现。
-### 压缩列表
->压缩列表（ziplist）是列表键和哈希键的底层实现之一。当一个列表键只包含少量列表项，并且每个列表项要么就是小整数值，要么就是长度比较短的字符串，那么Redis就会使用压缩列表来做列表键的底层实现。
-
-可以说是一个优化过的链表而已.
-
-### 对象
->在前面的数个章节里，我们陆续介绍了Redis用到的所有主要数据结构，比如简单动态字符串（SDS）、双端链表、字典、压缩列表、整数集合等等。
->
->Redis并没有直接使用这些数据结构来实现键值对数据库，而是基于这些数据结构创建了一个对象系统，这个系统包含字符串对象、列表对象、哈希对象、集合对象和有序集合对象这五种类型的对象，每种对象都用到了至少一种我们前面所介绍的数据结构。
-#### 对象类型
-Redis使用对象来表示数据库中的键和值，每次当我们在Redis的数据库中新创建一个键值对时，我们至少会创建两个对象，一个对象用作键值对的键（键对象），另一个对象用作键值对的值（值对象）。
-
-经典的5个对象类型如下:
-
-| 类型常量       | 对象的名称   |
-| -------------- | ------------ |
-| `REDIS_STRING` | 字符串对象   |
-| `REDIS_LIST`   | 列表对象     |
-| `REDIS_HASH`   | 哈希对象     |
-| `REDIS_SET`    | 集合对象     |
-| `REDIS_ZSET`   | 有序集合对象 |
-
->对于Redis数据库保存的键值对来说，键总是一个字符串对象，而值则可以是字符串对象、列表对象、哈希对象、集合对象或者有序集合对象的其中一种，
-
-
-# RAG with Python Cookbook
-## RAG介绍
-| RAG 拟合度 | 用例                                              | 适配理由                                                                                                                         |
-| ---------: | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-|      **1** | 我想和我的季度报告聊聊                            | 只有单份文档，数据量较小。直接阅读或使用 ChatGPT、Claude 等通用大模型即可完成，自建 RAG 的收益很低。                             |
-|      **2** | 请帮我总结这一份文档                              | 通用大模型已经能够较好地完成单文档总结任务，引入 RAG 通常不会带来明显额外价值。                                                  |
-|      **2** | 自动执行需要作出高风险决策的任务                  | 技术上可以实现，但大模型仍可能出错。若缺少人工审核、审计机制和故障保护等措施，风险较高，因此不适合单纯依赖 RAG 自动完成。        |
-|      **4** | 大量会议录音不断积累，但其中的信息无法进入知识库  | RAG 可以将音频、视频、长篇非结构化笔记等难以检索的信息转化为可搜索、可查询的知识，具有持续价值；最终效果会受到语音转录质量影响。 |
-|      **4** | 将技术图纸与规格文档进行核对                      | 适合利用多模态模型结合 RAG 进行跨材料比对，可以减少大量人工核查工作；但需要完善的评估机制和异常处理流程。                        |
-|      **5** | 有 1 万份合同，需要找出其中包含自动续约条款的合同 | 文档规模很大，人工逐份检查成本过高；任务目标明确，可以通过检索和信息提取定位相关合同，结果也容易人工验证。                       |
-|      **5** | 客户支持工单中包含大量产品问题，但无法有效汇总    | RAG 适合跨大量文档检索、聚合和发现重复模式，可以从大量工单中识别共同问题及趋势，这是人工难以大规模完成的任务。                   |
-|      **5** | 每天收到数百条客户咨询，需要自动分配给合适的团队  | 属于高频、重复的分类与路由任务，任务标准清晰，结果容易评估，并且可以通过自动化显著降低人工成本。                                 |
-
-**核心判断原则：**RAG 的价值通常随着**数据量、跨文档检索需求、信息更新频率和人工处理成本**的增加而提高。对于单份、短小且可以直接放入大模型上下文的文档，通常没有必要专门构建 RAG 系统。
-
->当数据结构不规则且变化多端时，这种能力尤为重要。当每个输入略有不同但处理方式类似时，例如客户电子邮件、合同条款或事件报告，可以使用 RAG。不要将 RAG 用于简单的查找、固定格式的数据提取或基于不变规则的任务。如果您可以编写正则表达式（regex）或 SQL 查询来处理 95% 的情况，那么 RAG 只会增加不必要的复杂性和成本。
-
-RAG常用的库和框架如下:
-| 类别                              | 示例库                                                                          | 主要作用                                                                                                                        |
-| --------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **RAG 与代理式 RAG 编排**         | LangChain、LangGraph、LlamaIndex                                                | 将检索器、生成器、提示词、记忆等常见 RAG 组件封装为统一抽象，并负责连接向量数据库、LLM 和传统数据库，使开发者更专注于业务逻辑。 |
-| **大语言模型与嵌入模型**          | OpenAI、Anthropic、Transformers、Sentence Transformers                          | 为 RAG 系统提供核心智能能力，用于理解用户查询、生成向量嵌入以及生成最终回答。                                                   |
-| **向量存储**                      | Chroma、FAISS、Pinecone、Milvus、Weaviate                                       | 存储和检索向量嵌入，通过相似度搜索快速找到与用户查询相关的内容。                                                                |
-| **数据处理**                      | pandas、NumPy、PyPDF2、pypdf、python-docx、Unstructured、openpyxl、scikit-learn | 用于数据处理、文件读取、清洗和预处理，在文档进入 RAG 系统之前将原始数据转换为可处理的形式。                                     |
-| **多模态与媒体处理**              | Pillow、Pytesseract、MoviePy、pdf2image、OpenCV                                 | 用于加载和处理图片、视频、播客、PDF、Word、PowerPoint 等不同媒体和文件格式。                                                    |
-| **文本处理与自然语言处理（NLP）** | NLTK、Transformers、Rank-BM25、Beautiful Soup 4                                 | 用于文本清洗、分词、关键词检索、传统 NLP 分析等任务，避免所有文本处理步骤都依赖大语言模型。                                     |
-| **评估与监控**                    | Ragas、Phoenix、LangSmith、Prometheus-Eval                                      | 提供预定义的评估指标，用于衡量检索器、生成器以及整个 RAG 应用的准确性、质量和运行表现。                                         |
-| **Web 框架与部署**                | Streamlit、Gradio、Flask、Django                                                | 用于构建 RAG 应用的用户界面和 Web 服务。其中 Streamlit、Gradio 更适合快速原型，Flask、Django 更适合完整应用开发。               |
-| **数据库与存储**                  | SQLAlchemy、Psycopg 2、SQLite3                                                  | 用于连接传统 SQL 数据库，并通过数据库连接器或 ORM 将关系型数据作为 RAG 系统的数据来源。                                         |
-## 基础模型
-### Ollama
->Ollama 在http://localhost:11434/v1 公开了一个与 OpenAI 兼容的端点，因此您现有的代码几乎无需更改。
-
-```py
-from openai import OpenAI
-
-# Point the client to your local Ollama server
-client = OpenAI(
-    base_url="http://localhost:11434/v1",
-    api_key="ollama",  # Ollama does not require a real key,
-                       # but the SDK expects one
-)
-
-response = client.chat.completions.create(
-    model="qwen3:4b",
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {
-            "role": "user",
-            "content": "What is retrieval augmented generation?"
-        },
-    ],
-)
-
-print(response.choices[0].message.content)
-```
-还可以试试选用多个模型:
-```py
-from openai import OpenAI
-
-models = ["llama2", "mistral", "codellama"]
-
-client = OpenAI(
-    base_url="http://localhost:11434/v1",
-    api_key="ollama"
-)
-
-for model in models:
-    print(f"\n--- Testing {model} ---")
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "user", "content": "Explain RAG in one sentence."}
-        ]
-    )
-
-    print(response.choices[0].message.content)
-```
-
-
-> **将公开排行榜视为筛选工具，而非最终决策标准。常见的局限性包括以下几点：**
->
-> **基准泄漏或数据污染**
-> 一些基准测试题及答案是公开的，可能已被直接或间接包含在训练数据中，从而抬高模型分数。
->
-> **古德哈特定律或过度优化**
-> 一旦某个基准成为目标，模型开发者可能会专门针对该基准进行调整，从而提高分数，但并不会相应提高模型的通用能力。
->
-> **与实际使用情况不符**
-> 生产环境中的具体配置——包括提示模板、检索质量、工具使用、长上下文、多语言内容、量化方式以及延迟限制——都会显著影响最终结果。
-> 因此，即使某个模型在公开排行榜上“胜出”，在你自己的 RAG 查询或真实业务场景中，也可能表现得更差。
-
-
-### 图片解析
-```py
-from pydantic import BaseModel
-from openai import OpenAI
-import base64
-
-
-class Invoice(BaseModel):
-    invoice_number: str
-    vendor: str
-    total: float
-    currency: str
-
-
-client = OpenAI()
-
-with open("invoice.png", "rb") as f:
-    image_base64 = base64.b64encode(f.read()).decode("utf-8")
-
-result = client.responses.parse(
-    model="gpt-5-mini",
-    input=[
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "input_text",
-                    "text": "Extract the invoice data."
-                },
-                {
-                    "type": "input_image",
-                    "image_url": f"data:image/png;base64,{image_base64}"
-                },
-            ],
+impl<T> Cacher<T>
+where
+    T: Fn(u32) -> u32,
+{
+    fn new(query: T) -> Cacher<T> {
+        Cacher {
+            query,
+            value: None,
         }
-    ],
-    text_format=Invoice,
-)
+    }
+
+    // 先查询缓存值 `self.value`，若不存在，则调用 `query` 加载
+    fn value(&mut self, arg: u32) -> u32 {
+        match self.value {
+            Some(v) => v,
+            None => {
+                let v = (self.query)(arg);
+                self.value = Some(v);
+                v
+            }
+        }
+    }
+}
 ```
 
-第一次知道API还可以定制返回模型,不过对话中是不需要的,工具调用时却很有必要
-## 加载数据
-# Prometheus: Up & Running
-## 介绍
-- Prometheus是一个开源的、基于指标的监控系统.
+### 异步
+```rs
+use futures::executor::block_on;
 
-监控(monitor)可以定义如下:
-* **告警（Alerting）**：知道事情何时出错，通常是监控最重要的用途。监控系统应能够在出现异常时通知人工介入检查。
+struct Song {
+    author: String,
+    name: String,
+}
 
-* **调试（Debugging）**：当人工介入后，需要进一步调查问题，确定根本原因，并最终解决已经出现的故障。
+async fn learn_song() -> Song {
+    Song {
+        author: "曲婉婷".to_string(),
+        name: String::from("《我的歌声里》"),
+    }
+}
 
-* **热门趋势（Trending）**：告警和调试通常发生在几分钟到几小时的时间尺度上。虽然趋势分析没有那么紧急，但了解系统如何被使用、如何随时间变化同样重要。趋势信息可以为设计决策、容量规划等工作提供依据。
+async fn sing_song(song: Song) {
+    println!(
+        "给大家献上一首{}的{} ~ {}",
+        song.author, song.name, "你存在我深深的脑海里~ ~"
+    );
+}
 
-* **水管工程（Plumbing）**：监控系统本质上也是一套数据处理管道。在实践中，有时可以复用监控系统的部分能力去完成其他任务，而不必重新构建专门的解决方案。严格来说这不完全属于监控，但实际工程中很常见。
+async fn dance() {
+    println!("唱到情深处，身体不由自主的动了起来~ ~");
+}
 
+async fn learn_and_sing() {
+    // 这里使用`.await`来等待学歌的完成，但是并不会阻塞当前线程，该线程在学歌的任务`.await`后，完全可以去执行跳舞的任务
+    let song = learn_song().await;
 
-![架构图](PixPin_2026-09-17_11-37-00.webp)
+    // 唱歌必须要在学歌之后
+    sing_song(song).await;
+}
 
-## 入门
-### 补充: 使用docker运行Prometheus
-新建一个文件夹,放三个文件:
+async fn async_main() {
+    let f1 = learn_and_sing();
+    let f2 = dance();
 
-**prometheus.yml**
-```yml
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+    // `join!`可以并发的处理和等待多个`Future`，若`learn_and_sing Future`被阻塞，那`dance Future`可以拿过线程的所有权继续执行。若`dance`也变成阻塞状态，那`learn_and_sing`又可以再次拿回线程所有权，继续执行。
+    // 若两个都被阻塞，那么`async main`会变成阻塞状态，然后让出线程所有权，并将其交给`main`函数中的`block_on`执行器
+    futures::join!(f1, f2);
+}
 
-scrape_configs:
-  # 监控 Prometheus 自身
-  - job_name: "prometheus"
-
-    static_configs:
-      - targets:
-          - "localhost:9090"
+fn main() {
+    block_on(async_main());
+}
 ```
-**dockerfile**
-```dockerfile
-FROM prom/prometheus:latest
+## 总结
+弃坑了弃坑了,尽管看得出来教程已经很想教会我了,奈何Rust的特性实在太超出常规了.只好靠项目来一点点学Rust了
 
-COPY prometheus.yml /etc/prometheus/prometheus.yml
-
-EXPOSE 9090
-```
-
-**compose.yml**
-```yml
-services:
-  prometheus:
-    build:
-      context: .
-      dockerfile: Dockerfile
-
-    container_name: prometheus
-
-    ports:
-      - "9090:9090"
-
-    volumes:
-      # 持久化 Prometheus 时序数据
-      - prometheus_data:/prometheus
-
-      # 开发时推荐挂载配置文件，
-      # 修改配置后不需要重新 build 镜像
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=15d"
-      - "--web.enable-lifecycle"
-
-    restart: unless-stopped
-
-volumes:
-  prometheus_data:
-```
-
-然后用`docker compose up -d`运行,成功打开页面:
-
-![网页](PixPin_2026-09-17_11-54-18.webp)
-
-# Hugging Face in Action
-## 简介
-HuggingFace有Transformers库和各种pipeline,大量的预训练模型,构建网页UI的Gradio库(21年被Hugging Face收购).
-
-
-# The Architecture of Open Source Applications
-## 引言
->建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
-
-
-# Zero To Production In Rust
-# Minimal CMake
 # System Design Interview: An Insider’s Guide
 你就读吧,很久没见过这么干净利落的技术书籍了,对我的感触远比DDIA要震撼的多.
 ## ch1: 网络扩展

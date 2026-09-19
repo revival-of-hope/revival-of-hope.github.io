@@ -7,7 +7,63 @@ image: 63809324_p0-Sunshine！.webp
 # Agent开发
 ## 本地部署
 ### Ollama
-首先在[官网](https://ollama.com/download)下载Ollama本体
+#### 面板
+![面板](PixPin_2026-09-19_13-05-40.webp)
+
+Ollama现在内置了对多种Agent平台的支持,例如命令`ollama launch opencode`可以启动opencode并通过opencode调用通过ollama下载的模型.
+#### 起步
+首先在[官网](https://ollama.com/download)下载Ollama本体,然后按照[文档](https://docs.ollama.com/quickstart#local)所说,先下载一个本地模型,我选择的是`ollama pull qwen3.5:9b`,然后启动ollma后有两种方法使用模型,一种是在终端对话,如:
+```bash
+ollama run gemma4:e2b
+```
+
+值得注意的是,Ollama自动适配了流式输出和多轮对话的功能:
+
+![多轮对话](PixPin_2026-09-19_12-57-45.webp)
+
+
+另一种方法则是通过API调用:
+```bash
+curl http://localhost:11434/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gemma4:e2b",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Say hello in one sentence."
+      }
+    ],
+    "stream": false
+  }'
+```
+甚至还支持Stream输出:
+```bash
+curl http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gemma4:e2b",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Say hello in one sentence."
+      }
+    ]
+  }'
+```
+
+
+#### 进阶操作
+1. 接入embedding模型
+2. 接入工具调用
+3. 接入ollama自带的联网搜索:
+
+```py
+import ollama
+response = ollama.web_search("What is Ollama?")
+print(response)
+```
+
 # 落地调研
 ## 大模型: 一切的开始
 
