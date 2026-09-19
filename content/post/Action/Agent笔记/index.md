@@ -209,7 +209,7 @@ OpenAI在2015年以非盈利公司的性质成立,创始人有很多,但最值�
 
 * 在转型后,OpenAI的研究成果基本转向闭源模式,只提供有限的开源渠道.
 
-2018年Elon Musk从CEO席位辞职后,一直由Sam Altman领导公司,2023年11月,Sam Altman被董事会[罢免]([https://en.wikipedia.org/wiki/Removal_of_Sam_Altman_from_OpenAI),主要缘由大致是OpenAI内部分裂为了支持盈利模式和反对盈利模式的两派,Sam](https://en.wikipedia.org/wiki/Removal_of_Sam_Altman_from_OpenAI\),主要缘由大致是OpenAI内部分裂为了支持盈利模式和反对盈利模式的两派,Sam) Altman的一些强力支持者因此而辞职,导致剩余的董事会成员得以投票并罢免他.尽管不久后Altman就恢复原职了,但这次冲突直接加剧了OpenAI向着盈利模式的演变.
+2018年Elon Musk从CEO席位辞职后,一直由Sam Altman领导公司,2023年11月,Sam Altman被董事会[罢免](https://en.wikipedia.org/wiki/Removal_of_Sam_Altman_from_OpenAI),主要缘由大致是OpenAI内部分裂为了支持盈利模式和反对盈利模式的两派,Sam Altman的一些强力支持者因此而辞职,剩余的董事会成员得以投票并罢免他.尽管不久后Altman就恢复原职了,但这次冲突直接加剧了OpenAI向着盈利模式的演变.
 
 2025年十月,OpenAI转型成为了PBC(Public Benefit Corporation)类公司,其中,OpenAI基金会持有PBC 26%的股份，微软持有27%的股份，剩余47%的股份由员工和其他投资者持有.这一重组象征着OpenAI彻底背离了最初设定的目标,离正式的融资上市想必也不久了
 
