@@ -3,9 +3,6 @@ title: "智能体构建教程-fastapi与nextjs强强联手!"
 date: 2026-07-27T16:41:18+08:00
 description: 封面图片也很适配呢~
 image: 67189487_p0-最凶最悪.webp
-tags: 
-    - AI
-math: 
 ---
 ## ch0: 前言
 - 星星之火,可以燎原
