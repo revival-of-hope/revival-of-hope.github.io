@@ -334,6 +334,101 @@ func divAndRemainder(num, denom int) (result int, remainder int, err error) {
 >命名的返回值在创建时会被初始化为零。这意味着你可以在任何显式使用或赋值之前直接返回它们。
 
 
+### 函数也是值
+我们可以声明一个函数变量:
+```go
+var myFuncVariable func(string) int
+```
+
+```go
+func f1(a string) int {
+	return len(a)
+}
+
+func f2(a string) int {
+	total := 0
+	for _, v := range a {
+		total += int(v)
+	}
+	return total
+}
+
+func main() {
+	var myFuncVariable func(string) int
+	myFuncVariable = f1
+	result := myFuncVariable("Hello")
+	fmt.Println(result)
+
+	myFuncVariable = f2
+	result = myFuncVariable("Hello")
+	fmt.Println(result)
+}
+```
+
+我们还可以声明函数的类型:
+```go
+type opFuncType func(int,int) int
+```
+
+Go还支持匿名函数:
+
+```go
+func main() {
+	f := func(j int) {
+		fmt.Println("printing", j, "from inside of an anonymous function")
+	}
+	for i := 0; i < 5; i++ {
+		f(i)
+	}
+}
+```
+甚至还能在声明时直接调用:
+```go
+func main() {
+	for i := 0; i < 5; i++ {
+		func(j int) {
+			fmt.Println("printing", j, "from inside of an anonymous function")
+		}(i)
+	}
+}
+```
+- 非常不推荐好吧,太不清晰了
+
+### 闭包
+在函数内部声明的函数被称为闭包:
+```go
+func main() {
+	a := 20
+	f := func() {
+		fmt.Println(a)
+		a = 30
+	}
+	f()
+	fmt.Println(a)
+}
+// 20
+// 30
+```
+
+甚至还能将函数作为返回值:
+```go
+func makeMult(base int) func(int) int {
+	return func(factor int) int {
+		return base * factor
+	}
+}
+
+func main() {
+	twoBase := makeMult(2)
+	threeBase := makeMult(3)
+	for i := 0; i < 3; i++ {
+		fmt.Println(twoBase(i), threeBase(i))
+	}
+}
+```
+### defer
+
+
 
 # Redis设计与实现
 - 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
@@ -494,7 +589,14 @@ hashtable使用前面所说的字典实现.
 #### 有序集合对象
 有序集合的编码可以是ziplist或者skiplist。
 
-如果是ziplist,每次插入都要重新排序
+如果是ziplist,每次插入都要重新排序,显然很地狱,所以只在元素数量小于128个,且所有成员长度小于64字节时才启用.
+
+而skiplist编码的zset结构同时包含了一个字典和一个跳表,跳表负责将元素从小到大排列,用于存放数据,而哈希字典用于记录元素和分值(score)的映射,从而实现O(1)的查找.二者通过指针共享地址,所以不会浪费内存.
+
+### 内存回收
+由于C没有垃圾回收,所以Redis构建了一个引用计数的垃圾回收机制
+## 单机数据库
+### 数据库
 
 # RAG with Python Cookbook
 - 原来学不会RAG不是我的问题,只是其他的教材太烂了
@@ -739,7 +841,60 @@ for v in list_of_elements:
 
 ### 加载PDF
 
-# Prometheus: Up & Running
+
+# Hugging Face in Action
+- 有了一定数量的论文打底之后看起来终于不像是天书了
+## 简介
+HuggingFace有Transformers库和各种pipeline,大量的预训练模型(通过huggingface_hub下载),构建网页UI的Gradio库(21年被Hugging Face收购).
+## 使用Transformer和pipeline
+很遗憾,我不太用得到,所以也不想去背API了
+## 数据集介绍
+![页面](PixPin_2026-09-20_11-19-24.webp)
+
+从hugging face上下载数据集后即可直接调用,数据集的内部结构一般如下:
+```python
+DatasetDict({
+    train: Dataset({
+        features: ['text', 'label'],
+        num_rows: 25000
+    })
+    test: Dataset({
+        features: ['text', 'label'],
+        num_rows: 25000
+    })
+    unsupervised: Dataset({
+        features: ['text', 'label'],
+        num_rows: 50000
+    })
+})
+```
+
+*   **训练集**：用于训练模型的训练数据集。
+*   **测试集**：用于评估模型性能的测试数据集。
+*   **无监督数据集**：通常包含未标记数据的子集，可用于无监督或半监督学习任务。
+*   
+
+使用方法也很简单:
+```py
+dataset['train'][0]
+```
+
+>Hugging Face Datasets服务会自动将所有公开数据集转换为Parquet格式，这能显著提升性能
+
+## 分词介绍
+# Vision Language Models
+## 导论
+### Brief Introduction to Computer Vision
+
+
+# The Architecture of Open Source Applications
+## 引言
+>建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
+
+
+# Zero To Production In Rust
+# Minimal CMake
+# Prometheus: Up & Running(待补充)
 ## 介绍
 - Prometheus是一个开源的、基于指标的监控系统.
 
@@ -871,22 +1026,66 @@ receivers:
 ```
 ## Application Monitoring
 ### Instrumentation
-
-# Hugging Face in Action
-## 简介
-HuggingFace有Transformers库和各种pipeline,大量的预训练模型(通过huggingface_hub下载),构建网页UI的Gradio库(21年被Hugging Face收购).
-# Vision Language Models
-## 导论
-### Brief Introduction to Computer Vision
+#### 简单程序
+```py
+import http.server
+from prometheus_client import start_http_server
 
 
-# The Architecture of Open Source Applications
-## 引言
->建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
+class MyHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Hello,World!")
 
 
-# Zero To Production In Rust
-# Minimal CMake
+start_http_server(8000)
+server = http.server.HTTPServer(("localhost", 8001), MyHandler)
+server.serve_forever()
+```
+访问http://localhost:8000/会看到如下界面:
+![示意图](PixPin_2026-09-20_10-03-35.webp)
+
+再访问 http://localhost:8001/ 即可看到`Hello,World!"
+
+修改之前的Prometheus.yml:
+```yml
+global:
+  scrape_interval: 10s
+scrape_configs:
+  - job_name: example
+    static_configs:
+      - targets: ["host.docker.internal:8000"]
+
+```
+然后运行Prometheus来监听:
+
+![界面](PixPin_2026-09-20_10-14-30.webp)
+
+#### Counter
+```py
+
+import http.server
+from prometheus_client import start_http_server, Counter
+
+REQUESTS = Counter("hello_worlds_total", "Hello Worlds requested.")
+
+
+class MyHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        REQUESTS.inc()
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Hello,World!")
+
+
+start_http_server(8000)
+server = http.server.HTTPServer(("localhost", 8001), MyHandler)
+server.serve_forever()
+```
+Count用于统计程序的各种自定义指标
+## 
+暂时弃坑,毕竟目前根本用不到好吧
 # Rust 中文学习教程
 由于另一本书太难啃了,所以换这本书来试试咸淡.
 
