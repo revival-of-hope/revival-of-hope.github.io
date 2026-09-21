@@ -986,6 +986,9 @@ print(pages_df)
 | **混合内容**<br>文本 + 表格 + 图像                 | > 5,000 份/月  | **混合方法**<br>首先对文档进行分类，对简单页面使用 OCR，对复杂页面使用多模态方法    |
 | **复杂的版面设计**<br>技术图表、手写笔记、混合字体 | 任何体积       | **多模态模型** (GPT-5.2, Claude Sonnet, Gemini Pro)<br>在复杂文档上具有更高的准确率 |
 | **敏感数据**<br>不能离开基础设施                   | 任何体积       | **OCR (开源)**<br>Tesseract, PaddleOCR, EasyOCR：完全控制，本地部署                 |
+### 直接用API
+调用多模态模型的API来直接处理图片和文档
+## 嵌入
 
 # Vector Databases
 # Hugo in Action

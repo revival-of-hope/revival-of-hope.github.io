@@ -4472,7 +4472,7 @@ export default function RegisterPage() {
 2. 不支持对话组,每次对话没有一个统一的id
 3. 没有保存用户的提问信息,也没能将thinking和content分开输出
 4. 没有异常处理,也没有限制用户的使用量和调用额度.
-
+# 智能体优化
 ## ch11: 完善不足之处,实现多轮对话
 
 ### API构思
@@ -6287,7 +6287,7 @@ class TokenPayload(SQLModel):
 成功实现多轮对话,但这一步确实远比我想象的要麻烦的多.
 
 
-## ch12: 加入管理员和数据库管理系统
+## ch12: 加入管理员和数据库管理器
 
 ### 加入管理员(superuser)
 #### 管理员功能构思
@@ -6947,15 +6947,995 @@ def stream_response(
 
 仔细观察可以看到,用量统计块甚至没有`choice`字段,所以我们之前的`stream_response`是彻底用不到了,可以直接删除.
 
+接着是修改`stream.py`:
+```py
+def stream_and_save(
+    *,
+    session: Session,
+    conversation_id: int,
+    chunks: Stream[ChatCompletionChunk],
+) -> Iterator[str]:
+    collected_chunks: list[str] = []
+    last_chunk: ChatCompletionChunk | None = None
+    for chunk in chunks:
+        last_chunk = chunk
 
-### 数据库管理系统选择
+        if not chunk.choices:
+            continue
+        content = chunk.choices[0].delta.content
+        if content:
+            collected_chunks.append(content)
+            yield content
+
+    full_content = "".join(collected_chunks)
+    if not full_content or not last_chunk or not last_chunk.usage:
+        return
+    usage = last_chunk.usage
+    conversation = session.get(Conversation, conversation_id)
+    if conversation is None:
+        return
+    crud.save_message(
+        session=session,
+        conversation=conversation,
+        role=MessageRole.ASSISTANT,
+        content=full_content,
+        input_tokens=usage.prompt_tokens,
+        output_tokens=usage.completion_tokens,
+        total_tokens=usage.total_tokens,
+    )
+```
+这次直接处理流,而非由`stream_response`传入.
+##### API部分
+users路由只要加一个usage查询即可:
+```py
+@router.get("/usage", response_model=UsagePublic)
+def read_usage(_: Superuser, session: SessionDep):
+    return crud.get_usage_totals(session=session)
+```
+而messages路由完全不用改,足以说明之前的重构还是比较成功的.
+
+### 数据库管理器选择
 - adminer与dbgate.
-###
-# 智能体进阶
 
-## ch13: 加入日志,测试,格式化工具和数据库迁移工具
+#### dbgate
+导入:
+```yml
+services:
+  db:
+    image: postgres:18-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+  prestart:
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    command: bash scripts/prestart.sh
+    env_file:
+      - .env
+  backend:
+    restart: always
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      prestart:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: dockerfile
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+  dbgate:
+    image: dbgate/dbgate:7.2.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3001:3000"
+    env_file:
+      - ./env
+    volumes:
+      - dbgate-data:/root/.dbgate
+    environment:
+      CONNECTIONS: main
+      LABEL_main: PostgreSQL
+      SERVER_main: ${POSTGRES_SERVER}
+      PORT_main: ${POSTGRES_PORT}
+      USER_main: ${POSTGRES_USER}
+      PASSWORD_main: ${POSTGRES_PASSWORD}
+      DATABASE_main: ${POSTGRES_DB}
+      ENGINE_main: postgres@dbgate-plugin-postgres
+volumes:
+  db-data:
+  dbgate-data:
+```
+
+![界面](PixPin_2026-09-21_13-12-51.webp)
+
+缺点是镜像的体积很大,有400多MB,但功能很全面.
+#### adminer
+```yml
+services:
+  db:
+    image: postgres:18-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+  prestart:
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    command: bash scripts/prestart.sh
+    env_file:
+      - .env
+  backend:
+    restart: always
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      prestart:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: dockerfile
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+  adminer:
+    image: adminer:6.0.1
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3001:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+volumes:
+  db-data:
+```
+镜像体积只有40多MB,相当轻量了.
+
+
+![登录界面](PixPin_2026-09-21_13-18-18.webp)
+非常的朴素,不支持喂环境变量自动登录
+
+![基本页面](PixPin_2026-09-21_13-19-36.webp)
+
+![数据库概要](PixPin_2026-09-21_13-20-12.webp)
+
+#### 总结
+综合一下,选择Adminer就足够了
+
+
+## ch13: 加入格式化工具和日志
 >并非是说测试不必要,但测试驱动开发还是太扯淡了,只要不是多人合作的大型项目,个人开发者是完全有能力搞清楚整个程序的来龙去脉的,加入测试只是怕自己以后开发的时候忘记了当时想起的需求而已.
 >
 >但当项目大到几百个文件或者说需要多人开发时,那就必须要加测试了,因为人的脑容量终究是有限的,你不可能一个人记得住那么多东西,同样,你不能指望别人能记住所有东西.
+### 格式化工具
+#### black还是ruff
+先导入ruff试试:
+```bash
+uv add --dev ruff
+uv run ruff check
+```
 
-## ch14: 换用Responses API和RAG功能引入
+```bash
+uv run ruff check
+F401 [*] `typing.Iterator` imported but unused
+ --> app\agents\stream.py:1:20
+  |
+1 | from typing import Iterator, Sequence
+  |                    ^^^^^^^^
+2 | from openai import Stream, OpenAI
+3 | from openai.types.chat import (
+  |
+help: Remove unused import
+
+F401 [*] `typing.Sequence` imported but unused
+ --> app\agents\stream.py:1:30
+  |
+1 | from typing import Iterator, Sequence
+  |                              ^^^^^^^^
+2 | from openai import Stream, OpenAI
+3 | from openai.types.chat import (
+  |
+help: Remove unused import
+
+F401 [*] `app.models.tables` imported but unused
+ --> app\core\db.py:5:24
+  |
+3 |     SQLModel,
+4 | )
+5 | from app.models import tables
+  |                        ^^^^^^
+6 | from app.core.config import settings
+  |
+help: Remove unused import: `app.models.tables`
+
+F403 `from .tables import *` used; unable to detect undefined names
+ --> app\models\__init__.py:1:1
+  |
+1 | from .tables import *
+  | ^^^^^^^^^^^^^^^^^^^^^
+2 | from .schemas import *
+  |
+
+F403 `from .schemas import *` used; unable to detect undefined names
+ --> app\models\__init__.py:2:1
+  |
+1 | from .tables import *
+2 | from .schemas import *
+  | ^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+Found 5 errors.
+[*] 3 fixable with the `--fix` option.
+```
+
+再试试black
+```bash
+uv add --dev black
+uv run black
+```
+
+```bash
+uv run black --diff .          
+All done! ✨ 🍰 ✨
+19 files would be left unchanged.
+```
+很明显,ruff更胜一筹,检查的粒度更细一点.
+### 静态检查工具
+#### mypy,pyright,ty
+1. mypy:
+```bash
+uv run mypy .     
+app\core\config.py:25: error: Decorators on top of @property are not supported  [prop-decorator]
+app\agents\chat.py:39: error: Incompatible types in assignment (expression has type "Conversation | None", variable has type "Conversation")  [assignment]
+Found 2 errors in 2 files (checked 19 source files)
+```
+2. pyright:
+
+```bash
+uv run pyright         
+0 errors, 0 warnings, 0 informations
+```
+3. ty:
+```bash
+uv run ty check
+warning[unused-type-ignore-comment]: Unused blanket `type: ignore` directive
+  --> app\core\config.py:38:24
+   |
+38 | settings = Settings()  # type: ignore
+   |                        ^^^^^^^^^^^^^^
+help: Remove the unused suppression comment
+   |
+37 |
+   - settings = Settings()  # type: ignore
+38 + settings = Settings()
+   |
+
+Found 1 diagnostic
+```
+由上可知,老牌的mypy略胜一筹.
+
+#### 一键运行
+在scripts文件夹下加入一个`check.ps1`和`check.sh`脚本用于检查格式:
+```ps1
+$ErrorActionPreference = "Stop"
+
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ProjectDir = Split-Path -Parent $ScriptDir
+
+Set-Location $ProjectDir
+
+Write-Host "==> Running Ruff lint..."
+uv run ruff check .
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
+Write-Host "==> Checking Ruff formatting..."
+uv run ruff format --check .
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
+Write-Host "==> Running mypy..."
+uv run mypy .
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
+Write-Host "==> All checks passed."
+```
+```bash
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+cd "$PROJECT_DIR"
+
+echo "==> Running Ruff lint..."
+uv run ruff check .
+
+echo "==> Checking Ruff formatting..."
+uv run ruff format --check .
+
+echo "==> Running mypy..."
+uv run mypy .
+
+echo "==> All checks passed."
+```
+
+顺便修改dockerfile防止引入dev依赖:
+```dockerfile
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev
+```
+
+### 日志
+运行正常的时候看不出日志的作用,但一旦报错,就必须要从日志中找到错误的根源.
+#### 容器日志工具
+docker官方的日志查看太丑陋了,所以引入一个轻量的容器日志查看器:
+```yml
+  dozzle:
+    image: amir20/dozzle:v10.9.2
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - dozzle-data:/data
+volumes:
+  db-data:
+  dozzle-data:
+```
+### agent文件夹重构
+#### 第一步
+`stream.py`中的所有函数只会在`client.py`中使用,那么更好的方法显然是把这些函数都放进`client.py`中作为私有函数:
+```py
+from functools import lru_cache
+
+from app.models import Message, MessageRole
+from app.core.config import settings
+
+from openai import Stream, OpenAI
+from openai.types.chat import (
+    ChatCompletionAssistantMessageParam,
+    ChatCompletionChunk,
+    ChatCompletionMessageParam,
+    ChatCompletionSystemMessageParam,
+    ChatCompletionUserMessageParam,
+)
+
+DEFAULT_MODEL = "deepseek-v4-pro"
+DEFAULT_SYSTEM_PROMPT = "以后的回答都要优先输出一句话,我是deepseek-v4-pro."
+
+
+# history代表历史消息
+def _build_messages(
+    *,
+    system_prompt: str,
+    history: list[Message],
+) -> list[ChatCompletionMessageParam]:
+    messages: list[ChatCompletionMessageParam] = [
+        ChatCompletionSystemMessageParam(role="system", content=system_prompt)
+    ]
+    for message in history:
+        if message.role is MessageRole.USER:
+            messages.append(
+                ChatCompletionUserMessageParam(
+                    role="user",
+                    content=message.content,
+                )
+            )
+        else:
+            messages.append(
+                ChatCompletionAssistantMessageParam(
+                    role="assistant",
+                    content=message.content,
+                )
+            )
+    return messages
+
+
+def _create_client(*, api_key: str, url: str) -> OpenAI:
+    return OpenAI(api_key=api_key, base_url=url)
+
+
+def _create_stream(
+    *,
+    client: OpenAI,
+    model: str,
+    messages: list[ChatCompletionMessageParam],
+) -> Stream[ChatCompletionChunk]:
+    return client.chat.completions.create(
+        model=model,
+        messages=messages,
+        stream=True,
+        reasoning_effort="medium",
+        stream_options={
+            "include_usage": True,
+        },
+    )
+
+
+@lru_cache
+def _get_client() -> OpenAI:
+    return _create_client(
+        api_key=settings.DEEPSEEK_API_KEY,
+        url=settings.DEEPSEEK_URL,
+    )
+
+
+def stream_agent(
+    *,
+    history: list[Message],
+    model: str = DEFAULT_MODEL,
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+) -> Stream[ChatCompletionChunk]:
+    # 构造消息列表
+    message_list = _build_messages(system_prompt=system_prompt, history=history)
+
+    # 打开通信流
+    stream = _create_stream(
+        client=_get_client(),
+        model=model,
+        messages=message_list,
+    )
+    return stream
+```
+#### 进一步重构
+都到这一步了,很明显弄成一个类更加合理:
+```py
+class Agent:
+    DEFAULT_MODEL = "deepseek-v4-pro"
+    DEFAULT_SYSTEM_PROMPT = "以后的回答都要优先输出一句话,我是deepseek-v4-pro."
+
+    @lru_cache
+    def _get_client(self) -> OpenAI:
+        return self._create_client(
+            api_key=settings.DEEPSEEK_API_KEY,
+            url=settings.DEEPSEEK_URL,
+        )
+
+    def stream_agent(
+        self,
+        *,
+        history: list[Message],
+        model: str = DEFAULT_MODEL,
+        system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    ) -> Stream[ChatCompletionChunk]:
+        # 构造消息列表
+        message_list = self._build_messages(
+            system_prompt=system_prompt, history=history
+        )
+
+        # 打开通信流
+        stream = self._create_stream(
+            client=self._get_client(),
+            model=model,
+            messages=message_list,
+        )
+        return stream
+        # history代表历史消息
+
+    @staticmethod
+    def _build_messages(
+        *,
+        system_prompt: str,
+        history: list[Message],
+    ) -> list[ChatCompletionMessageParam]:
+        messages: list[ChatCompletionMessageParam] = [
+            ChatCompletionSystemMessageParam(role="system", content=system_prompt)
+        ]
+        for message in history:
+            if message.role is MessageRole.USER:
+                messages.append(
+                    ChatCompletionUserMessageParam(
+                        role="user",
+                        content=message.content,
+                    )
+                )
+            else:
+                messages.append(
+                    ChatCompletionAssistantMessageParam(
+                        role="assistant",
+                        content=message.content,
+                    )
+                )
+        return messages
+
+    @staticmethod
+    def _create_client(*, api_key: str, url: str) -> OpenAI:
+        return OpenAI(api_key=api_key, base_url=url)
+
+    @staticmethod
+    def _create_stream(
+        *,
+        client: OpenAI,
+        model: str,
+        messages: list[ChatCompletionMessageParam],
+    ) -> Stream[ChatCompletionChunk]:
+        return client.chat.completions.create(
+            model=model,
+            messages=messages,
+            stream=True,
+            reasoning_effort="medium",
+            stream_options={
+                "include_usage": True,
+            },
+        )
+```
+如此一来,我们可以再将`chat.py`也弄成一个类:
+```py
+class ChatBot:
+    @staticmethod
+    def _build_conversation_title(content: str) -> str:
+
+        normalized_text = " ".join(content.split())
+        if not normalized_text:
+            return DEFAULT_TITLE
+
+        return normalized_text[:TITLE_LENGTH]
+
+    def prepare_chat(
+        self,
+        *,
+        session: Session,
+        user_id: int,
+        request: ChatRequest,
+    ) -> Conversation:
+        if request.conversation_id is None:
+            conversation = crud.create_conversation(
+                session=session,
+                user_id=user_id,
+                title=self._build_conversation_title(request.content),
+            )
+        else:
+            conversation = crud.get_conversation_for_user(
+                session=session,
+                conversation_id=request.conversation_id,
+                user_id=user_id,
+            )
+            if conversation is None:
+                raise ConversationNotFoundError
+        crud.save_message(
+            session=session,
+            conversation=conversation,
+            role=MessageRole.USER,
+            content=request.content,
+        )
+        return conversation
+
+    def stream_and_save(
+        self,
+        *,
+        session: Session,
+        conversation_id: int,
+        chunks: Stream[ChatCompletionChunk],
+    ) -> Iterator[str]:
+        collected_chunks: list[str] = []
+        last_chunk: ChatCompletionChunk | None = None
+        for chunk in chunks:
+            last_chunk = chunk
+
+            if not chunk.choices:
+                continue
+            content = chunk.choices[0].delta.content
+            if content:
+                collected_chunks.append(content)
+                yield content
+
+        full_content = "".join(collected_chunks)
+        if not full_content or not last_chunk or not last_chunk.usage:
+            return
+        usage = last_chunk.usage
+        conversation = session.get(Conversation, conversation_id)
+        if conversation is None:
+            return
+        crud.save_message(
+            session=session,
+            conversation=conversation,
+            role=MessageRole.ASSISTANT,
+            content=full_content,
+            input_tokens=usage.prompt_tokens,
+            output_tokens=usage.completion_tokens,
+            total_tokens=usage.total_tokens,
+        )
+```
+
+至于为什么要重构,当然是方便测试和阅读了.
+
+## ch14: 加入数据库迁移工具和测试
+### Alembic引入
+[Alembic](https://alembic.sqlalchemy.org/en/latest/)是一个非常适合SQLAlchemy / SQLModel技术栈的数据库迁移工具,而为什么加入数据库迁移工具呢,是因为
+
+首先后端根目录运行以下命令安装:
+```bash
+uv add alembic
+uv run alembic init alembic
+```
+这样会创建一个alembic文件夹,我们点进去可以看到一个`env.py`文件:
+```py
+from logging.config import fileConfig
+
+from sqlalchemy import engine_from_config
+from sqlalchemy import pool
+
+from alembic import context
+
+
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+
+target_metadata = None
+
+
+def run_migrations_offline() -> None:
+
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online() -> None:
+
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, target_metadata=target_metadata
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+```
+里面只有对SQLAlchemy的支持,所以需要额外处理SQLModel的兼容项,修改如下:
+```py
+from logging.config import fileConfig
+
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Connection
+from sqlmodel import SQLModel
+
+from alembic import context
+from app.core.config import settings
+import app.models  # noqa: F401
+
+config = context.config
+
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+
+target_metadata = SQLModel.metadata
+
+
+def configure_context(
+    *,
+    connection: Connection,
+) -> None:
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        # 检测字段类型变化
+        compare_type=True,
+        # 目前只使用默认 schema
+        include_schemas=False,
+    )
+
+
+def get_database_url() -> str:
+    return str(settings.DATABASE_URI)
+
+
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode.
+
+    This configures the context with just a URL
+    and not an Engine, though an Engine is acceptable
+    here as well.  By skipping the Engine creation
+    we don't even need a DBAPI to be available.
+
+    Calls to context.execute() here emit the given string to the
+    script output.
+
+    """
+    context.configure(
+        url=get_database_url(),
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode.
+
+    In this scenario we need to create an Engine
+    and associate a connection with the context.
+
+    """
+    engine = create_engine(
+        get_database_url(),
+        pool_pre_ping=True,
+    )
+
+    with engine.connect() as connection:
+        configure_context(connection=connection)
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+```
+在每次修改数据库模型后,我们不需要再手动迁移和新建数据库了,而是运行以下命令:
+```bash
+uv run alembic revision --autogenerate -m "add user avatar"
+
+# 确认修改文件后运行下方命令
+
+uv run alembic upgrade head
+```
+#### 修改core/db.py
+现在的db.py是这个样子,和alembic的职责冲突了:
+```py
+from sqlmodel import create_engine
+
+from app.core.config import settings
+
+
+engine = create_engine(
+    str(settings.DATABASE_URI),
+)
+```
+可以直接改成:
+```py
+from sqlmodel import create_engine
+
+from app.core.config import settings
+
+
+engine = create_engine(
+    str(settings.DATABASE_URI),
+)
+```
+
+如此一来,原来用来启动的`db_pre_start`.py也没用了,要直接删除,把职责交给Alembic.
+
+最后一个要递归修改的地方就是`prestart.sh`:
+```bash
+#! /usr/bin/env bash
+
+set -e
+set -x
+
+# Init DB
+alembic upgrade head
+```
+#### 完整启动流程
+本地开发时每次修改/新建数据表后:
+```bash
+# 确保数据库运行
+docker compose up -d db
+
+uv run alembic revision --autogenerate -m "add user avatar"
+```
+这会在alembic中产生迁移日志.
+
+然后再按照这个流程启动容器即可:
+```bash
+# 用迁移日志更改volume中的数据表
+docker compose run --rm backend bash scripts/prestart.sh
+# 重新启动容器
+docker compose up -d
+```
+
+如此一来我们也不需要`prestart service`了,因为都是手动执行更新和创建数据库的,直接删掉即可:
+```yml
+services:
+  db:
+    image: postgres:18-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+
+  backend:
+    restart: always
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: dockerfile
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+  adminer:
+    image: adminer:6.0.1
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3001:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+  dozzle:
+    image: amir20/dozzle:v10.9.2
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - dozzle-data:/data
+volumes:
+  db-data:
+  dozzle-data:
+```
+但当我复用这个流程时,却会在本地报错,问了AI后发现是因为`.env`里数据库主机名写的是db,但本地访问的时候只能用`localhost`,所以在本地开发时需要将这个环境变量覆盖掉:
+```bash
+# 确保数据库运行
+docker compose up -d db
+
+# 本机连接 Docker PostgreSQL
+$env:POSTGRES_SERVER="localhost"
+
+# 生成 migration，文件直接落在本地
+uv run alembic revision --autogenerate -m "add user avatar"
+
+# 恢复环境
+Remove-Item Env:POSTGRES_SERVER
+```
+#### 简化流程
+很明显,上述的流程还是太麻烦了,为了尽可能自动化,我们不如将本地的环境变量改为localhost,而在容器中改成db:
+```yml
+  backend:
+    restart: always
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    env_file:
+      - .env
+    environment:
+      POSTGRES_SERVER: db
+    ports:
+      - "8000:8000"
+```
+这样一来,我们每次修改后只需要这么做:
+```bash
+docker compose up -d db
+uv run alembic revision --autogenerate -m "add user avatar"
+```
+检查migration后:
+```bash
+docker compose run --rm backend bash scripts/prestart.sh
+docker compose watch
+```
+
+很明显,上述命令完全可以写成一个放在scripts文件夹中的migrate.ps1脚本:
+```ps1
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$Message
+)
+
+$ErrorActionPreference = "Stop"
+
+docker compose up -d db
+
+uv run alembic revision --autogenerate -m $Message
+
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
+docker compose run --rm backend bash scripts/prestart.sh
+```
+每次执行修改后运行命令即可:
+```bash
+.\scripts\migrate.ps1 "add user avatar"
+```
+### 测试引入
+
+## ch15: 换用Responses API和RAG功能引入
+## 智能体进阶
