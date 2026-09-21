@@ -4035,7 +4035,7 @@ else:
 上述代码直接修改了两个函数的默认内容,将url的读取局限在python文件之间,显然更加规范一点.
 ## psycopg
 - [官方文档](https://www.psycopg.org/psycopg3/docs/)
-- [名字由来](https://stackoverflow.com/questions/41483525/where-did-the-psycopg2-name-come-from?utm_source=chatgpt.com)
+- [名字由来](https://stackoverflow.com/questions/41483525/where-did-the-psycopg2-name-come-from)
 ### 概览
 psycopg是postgresql的驱动库(不使用这个库就无法启动数据库),安装方式如下:
 ```bash

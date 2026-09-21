@@ -6562,15 +6562,400 @@ class UsersPublic(SQLModel):
     count: int
 ```
 
-##### 修改Agent部分
+##### 修改文件夹名字
 仔细一看,所有agent相关的文件都放在了`utils`文件夹中,不如就改成`agents`吧.
+##### 修改crud.py
+```py
+from app.core.security import verify_password, hashing_password
+from sqlmodel import Session, select, desc, asc, func
+from sqlalchemy.orm import selectinload
+from app.models import (
+    Message,
+    MessageRole,
+    User,
+    UserRegister,
+    UserUsage,
+    Conversation,
+    UsagePublic,
+    get_datetime,
+)
+from backend.app.models.schemas import UserPublic, UsersPublic
+
+# Dummy hash to use for timing attack prevention when user is not found
+DUMMY_HASH = "$argon2id$v=19$m=65536,t=3,p=4$MjQyZWE1MzBjYjJlZTI0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
+
+
+def register_user(*, session: Session, user_register: UserRegister) -> User:
+    user = User.model_validate(
+        user_register,
+        update={"hashed_password": hashing_password(user_register.password)},
+    )
+    try:
+        session.add(user)
+        session.flush()
+        if user.user_id is None:
+            raise RuntimeError("Failed to generate user_id")
+
+        usage = UserUsage(user_id=user.user_id)
+
+        session.add(usage)
+        session.commit()
+
+    except Exception:
+        session.rollback()
+        raise
+
+    session.refresh(user)
+    return user
+
+
+def get_user_by_name(*, session: Session, name: str) -> User | None:
+    return session.get(User, name)
+
+
+def check_user(*, session: Session, name: str, password: str) -> User | None:
+    db_user = get_user_by_name(session=session, name=name)
+    if not db_user:
+        verify_password(password, DUMMY_HASH)
+        return None
+    verified = verify_password(password, db_user.hashed_password)
+    if not verified:
+        return None
+    return db_user
+
+
+def get_users(*, session: Session, offset: int, limit: int) -> UsersPublic:
+    count_statement = select(func.count()).select_from(User)
+    count = session.exec(count_statement).one()
+
+    statement = (
+        select(User)
+        .options(selectinload(User.usage))  # type: ignore
+        .order_by(
+            desc(User.created_at),
+            desc(User.user_id),
+        )
+        .offset(offset)
+        .limit(limit)
+    )
+    users = session.exec(statement).all()
+
+    users_public = [UserPublic.model_validate(user) for user in users]
+    return UsersPublic(data=users_public, count=count)
+
+
+def get_usage_totals(*, session: Session) -> UsagePublic:
+    # 长这么丑我也很无奈
+    statement = select(
+        func.coalesce(func.sum(UserUsage.messages_count), 0),
+        func.coalesce(func.sum(UserUsage.input_tokens), 0),
+        func.coalesce(func.sum(UserUsage.output_tokens), 0),
+        func.coalesce(func.sum(UserUsage.total_tokens), 0),
+    )
+
+    result = session.exec(statement).one()
+
+    return UsagePublic(
+        messages_count=int(result[0]),
+        input_tokens=int(result[1]),
+        output_tokens=int(result[2]),
+        total_tokens=int(result[3]),
+    )
+
+
+def create_conversation(
+    *,
+    session: Session,
+    user_id: int,
+    title: str,
+) -> Conversation:
+    conversation = Conversation(user_id=user_id, title=title)
+
+    session.add(conversation)
+    session.commit()
+    session.refresh(conversation)
+    return conversation
+
+
+def get_conversation_for_user(
+    *,
+    session: Session,
+    conversation_id: int,
+    user_id: int,
+) -> Conversation | None:
+    statement = select(Conversation).where(
+        Conversation.conversation_id == conversation_id,
+        Conversation.user_id == user_id,
+    )
+    result = session.exec(statement).first()
+    return result
+
+
+def list_conversations(
+    *,
+    session: Session,
+    user_id: int,
+    offset: int = 0,
+    limit: int = 20,
+) -> list[Conversation]:
+    statement = (
+        select(Conversation)
+        .where(Conversation.user_id == user_id)
+        .order_by(
+            desc(Conversation.updated_at),
+            desc(Conversation.conversation_id),
+        )
+        .offset(offset)
+        .limit(limit)
+    )
+    result = session.exec(statement).all()
+    return list(result)
+
+
+def save_message(
+    *,
+    session: Session,
+    conversation: Conversation,
+    role: MessageRole,
+    content: str,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    total_tokens: int = 0,
+) -> Message:
+    if conversation.conversation_id is None:
+        raise ValueError("Conversation must be persisted before saving messages")
+
+    message = Message(
+        conversation_id=conversation.conversation_id,
+        role=role,
+        content=content,
+    )
+    conversation.updated_at = get_datetime()
+
+    if role == MessageRole.ASSISTANT:
+        usage = session.get(UserUsage, conversation.user_id)
+
+        # 兼容还没有统计记录的旧用户
+        if usage is None:
+            usage = UserUsage(user_id=conversation.user_id)
+            session.add(usage)
+        usage.messages_count += 1
+        usage.input_tokens += input_tokens
+        usage.output_tokens += output_tokens
+        usage.total_tokens += total_tokens
+    try:
+        session.add(message)
+        session.add(conversation)
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
+    session.refresh(message)
+    return message
+
+
+def list_messages(
+    *,
+    session: Session,
+    conversation_id: int,
+    offset: int = 0,
+    limit: int = 100,
+) -> list[Message]:
+    statement = (
+        select(Message)
+        .where(Message.conversation_id == conversation_id)
+        .order_by(
+            asc(Message.created_at),
+            asc(Message.message_id),
+        )
+        .offset(offset)
+        .limit(limit)
+    )
+    result = list(session.exec(statement).all())
+    return result
+
+
+def get_history_message(
+    *,
+    session: Session,
+    conversation_id: int,
+    limit: int = 4,
+) -> list[Message]:
+    if limit < 1:
+        return []
+
+    statement = (
+        select(Message)
+        .where(Message.conversation_id == conversation_id)
+        .order_by(
+            desc(Message.created_at),
+            desc(Message.message_id),
+        )
+        .limit(limit)
+    )
+    messages = list(session.exec(statement).all())
+    messages.reverse()
+    return messages
+```
+加了一个函数,并加入了对Usage的统计
+##### Agent部分
+我们原来有一个处理流的关键函数`stream_response`:
+```py
+def stream_response(
+    stream: Stream[ChatCompletionChunk],
+) -> Iterator[str]:
+    for chunk in stream:
+        # 某些 chunk 可能没有 choices
+        if not chunk.choices:
+            continue
+
+        # delta 表示“这一次新增的内容”。
+        delta = chunk.choices[0].delta
+
+        # delta.content 可能是 None。
+        if delta.content:
+            yield delta.content
+```
+
+启用了token统计后,输出消息的结构有所不同,一个非常详细的输出结构示例如下:
+```json
+{
+  "title": "OpenAI Chat Completions 输出流与用量统计的关系",
+  "scope": {
+    "api_family": "Chat Completions",
+    "endpoint": "/v1/chat/completions",
+  },
+  "request_example": {
+    "model": "example-openai-compatible-model",
+    "messages": [
+      {
+        "role": "user",
+        "content": "请打个招呼"
+      }
+    ],
+    "stream": true,
+    "stream_options": {
+      "include_usage": true
+    }
+  },
+  "stream_events_in_order": [
+    {
+      "sequence": 1,
+      "meaning": "流开始，声明 assistant 角色",
+      "chunk": {
+        "id": "chatcmpl_example_001",
+        "object": "chat.completion.chunk",
+        "model": "example-openai-compatible-model",
+        "choices": [
+          {
+            "index": 0,
+            "delta": {
+              "role": "assistant",
+              "content": ""
+            },
+            "finish_reason": null
+          }
+        ],
+        "usage": null
+      }
+    },
+    {
+      "sequence": 2,
+      "meaning": "第一个可显示文本增量",
+      "chunk": {
+        "id": "chatcmpl_example_001",
+        "object": "chat.completion.chunk",
+        "model": "example-openai-compatible-model",
+        "choices": [
+          {
+            "index": 0,
+            "delta": {
+              "content": "你"
+            },
+            "finish_reason": null
+          }
+        ],
+        "usage": null
+      }
+    },
+    {
+      "sequence": 3,
+      "meaning": "第二个可显示文本增量",
+      "chunk": {
+        "id": "chatcmpl_example_001",
+        "object": "chat.completion.chunk",
+        "model": "example-openai-compatible-model",
+        "choices": [
+          {
+            "index": 0,
+            "delta": {
+              "content": "好！"
+            },
+            "finish_reason": null
+          }
+        ],
+        "usage": null
+      }
+    },
+    {
+      "sequence": 4,
+      "meaning": "文本生成结束，finish_reason 表示正常停止",
+      "chunk": {
+        "id": "chatcmpl_example_001",
+        "object": "chat.completion.chunk",
+        "model": "example-openai-compatible-model",
+        "choices": [
+          {
+            "index": 0,
+            "delta": {},
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": null
+      }
+    },
+    {
+      "sequence": 5,
+      "meaning": "最终用量块，usage 是整个请求的总量，不是当前块的用量",
+      "chunk": {
+        "id": "chatcmpl_example_001",
+        "object": "chat.completion.chunk",
+        "model": "example-openai-compatible-model",
+        "choices": [],
+        "usage": {
+          "prompt_tokens": 12,
+          "completion_tokens": 3,
+          "total_tokens": 15,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          }
+        }
+      }
+    },
+    {
+      "sequence": 6,
+      "meaning": "SSE 流结束标记，不是 JSON chunk",
+      "wire_data": "data: [DONE]"
+    }
+  ],
+}
+```
+
+仔细观察可以看到,用量统计块甚至没有`choice`字段,所以我们之前的`stream_response`是彻底用不到了,可以直接删除.
+
+
 ### 数据库管理系统选择
 - adminer与dbgate.
 ###
 # 智能体进阶
-## ch13: 换用Responses API和RAG功能引入
-## ch14: 加入日志和测试,增强稳健性
+
+## ch13: 加入日志,测试,格式化工具和数据库迁移工具
 >并非是说测试不必要,但测试驱动开发还是太扯淡了,只要不是多人合作的大型项目,个人开发者是完全有能力搞清楚整个程序的来龙去脉的,加入测试只是怕自己以后开发的时候忘记了当时想起的需求而已.
 >
 >但当项目大到几百个文件或者说需要多人开发时,那就必须要加测试了,因为人的脑容量终究是有限的,你不可能一个人记得住那么多东西,同样,你不能指望别人能记住所有东西.
 
+## ch14: 换用Responses API和RAG功能引入

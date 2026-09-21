@@ -533,7 +533,7 @@ X在09年的时候发布了第一条博客,内容如下:
 - [引申阅读](https://www.nowcoder.com/discuss/560097357665255424?sourceSSR=users)
 - [内推码获取](https://my.feishu.cn/sheets/Ja0YsDMuKhy7Sxt0E9HcuRIinTf?302from=wiki)
 
-### [6](https://juejin.cn/post/7647395004021866542?utm_source=chatgpt.com)
+### [6](https://juejin.cn/post/7647395004021866542)
 
 >这几个月，我沟通了800+公司，80%直接未读或者已读未回，剩下的公司，大概三分之一会要你简历，其余的直接说不合适，这三分之一里要你简历的，最终能约到的面试大概又是3分之一左右，这一层层漏斗筛下来，差不多有十家多一点给了面试机会。这个体感你们可以自己掂量下，有一个非常残酷的事实是，所有给我面试机会的公司，几乎全部和AI有关，如果你简历里一点都没提到AI，上述的漏斗的口子还会更大。
 
@@ -916,9 +916,9 @@ Manning 的正式产品页分别确认了这些出版时间。([Manning Publicat
 ## 面试经验一览1(9/19)
 1. [暑期实习](https://miahemu.github.io/2025/04/08/2025%E6%9A%91%E6%9C%9F%E5%AE%9E%E4%B9%A0%E9%9D%A2%E8%AF%95%E7%BB%8F%E9%AA%8C/)
    1. 讲了一些比较通用的经验总结
-2. [实习面试](https://blankxiao.github.io/posts/%E9%9D%A2%E7%BB%8F/%E8%85%BE%E8%AE%AFieg_041119/?utm_source=chatgpt.com)
+2. [实习面试](https://blankxiao.github.io/posts/%E9%9D%A2%E7%BB%8F/%E8%85%BE%E8%AE%AFieg_041119/)
    1. 让人看的非常紧张啊...
-3. [北航学长的个人经验](https://github.com/UDfox/interview?utm_source=chatgpt.com)
+3. [北航学长的个人经验](https://github.com/UDfox/interview)
    1. 叙述了博主从一个菜鸟进阶成为程序员的过程
 4. [秋招总结](https://www.pengyq.dev/posts/2024-10-22-the-way-to-find-a-job/)
    1. 一个不错的完整历程
@@ -928,7 +928,26 @@ Manning 的正式产品页分别确认了这些出版时间。([Manning Publicat
 >看完之后发现基本所有博客在上岸之后都不更新了,看来上班是真的很要命.
 >
 >另一个感受就是自己的准备还远远不够,先不提算法,光是项目上就不够拷打的
-
+## 面试经验一览2(9/20)
+1. [经验之谈](https://alive0103.github.io/posts/%25E5%25AE%259E%25E4%25B9%25A0%25E5%25B0%258F%25E8%25AE%25B0)
+   1. 比较散,但也值得一看
+2. [研究生秋招](https://www.arcsin2.cloud/posts/2024/12/1856060966/)
+   1. >正式开始之前还是先介绍下个人情况，211 CS 科班本硕，研究生期间做过一段时间计算机视觉，后跑路转向系统方向。在系统方向属于无论文、无竞赛、无开源的三无产品，纯靠 CMU 15-445 等国外课程学习和秋招。总结来说就是跟不上 AI 潮流并跑路的纯混子选手。主攻语言 C/C++，略懂 Python，其他 Java、Go 等基本属于看得懂，但是没大量写过代码。因此秋招期间投递的岗位主要是数据库内核，外加一些后端大类岗位。秋招投递了 20 个公司左右，BAT、TMD 等互联网大厂全军覆没，收到的 offer 主要是一些非一线企业和创业公司的数据库内核开发 offer，以及部分公司的后端 offer
+3. [华为AI实习岗](https://g1nkgo7.github.io/2026/04/26/%E5%AE%9E%E4%B9%A0%E6%97%A5%E8%AE%B0-%E5%8D%8E%E4%B8%BA%E6%9A%91%E6%9C%9F%E5%AE%9E%E4%B9%A0%EF%BC%88AI%E5%B2%97%EF%BC%894%E6%9C%8825%E6%97%A5%E9%9D%A2%E7%BB%8F/)
+   1. 比较简单
+4. [前端秋招](https://www.snowhouse.space/archives/nowcoder-695805760722231296)
+   1. 简单的经验总结
+5. [可怕的巨佬](https://davidhlp.github.io/)
+   1. 一看就碾压我了好不好
+6. [腾讯面试合集](https://xxxx2077.github.io/winsonYe_Wiki/software_development/backend/interview/interview_experiences/#tme)
+   1. 不少问题我都没自信呢,看来是八股不太熟
+7. [23届实习](https://jckling.github.io/2022/05/20/Notes/23%20%E5%B1%8A%E6%9A%91%E6%9C%9F%E5%AE%9E%E4%B9%A0%E9%9D%A2%E8%AF%95%E6%80%BB%E7%BB%93/index.html)
+8. [25届秋招](https://vanilla-beauty.github.io/2024/11/09/%E9%9A%8F%E7%AC%94/2025%E5%B1%8A%E7%A7%8B%E6%8B%9B%E4%B8%AA%E4%BA%BA%E6%80%BB%E7%BB%93%E4%B8%8E%E7%BB%8F%E9%AA%8C%E6%A2%B3%E7%90%86/)
+   1. 以Cpp/Go选手为例, 很多人的项目都是下面四大名著之一: MIT 6.5840(原6.824); MIT 6.S081; CMU 15445; Tinykv
+9. [字节后端](https://adrianwangs.github.io/2025/08/03/%E9%9D%A2%E8%AF%95%E9%A2%98/%E4%BA%92%E8%81%94%E7%BD%91%E5%A4%A7%E5%8E%82/%E5%AD%97%E8%8A%82%E8%B7%B3%E5%8A%A8/2025-08-03-%E5%AD%97%E8%8A%82%E8%B7%B3%E5%8A%A8-%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91-%E4%B8%80%E9%9D%A2/index.html?utm_source=chatgpt.com)
+   1.  都是些比较基础的问题,感觉对面试者就没什么要求,换句话说,就是没什么期望...
+10. [讨饭历程](https://xuan-insr.github.io/interviews/overview/?utm_source=chatgpt.com)
+    1.  很散
 
 # 思考
 - 26/7/29: 忘了是在哪看到的了,最令人的厌烦的无非是装作老成的年轻人对同辈或者后辈发表的不知天高地厚的见解,这句话确实说的不错,曾经我也喜欢这么干,这里面的每个标题我都单独发了一篇博客文章出来,现在看来,确实是浅薄的可怕.不过,总还是得写点什么,这毕竟是几年以后能用来嘲笑自己的唯一根据

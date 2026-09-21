@@ -427,8 +427,62 @@ func main() {
 }
 ```
 ### defer
+```go
+f, err := os.Open(os.Args[1])
+if err != nil {
+    log.Fatal(err)
+}
 
+defer f.Close() // 现在不关闭，只登记：main 退出前关闭
 
+data := make([]byte, 2048)
+
+for {
+    count, err := f.Read(data) // 此时文件仍然是打开的
+    os.Stdout.Write(data[:count])
+
+    if err != nil {
+        if err != io.EOF {
+            log.Fatal(err)
+        }
+        break
+    }
+}
+
+// 到这里 main 准备结束
+// 才自动执行 f.Close()
+```
+defer的函数直到作用域结束时才开始执行,是按照栈的顺序推入的,遵循先进先出的规则.
+
+尽管可以用在方法调用中,但defer最常用的方式是写成匿名函数的形式:
+```go
+defer func() {
+    f.Close()
+    fmt.Println("file closed")
+}()
+```
+### 按值传递
+Go中的函数参数在一般情况下都是复制进去的,也就是说不会改变原变量的值,除非是指针类型.如Map和Slice.
+## ch6: 指针
+### 介绍
+```go
+var x int32 = 10
+var y bool = true
+pointerX := &x
+pointerY := &y
+var pointerZ *string
+```
+>虽然不同类型的变量占用的内存空间数量可能不同，但每个指针，无论指向什么类型，始终占用相同数量的内存空间。
+
+>指针的零值是 nil 。你之前已经见过 nil 几次了，它代表切片、映射和函数的零值。所有这些类型都是用指针实现的
+
+内置函数 new 创建一个指针变量。它返回指向所提供类型的零值实例的指针：
+```go
+var x = new(int)
+fmt.Println(x == nil) // prints false
+fmt.Println(*x)
+ // prints 0
+```
 
 # Redis设计与实现
 - 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
@@ -597,6 +651,51 @@ hashtable使用前面所说的字典实现.
 由于C没有垃圾回收,所以Redis构建了一个引用计数的垃圾回收机制
 ## 单机数据库
 ### 数据库
+Redis Server负责创建和管理Redis数据库,初始化Server时,默认会创建16个数据库.
+
+Redis是一个键值对（key-value pair）数据库服务器，服务器中的每个数据库都由一个redis.h/redisDb结构表示，其中，redisDb结构的dict字典保存了数据库中的所有键值对，我们将这个字典称为键空间（key space）:
+
+![结构图](PixPin_2026-09-21_10-12-01.webp)
+
+我们还可以对key设置过期时间,如下方结构所示:
+```text
+dict
+┌────────┬──────────────────┐
+│ key    │ value            │
+├────────┼──────────────────┤
+│ user:1 │ HashObject       │
+│ msg:1  │ StringObject     │
+│ list:1 │ ListObject       │
+└────────┴──────────────────┘
+
+expires
+┌────────┬──────────────────┐
+│ key    │ expire time      │
+├────────┼──────────────────┤
+│ user:1 │ 1760000000000    │
+│ msg:1  │ 1760000500000    │
+└────────┴──────────────────┘
+```
+#### 删除机制
+现在剩下的问题是：**如果一个键过期了，那么它什么时候会被删除呢？**
+
+*   **定时删除**：在设置键的过期时间的同时，创建一个定时器（timer），让定时器在键的过期时间来临时，立即执行对键的删除操作。
+*   **惰性删除**：放任键过期不管，但是每次从键空间中获取键时，都检查取得的键是否过期，如果过期的话，就删除该键；如果没有过期，就返回该键。
+*   **定期删除**：每隔一段时间，程序就对数据库进行一次检查，删除里面的过期键。至于要删除多少过期键，以及要检查多少个数据库，则由算法决定。
+
+在这三种策略中，第一种和第三种为**主动删除策略**，而第二种则为**被动删除策略**。
+
+而Redis服务器实际使用的是惰性删除和定期删除两种策略
+
+当服务器运行在复制模式下时，从服务器的过期键删除动作由主服务器控制：
+
+*   主服务器在删除一个过期键之后，会显式地向所有从服务器发送一个DEL命令，告知从服务器删除这个过期键。
+*   从服务器在执行客户端发送的读命令时，即使碰到过期键也不会将过期键删除，而是继续像处理未过期的键一样来处理过期键。
+*   从服务器只有在接到主服务器发来的DEL命令之后，才会删除过期键。
+
+通过由主服务器来控制从服务器统一地删除过期键，可以保证主从服务器数据的一致性，也正是因为这个原因，当一个过期键仍然存在于主服务器的数据库时，这个过期键在从服务器里的复制品也会继续存在。
+
+### RDB持久化
 
 # RAG with Python Cookbook
 - 原来学不会RAG不是我的问题,只是其他的教材太烂了
@@ -840,6 +939,72 @@ for v in list_of_elements:
 简单来说就是`python-docx`库的粒度太细了,毕竟RAG完全不需要docx的样式信息,像这样就刚刚好.
 
 ### 加载PDF
+```py
+from pathlib import Path
+
+import pandas as pd
+import PyPDF2
+
+file_path = Path("./Vector Databases.pdf")
+list_of_pages = []
+
+with file_path.open("rb") as file:
+    reader = PyPDF2.PdfReader(file)
+    metadata = reader.metadata or {}
+
+    for page_number, page in enumerate(reader.pages, start=1):
+        page_dict = {
+            "file_name": metadata.get("/Title") or file_path.name,
+            "producer": metadata.get("/Producer"),
+            "page_number": page_number,
+            "text": page.extract_text() or "",
+            "images": list(page.images),
+        }
+
+        list_of_pages.append(page_dict)
+
+pages_df = pd.DataFrame(list_of_pages)
+
+print(pages_df)
+```
+>PyPDF2 可以从包含可选择字符的文本的数字生成的 PDF 文件中提取文本。该库无法处理扫描的 PDF 文件或基于图像的文档，因为这些文档中的文本以像素而非字符的形式存在,那就只能用OCR了.
+### 加载csv和excel
+我们有三种方案:
+1. 用openpyxl 库打开和加载 Excel 文件
+2. 将表格转换成md并直接粘贴给AI,适用于数据量小的表格
+3. 将表格转换成数据库存储,并使用SQL查询来实现RAG
+### 加载音频
+有了Whisper模型后,我们可以直接将音频转写为文本,如果需要质量更高的转写,就要用到一些API了.
+### OCR
+本教程使用的是开源OCR引擎Tesseract,不过也有其他替代品:
+
+| 文档类型                                           | 体积           | 推荐方法                                                                            |
+| :------------------------------------------------- | :------------- | :---------------------------------------------------------------------------------- |
+| **纯文本 PDF**<br>普通文档、合同、书籍、文章       | < 1,000 份/月  | **OCR (Tesseract)**<br>快速、免费、本地运行                                         |
+| **纯文本 PDF**<br>普通文档、合同、书籍、文章       | > 10,000 份/月 | **OCR (Tesseract 或 EasyOCR)**<br>大规模应用时具有成本效益                          |
+| **混合内容**<br>文本 + 表格 + 图像                 | < 500 份/月    | **多模态模型** (GPT-5 mini, Claude Haiku, Gemini Flash)<br>单次处理，结果稳健       |
+| **混合内容**<br>文本 + 表格 + 图像                 | > 5,000 份/月  | **混合方法**<br>首先对文档进行分类，对简单页面使用 OCR，对复杂页面使用多模态方法    |
+| **复杂的版面设计**<br>技术图表、手写笔记、混合字体 | 任何体积       | **多模态模型** (GPT-5.2, Claude Sonnet, Gemini Pro)<br>在复杂文档上具有更高的准确率 |
+| **敏感数据**<br>不能离开基础设施                   | 任何体积       | **OCR (开源)**<br>Tesseract, PaddleOCR, EasyOCR：完全控制，本地部署                 |
+
+# Vector Databases
+# Hugo in Action
+## 引言
+>2013 年 7 月，我将博客迁移到 Hugo，并向世界发布了我的第一个Go 项目。当时，我完全没有想到，这个最初只是为了个人博客而编写的项目，竟会彻底改变我的人生，乃至整个世界
+
+## 基础
+### Jamstack 
+**Jamstack** 一词由 Netlify 的联合创始人兼首席执行官 **Matt Biilmann** 于 2016 年提出,是一种架构思想,最初来自:
+```text
+J = JavaScript
+A = APIs
+M = Markup
+```
+
+**Jamstack** 摒弃了数据库，将所有内容存储在部署期间编译的文件中，然后通过**内容分发网络（CDN）**进行分发。**应用程序编程接口（API）** 提供动态的、基于服务器的内容，这些内容由第三方维护或由云服务提供商托管，网站所有者只需极少的日常参与。这样，开发人员就无需处理安全更新、**拒绝服务（DoS）**攻击以及持续监控以抵御黑客攻击等任务。
+
+
+Hugo 是目前最流行的 Jamstack 框架之一，拥有最快的构建速度。它让我们摆脱了设置、维护和日常维护的烦恼
 
 
 # Hugging Face in Action
@@ -881,19 +1046,120 @@ dataset['train'][0]
 
 >Hugging Face Datasets服务会自动将所有公开数据集转换为Parquet格式，这能显著提升性能
 
-## 分词介绍
-# Vision Language Models
-## 导论
-### Brief Introduction to Computer Vision
+## 分词(tokenization)介绍
+分词方法有以下几种类型:
+*   **词级（Word-level）**——将文本拆分为单个词语
+*   **子词级别（Subword-level）**——将单词切分为更小的有意义单元或子词
+*   **字符级（Character-level）**——将文本拆分为单个字符；通常用于中文和日语等语言，这些语言中词边界不那么明显。
 
 
-# The Architecture of Open Source Applications
-## 引言
->建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
+![词级](PixPin_2026-09-21_10-33-45.webp)
+![子词](PixPin_2026-09-21_10-32-34.webp)
+![字符](PixPin_2026-09-21_10-34-10.webp)
+
+>词级分词虽然简单直接，但在处理词汇表外的单词时会遇到困难，因此对于多样化语言需要很大的词汇量。此外，它无法捕捉单词的内部结构，这限制了模型的泛化能力。使用此方法的一些模型包括Word2Vec和GloVe。
+
+>大多数新型模型，特别是基于Transformer的模型（如BERT和GPT），倾向于采用子词或字节对编码（BPE）的分词方式，以克服这些问题，从而在跨语言和词形变化方面提供更好的灵活性和泛化能力
+
+>字符级分词通常用于汉语和日语等语言,俗称CJK,基本都是一个token对应一个汉字.
+
+对数据集进行分词时,会有以下三个结果: input_ids、token_type_ids和attention_mask
 
 
-# Zero To Production In Rust
-# Minimal CMake
+input_ids的结构如下,每个数字代表一个token的ID,末尾的0则是填充的token,用于维持所有训练集批次中的序列长度保持一致,方便统一处理
+```py
+[101, 1045, 12524, 1045, 2572, 8025, 1011, 3756, 2013, 2026,
+2678, 3573, 2138, 1997, 2035, 1996, 6704, 2008, 5129, 2009,
+2043, 2009, 2001, 2034, 2207, 1999, 3476, 1012, 1045, 2036,
+...
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+```
+根据token的ID我们能找到原来的Token:
+```py
+['[CLS]', 'i', 'rented', 'i', 'am', 'curious', '-',
+'yellow', 'from', 'my', 'video', 'store', 'because',
+'of', 'all', 'the', 'controversy', 'that', 'surrounded',
+...
+...
+'##men', 'mind', 'find', 'it', 'shocking'
+...
+'[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]',
+'[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]',
+'[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]', '[PAD]']
+```
+>第一个token是 `[CLS]`，它标志着字符串的开始。某些token前面的 `##` 符号表示该token是一个子词单元，它是较大词的延续或后缀。简而言之，它表示该token不是一个独立词，而是一个片段，与前一个token结合形成完整的词。`[PAD]` token表示token化序列中的填充。它用于通过向较短的序列填充填充token，确保模型的所有输入序列长度相同。这种填充过程是必要的，因为许多基于变换器的模型（如BERT）期望输入张量具有统一大小，以便在训练或推理期间进行高效的批量处理。
+
+第二个属性，token_type_ids，用于区分单个输入中的多个段,也就是说,帮助Bert确定对话的顺序.但对于GPT等LLM来说,用assitant,user来标注就足够了.
+
+
+第三个属性，attention_mask，用于告知模型哪些标记应当被关注（处理），哪些不应当。当输入中存在填充标记时，这一点尤为重要，因为模型在计算过程中应忽略这些填充:
+```py
+print(tokenized_dataset['train'][0]['attention_mask'])
+
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+...
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+```
+
+![总结构](PixPin_2026-09-21_10-45-20.webp)
+
+## 搜索集成
+文中推荐的是smolagent,但我觉得差了点意思,然后AI推荐的是ddgs:
+```py
+from ddgs import DDGS
+
+def web_search(query: str):
+    return DDGS().text(
+        query,
+        max_results=8,
+    )
+
+results = web_search("Redis 8 new features")
+
+for r in results:
+    print(r["title"])
+    print(r["href"])
+    print(r["body"])
+```
+效果如下:
+```json
+h2 connection driver error: peer closed connection without sending TLS close_notify: https://docs.rs/rustls/latest/rustls/manual/_03_howto/index.html#unexpected-eof
+Redis 8.0 | Docs
+https://redis.io/docs/latest/develop/whats-new/8-0/
+July 30, 2026 - Redis 8.0 introduces powerful new capabilities, including the beta release of the Vector Set data structure, designed for AI use cases such as semantic search and recommendation systems.
+Redis 8 GA: Fast, scalable, and feature-rich
+https://redis.io/blog/redis-8-ga/
+June 1, 2026 - These are some of the features and capabilities that come packaged in Redis 8 in Redis Open Source. Vector set data structure [beta] We are excited to announce vector set, a new data type for vector similarity search.
+Redis 8.8 | Docs
+https://redis.io/docs/latest/develop/whats-new/8-8/
+July 30, 2026 - Redis 8.8 adds subkey notifications for hash fields, enabling field-level keyspace notifications for hash data. The new INCREX command (#15045) is a window counter rate limiter that combines INCR, INCRBY, INCRBYFLOAT, bounds, and expiration into a single atomic operation.
+Redis Open Source 8.0 release notes | Docs
+https://redis.io/docs/latest/operate/oss_and_stack/stack-with-enterprise/release-notes/redisce/redisos-8.0-release-notes/
+August 10, 2026 - A new I/O threading implementation, which enables throughput increase on multi-core environments (set with the io-threads configuration parameter). An improved replication mechanism that is more performantand robust. ... For more details, see the release notes for the 8.0-M01, 8.0-M02, 8.0-M03, ...
+Redis 8.8: New array data structure & open source features
+https://redis.io/blog/announcing-redis-8-8/
+June 2, 2026 - Highlights include array - a new general-purpose data structure, a window counter rate limiter, streams message NACKing, subkey notifications for hash fields, explicit control over JSON numeric array storage,multiple aggregators in a single time series query, and a new COUNT aggregator for sorted sets union and intersection. Redis 8.8 introduces significant end-to-end throughput improvements:
+Redis 8.2 | Docs
+https://redis.io/docs/latest/develop/whats-new/8-2/
+1 week ago - Redis 8.2 builds on the foundation ... tools. This release delivers major improvements across multiple areas: Enhanced Redis Streams with new commands for better consumer group management...
+Redis 8.0-M03 is out. Even more performance & new features. | Redis
+https://redis.io/blog/redis-8-0-m03-is-out-even-more-performance-new-features/
+February 11, 2025 - Now, in CE 8.0 M03 (Milestone 3 ... single-core and multi-core environments by using a new asynchronous I/O threading implementation along with an improved replication mechanism, delivering better performance and robustness than ...
+Redis 8.10: New Compact Hash & open-source features
+https://redis.io/blog/announcing-redis-810-compact-hash-jsonpath-extensions-performance-improvements-and-more/
+1 week ago - Redis 8.10 is now available in Open Source. Explore Compact Hash, JSONPath extensions, Streams, Sets, Lists, Time Series improvements, and incremental backup and restore.
+```
+
+比我想的要好很多呢.
+## 总结
+干货有不少,但废话也很多.
+
 # Prometheus: Up & Running(待补充)
 ## 介绍
 - Prometheus是一个开源的、基于指标的监控系统.
@@ -2314,6 +2580,10 @@ fn main() {
 
 
 
+# The Architecture of Open Source Applications(待补充)
+## 引言
+>建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
+
 
 # Effective Python,3rd edition
 尽管东西很多,但不到真正要用的时候也根本记不住呢
@@ -2431,7 +2701,9 @@ CREATE TABLE Accounts (
 3. 不支持数据库备份和访问权限设置
 
 如果我们简单直接一点,可以把图片直接存储在数据库之外,与数据库管理分离,显然也是一个不错的选择.
-
+# Vision Language Models(待补充)
+## 导论
+### Brief Introduction to Computer Vision
 # PROFESSIONAL C++(待补充)
 # A Tour of C++,Third Edition
 事实证明,任何由Bjarne Stroustrup亲自动笔的C++书都不具备任何的可读性.
