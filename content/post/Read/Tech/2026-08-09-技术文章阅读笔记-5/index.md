@@ -1105,27 +1105,40 @@ print(pages_df)
 | **敏感数据**<br>不能离开基础设施                   | 任何体积       | **OCR (开源)**<br>Tesseract, PaddleOCR, EasyOCR：完全控制，本地部署                 |
 ### 直接用API
 调用多模态模型的API来直接处理图片和文档
-## 嵌入
+## 嵌入(Embeddings)
+### 相似度计算
+余弦相似度衡量的是两个向量之间的角度，而不是它们的绝对距离。对于 RAG 系统而言，余弦相似度是首选的距离度量方法，因为它侧重于语义方向而非向量的大小.
+
+这种对长度差异的鲁棒性至关重要，因为用户查询通常比检索到的文档短得多。如果没有进行归一化处理，较长的文档会因为篇幅较长而非相关性较高而主导排名。
+
+### 嵌入模型选择
+![大量模型](PixPin_2026-09-22_10-03-20.webp)
+
+近年来，嵌入模型的发展速度不如语言学习模型（LLM）那么快。许多多年前构建的随机抽取（RAG）系统仍然使用 OpenAI 的 text-embedding-ada-002 模型，因为其精度对于检索任务来说仍然足够。这种稳定性意味着模型选择只需一次决策，很少需要重新调整
+
+
+## 向量数据库
 
 # Vector Databases
-# Hugo in Action
-## 引言
->2013 年 7 月，我将博客迁移到 Hugo，并向世界发布了我的第一个Go 项目。当时，我完全没有想到，这个最初只是为了个人博客而编写的项目，竟会彻底改变我的人生，乃至整个世界
+# AI Agents in Action,Second Edition
+# Grokking Concurrency
+## 介绍
+### 并发与并行
+* An application can be concurrent but not parallel. It processes more than one task over a given period (i.e., juggling more than one task even if no two tasks are executing at the same instant—this is described in more detail in Chapter 6).
 
-## 基础
-### Jamstack 
-**Jamstack** 一词由 Netlify 的联合创始人兼首席执行官 **Matt Biilmann** 于 2016 年提出,是一种架构思想,最初来自:
-```text
-J = JavaScript
-A = APIs
-M = Markup
-```
+单核多任务。系统通过时间片轮转交替执行多个任务。一段时间内多个任务都有进展，但同一时刻只有一个任务在占用 CPU 执行。
 
-**Jamstack** 摒弃了数据库，将所有内容存储在部署期间编译的文件中，然后通过**内容分发网络（CDN）**进行分发。**应用程序编程接口（API）** 提供动态的、基于服务器的内容，这些内容由第三方维护或由云服务提供商托管，网站所有者只需极少的日常参与。这样，开发人员就无需处理安全更新、**拒绝服务（DoS）**攻击以及持续监控以抵御黑客攻击等任务。
+* An application can be parallel but not concurrent, which means it processes multiple subtasks of a single task simultaneously.
 
+多核加速同一任务。将单个大任务拆分成多个子任务，在多核 CPU 上同时执行。
 
-Hugo 是目前最流行的 Jamstack 框架之一，拥有最快的构建速度。它让我们摆脱了设置、维护和日常维护的烦恼
+* An application can be neither parallel nor concurrent, which means it processes one task at a time sequentially, and the task is never broken into subtasks.
 
+纯串行。单线程，按顺序从头到尾执行一个任务，不拆分任务。
+
+* An application can be both parallel and concurrent, which means it processes multiple tasks or subtasks of a single task concurrently at the same time (executing them in parallel).
+
+最理想状态。系统既能同时调度多个独立任务，又能把这些任务或单个大任务的子任务分配给多个 CPU 核心同时执行。
 
 # Hugging Face in Action
 - 有了一定数量的论文打底之后看起来终于不像是天书了
@@ -2667,7 +2680,26 @@ fn main() {
 ```
 ## 总结
 弃坑了弃坑了,尽管看得出来教程已经很想教会我了,奈何Rust的特性实在太超出常规了.只好靠项目来一点点学Rust了
+# Hugo in Action(待补充)
+## 引言
+>2013 年 7 月，我将博客迁移到 Hugo，并向世界发布了我的第一个Go 项目。当时，我完全没有想到，这个最初只是为了个人博客而编写的项目，竟会彻底改变我的人生，乃至整个世界
 
+## 基础
+### Jamstack 
+**Jamstack** 一词由 Netlify 的联合创始人兼首席执行官 **Matt Biilmann** 于 2016 年提出,是一种架构思想,最初来自:
+```text
+J = JavaScript
+A = APIs
+M = Markup
+```
+
+**Jamstack** 摒弃了数据库，将所有内容存储在部署期间编译的文件中，然后通过**内容分发网络（CDN）**进行分发。**应用程序编程接口（API）** 提供动态的、基于服务器的内容，这些内容由第三方维护或由云服务提供商托管，网站所有者只需极少的日常参与。这样，开发人员就无需处理安全更新、**拒绝服务（DoS）**攻击以及持续监控以抵御黑客攻击等任务。
+
+
+Hugo 是目前最流行的 Jamstack 框架之一，拥有最快的构建速度。它让我们摆脱了设置、维护和日常维护的烦恼
+
+## 总结
+仔细一想,我目前根本用不到里面的任何知识好不好...
 # System Design Interview: An Insider’s Guide
 你就读吧,很久没见过这么干净利落的技术书籍了,对我的感触远比DDIA要震撼的多.
 ## ch1: 网络扩展

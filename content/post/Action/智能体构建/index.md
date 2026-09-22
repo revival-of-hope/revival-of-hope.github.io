@@ -4473,7 +4473,7 @@ export default function RegisterPage() {
 3. 没有保存用户的提问信息,也没能将thinking和content分开输出
 4. 没有异常处理,也没有限制用户的使用量和调用额度.
 # 智能体优化
-## ch11: 完善不足之处,实现多轮对话
+## ch11: 实现多轮对话
 
 ### API构思
 在修改之前,先再想想我们要实现哪些API才可以让这个应用变成真正的Agent,先看看之前的API:
@@ -7595,7 +7595,7 @@ class ChatBot:
 
 至于为什么要重构,当然是方便测试和阅读了.
 
-## ch14: 加入数据库迁移工具和测试
+## ch14: 加入数据库迁移工具
 ### Alembic引入
 [Alembic](https://alembic.sqlalchemy.org/en/latest/)是一个非常适合SQLAlchemy / SQLModel技术栈的数据库迁移工具,而为什么加入数据库迁移工具呢,是因为直接改数据表的话是没有历史记录的,很容易出现故障,加入数据库迁移工具后,一切都可以自动化运行.
 
@@ -7933,10 +7933,456 @@ docker compose run --rm backend bash scripts/prestart.sh
 ```bash
 .\scripts\migrate.ps1 "add user avatar"
 ```
-### 测试引入
+
+## ch15: 换用Responses API,接入thinking和工具调用
+
+### 介绍
+首先,看一下我们之前的stream是怎么创建的:
+```py
+    @staticmethod
+    def _create_stream(
+        *,
+        client: OpenAI,
+        model: str,
+        messages: list[ChatCompletionMessageParam],
+    ) -> Stream[ChatCompletionChunk]:
+        return client.chat.completions.create(
+            model=model,
+            messages=messages,
+            stream=True,
+            reasoning_effort="medium",
+            stream_options={
+                "include_usage": True,
+            },
+        )
+```
+太丑了,而且初学者根本就看不懂好不好.更为关键的是,如果要加入工具调用和RAG检索,根本无从下手吧.
+
+因此,OpenAI在25年的3月引入了Responses API,现在也是官方推荐的API组织方式,原来的Chat Completion API是把每次的调用视为单纯的对话,而现在的Responses API将每次调用看作是一系列工具执行结果的集合:
+```text
+message
+reasoning
+function_call
+web_search_call
+file_search_call
+computer_call
+code execution
+image generation
+```
+
+以前的代码是这样的:
+```py
+client.chat.completions.create(
+    model="...",
+    messages=[
+        {
+            "role": "user",
+            "content": "介绍一下 Redis"
+        }
+    ]
+)
+```
+而现在只需要:
+```py
+response = client.responses.create(
+    model="gpt-5",
+    input="介绍一下 Redis"
+)
+
+print(response.output_text)
+```
+而且,可以无缝加入工具选项:
+```py
+response = client.responses.create(
+    model="gpt-5",
+    tools=[
+        {"type": "web_search"}
+    ],
+    input="今天有什么 AI 新闻？"
+)
+```
+
+另外一点则是,我们之前要加入历史消息列表
+才能实现多轮对话,而现在可以直接这么做:
+```py
+response1 = client.responses.create(
+    model="...",
+    input="我叫 Tom"
+)
+
+response2 = client.responses.create(
+    model="...",
+    previous_response_id=response1.id,
+    input="我叫什么？"
+)
+```
+[官方](https://developers.openai.com/api/docs/guides/migrate-to-responses)的说明中,用极其有说服力的语言告诉我们最好尽快迁移到Responses API.
+
+而在返回的消息体中,二者的对比更加明显:
+
+**Chat Completions API**
+```json
+{
+  "id": "chatcmpl-C9EDpkjH60VPPIB86j2zIhiR8kWiC",
+  "object": "chat.completion",
+  "created": 1756315657,
+  "model": "gpt-5.5",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Under a blanket of starlight, a sleepy unicorn tiptoed through moonlit meadows, gathering dreams like dew to tuck beneath its silver mane until morning.",
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  ...
+}
+```
+
+**Responses API**
+```json
+{
+  "id": "resp_68af4030592c81938ec0a5fbab4a3e9f05438e46b5f69a3b",
+  "object": "response",
+  "created_at": 1756315696,
+  "model": "gpt-5.5",
+  "output": [
+    {
+      "id": "rs_68af4030baa48193b0b43b4c2a176a1a05438e46b5f69a3b",
+      "type": "reasoning",
+      "content": [],
+      "summary": []
+    },
+    {
+      "id": "msg_68af40337e58819392e935fb404414d005438e46b5f69a3b",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "Under a quilt of moonlight, a drowsy unicorn wandered through quiet meadows, brushing blossoms with her glowing horn so they sighed soft lullabies that carried every dreamer gently to sleep."
+        }
+      ],
+      "role": "assistant"
+    }
+  ],
+  ...
+}
+```
+不得不说,确实是吊打,清晰度上好了不知道多少.
+
+
+一个联网搜索的对比例子如下:
+```py
+import requests
+
+
+def web_search(query):
+    r = requests.get(f"https://api.example.com/search?q={query}")
+    return r.json().get("results", [])
+
+
+completion = client.chat.completions.create(
+    model="gpt-5.6",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Who is the current president of France?"},
+    ],
+    functions=[
+        {
+            "name": "web_search",
+            "description": "Search the web for information",
+            "parameters": {
+                "type": "object",
+                "properties": {"query": {"type": "string"}},
+                "required": ["query"],
+            },
+        }
+    ],
+)
+```
+=>
+```py
+answer = client.responses.create(
+    model="gpt-6-astra",
+    input="Who is the current president of France?",
+    tools=[{"type": "web_search"}],
+)
+
+print(answer.output_text)
+```
+
+更离谱的地方在于,就在十几天前(26/9/10),OpenAI又推出了Agents API,给的示例就很NB的样子:
+```py
+from openai import OpenAI
+
+with OpenAI() as client:
+    with client.beta.agents.sessions.create(
+        agent={
+            "model": "gpt-6-astra",
+            "instructions": "Write clean code, run it, and report the actual output.",
+        },
+        environment={"type": "openai_hosted"},
+        input="Create tree.py, a Python script that prints a readable tree of the files in the current directory. Run it and show me the output.",
+        stream=True,
+    ) as events:
+        for event in events:
+            print(event.to_json(indent=None), flush=True)
+```
+
+不过具体效果如何,最少得等上几个月再稳定下来吧.
+
+### 为什么之前不用
+因为我这个智能体项目是比较早的想法了,而DeepSeek直到今年8月份才开始兼容Responses API,更何况,目前DeepSeek现在都还做的还不太完善:
+1. API调用是无状态的,所以还是需要重新传入历史消息
+2. Tools只有部分是兼容的,唯一的方法就是传入自定义自托管的工具调用function,如:
+```py
+tools=[
+    {
+        "type": "function",
+        "name": "search_database",
+        ...
+    }
+]
+```
+而`web_search、file_search、code_interpreter、computer_use、mcp` 等内置工具会被直接忽略.
+
+不过好歹现在终于支持了,并且换用Responses API确实很有必要,所以就来重构一下吧.
+### 加入Responses API
+由于我们之前的重构特别完美,所以现在只需要改agents文件夹下的两个类即可,但是一个很沟槽的地方在于,官方示例中没有一个地方有类型注释,根本不知道要怎么写好吧,没办法,只能让AI下手,我来重构了.
+
+**client.py**
+
+```py
+from functools import lru_cache
+from typing import Literal
+
+from app.models import Message, MessageRole
+from app.core.config import settings
+
+from openai import Stream, OpenAI
+from openai.types.responses import (
+    EasyInputMessageParam,
+    ResponseInputParam,
+    ResponseStreamEvent,
+)
+
+
+class Agent:
+    DEFAULT_MODEL = "deepseek-v4-pro"
+    DEFAULT_SYSTEM_PROMPT = "以后的回答都要优先输出一句话,我是deepseek-v4-pro."
+
+    @lru_cache
+    def _get_client(self) -> OpenAI:
+        return self._create_client(
+            api_key=settings.DEEPSEEK_API_KEY,
+            url=settings.DEEPSEEK_URL,
+        )
+
+    def stream_agent(
+        self,
+        *,
+        history: list[Message],
+        model: str = DEFAULT_MODEL,
+        system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    ) -> Stream[ResponseStreamEvent]:
+        # 构造消息列表
+        message_list = self._build_input(history=history)
+
+        # 打开通信流
+        stream = self._create_stream(
+            client=self._get_client(),
+            model=model,
+            instructions=system_prompt,
+            input=message_list,
+        )
+        return stream
+
+    @staticmethod
+    def _build_input(
+        *,
+        history: list[Message],
+    ) -> ResponseInputParam:
+        response_input: ResponseInputParam = []
+        for message in history:
+            role: Literal["user", "assistant"] = (
+                "user" if message.role is MessageRole.USER else "assistant"
+            )
+            response_input.append(
+                EasyInputMessageParam(
+                    role=role,
+                    content=message.content,
+                )
+            )
+        return response_input
+
+    @staticmethod
+    def _create_client(*, api_key: str, url: str) -> OpenAI:
+        return OpenAI(api_key=api_key, base_url=url)
+
+    @staticmethod
+    def _create_stream(
+        *,
+        client: OpenAI,
+        model: str,
+        instructions: str,
+        input: ResponseInputParam,
+    ) -> Stream[ResponseStreamEvent]:
+        return client.responses.create(
+            model=model,
+            instructions=instructions,
+            input=input,
+            stream=True,
+            reasoning={"effort": "high"},
+        )
+```
+相当于说是将原来的SYSTEM_PROMPT与用户输入分开了,然后AI输出和用户对话都归类为EasyInputMessageParam,还是通过role来进行区分,所以差别不大.
+
+**chat.py**
+```py
+from collections.abc import Iterator
+
+from sqlmodel import Session
+from openai import Stream
+from openai.types.responses import Response, ResponseStreamEvent
+from app import crud
+from app.models import ChatRequest, Conversation, MessageRole
+
+
+class ConversationNotFoundError(Exception):
+    """Raised when a conversation is absent or belongs to another user."""
+
+
+class ChatBot:
+    TITLE_LENGTH = 10
+    DEFAULT_TITLE = "新对话"
+
+    @staticmethod
+    def _build_conversation_title(content: str) -> str:
+
+        normalized_text = " ".join(content.split())
+        if not normalized_text:
+            return ChatBot.DEFAULT_TITLE
+
+        return normalized_text[: ChatBot.TITLE_LENGTH]
+
+    def prepare_chat(
+        self,
+        *,
+        session: Session,
+        user_id: int,
+        request: ChatRequest,
+    ) -> Conversation:
+        if request.conversation_id is None:
+            conversation = crud.create_conversation(
+                session=session,
+                user_id=user_id,
+                title=self._build_conversation_title(request.content),
+            )
+        else:
+            conversation = crud.get_conversation_for_user(
+                session=session,
+                conversation_id=request.conversation_id,
+                user_id=user_id,
+            )
+            if conversation is None:
+                raise ConversationNotFoundError
+        crud.save_message(
+            session=session,
+            conversation=conversation,
+            role=MessageRole.USER,
+            content=request.content,
+        )
+        return conversation
+
+    def stream_and_save(
+        self,
+        *,
+        session: Session,
+        conversation_id: int,
+        chunks: Stream[ResponseStreamEvent],
+    ) -> Iterator[str]:
+        collected_chunks: list[str] = []
+        final_response: Response | None = None
+        for event in chunks:
+            if event.type == "response.output_text.delta":
+                collected_chunks.append(event.delta)
+                yield event.delta
+            elif event.type == "response.completed":
+                final_response = event.response
+            elif event.type == "response.incomplete":
+                final_response = event.response
+            elif event.type == "error":
+                raise RuntimeError(event.message)
+            elif event.type == "response.failed":
+                error = event.response.error
+                raise RuntimeError(error.message if error else "Response failed")
+
+        full_content = "".join(collected_chunks)
+        if not full_content or not final_response or not final_response.usage:
+            return
+        usage = final_response.usage
+        conversation = session.get(Conversation, conversation_id)
+        if conversation is None:
+            return
+        crud.save_message(
+            session=session,
+            conversation=conversation,
+            role=MessageRole.ASSISTANT,
+            content=full_content,
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            total_tokens=usage.total_tokens,
+        )
+```
+主要修改的是chunks处理部分,可以发现Responses API的chunks处理确实清晰了很多.
+### models文件夹调整
+#### tables.py重构
+因为要存储thinking字段,所以需要对Message模型做一些调整,而其他模型完全不用动(之前重构做的太好了):
+```py
+class MessageBase(SQLModel):
+    conversation_id: int | None = Field(
+        foreign_key="conversation.conversation_id",
+        ondelete="CASCADE",
+    )
+    role: MessageRole
+    # sa_type表示强制让引擎把content的类型改为Text,
+    # 从而可以支持存储AI输出的冗长文本
+    content: str = Field(sa_type=Text, nullable=False)
+    thinking: str | None = Field(default=None, sa_type=Text)
+
+
+class Message(MessageBase, table=True):
+    message_id: int = Field(
+        default=None,
+        primary_key=True,
+    )
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversation: Conversation | None = Relationship(
+        back_populates="messages",
+    )
+```
+#### schemas.py重构
+由于用户可以自己选择是否要加入思考和工具调用,所以需要修改一下ChatRequest:
+```py
+class ChatRequest(SQLModel):
+    # 根据id是否为空可以判断是否为已有对话
+    conversation_id: int | None = Field(default=None, ge=1)
+    content: str = Field(min_length=1, max_length=20_000)
+    enable_thinking: bool = True
+    enable_web_search: bool = False
+```
+### agents文件夹重构
+本来想让AI先生成一版能用的,结果生成的是一坨答辩,完全改不了,所以只好自己认真写了.
+## ch15: 测试引入
 >并非是说测试不必要,但测试驱动开发还是太扯淡了,只要不是多人合作的大型项目,个人开发者是完全有能力搞清楚整个程序的来龙去脉的,加入测试只是怕自己以后开发的时候忘记了当时想起的需求而已.
 >
 >但当项目大到几百个文件或者说需要多人开发时,那就必须要加测试了,因为人的脑容量终究是有限的,你不可能一个人记得住那么多东西,同样,你不能指望别人能记住所有东西.
 
-## ch15: 换用Responses API和RAG功能引入
 ## 智能体进阶
