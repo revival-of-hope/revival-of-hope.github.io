@@ -948,7 +948,20 @@ Manning 的正式产品页分别确认了这些出版时间。([Manning Publicat
    1.  都是些比较基础的问题,感觉对面试者就没什么要求,换句话说,就是没什么期望...
 10. [讨饭历程](https://xuan-insr.github.io/interviews/overview/?utm_source=chatgpt.com)
     1.  很散
+## 面试经验一览3(9/21)
+1. [25年秋招体验](https://muzibing.github.io/Tutorial/qz/?utm_source=chatgpt.com)
+   1. 比较详细,值得一读
+2. [25年找实习](https://ning565.github.io/2025/03/18/%E6%89%BE%E5%AE%9E%E4%B9%A0%E6%9C%89%E6%84%9F/?utm_source=chatgpt.com)
+   1. 比较深刻的体验
+3. [大佬](https://blog.nagi.fun/zh/projects)
 
+
+![博客页面](PixPin_2026-09-21_22-35-13.webp)
+
+- 这博客页面也太帅了吧
+
+4. [23年的秋招总结](https://www.nowcoder.com/discuss/441636213984854016?sourceSSR=users)
+5. [26年面经合集](https://www.nowcoder.com/discuss/922860300762611712?utm_source=chatgpt.com)
 # 思考
 - 26/7/29: 忘了是在哪看到的了,最令人的厌烦的无非是装作老成的年轻人对同辈或者后辈发表的不知天高地厚的见解,这句话确实说的不错,曾经我也喜欢这么干,这里面的每个标题我都单独发了一篇博客文章出来,现在看来,确实是浅薄的可怕.不过,总还是得写点什么,这毕竟是几年以后能用来嘲笑自己的唯一根据
 ## ai思考(2025-11-24)
