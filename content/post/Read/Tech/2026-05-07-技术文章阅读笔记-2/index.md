@@ -115,7 +115,7 @@ http://www.joes-hardware.com/tools.html#drills
 
 ### Unix文件系统
 Unix文件被组织在一个树结构的命名空间中:
-![示意图](image.png)
+![示意图](image11.png)
 
 - 与树根对应的目录被称为根目录(root directory),名字是"/".
 
@@ -166,7 +166,7 @@ address is found, the CPU has a **cache hit**; otherwise, it has a **cache miss*
 
 ### 进程描述符
 进程描述符(process descriptor)存放了一个进程所有信息的结构体,它的主要结构如下:
-![示意图](image-1.png)
+![示意图](image12.png)
 
 #### 进程的状态
 进程可能处于以下状态中,状态之间是互斥的:
@@ -1472,7 +1472,7 @@ MIPS的操作指令比较简单,大致可分为以下几种:
 | C.*.D, C.*.S                          | DP和SP对比：“_”=LT, GT, LE, GE, EQ, NE；在FP状态寄存器中置位                                                     |
 
 MIPS中所有指令的长度都是32位,从而简化了指令译码:
-![示意图](image-2.png)
+![示意图](image13.png)
 
 ### Amdahl定律: 计算加速比
 Amdahl定律用于计算升级某个部件/功能时获得的**加速比**,即采用升级前所用的时间与升级后所用时间的比值,从而衡量出某个部件/功能的贡献大小:
