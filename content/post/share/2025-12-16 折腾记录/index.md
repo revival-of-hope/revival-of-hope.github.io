@@ -586,6 +586,7 @@ services:
 2. 检查生成的 `index.html` 的 `<head>` 部分，确认包含如下特征的代码：
    `https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX`
 3. 访问你的线上网站，在 Google Analytics 的 **实时 (Real-time)** 报告中查看是否有活跃用户。
+
 ## 折腾环境问题
 
 ### vscode powershell终端打字缺字漏字

@@ -732,6 +732,369 @@ func main() {
 ```
 
 #### Interfaces
+## RAG with Python Cookbook
+- 出版于2026年，作者：Deepak Dhyani。
+- 原来学不会RAG不是我的问题,只是其他的教材太烂了
+
+### RAG介绍
+
+| RAG 拟合度 | 用例                                              | 适配理由                                                                                                                         |
+| ---------: | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+|      **1** | 我想和我的季度报告聊聊                            | 只有单份文档，数据量较小。直接阅读或使用 ChatGPT、Claude 等通用大模型即可完成，自建 RAG 的收益很低。                             |
+|      **2** | 请帮我总结这一份文档                              | 通用大模型已经能够较好地完成单文档总结任务，引入 RAG 通常不会带来明显额外价值。                                                  |
+|      **2** | 自动执行需要作出高风险决策的任务                  | 技术上可以实现，但大模型仍可能出错。若缺少人工审核、审计机制和故障保护等措施，风险较高，因此不适合单纯依赖 RAG 自动完成。        |
+|      **4** | 大量会议录音不断积累，但其中的信息无法进入知识库  | RAG 可以将音频、视频、长篇非结构化笔记等难以检索的信息转化为可搜索、可查询的知识，具有持续价值；最终效果会受到语音转录质量影响。 |
+|      **4** | 将技术图纸与规格文档进行核对                      | 适合利用多模态模型结合 RAG 进行跨材料比对，可以减少大量人工核查工作；但需要完善的评估机制和异常处理流程。                        |
+|      **5** | 有 1 万份合同，需要找出其中包含自动续约条款的合同 | 文档规模很大，人工逐份检查成本过高；任务目标明确，可以通过检索和信息提取定位相关合同，结果也容易人工验证。                       |
+|      **5** | 客户支持工单中包含大量产品问题，但无法有效汇总    | RAG 适合跨大量文档检索、聚合和发现重复模式，可以从大量工单中识别共同问题及趋势，这是人工难以大规模完成的任务。                   |
+|      **5** | 每天收到数百条客户咨询，需要自动分配给合适的团队  | 属于高频、重复的分类与路由任务，任务标准清晰，结果容易评估，并且可以通过自动化显著降低人工成本。                                 |
+
+**核心判断原则：**RAG 的价值通常随着**数据量、跨文档检索需求、信息更新频率和人工处理成本**的增加而提高。对于单份、短小且可以直接放入大模型上下文的文档，通常没有必要专门构建 RAG 系统。
+
+>当数据结构不规则且变化多端时，这种能力尤为重要。当每个输入略有不同但处理方式类似时，例如客户电子邮件、合同条款或事件报告，可以使用 RAG。不要将 RAG 用于简单的查找、固定格式的数据提取或基于不变规则的任务。如果您可以编写正则表达式（regex）或 SQL 查询来处理 95% 的情况，那么 RAG 只会增加不必要的复杂性和成本。
+
+RAG常用的库和框架如下:
+
+| 类别                              | 示例库                                                                          | 主要作用                                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **RAG 与代理式 RAG 编排**         | LangChain、LangGraph、LlamaIndex                                                | 将检索器、生成器、提示词、记忆等常见 RAG 组件封装为统一抽象，并负责连接向量数据库、LLM 和传统数据库，使开发者更专注于业务逻辑。 |
+| **大语言模型与嵌入模型**          | OpenAI、Anthropic、Transformers、Sentence Transformers                          | 为 RAG 系统提供核心智能能力，用于理解用户查询、生成向量嵌入以及生成最终回答。                                                   |
+| **向量存储**                      | Chroma、FAISS、Pinecone、Milvus、Weaviate                                       | 存储和检索向量嵌入，通过相似度搜索快速找到与用户查询相关的内容。                                                                |
+| **数据处理**                      | pandas、NumPy、PyPDF2、pypdf、python-docx、Unstructured、openpyxl、scikit-learn | 用于数据处理、文件读取、清洗和预处理，在文档进入 RAG 系统之前将原始数据转换为可处理的形式。                                     |
+| **多模态与媒体处理**              | Pillow、Pytesseract、MoviePy、pdf2image、OpenCV                                 | 用于加载和处理图片、视频、播客、PDF、Word、PowerPoint 等不同媒体和文件格式。                                                    |
+| **文本处理与自然语言处理（NLP）** | NLTK、Transformers、Rank-BM25、Beautiful Soup 4                                 | 用于文本清洗、分词、关键词检索、传统 NLP 分析等任务，避免所有文本处理步骤都依赖大语言模型。                                     |
+| **评估与监控**                    | Ragas、Phoenix、LangSmith、Prometheus-Eval                                      | 提供预定义的评估指标，用于衡量检索器、生成器以及整个 RAG 应用的准确性、质量和运行表现。                                         |
+| **Web 框架与部署**                | Streamlit、Gradio、Flask、Django                                                | 用于构建 RAG 应用的用户界面和 Web 服务。其中 Streamlit、Gradio 更适合快速原型，Flask、Django 更适合完整应用开发。               |
+| **数据库与存储**                  | SQLAlchemy、Psycopg 2、SQLite3                                                  | 用于连接传统 SQL 数据库，并通过数据库连接器或 ORM 将关系型数据作为 RAG 系统的数据来源。                                         |
+
+### 基础模型
+
+#### Ollama
+>Ollama 在http://localhost:11434/v1 公开了一个与 OpenAI 兼容的端点，因此您现有的代码几乎无需更改。
+
+```py
+from openai import OpenAI
+
+# Point the client to your local Ollama server
+client = OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="ollama",  # Ollama does not require a real key,
+                       # but the SDK expects one
+)
+
+response = client.chat.completions.create(
+    model="qwen3:4b",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {
+            "role": "user",
+            "content": "What is retrieval augmented generation?"
+        },
+    ],
+)
+
+print(response.choices[0].message.content)
+```
+还可以试试选用多个模型:
+
+```py
+from openai import OpenAI
+
+models = ["llama2", "mistral", "codellama"]
+
+client = OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="ollama"
+)
+
+for model in models:
+    print(f"\n--- Testing {model} ---")
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "user", "content": "Explain RAG in one sentence."}
+        ]
+    )
+
+    print(response.choices[0].message.content)
+```
+
+> **将公开排行榜视为筛选工具，而非最终决策标准。常见的局限性包括以下几点：**
+>
+> **基准泄漏或数据污染**
+> 一些基准测试题及答案是公开的，可能已被直接或间接包含在训练数据中，从而抬高模型分数。
+>
+> **古德哈特定律或过度优化**
+> 一旦某个基准成为目标，模型开发者可能会专门针对该基准进行调整，从而提高分数，但并不会相应提高模型的通用能力。
+>
+> **与实际使用情况不符**
+> 生产环境中的具体配置——包括提示模板、检索质量、工具使用、长上下文、多语言内容、量化方式以及延迟限制——都会显著影响最终结果。
+> 因此，即使某个模型在公开排行榜上“胜出”，在你自己的 RAG 查询或真实业务场景中，也可能表现得更差。
+
+#### 图片解析
+
+```py
+from pydantic import BaseModel
+from openai import OpenAI
+import base64
+
+
+class Invoice(BaseModel):
+    invoice_number: str
+    vendor: str
+    total: float
+    currency: str
+
+
+client = OpenAI()
+
+with open("invoice.png", "rb") as f:
+    image_base64 = base64.b64encode(f.read()).decode("utf-8")
+
+result = client.responses.parse(
+    model="gpt-5-mini",
+    input=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_text",
+                    "text": "Extract the invoice data."
+                },
+                {
+                    "type": "input_image",
+                    "image_url": f"data:image/png;base64,{image_base64}"
+                },
+            ],
+        }
+    ],
+    text_format=Invoice,
+)
+```
+
+第一次知道API还可以定制返回模型,不过对话中是不需要的,工具调用时却很有必要
+
+### 加载数据
+
+![数据分布](PixPin_2026-09-19_13-31-13.webp)
+
+大多数RAG 检索器都使用文本嵌入，因此，一个切实可行的第一步是将不同的格式转换为一致的文本表示形式
+
+![架构图](PixPin_2026-09-19_13-31-57.webp)
+
+>本书从零开始构建核心组件，以阐明其基本概念。在生产环境中，诸如 LangChain 或LlamaIndex 之类的编排框架可以加速开发，但它们也引入了频繁的破坏性变更、快速演进的 API 和额外的抽象等问题。
+
+- 找了这么多书终于有个愿意认真做RAG的了.
+
+#### 加载Word
+>当您不需要区分元素类型时，可以使用 python-docx 进行简单的文本提取。当您需要保留文档结构（标题、段落、列表、图像）以便对元素进行针对性处理时，请使用 Unstructured。
+
+![基本流程](PixPin_2026-09-19_13-38-00.webp)
+
+首先安装所需的库:
+
+```bash
+pip install python-docx unstructured pandas
+```
+
+##### python-docx
+**示例代码**
+
+```py
+import os
+from docx import Document
+
+file_path = "./test.docx"
+
+doc = Document(file_path)
+
+text = []
+for paragraph in doc.paragraphs:
+    text.append(paragraph.text)
+
+full_text = "\n".join(text)
+
+print(full_text)
+```
+运行代码,效果确实可以:
+
+![效果图](PixPin_2026-09-19_13-42-08.webp)
+
+尽管代码中将所有的结构信息都被除去,只剩下了文本信息,但是原本的`python-docx`库肯定不止这点功能.
+
+看一下[官网](https://python-docx.readthedocs.io/en/latest/user/quickstart.html),发现这个库反而主要是用来生成和加工docx的,单纯提取docx反而是一个比较边角料的功能.
+
+>`.docx` 不是一个二进制 Word 文件，而本质上是一个 ZIP 压缩包，内部包含大量 XML、图片和关系文件。
+
+如:
+
+```text
+test.docx
+│
+├── [Content_Types].xml
+├── _rels/
+├── docProps/
+│   ├── core.xml
+│   └── app.xml
+│
+└── word/
+    ├── document.xml 放置正文
+    ├── styles.xml
+    ├── settings.xml
+    ├── numbering.xml
+    ├── comments.xml
+    ├── header1.xml
+    ├── footer1.xml
+    ├── media/
+    │   ├── image1.png
+    │   └── image2.jpeg
+    └── _rels/
+```
+
+不过对于做RAG来说,确实文本信息就已经足够了...
+
+##### unstructured
+unstructured库更多的像是一个集成库,可以支持多种文档,先看看示例代码:
+
+```py
+from unstructured.partition.docx import partition_docx
+
+file_path = "./test.docx"
+elements = partition_docx(filename=file_path)
+
+list_of_elements = []
+
+for element in elements:
+    element_dict = {
+        "element_id": element.id,
+        "file_path": file_path,
+        "category": element.category,
+        # e.g., "Title", "NarrativeText", "ListItem"
+        "text": element.text,
+        "last_modified": element.metadata.last_modified,
+    }
+
+    list_of_elements.append(element_dict)
+
+
+for v in list_of_elements:
+    print(v, "\n")
+```
+
+![效果图](PixPin_2026-09-19_13-59-38.webp)
+
+简单来说就是`python-docx`库的粒度太细了,毕竟RAG完全不需要docx的样式信息,像这样就刚刚好.
+
+#### 加载PDF
+
+```py
+from pathlib import Path
+
+import pandas as pd
+import PyPDF2
+
+file_path = Path("./Vector Databases.pdf")
+list_of_pages = []
+
+with file_path.open("rb") as file:
+    reader = PyPDF2.PdfReader(file)
+    metadata = reader.metadata or {}
+
+    for page_number, page in enumerate(reader.pages, start=1):
+        page_dict = {
+            "file_name": metadata.get("/Title") or file_path.name,
+            "producer": metadata.get("/Producer"),
+            "page_number": page_number,
+            "text": page.extract_text() or "",
+            "images": list(page.images),
+        }
+
+        list_of_pages.append(page_dict)
+
+pages_df = pd.DataFrame(list_of_pages)
+
+print(pages_df)
+```
+>PyPDF2 可以从包含可选择字符的文本的数字生成的 PDF 文件中提取文本。该库无法处理扫描的 PDF 文件或基于图像的文档，因为这些文档中的文本以像素而非字符的形式存在,那就只能用OCR了.
+
+#### 加载csv和excel
+我们有三种方案:
+1. 用openpyxl 库打开和加载 Excel 文件
+2. 将表格转换成md并直接粘贴给AI,适用于数据量小的表格
+3. 将表格转换成数据库存储,并使用SQL查询来实现RAG
+
+#### 加载音频
+有了Whisper模型后,我们可以直接将音频转写为文本,如果需要质量更高的转写,就要用到一些API了.
+
+#### OCR
+本教程使用的是开源OCR引擎Tesseract,不过也有其他替代品:
+
+| 文档类型                                           | 体积           | 推荐方法                                                                            |
+| :------------------------------------------------- | :------------- | :---------------------------------------------------------------------------------- |
+| **纯文本 PDF**<br>普通文档、合同、书籍、文章       | < 1,000 份/月  | **OCR (Tesseract)**<br>快速、免费、本地运行                                         |
+| **纯文本 PDF**<br>普通文档、合同、书籍、文章       | > 10,000 份/月 | **OCR (Tesseract 或 EasyOCR)**<br>大规模应用时具有成本效益                          |
+| **混合内容**<br>文本 + 表格 + 图像                 | < 500 份/月    | **多模态模型** (GPT-5 mini, Claude Haiku, Gemini Flash)<br>单次处理，结果稳健       |
+| **混合内容**<br>文本 + 表格 + 图像                 | > 5,000 份/月  | **混合方法**<br>首先对文档进行分类，对简单页面使用 OCR，对复杂页面使用多模态方法    |
+| **复杂的版面设计**<br>技术图表、手写笔记、混合字体 | 任何体积       | **多模态模型** (GPT-5.2, Claude Sonnet, Gemini Pro)<br>在复杂文档上具有更高的准确率 |
+| **敏感数据**<br>不能离开基础设施                   | 任何体积       | **OCR (开源)**<br>Tesseract, PaddleOCR, EasyOCR：完全控制，本地部署                 |
+
+#### 直接用API
+调用多模态模型的API来直接处理图片和文档
+
+### 嵌入(Embeddings)
+
+#### 相似度计算
+余弦相似度衡量的是两个向量之间的角度，而不是它们的绝对距离。对于 RAG 系统而言，余弦相似度是首选的距离度量方法，因为它侧重于语义方向而非向量的大小.
+
+这种对长度差异的鲁棒性至关重要，因为用户查询通常比检索到的文档短得多。如果没有进行归一化处理，较长的文档会因为篇幅较长而非相关性较高而主导排名。
+
+#### 嵌入模型选择
+
+![大量模型](PixPin_2026-09-22_10-03-20.webp)
+
+近年来，嵌入模型的发展速度不如语言学习模型（LLM）那么快。许多多年前构建的随机抽取（RAG）系统仍然使用 OpenAI 的 text-embedding-ada-002 模型，因为其精度对于检索任务来说仍然足够。这种稳定性意味着模型选择只需一次决策，很少需要重新调整
+
+### 向量数据库
+
+### Agentic RAG
+
+### Graph RAG
+
+![示意图](PixPin_2026-09-23_11-06-45.webp)
+
+最常用的图数据库自然是Neo4j
+
+#### 补充: docker启动neo4j
+
+```yml
+services:
+  neo4j:
+    image: neo4j:5
+    container_name: neo4j
+    ports:
+      - "7474:7474" # Web 管理界面
+      - "7687:7687" # Bolt 协议，程序连接用
+    environment:
+      NEO4J_AUTH: neo4j/your_password
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+```
+`NEO4J_AUTH: neo4j/your_password`字段分别对应账户名和密码
+
+非常遗憾的是,这部分的叙述非常草率,所以只好我自己去看文档学习了
+
+### 评估RAG系统
+给了一些比较实用的判断RAG效果的方案
+
+### 总结
+干活确实很多,尤其是前几章,读起来很有收获.
+
 ## Grokking Concurrency
 - 出版于2023年，出版商：Manning，作者：Kirill Bobrov。
 
@@ -15127,368 +15490,6 @@ https://redis.io/blog/announcing-redis-810-compact-hash-jsonpath-extensions-perf
 
 ![RAG应用架构示意图](PixPin_2026-05-29_17-36-37.webp)
 
-## RAG with Python Cookbook
-- 出版于2026年，作者：Deepak Dhyani。
-- 原来学不会RAG不是我的问题,只是其他的教材太烂了
-
-### RAG介绍
-
-| RAG 拟合度 | 用例                                              | 适配理由                                                                                                                         |
-| ---------: | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-|      **1** | 我想和我的季度报告聊聊                            | 只有单份文档，数据量较小。直接阅读或使用 ChatGPT、Claude 等通用大模型即可完成，自建 RAG 的收益很低。                             |
-|      **2** | 请帮我总结这一份文档                              | 通用大模型已经能够较好地完成单文档总结任务，引入 RAG 通常不会带来明显额外价值。                                                  |
-|      **2** | 自动执行需要作出高风险决策的任务                  | 技术上可以实现，但大模型仍可能出错。若缺少人工审核、审计机制和故障保护等措施，风险较高，因此不适合单纯依赖 RAG 自动完成。        |
-|      **4** | 大量会议录音不断积累，但其中的信息无法进入知识库  | RAG 可以将音频、视频、长篇非结构化笔记等难以检索的信息转化为可搜索、可查询的知识，具有持续价值；最终效果会受到语音转录质量影响。 |
-|      **4** | 将技术图纸与规格文档进行核对                      | 适合利用多模态模型结合 RAG 进行跨材料比对，可以减少大量人工核查工作；但需要完善的评估机制和异常处理流程。                        |
-|      **5** | 有 1 万份合同，需要找出其中包含自动续约条款的合同 | 文档规模很大，人工逐份检查成本过高；任务目标明确，可以通过检索和信息提取定位相关合同，结果也容易人工验证。                       |
-|      **5** | 客户支持工单中包含大量产品问题，但无法有效汇总    | RAG 适合跨大量文档检索、聚合和发现重复模式，可以从大量工单中识别共同问题及趋势，这是人工难以大规模完成的任务。                   |
-|      **5** | 每天收到数百条客户咨询，需要自动分配给合适的团队  | 属于高频、重复的分类与路由任务，任务标准清晰，结果容易评估，并且可以通过自动化显著降低人工成本。                                 |
-
-**核心判断原则：**RAG 的价值通常随着**数据量、跨文档检索需求、信息更新频率和人工处理成本**的增加而提高。对于单份、短小且可以直接放入大模型上下文的文档，通常没有必要专门构建 RAG 系统。
-
->当数据结构不规则且变化多端时，这种能力尤为重要。当每个输入略有不同但处理方式类似时，例如客户电子邮件、合同条款或事件报告，可以使用 RAG。不要将 RAG 用于简单的查找、固定格式的数据提取或基于不变规则的任务。如果您可以编写正则表达式（regex）或 SQL 查询来处理 95% 的情况，那么 RAG 只会增加不必要的复杂性和成本。
-
-RAG常用的库和框架如下:
-
-| 类别                              | 示例库                                                                          | 主要作用                                                                                                                        |
-| --------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **RAG 与代理式 RAG 编排**         | LangChain、LangGraph、LlamaIndex                                                | 将检索器、生成器、提示词、记忆等常见 RAG 组件封装为统一抽象，并负责连接向量数据库、LLM 和传统数据库，使开发者更专注于业务逻辑。 |
-| **大语言模型与嵌入模型**          | OpenAI、Anthropic、Transformers、Sentence Transformers                          | 为 RAG 系统提供核心智能能力，用于理解用户查询、生成向量嵌入以及生成最终回答。                                                   |
-| **向量存储**                      | Chroma、FAISS、Pinecone、Milvus、Weaviate                                       | 存储和检索向量嵌入，通过相似度搜索快速找到与用户查询相关的内容。                                                                |
-| **数据处理**                      | pandas、NumPy、PyPDF2、pypdf、python-docx、Unstructured、openpyxl、scikit-learn | 用于数据处理、文件读取、清洗和预处理，在文档进入 RAG 系统之前将原始数据转换为可处理的形式。                                     |
-| **多模态与媒体处理**              | Pillow、Pytesseract、MoviePy、pdf2image、OpenCV                                 | 用于加载和处理图片、视频、播客、PDF、Word、PowerPoint 等不同媒体和文件格式。                                                    |
-| **文本处理与自然语言处理（NLP）** | NLTK、Transformers、Rank-BM25、Beautiful Soup 4                                 | 用于文本清洗、分词、关键词检索、传统 NLP 分析等任务，避免所有文本处理步骤都依赖大语言模型。                                     |
-| **评估与监控**                    | Ragas、Phoenix、LangSmith、Prometheus-Eval                                      | 提供预定义的评估指标，用于衡量检索器、生成器以及整个 RAG 应用的准确性、质量和运行表现。                                         |
-| **Web 框架与部署**                | Streamlit、Gradio、Flask、Django                                                | 用于构建 RAG 应用的用户界面和 Web 服务。其中 Streamlit、Gradio 更适合快速原型，Flask、Django 更适合完整应用开发。               |
-| **数据库与存储**                  | SQLAlchemy、Psycopg 2、SQLite3                                                  | 用于连接传统 SQL 数据库，并通过数据库连接器或 ORM 将关系型数据作为 RAG 系统的数据来源。                                         |
-
-### 基础模型
-
-#### Ollama
->Ollama 在http://localhost:11434/v1 公开了一个与 OpenAI 兼容的端点，因此您现有的代码几乎无需更改。
-
-```py
-from openai import OpenAI
-
-# Point the client to your local Ollama server
-client = OpenAI(
-    base_url="http://localhost:11434/v1",
-    api_key="ollama",  # Ollama does not require a real key,
-                       # but the SDK expects one
-)
-
-response = client.chat.completions.create(
-    model="qwen3:4b",
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {
-            "role": "user",
-            "content": "What is retrieval augmented generation?"
-        },
-    ],
-)
-
-print(response.choices[0].message.content)
-```
-还可以试试选用多个模型:
-
-```py
-from openai import OpenAI
-
-models = ["llama2", "mistral", "codellama"]
-
-client = OpenAI(
-    base_url="http://localhost:11434/v1",
-    api_key="ollama"
-)
-
-for model in models:
-    print(f"\n--- Testing {model} ---")
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "user", "content": "Explain RAG in one sentence."}
-        ]
-    )
-
-    print(response.choices[0].message.content)
-```
-
-> **将公开排行榜视为筛选工具，而非最终决策标准。常见的局限性包括以下几点：**
->
-> **基准泄漏或数据污染**
-> 一些基准测试题及答案是公开的，可能已被直接或间接包含在训练数据中，从而抬高模型分数。
->
-> **古德哈特定律或过度优化**
-> 一旦某个基准成为目标，模型开发者可能会专门针对该基准进行调整，从而提高分数，但并不会相应提高模型的通用能力。
->
-> **与实际使用情况不符**
-> 生产环境中的具体配置——包括提示模板、检索质量、工具使用、长上下文、多语言内容、量化方式以及延迟限制——都会显著影响最终结果。
-> 因此，即使某个模型在公开排行榜上“胜出”，在你自己的 RAG 查询或真实业务场景中，也可能表现得更差。
-
-#### 图片解析
-
-```py
-from pydantic import BaseModel
-from openai import OpenAI
-import base64
-
-
-class Invoice(BaseModel):
-    invoice_number: str
-    vendor: str
-    total: float
-    currency: str
-
-
-client = OpenAI()
-
-with open("invoice.png", "rb") as f:
-    image_base64 = base64.b64encode(f.read()).decode("utf-8")
-
-result = client.responses.parse(
-    model="gpt-5-mini",
-    input=[
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "input_text",
-                    "text": "Extract the invoice data."
-                },
-                {
-                    "type": "input_image",
-                    "image_url": f"data:image/png;base64,{image_base64}"
-                },
-            ],
-        }
-    ],
-    text_format=Invoice,
-)
-```
-
-第一次知道API还可以定制返回模型,不过对话中是不需要的,工具调用时却很有必要
-
-### 加载数据
-
-![数据分布](PixPin_2026-09-19_13-31-13.webp)
-
-大多数RAG 检索器都使用文本嵌入，因此，一个切实可行的第一步是将不同的格式转换为一致的文本表示形式
-
-![架构图](PixPin_2026-09-19_13-31-57.webp)
-
->本书从零开始构建核心组件，以阐明其基本概念。在生产环境中，诸如 LangChain 或LlamaIndex 之类的编排框架可以加速开发，但它们也引入了频繁的破坏性变更、快速演进的 API 和额外的抽象等问题。
-
-- 找了这么多书终于有个愿意认真做RAG的了.
-
-#### 加载Word
->当您不需要区分元素类型时，可以使用 python-docx 进行简单的文本提取。当您需要保留文档结构（标题、段落、列表、图像）以便对元素进行针对性处理时，请使用 Unstructured。
-
-![基本流程](PixPin_2026-09-19_13-38-00.webp)
-
-首先安装所需的库:
-
-```bash
-pip install python-docx unstructured pandas
-```
-
-##### python-docx
-**示例代码**
-
-```py
-import os
-from docx import Document
-
-file_path = "./test.docx"
-
-doc = Document(file_path)
-
-text = []
-for paragraph in doc.paragraphs:
-    text.append(paragraph.text)
-
-full_text = "\n".join(text)
-
-print(full_text)
-```
-运行代码,效果确实可以:
-
-![效果图](PixPin_2026-09-19_13-42-08.webp)
-
-尽管代码中将所有的结构信息都被除去,只剩下了文本信息,但是原本的`python-docx`库肯定不止这点功能.
-
-看一下[官网](https://python-docx.readthedocs.io/en/latest/user/quickstart.html),发现这个库反而主要是用来生成和加工docx的,单纯提取docx反而是一个比较边角料的功能.
-
->`.docx` 不是一个二进制 Word 文件，而本质上是一个 ZIP 压缩包，内部包含大量 XML、图片和关系文件。
-
-如:
-
-```text
-test.docx
-│
-├── [Content_Types].xml
-├── _rels/
-├── docProps/
-│   ├── core.xml
-│   └── app.xml
-│
-└── word/
-    ├── document.xml 放置正文
-    ├── styles.xml
-    ├── settings.xml
-    ├── numbering.xml
-    ├── comments.xml
-    ├── header1.xml
-    ├── footer1.xml
-    ├── media/
-    │   ├── image1.png
-    │   └── image2.jpeg
-    └── _rels/
-```
-
-不过对于做RAG来说,确实文本信息就已经足够了...
-
-##### unstructured
-unstructured库更多的像是一个集成库,可以支持多种文档,先看看示例代码:
-
-```py
-from unstructured.partition.docx import partition_docx
-
-file_path = "./test.docx"
-elements = partition_docx(filename=file_path)
-
-list_of_elements = []
-
-for element in elements:
-    element_dict = {
-        "element_id": element.id,
-        "file_path": file_path,
-        "category": element.category,
-        # e.g., "Title", "NarrativeText", "ListItem"
-        "text": element.text,
-        "last_modified": element.metadata.last_modified,
-    }
-
-    list_of_elements.append(element_dict)
-
-
-for v in list_of_elements:
-    print(v, "\n")
-```
-
-![效果图](PixPin_2026-09-19_13-59-38.webp)
-
-简单来说就是`python-docx`库的粒度太细了,毕竟RAG完全不需要docx的样式信息,像这样就刚刚好.
-
-#### 加载PDF
-
-```py
-from pathlib import Path
-
-import pandas as pd
-import PyPDF2
-
-file_path = Path("./Vector Databases.pdf")
-list_of_pages = []
-
-with file_path.open("rb") as file:
-    reader = PyPDF2.PdfReader(file)
-    metadata = reader.metadata or {}
-
-    for page_number, page in enumerate(reader.pages, start=1):
-        page_dict = {
-            "file_name": metadata.get("/Title") or file_path.name,
-            "producer": metadata.get("/Producer"),
-            "page_number": page_number,
-            "text": page.extract_text() or "",
-            "images": list(page.images),
-        }
-
-        list_of_pages.append(page_dict)
-
-pages_df = pd.DataFrame(list_of_pages)
-
-print(pages_df)
-```
->PyPDF2 可以从包含可选择字符的文本的数字生成的 PDF 文件中提取文本。该库无法处理扫描的 PDF 文件或基于图像的文档，因为这些文档中的文本以像素而非字符的形式存在,那就只能用OCR了.
-
-#### 加载csv和excel
-我们有三种方案:
-1. 用openpyxl 库打开和加载 Excel 文件
-2. 将表格转换成md并直接粘贴给AI,适用于数据量小的表格
-3. 将表格转换成数据库存储,并使用SQL查询来实现RAG
-
-#### 加载音频
-有了Whisper模型后,我们可以直接将音频转写为文本,如果需要质量更高的转写,就要用到一些API了.
-
-#### OCR
-本教程使用的是开源OCR引擎Tesseract,不过也有其他替代品:
-
-| 文档类型                                           | 体积           | 推荐方法                                                                            |
-| :------------------------------------------------- | :------------- | :---------------------------------------------------------------------------------- |
-| **纯文本 PDF**<br>普通文档、合同、书籍、文章       | < 1,000 份/月  | **OCR (Tesseract)**<br>快速、免费、本地运行                                         |
-| **纯文本 PDF**<br>普通文档、合同、书籍、文章       | > 10,000 份/月 | **OCR (Tesseract 或 EasyOCR)**<br>大规模应用时具有成本效益                          |
-| **混合内容**<br>文本 + 表格 + 图像                 | < 500 份/月    | **多模态模型** (GPT-5 mini, Claude Haiku, Gemini Flash)<br>单次处理，结果稳健       |
-| **混合内容**<br>文本 + 表格 + 图像                 | > 5,000 份/月  | **混合方法**<br>首先对文档进行分类，对简单页面使用 OCR，对复杂页面使用多模态方法    |
-| **复杂的版面设计**<br>技术图表、手写笔记、混合字体 | 任何体积       | **多模态模型** (GPT-5.2, Claude Sonnet, Gemini Pro)<br>在复杂文档上具有更高的准确率 |
-| **敏感数据**<br>不能离开基础设施                   | 任何体积       | **OCR (开源)**<br>Tesseract, PaddleOCR, EasyOCR：完全控制，本地部署                 |
-
-#### 直接用API
-调用多模态模型的API来直接处理图片和文档
-
-### 嵌入(Embeddings)
-
-#### 相似度计算
-余弦相似度衡量的是两个向量之间的角度，而不是它们的绝对距离。对于 RAG 系统而言，余弦相似度是首选的距离度量方法，因为它侧重于语义方向而非向量的大小.
-
-这种对长度差异的鲁棒性至关重要，因为用户查询通常比检索到的文档短得多。如果没有进行归一化处理，较长的文档会因为篇幅较长而非相关性较高而主导排名。
-
-#### 嵌入模型选择
-
-![大量模型](PixPin_2026-09-22_10-03-20.webp)
-
-近年来，嵌入模型的发展速度不如语言学习模型（LLM）那么快。许多多年前构建的随机抽取（RAG）系统仍然使用 OpenAI 的 text-embedding-ada-002 模型，因为其精度对于检索任务来说仍然足够。这种稳定性意味着模型选择只需一次决策，很少需要重新调整
-
-### 向量数据库
-
-### Agentic RAG
-
-### Graph RAG
-
-![示意图](PixPin_2026-09-23_11-06-45.webp)
-
-最常用的图数据库自然是Neo4j
-
-#### 补充: docker启动neo4j
-
-```yml
-services:
-  neo4j:
-    image: neo4j:5
-    container_name: neo4j
-    ports:
-      - "7474:7474" # Web 管理界面
-      - "7687:7687" # Bolt 协议，程序连接用
-    environment:
-      NEO4J_AUTH: neo4j/your_password
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-
-volumes:
-  neo4j_data:
-  neo4j_logs:
-```
-`NEO4J_AUTH: neo4j/your_password`字段分别对应账户名和密码
-
-非常遗憾的是,这部分的叙述非常草率,所以只好我自己去看文档学习了
-
-### 评估RAG系统
-给了一些比较实用的判断RAG效果的方案
-
-### 总结
-干活确实很多,尤其是前几章,读起来很有收获.
 
 ## 深度学习理论与实战：提高篇
 
@@ -16402,3 +16403,52 @@ CREATE TABLE Accounts (
 ### 总结
 前几章看看就可以了,收获并不大,不如直接看维基百科还来的快一些.
 
+
+
+# 推荐阅读书籍
+看了那么多书,自然能找到几本写的不错的.这里只放了一些核心的书籍,至于那些写的一般的书尽管有一定的阅读价值,但想了想还是不放上来,虽然说"人要从错误中学习",但能少走弯路就别走吧.
+## 综合基础
+### 操作系统
+`Operating Systems: Three Easy Pieces`我想是每个程序员的必读书了吧,如果要作为补充的话,`操作系统设计与实现`(讲解MINIX)和`Linux内核设计与实现`都是不错的书籍,其他的书就没什么好推荐的了.
+### 计算机网络
+除了`计算机网络:自顶向下方法`外,我更推荐的反而是`计算机网络: 自底向上方法`,当然,原书的名字只是叫做`computer networking`,但由于它是从物理层向上讲的,所以就这么称呼了.
+
+**自顶向下**更偏向应用,对于底层的原理讲的都不是很透彻,我读的时候就有不少解释不清的地方;而**自底向上**更偏向理论,对于技术的原理都讲的很清晰,能够让人更深入的了解某一层的具体设计.
+### 处理器架构
+`计算机组成与设计: 硬件/软件接口`(有多个架构版本,推荐RISC-V的)和`计算机体系结构: 量化研究方法`是姊妹书,第一本打基础,第二本作为进阶,如果与国内课程对应的话,那就是计算机组成原理和计算机系统结构的关系.
+
+在读完上面两本书后,再看`The Elements of Computing Systems`,我想会有非常大的收获,有种把所有处理器架构的知识点都串联起来的感觉.不过这本书后面的操作系统和编程语言具体实现就没必要看了,过于简单和儿戏了.
+
+另一本值得关注的就是`x86汇编语言：从实模式到保护模式`,这本书能够让你知道,中文技术书籍未必就不能成为经典,未必就是诘屈聱牙的代名词.
+
+### 编译原理
+`Crafting Interpreters`是我唯一推荐的书,尽管叫做自制解释器,却在开头的介绍便以清晰的语言让你了解了编译器的种类和基本原理,这是所有的冠以"编译原理"名字的大部头技术书所做不到的,毫不客气的说,他让其他所有的编译原理书在我这都变成了垃圾.
+
+## 前后端
+### 基础
+
+1. [Pro git](https://git-scm.com/book/zh/v2): 不会git不好意思说自己是程序员吧,而官方的文档比起其他的二手资料要详细的多,但很奇怪的是,在官方文档讲的如此形象有趣的时候,还总是有人喜欢自己去写教程.
+2. [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice): 写前后端必须要会docker吧,这本书比官方文档讲的更好.
+3. `程序设计语言原理`: 大部分内容都是无意义的唠叨,但这本书的第二章让它能够在这里获得一个席位,以详实的笔调记录了程序设计语言的整个发展历史,可以这么说,这是我见过的最详细的资料了,任何一个好奇我们是如何从Fortran进化到Go的程序员都应该来读这本书,当然,读第二章就可以了.
+4. `深入浅出密码学`: 要想写出一个安全的网站,这本书是必读的.
+5. `Designing APIs with Swagger and OpenAPI`: 鉴于现在还是Rest的天下,所以学习OpenAPI还是很有必要的,而这本书讲的也很具体形象
+6. `GitHub Actions in Action`: Github Action确实很好用,尽管进了公司以后用的可能是自研平台,但原理还是相通的,这也是具体学习CI/CD的一个很好的途径
+7. `数据存储架构与技术`: 尽管和教科书没太大差别,但胜在非常全面,好奇硬盘存储原理和存储架构的都可以来看一看.
+
+
+### 高级
+1. `System Design Interview – An Insider's Guide`: 别看标题是这样,实际上是以面试的问答形式剖析了常见系统架构的具体实现,难得一见的好书.
+### C/CPP
+- `Beginning C,From Beginner to Pro`: 这本书结构清晰,是真正的优秀教程,学完这个再学Cpp包没问题的,谁再推荐`C Programming Language`入门C语言我就直接上门去骂了
+- `程序员自我修养`: 尽管这本书很老,而且不少内容具有迷惑性,章节之间比较割裂,但却是讲解C语言编译原理中难得的好书了,能够让你知道静态链接和动态链接到底是什么,而我目前都没能找到任何一本能够比他还全面的书了.
+### Python
+- `Python源码剖析`: 非常值得一看的Python原理书籍
+
+### Go
+- `Learning Go`: 比什么Go语言圣经还有什么Go Tour好上一万倍吧
+
+
+## Agent
+- `Deep Learning from Scratch`是我最推荐的深度学习入门书籍,他能够让你知道,神经网络可以很简单,根本不是多复杂的东西,而我们离所谓高深莫测的AI也并没有那么遥远.
+- `RAG with Python Cookbook`: 真真正正讲RAG的,而不是直接从langchain调用个模型来就生成embedding了.
+- `Hugging Face in Action`: 介绍怎么用Hugging Face的,说真的,新人第一次进网站都会被吓到劝退好不好
