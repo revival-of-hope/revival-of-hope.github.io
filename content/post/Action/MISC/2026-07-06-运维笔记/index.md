@@ -3,6 +3,7 @@ title: "运维笔记"
 date: 2026-09-07T12:34:42+08:00
 description: 更新中...
 image: 57793944_p0-浴衣とお面.webp
+draft: true
 ---
 运维的职责相当广泛,所以值得专门来进行学习,为了方便写文章,我把所有能跟运维扯上关系的技术都放进来了.
 # 运维工具年表
@@ -82,7 +83,8 @@ docker exec -it linux-lab bash
 #### 软件包下载方式
 ##### apt
 ## Docker 
-推荐阅读: [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice)
+- 推荐阅读: [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice)
+## 容器编排工具一览
 # 自动部署与自动构建
 ## git
 推荐阅读: Pro git

@@ -962,6 +962,14 @@ Manning 的正式产品页分别确认了这些出版时间。([Manning Publicat
 
 4. [23年的秋招总结](https://www.nowcoder.com/discuss/441636213984854016?sourceSSR=users)
 5. [26年面经合集](https://www.nowcoder.com/discuss/922860300762611712)
+## 面试经验一览(9/22)
+1. [面试指南](https://thisingl.github.io/%E7%A8%8B%E5%BA%8F%E5%91%98%E9%9D%A2%E8%AF%95%E6%8C%87%E5%8D%97/?utm_source=chatgpt.com#ai-infra)
+   1. 很全,但是很杂
+2. [很长的心路历程](https://removel.github.io/posts/26-06-20/2026-06-20_%E5%8D%B3%E4%BD%BF%E6%98%AF%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B/?utm_source=chatgpt.com)
+   1. 有毅力看下来的人做什么都会成功的
+3. [相当详细的谈薪流程](https://wu-yikun.github.io/post/%E7%A7%8B%E6%8B%9B%E6%8C%87%E5%8D%97/salary-negotiation/)
+
+
 # 思考
 - 26/7/29: 忘了是在哪看到的了,最令人的厌烦的无非是装作老成的年轻人对同辈或者后辈发表的不知天高地厚的见解,这句话确实说的不错,曾经我也喜欢这么干,这里面的每个标题我都单独发了一篇博客文章出来,现在看来,确实是浅薄的可怕.不过,总还是得写点什么,这毕竟是几年以后能用来嘲笑自己的唯一根据
 ## ai思考(2025-11-24)

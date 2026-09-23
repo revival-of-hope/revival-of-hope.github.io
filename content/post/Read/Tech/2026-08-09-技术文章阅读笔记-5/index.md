@@ -541,6 +541,139 @@ func MakeFoo(f *Foo) error {
 而对于指针指向的堆类型数据,必须要经过垃圾回收处理,所以会降低不少性能.
 
 在 Java 中，局部变量和参数都存储在栈上，就像 Go 一样。然而，正如前面讨论的，Java 中的对象是以指针的形式实现的。对于每个对象变量实例，只有指向它的指针会被分配到栈上；对象内部的数据则被分配到堆上。只有基本类型（数字、布尔值和字符）才会完全存储在栈上。这意味着 Java 中的垃圾回收器需要执行大量的工作
+
+## ch7: 类型,方法与接口
+### Type
+Go支持在任何代码块级别声明自定义的类型:
+```go
+type Score int
+type Converter func(string)Score
+type TeamScores map[string]Score
+```
+### Methods
+方法声明在函数名之前多了一个receiver specification,用于标明这是该类型的方法:
+```go
+type Person struct {
+	FirstName string
+	LastName  string
+	Age       int
+}
+
+func (p Person) String() string {
+	return fmt.Sprintf("%s %s, age %d",
+p.FirstName, p.LastName, p.Age)
+}
+
+p := Person{
+	FirstName: "Fred",
+	LastName:  "Fredson",
+	Age:       52,
+}
+output := p.String()
+```
+>声明方法和声明函数之间有一个关键区别：方法只能在包块级别定义，而函数可以在任何块内定义。
+
+
+如果要修改结构体内部,就必须通过指针传值:
+```go
+type Counter struct {
+	total       int
+	lastUpdated time.Time
+}
+
+func (c *Counter) Increment() {
+	c.total++
+	c.lastUpdated = time.Now()
+}
+
+func (c Counter) String() string {
+	return fmt.Sprintf("total: %d, last updated: %v", c.total, c.lastUpdated)
+}
+
+var c Counter
+fmt.Println(c.String())
+c.Increment()
+fmt.Println(c.String())
+```
+在本例中， c.Increment() 被转换为 (&c).Increment() 。
+
+而在下面这个例子中, c.String() 被静默地转换为 (*c).String() 。:
+```go
+c := &Counter{}
+fmt.Println(c.String())
+c.Increment()
+fmt.Println(c.String())
+```
+
+也就是说不用像Cpp那样总要显式写明了,但对于习惯Cpp写法的人来说终归是比较别扭的.
+
+
+
+
+### 方法也是值
+```go
+myAdder := Adder{start: 10}
+fmt.Println(myAdder.AddTo(5)) // prints 15
+f1 := myAdder.AddTo
+fmt.Println(f1(10))
+ // prints 20
+```
+还可以从类型本身创建函数,这被称为方法表达式:
+```go
+f2 := Adder.AddTo
+fmt.Println(f2(myAdder, 15))
+// prints 25
+```
+
+### iota Is for Enumerations—Sometimes
+许多编程语言都有枚举的概念，允许你指定某种类型只能拥有有限的值。Go 语言没有枚举类型，而是使用了 iota ，允许你为一组常量赋值，且值递增。
+
+```go
+type MailCategory int
+
+const (
+    Uncategorized MailCategory = iota
+    Personal
+    Spam
+    Social
+    Advertisements
+)
+```
+> iota 的值会随着 const 代码块中定义的每个常量递增，从0 开始。这意味着 0 被赋值给第一个常量 (Uncategorized )，1 被赋值给第二个常量 (Personal)，依此类推
+
+### Embedding(嵌入)
+Go中没有继承机制,只能通过嵌入(将要"继承"的结构体直接放进内部字段)来间接实现:
+```go
+package main
+
+import "fmt"
+
+type Animal struct {
+	Name string
+}
+
+func (a Animal) Eat() {
+	fmt.Println(a.Name, "is eating")
+}
+
+type Dog struct {
+	Animal // 嵌入 Animal
+	Breed string
+}
+
+func main() {
+	dog := Dog{
+		Animal: Animal{Name: "旺财"},
+		Breed:  "柴犬",
+	}
+
+	fmt.Println(dog.Name) // 可以直接访问 Animal.Name
+	dog.Eat()             // 可以直接调用 Animal.Eat()
+}
+```
+### Interfaces
+
+
 # Redis设计与实现
 - 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
 ## 数据结构与对象
@@ -813,6 +946,26 @@ save 60 10000
 
 由此来看,Redis只适合存放那种比较小和短的数据,否则RDB文件的大小会非常惊人.而且在现代生产环境里，只使用 DB 0 是非常常见、也通常更推荐的做法,所以不用担心多个数据库的RDB叠加起来的超大内存占用.
 ### AOF(Append Only File)持久化
+>与RDB持久化通过保存数据库中的键值对来记录数
+据库状态不同，AOF持久化是通过保存Redis服务器所执行的写命令来记录数据库状态的:
+![示意图](PixPin_2026-09-23_10-15-37.webp)
+
+因为Redis的命令请求协议是纯文本格式，所以我们可以直接打开一个AOF文件，观察里面的内容,例如先执行这三个命令:
+```bash
+redis> SET msg "hello"
+OK
+redis> SADD fruits "apple" "banana" "cherry"
+(integer) 3
+redis> RPUSH numbers 128 256 512
+(integer) 3
+```
+然后查看AOF:
+```bash
+*2\r\n$6\r\nSELECT\r\n$1\r\n0\r\n
+*3\r\n$3\r\nSET\r\n$3\r\nmsg\r\n$5\r\nhello\r\n
+*5\r\n$4\r\nSADD\r\n$6\r\nfruits\r\n$5\r\napple\r\n$6\r\nbanana\r\n$6\r\ncherry\r\n
+*5\r\n$5\r\nRPUSH\r\n$7\r\nnumbers\r\n$3\r\n128\r\n$3\r\n256\r\n$3\r\n512\r\n
+```
 
 # RAG with Python Cookbook
 - 原来学不会RAG不是我的问题,只是其他的教材太烂了
