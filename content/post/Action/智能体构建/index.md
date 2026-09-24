@@ -7934,7 +7934,7 @@ docker compose run --rm backend bash scripts/prestart.sh
 .\scripts\migrate.ps1 "add user avatar"
 ```
 
-## ch15: 换用Responses API,接入thinking和工具调用
+## ch15: 换用Responses API和thinking字段输出
 
 ### 介绍
 首先,看一下我们之前的stream是怎么创建的:
@@ -8355,7 +8355,7 @@ class MessageBase(SQLModel):
     # sa_type表示强制让引擎把content的类型改为Text,
     # 从而可以支持存储AI输出的冗长文本
     content: str = Field(sa_type=Text, nullable=False)
-    thinking: str | None = Field(default=None, sa_type=Text)
+    reasoning: str | None = Field(default=None, sa_type=Text)
 
 
 class Message(MessageBase, table=True):
@@ -8375,11 +8375,99 @@ class ChatRequest(SQLModel):
     # 根据id是否为空可以判断是否为已有对话
     conversation_id: int | None = Field(default=None, ge=1)
     content: str = Field(min_length=1, max_length=20_000)
-    enable_thinking: bool = True
-    enable_web_search: bool = False
+    enable_reasoning: bool = True
 ```
+
 ### agents文件夹重构
-本来想让AI先生成一版能用的,结果生成的是一坨答辩,完全改不了,所以只好自己认真写了.
+首先要修改的是`client.py`,我们原来是这么创建流的:
+```py
+    @staticmethod
+    def _create_stream(
+        *,
+        client: OpenAI,
+        model: str,
+        instructions: str,
+        input: ResponseInputParam,
+    ) -> Stream[ResponseStreamEvent]:
+        return client.responses.create(
+            model=model,
+            instructions=instructions,
+            input=input,
+            stream=True,
+            reasoning={"effort": "high"},
+        )
+```
+但是尽管开启了reasoning,API并不会显式返回思考的具体内容,所以我们还需要指定API返回思考的具体内容:
+```py
+    @staticmethod
+    def _create_stream(
+        *,
+        client: OpenAI,
+        model: str,
+        instructions: str,
+        input: ResponseInputParam,
+    ) -> Stream[ResponseStreamEvent]:
+        return client.responses.create(
+            model=model,
+            instructions=instructions,
+            input=input,
+            stream=True,
+            reasoning={"effort": "high","summary":"auto",},
+        )
+```
+这样说明后,会返回什么呢?官方给的示例是这样的:
+```json
+{
+  "id": "24778070-1c36-4ae0-a4bd-870afc7fc13e",
+  "object": "response",
+  "created_at": 1753000000,
+  "status": "completed",
+  "model": "deepseek-flash",
+  "output": [
+    {
+      "type": "reasoning",
+      "id": "rs_1",
+      "status": "completed",
+      "content": [
+        {
+          "type": "reasoning_text",
+          "text": "The user greets me. I should reply politely."
+        }
+      ],
+      "summary": []
+    },
+    {
+      "type": "message",
+      "id": "msg_1",
+      "status": "completed",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "Hello! How can I help you today?",
+          "annotations": []
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 22,
+    "input_tokens_details": { "cached_tokens": 0 },
+    "output_tokens": 29,
+    "output_tokens_details": { "reasoning_tokens": 27 },
+    "total_tokens": 51
+  },
+  "store": false,
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "error": null,
+  "incomplete_details": null
+}
+```
+也就是说,思考内容是优先输出的,后面才是具体的AI输出.
+
+那么现在的问题就变成了,如何装载这个reasoning内容了
+
 ## ch15: 测试引入
 >并非是说测试不必要,但测试驱动开发还是太扯淡了,只要不是多人合作的大型项目,个人开发者是完全有能力搞清楚整个程序的来龙去脉的,加入测试只是怕自己以后开发的时候忘记了当时想起的需求而已.
 >

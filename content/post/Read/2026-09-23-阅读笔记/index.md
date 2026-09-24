@@ -732,6 +732,50 @@ func main() {
 ```
 
 #### Interfaces
+接口可以在任何代码块处声明:
+```go
+type Stringer interface {
+	String() string
+}
+```
+
+Go中不需要类似Java中`implements`这样的关键字,只要某个类型实现了该接口中的所有方法,那么该类型就实现了该接口.
+
+```go
+type LogicProvider struct {}
+
+func (lp LogicProvider) Process(data string) string {
+	// business logic
+}
+
+type Logic interface {
+	Process(data string) string
+}
+
+type Client struct {
+	L Logic
+}
+
+func (c Client) Program() {
+	// get data from somewhere
+	c.L.Process(data)
+}
+
+main() {
+	c := Client{
+		L: LogicProvider{},
+	}
+	c.Program()
+}
+```
+代码提供了一个接口，但只有调用者 ( Client ) 知道它的存在；LogicProvider 上没有任何声明表明它符合该接口
+
+
+
+
+
+
+
 ## RAG with Python Cookbook
 - 出版于2026年，作者：Deepak Dhyani。
 - 原来学不会RAG不是我的问题,只是其他的教材太烂了
@@ -1058,6 +1102,7 @@ print(pages_df)
 ### 向量数据库
 
 ### Agentic RAG
+#### 自定义工具
 
 ### Graph RAG
 
