@@ -1,10 +1,7 @@
 ---
-title: 好用工具推荐
-
+title: 好用工具
 date: 2026-03-03 14:22:34
-tags:
 image: 44873217_p0-鵜飼い.webp
-draft: true
 ---
 # 办公工具
 ## Windows端
@@ -180,7 +177,7 @@ for root, dirs, files in os.walk(src):
 喜欢打oi的有福了
 
 ## 翻译工具(2026/6/6)
-
+唯一推荐的就是Calibre的翻译插件了,可以自选模型,然后翻译成中英双语版本的,至于其他的方案,要么有额度限制,要么质量很差.
 ## 终端工具
 本文主要聚焦于Windows系统,尽管有不少命令是和Linux通用的
 
@@ -229,6 +226,7 @@ ping google.com
 
 #### curl
 - [wiki](https://en.wikipedia.org/wiki/CURL)
+
 curl,意为"Client for URLs",是ping的上位替代,可以对指定网页采用多种方式进行查询,支持几乎所有的主流通信协议.由于是开源项目,几乎所有的操作系统都会预先安装.
 
 **常用参数一览**
@@ -262,6 +260,7 @@ RawContentLength  : 80569
 
 #### route
 - [wiki](https://en.wikipedia.org/wiki/Route_(command))
+
 用于查看和修改本电脑的IP路由表, 一般用不上
 #### ipconfig
 - [wiki](https://en.wikipedia.org/wiki/Ipconfig)
@@ -272,19 +271,8 @@ Displays **all current TCP/IP network configuration values** and refreshes Dynam
 - 即ipconfig用于查看自己电脑的TCP/IP网络配置
 #### nslookup
 - [wiki](https://en.wikipedia.org/wiki/Nslookup)
+
 nslookup(Name System Lookup)用于查询DNS记录,检查DNS服务器是否正常
-#### ssh
->[wiki](https://en.wikipedia.org/wiki/Secure_Shell)
-SSH(Secure Shell)协议是一种加密网络协议，用于在不安全的网络上安全地运行网络服务.通常用于登录远程计算机的shell或命令行界面(CLI)，并在远程服务器上执行命令.
-
-###### 基础操作
-```bash
-ssh root@100.80.251.1
-# 输入密码
-# 在远程服务器中进行操作
-```
-
-###### 进阶操作(待补充)
 
 #### wget
 - [wiki](https://en.wikipedia.org/wiki/Wget)
@@ -383,30 +371,7 @@ alias      Manage scoop aliases
 bucket     Manage Scoop buckets
 cache      Show or clear the download cache
 cat        Show content of specified manifest.
-checkup    Check for potential problems
-cleanup    Cleanup apps by removing old versions
-config     Get or set configuration values
-create     Create a custom app manifest
-depends    List dependencies for an app, in the order they'll be installed
-download   Download apps in the cache folder and verify hashes
-export     Exports installed apps, buckets (and optionally configs) in JSON format
-help       Show help for a command
-hold       Hold an app to disable updates
-home       Opens the app homepage
-import     Imports apps, buckets and configs from a Scoopfile in JSON format
-info       Display information about an app
-install    Install apps
-list       List installed apps
-prefix     Returns the path to the specified app
-reset      Reset an app to resolve conflicts
-search     Search available apps
-shim       Manipulate Scoop shims
-status     Show status and check for new app versions
-unhold     Unhold an app to enable updates
-uninstall  Uninstall an app
-update     Update apps, or Scoop itself
-virustotal Look for app's hash or url on virustotal.com
-which      Locate a shim/executable (similar to 'which' on Linux)
+...
 ```
 
 scoop解决了应用安装路径不统一的问题,将安装的应用一律放到scoop文件夹中,而且用户可以自己指定默认安装位置.
@@ -471,13 +436,4 @@ Bun              Oven-sh.Bun  winget
 ```
 
 winget默认全局安装,如果不操心应用安装位置的话,使用winget比上官网找资源是要快一点的;但捣鼓计算机的一般都很在意应用的安装位置,所以winget基本就没什么用了...
-
-
-
-
-
-
-
-
-
 

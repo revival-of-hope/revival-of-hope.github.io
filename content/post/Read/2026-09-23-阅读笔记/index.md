@@ -1103,6 +1103,164 @@ print(pages_df)
 
 ### Agentic RAG
 #### 自定义工具
+```python
+import requests
+
+def get_weather(latitude, longitude):
+    '''
+    This function calls the open-meteo API to get the weather data for a
+    given latitude and longitude.
+
+    Args:
+        latitude (float): The latitude of the location to get weather
+            data for.
+        longitude (float): The longitude of the location to get
+            weather data for.
+
+    Returns:
+        dict: A dictionary containing the weather data for the given
+            latitude and longitude.
+    '''
+    response = requests.get(
+        "https://api.open-meteo.com/v1/forecast"
+        f"?latitude={latitude}"
+        f"&longitude={longitude}"
+        "&current=temperature_2m,wind_speed_10m"
+        "&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m"
+    )
+    data = response.json()
+    return data['current']['temperature_2m']
+```
+>使用自定义工具来实现特定领域的功能，例如内部数据库、专有 API或业务计算。确保每个工具只专注于一项职责
+#### Workflow Patterns
+1. Prompt chaining: 如从PDF中提取文本并进行翻译,每一个调用都依赖于前一个调用的输出,所以必须顺序执行
+
+```py
+outline = llm("为文章生成提纲")
+
+draft = llm(f"""
+根据以下提纲撰写初稿：
+{outline}
+""")
+
+review = llm(f"""
+审查以下初稿：
+{draft}
+""")
+```
+
+2. Routing: 由LLM选择合适的工具或者子工作流程
+
+![示意图](PixPin_2026-09-24_08-31-31.webp)
+```py
+route = llm(f"""
+判断问题类型：
+1. 数学
+2. 编程
+3. 哲学
+
+问题：
+{question}
+""")
+
+if route == "1":
+    answer = math_agent(question)
+elif route == "2":
+    answer = coding_agent(question)
+else:
+    answer = philosophy_agent(question)
+```
+
+3. Parallel tasks: 并行调用多个工具或者API,从而缩短处理时间
+```py
+import asyncio
+
+async def analyze():
+    results = await asyncio.gather(
+        llm_async("分析论证结构"),
+        llm_async("检查事实错误"),
+        llm_async("检查语言问题"),
+    )
+
+    return results
+
+final = llm(f"""
+综合以下三个审查结果：
+{results}
+""")
+```
+
+4. Orchestrator-workers: 根据用户的问题，orchestrator可以调用一个或多个worker,并综合所有内容生成响应
+
+```py
+plan = llm("""
+请把这个研究任务拆成若干独立子任务。
+返回 JSON。
+""")
+
+results = []
+
+for task in tasks:
+    result = llm(f"完成任务：{task}")
+    results.append(result)
+
+final = llm(f"""
+综合以下研究结果：
+
+{results}
+""")
+```
+
+5. Evaluator-optimizer: 一个LLM创建初始草稿，另一个LLM对其进行审核。系统在草稿创建和评估之间反复迭代，直到评估者满意或达到最大迭代次数为止
+
+```py
+draft = llm(prompt)
+
+for i in range(5):
+
+    evaluation = llm(f"""
+    评价以下答案。
+    如果合格，返回 PASS。
+    否则给出修改建议。
+
+    {draft}
+    """)
+
+    if "PASS" in evaluation:
+        break
+
+    draft = llm(f"""
+    根据以下意见修改答案。
+
+    原答案：
+    {draft}
+
+    修改意见：
+    {evaluation}
+    """)
+```
+#### Agentic Frameworks
+
+| 等级                                                          | 示例工具 / 框架                   | 这一层级的核心特征                                                                                                                                              | 适用场景与说明                                                                                                                                                                                                          |
+| ------------------------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. 低代码 / 无代码平台**                                    | **Microsoft Copilot Studio** 等   | 通过可视化界面和预置能力快速搭建 Agent / 工作流，尽量减少底层代码与基础设施开发。                                                                               | 适合**希望快速落地、开发资源有限**的团队。若企业已经使用微软生态，Copilot Studio 往往更容易接入现有系统。优点是上手快、工程负担低；代价是**定制能力和底层控制力较弱**。*截图中该行前半部分缺失，此处根据可见内容整理。* |
+| **2. Agent 框架：代码优先（Agentic Frameworks, Code-first）** | **OpenAI Agents SDK、LangGraph**  | 提供构建 Agent 所需的基础组件，例如**工具调用（Tools）、状态 / 记忆与持久化（State / Memory / Persistence）、运行追踪（Tracing）**，以及常见的 Agent 设计模式。 | 适合希望**比完全从零开发更快**，同时又想保留**代码级控制权**的场景。较轻量的框架（如 OpenAI Agents SDK）通常能减少框架绑定，使以后切换框架或迁移到自研架构更容易。                                                      |
+| **3. 从零构建：最大控制（From Scratch, Maximum Control）**    | **直接调用模型 API + 自研编排层** | 直接调用 LLM 提供商的 API，并自行实现**编排（Orchestration）、工具系统、状态管理、记忆、可观测性（Observability）**等完整基础设施。                             | 适合需要**最高灵活性、可控性或系统健壮性**，且团队有能力维护完整技术栈的场景，包括**日志（Logging）、链路追踪（Tracing）、安全护栏（Guardrails）**等。工程投入最大，但拥有最高程度的架构自主权。                        |
+
+
+
+
+| 典型场景                                                  | 从零构建 | 轻量级框架 | 高抽象框架 | 优化后的说明                                                                                                                                                                                                                               |
+| --------------------------------------------------------- | :------: | :--------: | :--------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **需要在几周内完成 Agentic RAG 应用，并快速投入生产**     |    △     |     ✓      |     ✓      | **框架更适合快速交付。** LangChain 等高抽象框架已经封装了大量 RAG、工具调用和 Agent 能力，可以显著缩短开发周期；轻量级框架也能减少样板代码。完全从零构建通常需要自行处理编排、状态、错误恢复等基础设施，达到稳定生产状态所需时间更长。     |
+| **应用由大量初、中级开发人员共同维护**                    |    △     |     ✓      |     ✓      | **框架有利于团队协作和代码规范化。** 从零构建通常要求开发人员较深入地理解 Agent Loop、状态管理、工具调用等机制；框架则提供统一的接口、项目结构和常见设计模式，使不同经验水平的开发者更容易遵循一致的开发规范。                             |
+| **系统需要服务数千乃至数百万用户，强调稳定性与可扩展性**  |    ✓     |     ✓      |     ○      | **越接近底层，通常越容易精细控制性能和依赖。** 从零构建或采用轻量级框架，可以减少不必要的中间层与第三方依赖，从而更容易进行性能优化、水平扩展和故障定位。高抽象框架同样可以扩展，但复杂抽象和额外依赖可能增加性能调优与故障排查成本。      |
+| **需要针对特定业务需求构建高度灵活、深度定制的 Agent**    |    ✓     |     ✓      |     △      | **从零构建拥有最高控制力。** 开发者可以完全决定 Agent Loop、工具系统、提示词、状态结构、记忆机制以及各组件之间的交互方式。轻量级框架通常也能保留较大的定制空间；高抽象框架虽然开发方便，但当需求偏离其预设模式时，可能受到框架抽象的限制。 |
+| **需要实时调试、可观测性、执行透明度以及审计 / 合规日志** |    ○     |     ✓      |     ✓      | **框架通常能够减少可观测性基础设施的建设成本。** 许多 Agent 框架已经提供 tracing、运行轨迹、工具调用记录和调试能力，可以观察 Agent 每一步的执行过程。从零构建也能够实现完整的日志、链路追踪和审计系统，但这些能力通常需要自行设计和维护。  |
+
+**符号说明：** ✓ = 较适合；○ = 可以采用，但存在一定额外成本；△ = 通常不是该场景下的优先方案。
+
+
 
 ### Graph RAG
 
@@ -1158,6 +1316,7 @@ volumes:
 * An application can be both parallel and concurrent, which means it processes multiple tasks or subtasks of a single task concurrently at the same time (executing them in parallel).
 
 最理想状态。系统既能同时调度多个独立任务，又能把这些任务或单个大任务的子任务分配给多个 CPU 核心同时执行。
+### 进程间通信
 
 ## AI Agents in Action,Second Edition
 - 出版于2026年（第2版），出版商：Manning，作者：Micheal Lanham。
@@ -1194,6 +1353,7 @@ volumes:
 - 这确实是我现在做Agent项目的痛点,想要将联网搜索接入Agent里,没有经验的话根本无从下手
 
 MCP 由 Anthropic 开发，将于 2024 年 11 月发布，它是一种基于JSON-RPC 2.0 的开放标准。其设计目标是使人工智能系统能够以一致、安全且高效的方式连接到外部服务.
+### Core components
 
 ## Vector Databases
 - 出版于2026年，出版商：O'Reilly，作者：Nitin Borwankar。
@@ -1529,20 +1689,42 @@ redis> RPUSH numbers 128 256 512
 >Redis的服务器进程就是一个事件循环（loop），这个循环中的文件事件负责接收客户端的命令请求，以及向客户端发送命令回复，而时间事件则负责执行像serverCron函数这样需要定时运行的函数,如此一来,每次loop结束后,都需要调用AOF相关的函数,考虑是否将缓冲区中的命令写入和保存到AOF文件中
 
 #### 事件
+Redis服务器是一个事件驱动程序，服务器需要处理以下两类事件：
 
-## Effective Software Testing(待补充)
-- 出版于2022年，出版商：Manning，作者：Maurício Aniche。
+- 文件事件（file event）：Redis服务器通过套接字与客户端（或者其他Redis服务器）进行连接，而文件事件就是服务器对套接字操作的抽象。服务器与客户端（或者其他服务器）的通信会产生相应的文件事件，而服务器则通过监听并处理这些事件来完成一系列网络通信操作
+- 时间事件（time event）：Redis服务器中的一些操作（比如serverCron函数）需要在给定的时间点执行，而时间事件就是服务器对这类定时操作的抽象。
 
-### 软件测试介绍
->软件工程中的实证研究一再表明，简洁无味的代码比复杂代码更不易出现缺陷（参见 Shatnawi 和 Li 2006年的论文）。
-然而，仅有简洁远远不够。
 
-认为测试可以完全被简洁取代是天真的看法。"通过设计保证正确性"同样如此：设计好代码并不意味着能避免所有可能的错误。
+## The Design of Web APIs, Second Edition
+- 出版于2025年（第2版），出版商：Manning，作者：Arnaud Lauret。
 
-![金字塔](PixPin_2026-07-27_12-01-45.webp)
+### 介绍
+
+#### 前言
+1. **“I can’t list friends of friends!”**
+2. **“What contains the `sts` property?”**
+3. **“Why don’t `createdAt` and `fromDate` use the same date-time format?”**
+4. **“Identifying friends requires a `userId`, but storing a message requires a username! Can’t we use the same user ID in all operations?”**
+5. **“The ‘List friends’ operation is useless; to get useful data, I must call the ‘Read friend’ operation for each friend!”**
+6. **“The HTTP response indicates a success, but its data contains an error!”**
+7. **“How can I know what’s wrong with my API call if I only get an ‘Invalid request’ error message?”**
+8. **“Are you sure about the mobile and web applications taking care of friend identification with the Face Detection API before sharing a message with photos?”**
+
+API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也会大打折扣
+
+>不是每个人都能有幸从白纸一张开始设计API。现有的API可能存在并且设计得不够理想。我们的目的并非指责过去的设计，而是要防止API设计的技术债务继续增加
+
+
+
+## Vision Language Models
+- 出版于2026年，出版商：O'Reilly，作者：Merve Noyan。
+
+### 导论
+
+#### Brief Introduction to Computer Vision
 
 ## Rootkit和Bootkit：现代恶意软件逆向分析和下一代威胁(待补充)
-- 出版于2019年（英文原版；中文版版次待核实），作者：Alex Matrosov。
+- 出版于2019年（英文原版），作者：Alex Matrosov。
 - Rootkit: 针对操作系统内核
 - Bootkit: 针对MBR等引导扇区
 
@@ -1619,27 +1801,7 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 ### 介绍
 Ghidra 是一款免费开源的软件逆向工程（SRE）工具套件。它最初是美国国家安全局（NSA）的一个项目，如今得到了日益壮大的 Ghidra爱好者社区的支持。
 
-## The Design of Web APIs, Second Edition(待补充)
-- 出版于2025年（第2版），出版商：Manning，作者：Arnaud Lauret。
 
-### 介绍
-
-#### 前言
-1. **“I can’t list friends of friends!”**
-2. **“What contains the `sts` property?”**
-3. **“Why don’t `createdAt` and `fromDate` use the same date-time format?”**
-4. **“Identifying friends requires a `userId`, but storing a message requires a username! Can’t we use the same user ID in all operations?”**
-5. **“The ‘List friends’ operation is useless; to get useful data, I must call the ‘Read friend’ operation for each friend!”**
-6. **“The HTTP response indicates a success, but its data contains an error!”**
-7. **“How can I know what’s wrong with my API call if I only get an ‘Invalid request’ error message?”**
-8. **“Are you sure about the mobile and web applications taking care of friend identification with the Face Detection API before sharing a message with photos?”**
-
-API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也会大打折扣
-
->不是每个人都能有幸从白纸一张开始设计API。现有的API可能存在并且设计得不够理想。我们的目的并非指责过去的设计，而是要防止API设计的技术债务继续增加
-
-## Responsive Web Design with HTML5 and CSS,Fourth Edition(待补充)
-- 出版于2022年（第4版），出版商：Packt，作者：Ben Frain。
 
 ## Fundamentals of Data Engineering(待补充)
 - 出版于2022年，出版商：O'Reilly，作者：Joe Reis。
@@ -1888,9 +2050,6 @@ kiada   3/3     3            3           18m
 续监控这些 Pod，一旦它们突然消失或所在节点发生故障，就得立即
 替换它们。这正是几乎从不直接创建 Pod、而是使用 Deployment
 的根本原因。
-## Building Microservices(待补充)
-
-### 基础
 
 ## Coding Video,A Practical Guide to HEVC and Beyond(待补充)
 - 出版于2024年，作者：Iain E. Richardson。
@@ -1903,8 +2062,6 @@ kiada   3/3     3            3           18m
 ![说明图](PixPin_2026-08-09_10-23-28.webp)
 
 尽管我们拥有的存储容量和网络带宽比以往任何时候都要多，但存储和传输视频的需求仍在不断超出可用容量。到2023年，约三分之二的消费级电视机已达到4K分辨率或更高。将高性能视频编解码器集成到智能手机和电视等消费设备中，以及对高分辨率视频的期望，使得在存储或传输前压缩或编码视频，并在显示前解码视频成为常态
-
-## 深入理解 AI Agent(待补充)
 
 ## Hadoop: The Definitive Guide(4th)(待补充)
 - 出版于2015年（第4版），出版商：O'Reilly，作者：Tom White。
@@ -2059,85 +2216,6 @@ public class MaxTemperature {
 
 #### The Hadoop Distributed Filesystem(HDFS)
 
-## C++ CRASH COURSE(待补充)
-- 出版于2019年，作者：Josh Lospinoso。
-
->本书面向已经熟悉基本编程概念的中级到高级程序员。若您没有特定的系统编程经验也没关系，欢迎有经验的应用程序程序员阅读。
-
-### C++基础
-过于Crash了,讲的不够详细.只好摘抄重点了.
-
-#### 异常处理
-先在try代码中抛出异常,再在catch代码中处理异常:
-
-```cpp
-#include <stdexcept>
-#include <cstdio>
-
-struct Groucho {
-    void forget(int x) {
-        if (x == 0xFACE) {
-            throw std::runtime_error{"I'd be glad to make an exception."};
-        }
-        printf("Forgot 0x%x\n", x);
-    }
-};
-
-int main() {
-    Groucho groucho;
-
-    try {
-        groucho.forget(0xC0DE);
-        groucho.forget(0xFACE);
-        groucho.forget(0xC0FFEE);
-    } catch (const std::runtime_error& e) {
-        printf("exception caught with message: %s\n", e.what());
-    }
-}
-```
-
-我们可以给那些不可能抛出异常的函数加上`noexcept`标记,但如果发生了异常,程序会被强行终止:
-
-```cpp
-bool is_odd(int x) noexcept {
-    return 1 == (x % 2);
-}
-```
-
-#### 构造与析构
-构造和析构的顺序和栈相同,遵循后构造先析构的顺序.
-
-成员的构造顺序由声明顺序决定:
-
-```cpp
-class Test {
-    A a;
-    B b;
-
-public:
-    Test()
-        : b(),
-          a()
-    {
-    }
-};
-```
-上述代码中,会先构造A,再构造B.
-
-#### Copy Semantics
->Copy semantics is “the meaning of copy.”
-
-也就是说,x被复制到y后,二者是相互独立的,对x的修改不会影响到y.
-
-#### Move Semantics
-移动语义是拷贝语义在移动操作上的对应概念，它要求将对象 y 移入对象x后，x等价于 y原先的值。移动完成后，y 处于一种特殊状态，称为 “ 已移动状态 ” 。对于已移动状态的对象，你只能执行两种操作：（重新）赋值或销毁它们
-
-## Vision Language Models(待补充)
-- 出版于2026年，出版商：O'Reilly，作者：Merve Noyan。
-
-### 导论
-
-#### Brief Introduction to Computer Vision
 
 ## The Architecture of Open Source Applications(待补充)
 
@@ -4141,7 +4219,7 @@ malloc的实现有两种可能的方法:
 >初生的 C 语言在功能上非常不完善，例如不提供 I/O 相关的函数。因此在 C 语言的发展过程中，C 语言社区共同意识到建立一个基础函数库的必要性。与此同时，在 20 世纪 70 年代 C 语言变得非常流行时，许多大学、公司和组织都自发地编写自己的 C 语言变种和基础函数库，因此当到了 80 年代时，C 语言已经出现了大量的变种和多种不同的基础函数库，这对代码迁移等方面造成了巨大的障碍，许多大学、公司和组织在共享代码时为了将代码在不同的 C 语言变种之间移植搞得焦头烂额。于是对此惨状忍无可忍的美国国家标准协会（American National Standards Institute, ANSI）在 1983 年成立了一个委员会，旨在对 C 语言进行标准化，此委员会所建立的 C 语言标准被称为 ANSI C。第一个完整的 C 语言标准建立于 1989 年，此版本的 C 语言标准称为 C89。在 C89 标准中，包含了 C 语言基础函数库，由 C89 指定的 C 语言基础函数库就称为 ANSI C 标准运行库（简称标准库）。其后在 1995 年 C 语言标准委员会对 C89 标准进行了一次修订，在此次修订中，ANSI C 标准库得到了第一次扩充，头文件 iso646.h、wchar.h 和 wctype.h 加入了标准库的大家庭。在 1999 年，C99 标准诞生，C 语言标准库得到了进一步的扩充，头文件 complex.h、fenv.h、inttypes.h、stdbool.h、stdint.h 和 tgmath.h 进入标准库。自此，C 语言标准库的面貌一直延续至今。
 
 ### 总结
-花了一段时间,总算把这本书读完了,可以说收获满满,透彻了解一个C/C+++程序从编译到运行的整个过程,但是这本书有一些不足之处,列举如下:
+花了一段时间,总算把这本书读完了,可以说收获满满,透彻了解一个C/C++程序从编译到运行的整个过程,但是这本书有一些不足之处,列举如下:
 1. 结构安排混乱,部分内容前后重复或者顺序不合理
 2. 汇编代码分析多,很多地方举的汇编例子并不具有代表性,而且分析的也不够深入,不了解汇编代码的我只好直接跳过
 
@@ -4269,6 +4347,81 @@ function getRating(driver) {
 ## CPython Internals
 - 出版于2021年，作者：Anthony Shaw。
 - 很烂,烂到无以复加...
+## C++ CRASH COURSE
+- 出版于2019年，作者：Josh Lospinoso。
+
+>本书面向已经熟悉基本编程概念的中级到高级程序员。若您没有特定的系统编程经验也没关系，欢迎有经验的应用程序程序员阅读。
+
+### C++基础
+过于Crash了,讲的不够详细.只好摘抄重点了.
+
+#### 异常处理
+先在try代码中抛出异常,再在catch代码中处理异常:
+
+```cpp
+#include <stdexcept>
+#include <cstdio>
+
+struct Groucho {
+    void forget(int x) {
+        if (x == 0xFACE) {
+            throw std::runtime_error{"I'd be glad to make an exception."};
+        }
+        printf("Forgot 0x%x\n", x);
+    }
+};
+
+int main() {
+    Groucho groucho;
+
+    try {
+        groucho.forget(0xC0DE);
+        groucho.forget(0xFACE);
+        groucho.forget(0xC0FFEE);
+    } catch (const std::runtime_error& e) {
+        printf("exception caught with message: %s\n", e.what());
+    }
+}
+```
+
+我们可以给那些不可能抛出异常的函数加上`noexcept`标记,但如果发生了异常,程序会被强行终止:
+
+```cpp
+bool is_odd(int x) noexcept {
+    return 1 == (x % 2);
+}
+```
+
+#### 构造与析构
+构造和析构的顺序和栈相同,遵循后构造先析构的顺序.
+
+成员的构造顺序由声明顺序决定:
+
+```cpp
+class Test {
+    A a;
+    B b;
+
+public:
+    Test()
+        : b(),
+          a()
+    {
+    }
+};
+```
+上述代码中,会先构造A,再构造B.
+
+#### Copy Semantics
+>Copy semantics is “the meaning of copy.”
+
+也就是说,x被复制到y后,二者是相互独立的,对x的修改不会影响到y.
+
+#### Move Semantics
+移动语义是拷贝语义在移动操作上的对应概念，它要求将对象 y 移入对象x后，x等价于 y原先的值。移动完成后，y 处于一种特殊状态，称为 “ 已移动状态 ” 。对于已移动状态的对象，你只能执行两种操作：（重新）赋值或销毁它们
+
+### 总结
+学不下去了,太繁琐了😁日后有需要再来
 
 ## Crafting Interpreters
 - 出版于2021年，作者：Robert Nystrom。
@@ -6350,9 +6503,21 @@ expose:
 
 ### 总结
 不推荐,又臭又长,讲的也不清楚.
+## Effective Software Testing
+- 出版于2022年，出版商：Manning，作者：Maurício Aniche。
+
+### 软件测试介绍
+>软件工程中的实证研究一再表明，简洁无味的代码比复杂代码更不易出现缺陷（参见 Shatnawi 和 Li 2006年的论文）。
+然而，仅有简洁远远不够。
+
+认为测试可以完全被简洁取代是天真的看法。"通过设计保证正确性"同样如此：设计好代码并不意味着能避免所有可能的错误。
+
+![金字塔](PixPin_2026-07-27_12-01-45.webp)
+### 总结
+用的是Java,很多框架都不适合其他的语言.
 
 ## 恶意代码分析实战
-- 出版于2012年（英文原版；中文版版次待核实），作者：Michael Sikorski。
+- 出版于2012年（英文原版），作者：Michael Sikorski。
 - 基本都是泛泛而谈,没真东西
 
 ## Fluent C
@@ -13562,7 +13727,7 @@ Nginx内置了内存池机制,按照页数来分配内存
 源码固然枯燥,分析也很枯燥,不太推荐阅读.
 
 ## 深入浅出密码学
-- 出版于2010年（英文原版；中文版版次待核实），作者：Christof Paar。
+- 出版于2010年（英文原版），作者：Christof Paar。
 - (6/6): 强烈推荐,如果早点看到这本书就可以少走很多弯路了
 
 ### 概述
