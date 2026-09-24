@@ -3,7 +3,7 @@ title: 前端笔记
 date: 2026-04-30T09:56:06+08:00
 image: 60155475_p0-ゆき.webp
 math: true
-description: 重构中ing
+description: 由于前端学习资源太少了,所以还是保留
 
 ---
 # 前端概览

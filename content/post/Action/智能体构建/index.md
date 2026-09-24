@@ -7881,13 +7881,16 @@ uv run alembic revision --autogenerate -m "add user avatar"
 Remove-Item Env:POSTGRES_SERVER
 ```
 #### 简化流程
-很明显,上述的流程还是太麻烦了,为了尽可能自动化,我们不如将本地的环境变量改为localhost,而在容器中改成db:
+很明显,上述的流程还是太麻烦了,为了尽可能自动化,我们不如将本地的环境变量改为localhost,而在容器中改成db,并加上一个绑定挂载:
 ```yml
   backend:
     restart: always
     build:
       context: ./backend
       dockerfile: dockerfile
+
+    volumes:
+      - ./backend/alembic/versions:/app/alembic/versions
     depends_on:
       db:
         condition: service_healthy
@@ -7901,38 +7904,19 @@ Remove-Item Env:POSTGRES_SERVER
 ```
 这样一来,我们每次修改后只需要这么做:
 ```bash
-docker compose up -d db
-uv run alembic revision --autogenerate -m "add user avatar"
+docker compose up -d --build db backend
+
+docker compose exec backend alembic revision --autogenerate -m "add reasoning to message"
+
+# 确认刚生成的文件已出现在本地
+Get-ChildItem .\backend\alembic\versions\
+
+# 检查并按需修改迁移文件后，再执行
+docker compose exec backend bash scripts/prestart.sh
 ```
-检查migration后:
-```bash
-docker compose run --rm backend bash scripts/prestart.sh
-docker compose watch
-```
 
-很明显,上述命令完全可以写成一个放在scripts文件夹中的migrate.ps1脚本:
-```ps1
-param(
-    [Parameter(Mandatory = $true)]
-    [string]$Message
-)
 
-$ErrorActionPreference = "Stop"
 
-docker compose up -d db
-
-uv run alembic revision --autogenerate -m $Message
-
-if ($LASTEXITCODE -ne 0) {
-    exit $LASTEXITCODE
-}
-
-docker compose run --rm backend bash scripts/prestart.sh
-```
-每次执行修改后运行命令即可:
-```bash
-.\scripts\migrate.ps1 "add user avatar"
-```
 
 ## ch15: 换用Responses API和thinking字段输出
 
@@ -8377,7 +8361,54 @@ class ChatRequest(SQLModel):
     content: str = Field(min_length=1, max_length=20_000)
     enable_reasoning: bool = True
 ```
+### crud.py补丁
+对于crud.py,我们只需要修改`save_messages`函数,加入reasoning的存储即可:
+```py
+def save_message(
+    *,
+    session: Session,
+    conversation: Conversation,
+    role: MessageRole,
+    content: str,
+    reasoning: str | None = None,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    total_tokens: int = 0,
+) -> Message:
+    if conversation.conversation_id is None:
+        raise ValueError("Conversation must be persisted before saving messages")
 
+    message = Message(
+        conversation_id=conversation.conversation_id,
+        role=role,
+        content=content,
+        reasoning=reasoning,
+    )
+    conversation.updated_at = get_datetime()
+
+    if role == MessageRole.ASSISTANT:
+        usage = session.get(UserUsage, conversation.user_id)
+
+        if usage is None:
+            usage = UserUsage(user_id=conversation.user_id)
+            session.add(usage)
+
+        usage.messages_count += 1
+        usage.input_tokens += input_tokens
+        usage.output_tokens += output_tokens
+        usage.total_tokens += total_tokens
+    try:
+        session.add(message)
+        session.add(conversation)
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
+    session.refresh(message)
+    return message
+```
+剩下的就是让agent输出reasoning内容了.
 ### agents文件夹重构
 首先要修改的是`client.py`,我们原来是这么创建流的:
 ```py
@@ -8466,11 +8497,519 @@ class ChatRequest(SQLModel):
 ```
 也就是说,思考内容是优先输出的,后面才是具体的AI输出.
 
-那么现在的问题就变成了,如何装载这个reasoning内容了
+那么现在的问题就变成了,如何装载这个reasoning内容了,由于我们打算让用户勾选是否深度思考,所以先修改一下整个Agent类,加入对思考的支持:
+```py
+from functools import lru_cache
+from typing import Literal
 
-## ch15: 测试引入
+from app.models import Message, MessageRole
+from app.core.config import settings
+
+from openai import Stream, OpenAI
+from openai.types.responses import (
+    EasyInputMessageParam,
+    ResponseInputParam,
+    ResponseStreamEvent,
+)
+
+
+class Agent:
+    DEFAULT_MODEL = "deepseek-v4-pro"
+    DEFAULT_SYSTEM_PROMPT = "以后的回答都要优先输出一句话,我是deepseek-v4-pro."
+
+    @lru_cache
+    def _get_client(self) -> OpenAI:
+        return self._create_client(
+            api_key=settings.DEEPSEEK_API_KEY,
+            url=settings.DEEPSEEK_URL,
+        )
+
+    def stream_agent(
+        self,
+        *,
+        history: list[Message],
+        model: str = DEFAULT_MODEL,
+        system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+        enable_reasoning: bool = True,
+    ) -> Stream[ResponseStreamEvent]:
+        # 构造消息列表
+        message_list = self._build_input(history=history)
+
+        # 打开通信流
+        stream = self._create_stream(
+            client=self._get_client(),
+            model=model,
+            instructions=system_prompt,
+            input=message_list,
+            enable_reasoning=enable_reasoning,
+        )
+        return stream
+
+    @staticmethod
+    def _build_input(
+        *,
+        history: list[Message],
+    ) -> ResponseInputParam:
+        response_input: ResponseInputParam = []
+        for message in history:
+            role: Literal["user", "assistant"] = (
+                "user" if message.role is MessageRole.USER else "assistant"
+            )
+            response_input.append(
+                EasyInputMessageParam(
+                    role=role,
+                    content=message.content,
+                )
+            )
+        return response_input
+
+    @staticmethod
+    def _create_client(*, api_key: str, url: str) -> OpenAI:
+        return OpenAI(api_key=api_key, base_url=url)
+
+    @staticmethod
+    def _create_stream(
+        *,
+        client: OpenAI,
+        model: str,
+        instructions: str,
+        input: ResponseInputParam,
+        enable_reasoning: bool = True,
+    ) -> Stream[ResponseStreamEvent]:
+        return client.responses.create(
+            model=model,
+            instructions=instructions,
+            input=input,
+            stream=True,
+            reasoning=(
+                {"effort": "high", "summary": "auto"}
+                if enable_reasoning
+                else {"effort": "none"}
+            ),
+        )
+```
+然后关键地方就在于ChatBot类怎么处理了,直接看AI生成的代码吧:
+```py
+class ChatBot:
+    # 修改：使用 SSE 事件区分思考、思考摘要和正式回答。
+    @staticmethod
+    def _sse(event: str, **data: object) -> str:
+        return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+    # 修改：兼容只在最终 response.output 中提供内容的服务端。
+    @staticmethod
+    def _final_text(response: Response, kind: str) -> str:
+        """Read provider output when it did not send incremental text events."""
+        parts: list[str] = []
+        for item in response.output:
+            if kind == "reasoning" and item.type == "reasoning":
+                parts.extend(
+                    part.text for part in (item.content or [])
+                    if part.type == "reasoning_text"
+                )
+            elif kind == "reasoning_summary" and item.type == "reasoning":
+                parts.extend(
+                    part.text for part in (item.summary or [])
+                    if part.type == "summary_text"
+                )
+            elif kind == "content" and item.type == "message":
+                parts.extend(
+                    part.text for part in item.content
+                    if part.type == "output_text"
+                )
+        return "".join(parts)
+    def stream_and_save(
+        self,
+        *,
+        session: Session,
+        conversation_id: int,
+        chunks: Stream[ResponseStreamEvent],
+    ) -> Iterator[str]:
+        collected_chunks: list[str] = []
+        reasoning_chunks: list[str] = []
+        summary_chunks: list[str] = []
+        final_response: Response | None = None
+        for event in chunks:
+            # 修改：将两类文本增量分别推送，避免把思考混进 content。
+            if event.type == "response.output_text.delta":
+                collected_chunks.append(event.delta)
+                yield self._sse("content", delta=event.delta)
+            elif event.type == "response.reasoning_text.delta":
+                reasoning_chunks.append(event.delta)
+                yield self._sse("reasoning", delta=event.delta)
+            elif event.type == "response.reasoning_summary_text.delta":
+                summary_chunks.append(event.delta)
+                yield self._sse("reasoning_summary", delta=event.delta)
+            elif event.type == "response.completed":
+                final_response = event.response
+            elif event.type == "response.incomplete":
+                final_response = event.response
+            elif event.type == "error":
+                raise RuntimeError(event.message)
+            elif event.type == "response.failed":
+                error = event.response.error
+                raise RuntimeError(error.message if error else "Response failed")
+
+        # 修改：回退读取最终对象，并将思考与正文分别保存。
+        if final_response is None:
+            return
+        if not reasoning_chunks:
+            full_reasoning = self._final_text(final_response, "reasoning")
+            if full_reasoning:
+                reasoning_chunks.append(full_reasoning)
+                yield self._sse("reasoning", delta=full_reasoning)
+        if not summary_chunks and not reasoning_chunks:
+            full_summary = self._final_text(final_response, "reasoning_summary")
+            if full_summary:
+                summary_chunks.append(full_summary)
+                yield self._sse("reasoning_summary", delta=full_summary)
+        if not collected_chunks:
+            final_content = self._final_text(final_response, "content")
+            if final_content:
+                collected_chunks.append(final_content)
+                yield self._sse("content", delta=final_content)
+
+        full_content = "".join(collected_chunks)
+        if not full_content:
+            yield self._sse("done", message_id=None)
+            return
+        conversation = session.get(Conversation, conversation_id)
+        if conversation is None:
+            return
+        usage = final_response.usage
+        message = crud.save_message(
+            session=session,
+            conversation=conversation,
+            role=MessageRole.ASSISTANT,
+            content=full_content,
+            reasoning="".join(reasoning_chunks or summary_chunks) or None,
+            input_tokens=usage.input_tokens if usage else 0,
+            output_tokens=usage.output_tokens if usage else 0,
+            total_tokens=usage.total_tokens if usage else 0,
+        )
+        yield self._sse("done", message_id=message.message_id)
+```
+这个`_sse`函数是突然冒出来的,我简直一头雾水,给我看力竭了,而经验匮乏如我也能明白这就是在瞎搞,完全没必要用到好不好,后来battle了一下,它告诉我可以这么写:
+```py
+    def stream_and_save(
+        self,
+        *,
+        session: Session,
+        conversation_id: int,
+        chunks: Stream[ResponseStreamEvent],
+    ) -> Iterator[str]:
+        collected_chunks: list[str] = []
+        reasoning_chunks: list[str] = []  # 修改：单独收集思考内容。
+        reasoning_started = False
+        answer_started = False
+        final_response: Response | None = None
+        for event in chunks:
+            if event.type == "response.output_text.delta":
+                if not answer_started:
+                    if reasoning_started:
+                        yield "\n\n回答：\n"  # 修改：思考结束后分隔正式回答。
+                    answer_started = True
+                collected_chunks.append(event.delta)
+                yield event.delta
+            elif event.type == "response.reasoning_text.delta":  # 修改
+                if not reasoning_started:
+                    yield "思考：\n"  # 修改：收到思考增量时立即显示。
+                    reasoning_started = True
+                reasoning_chunks.append(event.delta)
+                yield event.delta
+            elif event.type == "response.completed":
+                final_response = event.response
+            elif event.type == "response.incomplete":
+                final_response = event.response
+            elif event.type == "error":
+                raise RuntimeError(event.message)
+            elif event.type == "response.failed":
+                error = event.response.error
+                raise RuntimeError(error.message if error else "Response failed")
+
+        full_content = "".join(collected_chunks)
+        if not full_content or not final_response or not final_response.usage:
+            return
+        usage = final_response.usage
+        conversation = session.get(Conversation, conversation_id)
+        if conversation is None:
+            return
+        crud.save_message(
+            session=session,
+            conversation=conversation,
+            role=MessageRole.ASSISTANT,
+            content=full_content,
+            reasoning="".join(reasoning_chunks) or None,  # 修改：保存思考，不混入正文。
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            total_tokens=usage.total_tokens,
+        )
+```
+这里维护了多个变量用于分割思考和回答,也算是一种比较曲折的解决方案了,然后还要靠前端来进行一点优化和美术.
+### messages.py重构
+只要修改最后一个路由即可:
+```py
+@router.post("/messages")
+def chat(
+    request: ChatRequest,
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> StreamingResponse:
+    try:
+        conversation = chatbot.prepare_chat(
+            session=session,
+            user_id=_current_user_id(current_user),
+            request=request,
+        )
+    except ConversationNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+
+    if conversation.conversation_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Conversation could not be created",
+        )
+    history = crud.get_history_message(
+        session=session,
+        conversation_id=conversation.conversation_id,
+        # The current user message is already stored. Keep it plus four
+        # preceding messages (two completed turns) in the model context.
+        limit=HISTORY_MESSAGE_LIMIT + 1,
+    )
+
+    chunks = agent.stream_agent(
+        history=history,
+        enable_reasoning=request.enable_reasoning,
+    )
+
+    return StreamingResponse(
+        chatbot.stream_and_save(
+            session=session,
+            conversation_id=conversation.conversation_id,
+            chunks=chunks,
+        ),
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "X-Conversation-ID": str(conversation.conversation_id),
+        },
+    )
+```
+### 插曲,初始化管理员
+很明显,任何一个网站都需要管理员,而管理员自然要一开始就创建,不然只能把新用户一律视作管理员了.
+
+好在我们之前就预置了`prestart.sh`,现在只需要加入一个初始化的命令即可.
+1. 在env.py中写明管理员的密码和用户名,并写入config.py中:
+```toml
+# Superuser
+SUPERUSER_NAME=Jack
+SUPERUSER_PASSWORD=changethisplease
+```
+
+```py
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file="../.env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_URL: str = "https://api.deepseek.com"
+
+    SECRET_KEY: str
+
+    SUPERUSER_NAME: str
+    SUPERUSER_PASSWORD: str
+
+    POSTGRES_SERVER: str
+    POSTGRES_PORT: int = 5432
+    POSTGRES_DB: str
+    POSTGRES_USER: str = ""
+    POSTGRES_PASSWORD: str = ""
+
+    @computed_field
+    @property
+    def DATABASE_URI(self) -> PostgresDsn:
+        return PostgresDsn.build(
+            scheme="postgresql+psycopg",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD,
+            host=self.POSTGRES_SERVER,
+            port=self.POSTGRES_PORT,
+            path=self.POSTGRES_DB,
+        )
+```
+
+
+2. 在core/db.py中注册管理员:
+
+但很快就发现我们没有一个管理员的注册模型,因为USerRegister只有name和password两个属性,没有`is_superuser`属性,因此,我们需要新建一个schema:
+```py
+
+# class UserBase(SQLModel):
+#     name: str = Field(
+#         min_length=1,
+#         max_length=30,
+#         index=True,
+#     )
+#     is_active: bool = True
+#     is_superuser: bool = False
+
+class UserCreate(UserBase):
+    password: str = Field(min_length=1, max_length=15)
+```
+
+然后,由于我们在`crud.py`中的用户注册函数是这样的:
+```py
+def register_user(*, session: Session, user_register: UserRegister) -> User:
+    user = User.model_validate(
+        user_register,
+        update={"hashed_password": hashing_password(user_register.password)},
+    )
+    try:
+        session.add(user)
+        session.flush()
+        if user.user_id is None:
+            raise RuntimeError("Failed to generate user_id")
+
+        usage = UserUsage(user_id=user.user_id)
+
+        session.add(usage)
+        session.commit()
+
+    except Exception:
+        session.rollback()
+        raise
+
+    session.refresh(user)
+    return user
+```
+很明显,直接复用就可以了,也就是将参数变成这样:
+```py
+def register_user(
+    *, session: Session, user_register: UserRegister | UserCreate
+) -> User:
+```
+然后终于可以写出`init_db`这个函数了:
+```py
+from sqlmodel import create_engine, Session, select
+
+from app.core.config import settings
+from app.models import User, UserCreate
+from app import crud
+
+engine = create_engine(
+    str(settings.DATABASE_URI),
+)
+
+
+def init_db(session: Session) -> None:
+    user = session.exec(
+        select(User).where(User.name == settings.SUPERUSER_NAME)
+    ).first()
+    if not user:
+        new_user = UserCreate(
+            name=settings.SUPERUSER_NAME,
+            password=settings.SUPERUSER_PASSWORD,
+            is_superuser=True,
+        )
+        user = crud.register_user(session=session, user_register=new_user)
+```
+
+3. 在app文件夹下新建一个`db_init.py`,调用之前的初始化函数:
+
+```py
+import logging
+from sqlmodel import Session
+from app.core.db import engine, init_db
+
+
+def init() -> None:
+    with Session(engine) as session:
+        init_db(session)
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+def main() -> None:
+    logger.info("Creating initial data")
+    init()
+    logger.info("Initial data created")
+
+
+if __name__ == "__main__":
+    main()
+```
+4. 修改prestart.sh如下:
+```bash
+#! /usr/bin/env bash
+
+set -e
+set -x
+
+# Run migrations
+alembic upgrade head
+
+# Create initial data in DB
+python -m app.db_init
+```
+
+执行后的效果如图:
+```bash
+docker compose exec backend bash scripts/prestart.sh                              
++ alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 27829fde8b0b, add reasoning to message
++ python -m app.db_init
+INFO:__main__:Creating initial data
+INFO:__main__:Initial data created
+```
+
+### 总体效果预览
+![效果图](PixPin_2026-09-24_14-23-25.webp)
+
+- 忘了将思考和对话的前端单独处理了...
+## ch16: 测试引入
 >并非是说测试不必要,但测试驱动开发还是太扯淡了,只要不是多人合作的大型项目,个人开发者是完全有能力搞清楚整个程序的来龙去脉的,加入测试只是怕自己以后开发的时候忘记了当时想起的需求而已.
 >
 >但当项目大到几百个文件或者说需要多人开发时,那就必须要加测试了,因为人的脑容量终究是有限的,你不可能一个人记得住那么多东西,同样,你不能指望别人能记住所有东西.
 
-## 智能体进阶
+有个很现实的问题,没写过测试的人如何知道怎么写测试?唯一的方法就是去阅读经典项目了.
+
+### pytest引入
+
+
+
+### API测试
+- [Schemathesis文档](https://schemathesis.readthedocs.io/en/stable/)
+#### Schemathesis
+>Schemathesis automatically generates property-based tests from your OpenAPI or GraphQL schema, chains operations into realistic workflows, and exercises the edge cases that break your API.
+
+简单来说,Schemathesis可以根据你的openapi.json自动测试你的文档健壮性.
+
+Schemathesis最早发布于19年,迭代到现在的性能已经相当不错了,用法也很简单:
+```bash
+uvx schemathesis run http://localhost:8000/api/openapi.json --header "authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA5MjgzNDYsInN1YiI6IjEifQ.t1490N1AUVH1Ptv_iEC97rKQjmFUiOy3hXMfIThP9uk"
+```
+带上你网站的token后用schemathesis访问即可明白你的文档写的怎么样:
+
+![示意图](PixPin_2026-09-24_18-01-20.webp)
+##### 用到项目里
+1. 添加依赖:
+```bash
+uv add --dev schemathesis
+```
+2. 
+
+## 总结
+洋洋洒洒这么多字,我们也只是做了一个简单到不能再简单的智能体出来,既不能调用工具,也不能上传图片,简陋到了可笑的地步,如此看来,不借助框架,从零开始做Agent平台是真的非常需要综合的技术水平的,就连这么简单的Python语言开发起来都如此费劲.
+
+
+# 智能体进阶

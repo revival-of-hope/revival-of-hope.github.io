@@ -322,12 +322,38 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
 ```
 
 ##### users.py
-首先看一下路由设计,管理员使用的是`/users/`路由,有读取用户列表,创建新用户两个职责,而普通用户使用的是`/users/me`路由,可以更新用户信息;更新,删除,查询单个id对应的用户信息则用的是`/users/{user_id}`路由
-#### 邮件服务(待补充)
-##### utils.py
+看一下路由设计,管理员使用的是`/users/`路由,有读取用户列表,创建新用户两个职责,而普通用户使用的是`/users/me`路由,可以更新用户信息;更新,删除,查询单个id对应的用户信息则用的是`/users/{user_id}`路由
+#### 测试部分
+首先捋一下pytest.fixture的级别:
+| scope      | 创建频率                 | 典型用途               |
+| ---------- | ------------------------ | ---------------------- |
+| `function` | 每个测试函数一次         | 默认值，最常用         |
+| `class`    | 每个测试类一次           | 同一个测试类共享资源   |
+| `module`   | 每个测试文件一次         | 同一 `.py` 文件共享    |
+| `package`  | 每个 Python package 一次 | 多个测试模块共享       |
+| `session`  | 整个 pytest 运行一次     | 数据库、服务、昂贵资源 |
 
-### [Zulip](https://zulip.com/)
-### Spring PetClinic Sample Application
+接下来看`confest.py`,有一个关键函数:
+```py
+@pytest.fixture(scope="session", autouse=True)
+def db() -> Generator[Session]:
+    with Session(engine) as session:
+        init_db(session)
+        yield session
+        statement = delete(Item)
+        session.execute(statement)
+        statement = delete(User)
+        session.execute(statement)
+        session.commit()
+```
+刚来就直接删数据,不过这是非常标准的做法,对于测试来说,我们需要保证每次测试的结果之间是解耦的,才能让测试真的有效果,而不是误用了上次测试或者是开发的时候遗留下来的数据.
+
+- 这也意味着不能在生产的机器上运行测试了
+
+
+
+
+
 
 ### NetBox
 #### 介绍
