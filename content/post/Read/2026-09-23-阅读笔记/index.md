@@ -7,9 +7,6 @@ math: true
 ---
 
 # 阅读中
-
-
-
 ## Learning Go
 
 ### ch1: 搭建环境
@@ -775,6 +772,117 @@ main() {
 
 
 
+#### 类型断言
+```go
+type MyInt int
+
+func main() {
+	var i any
+	var mine MyInt = 20
+	i = mine
+	i2 := i.(MyInt)
+	fmt.Println(i2 + 1)
+
+  i2 := i.(int)
+  fmt.Println(i2 + 1)
+}
+```
+明明MyInt就是int类型,但上述代码依然会Panic,原因是类型断言必须字面上完全一样,想要不panic只能这样写:
+```go
+i2, ok := i.(int)
+if !ok {
+	fmt.Println("i 不是 int")
+}
+```
+#### 依赖注入
+```go
+package main
+
+import "fmt"
+
+// 1. 定义接口：抽象依赖
+type UserRepository interface {
+	FindNameByID(id int) (string, error)
+}
+
+// 2. 具体实现：比如 MySQL 实现
+type MySQLUserRepository struct{}
+
+func (r *MySQLUserRepository) FindNameByID(id int) (string, error) {
+	return "alice", nil
+}
+
+// 3. 业务服务：依赖接口，而不是具体实现
+type UserService struct {
+	repo UserRepository
+}
+
+// 构造函数注入依赖
+func NewUserService(repo UserRepository) *UserService {
+	return &UserService{repo: repo}
+}
+
+func (s *UserService) GetUserName(id int) (string, error) {
+	return s.repo.FindNameByID(id)
+}
+
+func main() {
+	// 4. 在 main 里组装依赖
+	repo := &MySQLUserRepository{}
+	userService := NewUserService(repo)
+
+	name, err := userService.GetUserName(1)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(name) // alice
+}
+```
+简单来说就是,通过接口,我们可以让所有满足接口的类型都能直接注入到目标代码中,从而减少代码所需的更改.
+
+### ch8: Generics(待补充)
+#### 介绍
+```go
+type Stack[T any] struct {
+	vals []T
+}
+
+func (s *Stack[T]) Push(val T) {
+	s.vals = append(s.vals, val)
+}
+
+func (s *Stack[T]) Pop() (T, bool) {
+	if len(s.vals) == 0 {
+		var zero T
+		return zero, false
+	}
+	top := s.vals[len(s.vals)-1]
+	s.vals = s.vals[:len(s.vals)-1]
+	return top, true
+}
+```
+Go的泛型与Cpp不同的地方在于,有诸如`any`这样的类型约束,而这与Rust中的约束非常相似,也更好理解.
+
+而由于T的类型不一定,所以不能直接返回`nil`,因为int等类型的零值为0,而字符串的类型零值为"",所以必须要借助var的自动初始化的机制来赋值.
+
+### ch9: Errors
+```go
+func doubleEven(i int) (int, error) {
+	if i%2 != 0 {
+		return 0, errors.New("only even numbers are processed")
+	}
+	return i * 2, nil
+}
+
+func main() {
+	result, err := doubleEven(1)
+	if err != nil {
+		fmt.Println(err) // prints "only even numbers are processed"
+	}
+	fmt.Println(result)
+}
+```
 
 ## RAG with Python Cookbook
 - 出版于2026年，作者：Deepak Dhyani。
@@ -1101,6 +1209,7 @@ print(pages_df)
 
 ### 向量数据库
 
+### 检索
 ### Agentic RAG
 #### 自定义工具
 ```python
@@ -1261,6 +1370,59 @@ for i in range(5):
 **符号说明：** ✓ = 较适合；○ = 可以采用，但存在一定额外成本；△ = 通常不是该场景下的优先方案。
 
 
+#### asyncio加速
+```py
+async def main():
+    images = convert_from_path(
+        "../datasets/sample_data_asyncio/Laptop_Order_Invoice.pdf",
+        dpi=200
+    )
+
+    end_page_to_process = 3
+
+    results = await asyncio.gather(
+        *[
+            extract_entities_from_image(img, i + 1)
+            for i, img in enumerate(images[:end_page_to_process])
+        ]
+    )
+
+    client = openai.AsyncOpenAI()
+
+    response = await client.chat.completions.create(
+        model="gpt-5.2",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Merge these JSON lists into one. "
+                                "They are all from the same invoice.",
+                    },
+                    {
+                        "type": "text",
+                        "text": "\n".join(results),
+                    },
+                ],
+            }
+        ],
+    )
+
+    merged_json = response.choices[0].message.content
+    return merged_json
+```
+
+调用工具时,我们自然希望越快处理完越好,比如对pdf进行分页拆分,最好的方法就是开多个线程同时进行处理,并使用异步调用.
+#### OpenAI Agents SDK介绍
+OpenAI Agents SDK是OpenAI推出的智能体构建轻量框架,待我日后试试效果
+
+#### LangGraph
+![介绍](PixPin_2026-09-27_10-18-17.webp)
+
+>对于简单的线性工作流程，请避免使用 LangGraph。如果您的代理执行的是固定序列，没有分支逻辑或共享状态，那么图抽象只会增加复杂性而没有带来任何好处。
+
+当协调多个共享上下文的代理时，状态管理尤为重要。LangGraph 会自动维护共享状态。
 
 ### Graph RAG
 
@@ -1296,27 +1458,8 @@ volumes:
 给了一些比较实用的判断RAG效果的方案
 
 ### 总结
-干活确实很多,尤其是前几章,读起来很有收获.
+干货确实很多,尤其是前几章,读起来很有收获.
 
-## Grokking Concurrency
-- 出版于2023年，出版商：Manning，作者：Kirill Bobrov。
-
-### 介绍
-
-#### 并发与并行
-* An application can be concurrent but not parallel. It processes more than one task over a given period (i.e., juggling more than one task even if no two tasks are executing at the same instant—this is described in more detail in Chapter 6).
-
-单核多任务。系统通过时间片轮转交替执行多个任务。一段时间内多个任务都有进展，但同一时刻只有一个任务在占用 CPU 执行。
-* An application can be parallel but not concurrent, which means it processes multiple subtasks of a single task simultaneously.
-
-多核加速同一任务。将单个大任务拆分成多个子任务，在多核 CPU 上同时执行。
-* An application can be neither parallel nor concurrent, which means it processes one task at a time sequentially, and the task is never broken into subtasks.
-
-纯串行。单线程，按顺序从头到尾执行一个任务，不拆分任务。
-* An application can be both parallel and concurrent, which means it processes multiple tasks or subtasks of a single task concurrently at the same time (executing them in parallel).
-
-最理想状态。系统既能同时调度多个独立任务，又能把这些任务或单个大任务的子任务分配给多个 CPU 核心同时执行。
-### 进程间通信
 
 ## AI Agents in Action,Second Edition
 - 出版于2026年（第2版），出版商：Manning，作者：Micheal Lanham。
@@ -1722,6 +1865,37 @@ API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也
 ### 导论
 
 #### Brief Introduction to Computer Vision
+## Coding Video,A Practical Guide to HEVC and Beyond(待补充)
+- 出版于2024年，作者：Iain E. Richardson。
+
+### 介绍
+>一秒标准的未压缩SD(576p)视频，每秒25帧，大约占用15.5 MB存储空间。这意味着，通过网络或广播频道实时传输这段视频，即每秒发送一秒可播放的视频内容，需要124 Mbit/s的带宽。而一秒未压缩的UHD/4K视频、每秒50帧捕捉，则大约占用620 MB存储空间，实时传输将需要高达5 Gbit/s的传输带宽。
+
+- 由此可知,我们在电子产品中存储的视频都是压缩形式的,只在播放时进行实时的解码.
+
+![说明图](PixPin_2026-08-09_10-23-28.webp)
+
+尽管我们拥有的存储容量和网络带宽比以往任何时候都要多，但存储和传输视频的需求仍在不断超出可用容量。到2023年，约三分之二的消费级电视机已达到4K分辨率或更高。将高性能视频编解码器集成到智能手机和电视等消费设备中，以及对高分辨率视频的期望，使得在存储或传输前压缩或编码视频，并在显示前解码视频成为常态
+
+## Grokking Concurrency(待补充)
+- 出版于2023年，出版商：Manning，作者：Kirill Bobrov。
+
+### 介绍
+
+#### 并发与并行
+* An application can be concurrent but not parallel. It processes more than one task over a given period (i.e., juggling more than one task even if no two tasks are executing at the same instant—this is described in more detail in Chapter 6).
+
+单核多任务。系统通过时间片轮转交替执行多个任务。一段时间内多个任务都有进展，但同一时刻只有一个任务在占用 CPU 执行。
+* An application can be parallel but not concurrent, which means it processes multiple subtasks of a single task simultaneously.
+
+多核加速同一任务。将单个大任务拆分成多个子任务，在多核 CPU 上同时执行。
+* An application can be neither parallel nor concurrent, which means it processes one task at a time sequentially, and the task is never broken into subtasks.
+
+纯串行。单线程，按顺序从头到尾执行一个任务，不拆分任务。
+* An application can be both parallel and concurrent, which means it processes multiple tasks or subtasks of a single task concurrently at the same time (executing them in parallel).
+
+最理想状态。系统既能同时调度多个独立任务，又能把这些任务或单个大任务的子任务分配给多个 CPU 核心同时执行。
+### 进程间通信
 
 ## Rootkit和Bootkit：现代恶意软件逆向分析和下一代威胁(待补充)
 - 出版于2019年（英文原版），作者：Alex Matrosov。
@@ -2051,17 +2225,6 @@ kiada   3/3     3            3           18m
 替换它们。这正是几乎从不直接创建 Pod、而是使用 Deployment
 的根本原因。
 
-## Coding Video,A Practical Guide to HEVC and Beyond(待补充)
-- 出版于2024年，作者：Iain E. Richardson。
-
-### 介绍
->一秒标准的未压缩SD(576p)视频，每秒25帧，大约占用15.5 MB存储空间。这意味着，通过网络或广播频道实时传输这段视频，即每秒发送一秒可播放的视频内容，需要124 Mbit/s的带宽。而一秒未压缩的UHD/4K视频、每秒50帧捕捉，则大约占用620 MB存储空间，实时传输将需要高达5 Gbit/s的传输带宽。
-
-- 由此可知,我们在电子产品中存储的视频都是压缩形式的,只在播放时进行实时的解码.
-
-![说明图](PixPin_2026-08-09_10-23-28.webp)
-
-尽管我们拥有的存储容量和网络带宽比以往任何时候都要多，但存储和传输视频的需求仍在不断超出可用容量。到2023年，约三分之二的消费级电视机已达到4K分辨率或更高。将高性能视频编解码器集成到智能手机和电视等消费设备中，以及对高分辨率视频的期望，使得在存储或传输前压缩或编码视频，并在显示前解码视频成为常态
 
 ## Hadoop: The Definitive Guide(4th)(待补充)
 - 出版于2015年（第4版），出版商：O'Reilly，作者：Tom White。

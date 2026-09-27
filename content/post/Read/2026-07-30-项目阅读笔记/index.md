@@ -324,6 +324,7 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
 ##### users.py
 看一下路由设计,管理员使用的是`/users/`路由,有读取用户列表,创建新用户两个职责,而普通用户使用的是`/users/me`路由,可以更新用户信息;更新,删除,查询单个id对应的用户信息则用的是`/users/{user_id}`路由
 #### 测试部分
+##### pytest复习
 首先捋一下pytest.fixture的级别:
 | scope      | 创建频率                 | 典型用途               |
 | ---------- | ------------------------ | ---------------------- |
@@ -333,6 +334,8 @@ def get_current_active_superuser(current_user: CurrentUser) -> User:
 | `package`  | 每个 Python package 一次 | 多个测试模块共享       |
 | `session`  | 整个 pytest 运行一次     | 数据库、服务、昂贵资源 |
 
+
+##### confest.py
 接下来看`confest.py`,有一个关键函数:
 ```py
 @pytest.fixture(scope="session", autouse=True)
@@ -346,14 +349,67 @@ def db() -> Generator[Session]:
         session.execute(statement)
         session.commit()
 ```
-刚来就直接删数据,不过这是非常标准的做法,对于测试来说,我们需要保证每次测试的结果之间是解耦的,才能让测试真的有效果,而不是误用了上次测试或者是开发的时候遗留下来的数据.
+- yield负责将测试分成上下两个部分,yield前的部分在测试开始前执行,yield后的部分在测试结束时执行
+- - `autouse`参数表示该函数不需要在参数里声明也会自动执行
 
-- 这也意味着不能在生产的机器上运行测试了
+这是非常标准的写法,对于测试来说,我们需要保证每次测试的结果之间是解耦的,才能让测试真的有效果,而不是误用了上次测试或者是开发的时候遗留下来的数据.
+
+剩下的三个函数也都很重要:
+```py
+@pytest.fixture(scope="module")
+def client() -> Generator[TestClient]:
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture(scope="module")
+def superuser_token_headers(client: TestClient) -> dict[str, str]:
+    return get_superuser_token_headers(client)
+
+
+@pytest.fixture(scope="module")
+def normal_user_token_headers(client: TestClient, db: Session) -> dict[str, str]:
+    return authentication_token_from_email(
+        client=client, email=settings.EMAIL_TEST_USER, db=db
+    )
+```
+- `TestClient`: Fastapi配置的测试客户端,这里用到的是正式的app作为客户端,从而继承了所有的路由和参数说明
+
+##### utils文件夹
+工具函数:
+```py
+# 选择32位随机字符串
+def random_lower_string() -> str:
+    return "".join(random.choices(string.ascii_lowercase, k=32))
+
+# 随机邮箱
+def random_email() -> str:
+    return f"{random_lower_string()}@{random_lower_string()}.com"
+
+# 
+def get_superuser_token_headers(client: TestClient) -> dict[str, str]:
+    login_data = {
+        "username": settings.FIRST_SUPERUSER,
+        "password": settings.FIRST_SUPERUSER_PASSWORD,
+    }
+    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
+    tokens = r.json()
+    a_token = tokens["access_token"]
+    headers = {"Authorization": f"Bearer {a_token}"}
+    return headers
+```
 
 
 
+随机创建item:
+```py
+def create_random_item(db: Session) -> Item:
+    user = create_random_user(db)
+    owner_id = user.id
+    assert owner_id is not None
+    title = random_lower_string()
+    description = random_lower_string()
+    item_in = ItemCreate(title=title, description=description)
+    return crud.create_item(session=db, item_in=item_in, owner_id=owner_id)
+```
 
-
-
-### NetBox
-#### 介绍

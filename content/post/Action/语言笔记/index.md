@@ -49,6 +49,7 @@ uv run ch1.py
 CUDA status: True
 CUDA version: 13.0
 ```
+### 异步与多线程(9/27)
 
 ## Golang
 ## Java

@@ -8976,14 +8976,12 @@ INFO:__main__:Initial data created
 ![效果图](PixPin_2026-09-24_14-23-25.webp)
 
 - 忘了将思考和对话的前端单独处理了...
-## ch16: 测试引入
+## ch16: 断章-测试引入
 >并非是说测试不必要,但测试驱动开发还是太扯淡了,只要不是多人合作的大型项目,个人开发者是完全有能力搞清楚整个程序的来龙去脉的,加入测试只是怕自己以后开发的时候忘记了当时想起的需求而已.
 >
 >但当项目大到几百个文件或者说需要多人开发时,那就必须要加测试了,因为人的脑容量终究是有限的,你不可能一个人记得住那么多东西,同样,你不能指望别人能记住所有东西.
 
 有个很现实的问题,没写过测试的人如何知道怎么写测试?唯一的方法就是去阅读经典项目了.
-
-### pytest引入
 
 
 
@@ -8998,15 +8996,10 @@ Schemathesis最早发布于19年,迭代到现在的性能已经相当不错了,�
 ```bash
 uvx schemathesis run http://localhost:8000/api/openapi.json --header "authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA5MjgzNDYsInN1YiI6IjEifQ.t1490N1AUVH1Ptv_iEC97rKQjmFUiOy3hXMfIThP9uk"
 ```
-带上你网站的token后用schemathesis访问即可明白你的文档写的怎么样:
+带上你网站的token后用schemathesis访问即可明白你的API写的怎么样:
 
 ![示意图](PixPin_2026-09-24_18-01-20.webp)
-##### 用到项目里
-1. 添加依赖:
-```bash
-uv add --dev schemathesis
-```
-2. 
+
 
 ## 总结
 洋洋洒洒这么多字,我们也只是做了一个简单到不能再简单的智能体出来,既不能调用工具,也不能上传图片,简陋到了可笑的地步,如此看来,不借助框架,从零开始做Agent平台是真的非常需要综合的技术水平的,就连这么简单的Python语言开发起来都如此费劲.
