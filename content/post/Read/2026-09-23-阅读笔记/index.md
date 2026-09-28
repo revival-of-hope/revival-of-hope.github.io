@@ -866,7 +866,7 @@ Go的泛型与Cpp不同的地方在于,有诸如`any`这样的类型约束,而�
 
 而由于T的类型不一定,所以不能直接返回`nil`,因为int等类型的零值为0,而字符串的类型零值为"",所以必须要借助var的自动初始化的机制来赋值.
 
-### ch9: Errors
+### ch9: Errors(待补充)
 ```go
 func doubleEven(i int) (int, error) {
 	if i%2 != 0 {
@@ -883,6 +883,30 @@ func main() {
 	fmt.Println(result)
 }
 ```
+### ch10: 模块和包
+### ch15: 测试
+Go中普遍使用官方库来写测试,适用`go test`命令来运行测试:
+
+```go
+func TestAdd(t *testing.T) {
+    got := Add(1, 2)
+    if got != 3 {
+        t.Fatalf("Add(1,2) = %d, want 3", got)
+    }
+}
+```
+其中,测试文件名必须以`_test.go`结尾,测试函数必须以`Test`打头,后面的第一个字母必须大写,而且不能是某个类型的方法,而是单纯的函数,不能有返回值,而是通过Error,Fatal等方法来打印调试信息.
+```go
+if got != want {
+    t.Fatal("result is wrong")
+}
+
+// 支持格式化字符串
+if got != want {
+    t.Fatalf("got %d, want %d", got, want)
+}
+```
+
 
 ## RAG with Python Cookbook
 - 出版于2026年，作者：Deepak Dhyani。
@@ -1208,6 +1232,74 @@ print(pages_df)
 近年来，嵌入模型的发展速度不如语言学习模型（LLM）那么快。许多多年前构建的随机抽取（RAG）系统仍然使用 OpenAI 的 text-embedding-ada-002 模型，因为其精度对于检索任务来说仍然足够。这种稳定性意味着模型选择只需一次决策，很少需要重新调整
 
 ### 向量数据库
+>FAISS was released in 2017, followed by Milvus and Weaviate in 2019, Vald in 2020, Pinecone in 2021, and Chroma in 2023.
+
+与此同时,PostgreSQL 和 Elasticsearch等传统数据库也已在其现有平台中添加了矢量搜索功能
+
+
+#### 选择数据库
+如果embedding需要和用户数据放在一起,那么就需要使用传统数据库+插件的形式,如果只用于离线分析,那么就可以用FAISS或者本地的Chroma,如果系统规模很大,那么就用Pinecone或者Milvus.
+
+| 决策问题                                       | 如果答案为“是”，优先考虑                  |
+| ---------------------------------------------- | ----------------------------------------- |
+| **是否允许将数据发送到第三方托管的云服务？**   | **Pinecone** 或 **云托管 PostgreSQL**     |
+| **目前是否已经在使用 PostgreSQL 或 MongoDB？** | **pgvector** 或 **MongoDB Vector Search** |
+| **是否需要将关键词检索与向量检索结合使用？**   | **Elasticsearch、OpenSearch 或 Weaviate** |
+| **小型团队是否希望尽量降低部署和运维成本？**   | **Chroma** 或 **托管版 Pinecone**         |
+
+![示意图](PixPin_2026-09-28_10-38-10.webp)
+
+#### FAISS使用
+```python
+import faiss
+import numpy as np
+from openai import OpenAI
+
+# Example list of sample strings
+text_chunks = [
+    "The sky is blue.",
+    "The sun is shining.",
+    "I love chocolate.",
+    "Ice cream is delicious.",
+    "Roses are red.",
+    "Violets are blue.",
+]
+
+# Initialize the OpenAI embeddings model
+client = OpenAI()
+model = "text-embedding-3-small"
+
+# Generate embeddings for the sample strings
+def get_embedding(text):
+    response = client.embeddings.create(input=text, model=model)
+    return response.data[0].embedding
+
+document_embeddings = np.array(
+    [get_embedding(text) for text in text_chunks]
+)
+
+# Convert embeddings to float32 (FAISS requires float32 type)
+document_embeddings = document_embeddings.astype("float32")
+
+# Create a FAISS index (using L2 distance)
+index = faiss.IndexFlatL2(document_embeddings.shape[1])
+
+# Add embeddings to the index
+index.add(document_embeddings)
+
+# Generate a query embedding for the user query
+query = "What color are violets?"
+query_embedding = np.array(get_embedding(query)).astype("float32")
+
+# Perform the search: k = number of closest documents you want to retrieve
+k = 5
+distances, indices = index.search(query_embedding.reshape(1, -1), k)
+
+# Retrieve the documents corresponding to the indices
+retrieved_documents = [text_chunks[i] for i in indices[0]]
+```
+非常明显,FAISS是一个临时性的内存数据库,不能持久化存储数据,但用起来确实很简单.
+#### Chroma使用
 
 ### 检索
 ### Agentic RAG
@@ -1496,7 +1588,7 @@ volumes:
 - 这确实是我现在做Agent项目的痛点,想要将联网搜索接入Agent里,没有经验的话根本无从下手
 
 MCP 由 Anthropic 开发，将于 2024 年 11 月发布，它是一种基于JSON-RPC 2.0 的开放标准。其设计目标是使人工智能系统能够以一致、安全且高效的方式连接到外部服务.
-### Core components
+### MCP
 
 ## Vector Databases
 - 出版于2026年，出版商：O'Reilly，作者：Nitin Borwankar。
@@ -1512,6 +1604,69 @@ MCP 由 Anthropic 开发，将于 2024 年 11 月发布，它是一种基于JSON
 传统的关系型数据库和NoSQL数据库都无法很好的适应向量处理,而单纯的向量数据库(只存储向量)又丢失了查询的灵活性和存储效率,也不再具备索引功能,所以一个折衷的方式就是混合架构,将向量功能作为扩展插入到关系型数据库和NoSQL数据库中
 
 ### 嵌入
+#### 两种嵌入思想
+![示意图](PixPin_2026-09-28_11-49-09.webp)
+#### 实践指南
+1. 批处理: 加快处理速度
+```py
+# Good practice
+embeddings = model.encode(sentences, batch_size=32)
+# Bad practice
+embeddings = [model.encode(sentence) for sentence in sentences]
+```
+2. 控制长度: 不要嵌入一整个段落,而是分成固定大小的片段
+
+```py
+# Good practice
+max_seq_length = model.max_seq_length
+def chunk_text(text, max_length=max_seq_length):
+    # Split into sentences or chunks
+    chunks = [text[i:i + max_length] for i in range(0, len(text), max_length)]
+    return chunks
+
+# Process long document
+long_text_embeddings = model.encode(chunk_text(long_document))
+```
+3. 归一化: 所有向量都要弄成统一的长度,不然无法比较
+```py
+# Good practice
+embeddings = model.encode(sentences, normalize_embeddings=True)
+# Or manually normalize if needed
+from sklearn.preprocessing import normalize
+embeddings = normalize(embeddings)
+```
+
+4. 使用GPU:
+```py
+# Good practice
+model = SentenceTransformer('all-MiniLM-L6-v2', device='cuda')
+# With error handling
+import torch
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+model = SentenceTransformer(‘all-MiniLM-L6-v2’, device=device)
+```
+5. 控制内存使用: GPU太贵了
+```python
+# Good practice
+import gc
+import torch
+
+def process_large_dataset(sentences, batch_size=32):
+    embeddings = []
+    for i in range(0, len(sentences), batch_size):
+        batch = sentences[i:i + batch_size]
+        batch_embeddings = model.encode(batch)
+        embeddings.extend(batch_embeddings)
+
+        # Clear GPU memory if needed
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        gc.collect()
+
+    return embeddings
+```
+
+
 
 ## Redis设计与实现
 - 出版于2014年，作者：黄健宏。
@@ -1836,6 +1991,41 @@ Redis服务器是一个事件驱动程序，服务器需要处理以下两类事
 
 - 文件事件（file event）：Redis服务器通过套接字与客户端（或者其他Redis服务器）进行连接，而文件事件就是服务器对套接字操作的抽象。服务器与客户端（或者其他服务器）的通信会产生相应的文件事件，而服务器则通过监听并处理这些事件来完成一系列网络通信操作
 - 时间事件（time event）：Redis服务器中的一些操作（比如serverCron函数）需要在给定的时间点执行，而时间事件就是服务器对这类定时操作的抽象。
+##### 文件事件
+**Redis基于Reactor模式开发了自己的网络事件处理器：这个处理器被称为文件事件处理器（file event handler）：**
+
+*   文件事件处理器使用I/O多路复用（multiplexing）程序来同时监听多个套接字，并根据套接字目前执行的任务来为套接字关联不同的事件处理器。
+
+*   当被监听的套接字准备好执行连接应答（accept）、读取（read）、写入（write）、关闭（close）等操作时，与操作相对应的文件事件就会产生，这时文件事件处理器就会调用套接字之前关联好的事件处理器来处理这些事件。
+
+![结构图](PixPin_2026-09-28_12-30-05.webp)
+
+尽管多个文件事件可能会并发地出现，但I/O多路复用程序总是会将所有产生事件的套接字都放到一个队列里面,然后顺序处理,但由于处理速度很快(毕竟全都在内存中实现),所以不会影响高并发.
+
+I/O多路复用程序可以监听多个套接字的`ae.h/AE_READABLE`事件和`ae.h/AE_WRITABLE`事件，这两类事件和套接字操作之间的对应关系如下：
+
+*   当套接字变得可读时（客户端对套接字执行write操作，或者执行close操作），或者有新的可应答（acceptable）套接字出现时（客户端对服务器的监听套接字执行connect操作），套接字产生`AE_READABLE`事件。
+
+*   当套接字变得可写时（客户端对套接字执行read操作），套接字产生`AE_WRITABLE`事件。
+
+I/O多路复用程序允许服务器同时监听套接字的`AE_READABLE`事件和`AE_WRITABLE`事件，如果一个套接字同时产生了这两种事件，那么文件事件分派器会优先处理`AE_READABLE`事件，等到`AE_READABLE`事件处理完之后，才处理`AE_WRITABLE`事件。
+
+这也就是说，如果一个套接字又可读又可写的话，那么服务器将先读套接字，后写套接字。
+
+##### 时间事件
+Redis的时间事件分为以下两类：
+
+*   定时事件：让一段程序在指定的时间之后执行一次。比如说，让程序X在当前时间的30毫秒之后执行一次。
+*   周期性事件：让一段程序每隔指定时间就执行一次。比如说，让程序Y每隔30毫秒就执行一次。
+
+一个时间事件主要由以下三个属性组成：
+
+*   **id**：服务器为时间事件创建的全局唯一ID（标识号）。ID号按从小到大的顺序递增，新事件的ID号比旧事件的ID号要大。
+*   **when**：毫秒精度的UNIX时间戳，记录了时间事件的到达（arrive）时间。
+*   **timeProc**：时间事件处理器，一个函数。当时间事件到达时，服务器就会调用相应的处理器来处理事件。一个时间事件是定时事件还是周期性事件取决于时间事件处理器的返回值
+
+
+
 
 
 ## The Design of Web APIs, Second Edition
@@ -16780,7 +16970,7 @@ CREATE TABLE Accounts (
 
 # 推荐阅读书籍
 看了那么多书,自然能找到几本写的不错的.这里只放了一些核心的书籍,至于那些写的一般的书尽管有一定的阅读价值,但想了想还是不放上来,虽然说"人要从错误中学习",但能少走弯路就别走吧.
-## 综合基础
+## 基础
 ### 操作系统
 `Operating Systems: Three Easy Pieces`我想是每个程序员的必读书了吧,如果要作为补充的话,`操作系统设计与实现`(讲解MINIX)和`Linux内核设计与实现`都是不错的书籍,其他的书就没什么好推荐的了.
 ### 计算机网络
@@ -16797,20 +16987,19 @@ CREATE TABLE Accounts (
 ### 编译原理
 `Crafting Interpreters`是我唯一推荐的书,尽管叫做自制解释器,却在开头的介绍便以清晰的语言让你了解了编译器的种类和基本原理,这是所有的冠以"编译原理"名字的大部头技术书所做不到的,毫不客气的说,他让其他所有的编译原理书在我这都变成了垃圾.
 
-## 前后端
-### 基础
-
+### 杂项/运维
 1. [Pro git](https://git-scm.com/book/zh/v2): 不会git不好意思说自己是程序员吧,而官方的文档比起其他的二手资料要详细的多,但很奇怪的是,在官方文档讲的如此形象有趣的时候,还总是有人喜欢自己去写教程.
 2. [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice): 写前后端必须要会docker吧,这本书比官方文档讲的更好.
 3. `程序设计语言原理`: 大部分内容都是无意义的唠叨,但这本书的第二章让它能够在这里获得一个席位,以详实的笔调记录了程序设计语言的整个发展历史,可以这么说,这是我见过的最详细的资料了,任何一个好奇我们是如何从Fortran进化到Go的程序员都应该来读这本书,当然,读第二章就可以了.
 4. `深入浅出密码学`: 要想写出一个安全的网站,这本书是必读的.
 5. `Designing APIs with Swagger and OpenAPI`: 鉴于现在还是Rest的天下,所以学习OpenAPI还是很有必要的,而这本书讲的也很具体形象
 6. `GitHub Actions in Action`: Github Action确实很好用,尽管进了公司以后用的可能是自研平台,但原理还是相通的,这也是具体学习CI/CD的一个很好的途径
-7. `数据存储架构与技术`: 尽管和教科书没太大差别,但胜在非常全面,好奇硬盘存储原理和存储架构的都可以来看一看.
 
-
-### 高级
-1. `System Design Interview – An Insider's Guide`: 别看标题是这样,实际上是以面试的问答形式剖析了常见系统架构的具体实现,难得一见的好书.
+## 架构/数据库
+- `Redis设计与实现`: 一口气读下去的话就可以学习到Redis的精髓
+- `数据存储架构与技术`: 尽管和教科书没太大差别,但胜在非常全面,好奇硬盘存储原理和存储架构的都可以来看一看.
+- `System Design Interview – An Insider's Guide`: 别看标题是这样,实际上是以面试的问答形式剖析了常见系统架构的具体实现,难得一见的好书.
+## 语言
 ### C/CPP
 - `Beginning C,From Beginner to Pro`: 这本书结构清晰,是真正的优秀教程,学完这个再学Cpp包没问题的,谁再推荐`C Programming Language`入门C语言我就直接上门去骂了
 - `程序员自我修养`: 尽管这本书很老,而且不少内容具有迷惑性,章节之间比较割裂,但却是讲解C语言编译原理中难得的好书了,能够让你知道静态链接和动态链接到底是什么,而我目前都没能找到任何一本能够比他还全面的书了.
@@ -16819,7 +17008,6 @@ CREATE TABLE Accounts (
 
 ### Go
 - `Learning Go`: 比什么Go语言圣经还有什么Go Tour好上一万倍吧
-
 
 ## Agent
 - `Deep Learning from Scratch`是我最推荐的深度学习入门书籍,他能够让你知道,神经网络可以很简单,根本不是多复杂的东西,而我们离所谓高深莫测的AI也并没有那么遥远.

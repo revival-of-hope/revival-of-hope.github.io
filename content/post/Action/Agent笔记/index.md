@@ -1,13 +1,36 @@
 ---
 title: "Agent笔记"
 date: 2026-09-17T20:43:52+08:00
-image: 63809324_p0-Sunshine！.webp
+image: 134718880_p0-さっさと片付けるわよ.webp
 
 ---
 # Models
 ## 语音识别
 
-# Agent工具
+# Agent搭建
+## Agent框架
+### 框架历史-AI
+| 时间                   | 代表框架 / 事件                               | 当时最核心的思想                                                   | 主要解决什么问题                                        | 历史位置                                                                                    |
+| ---------------------- | --------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **2022 上半年—下半年** | **ReAct**                                     | `Reason → Action → Observation → Reason`                           | 让 LLM 不只生成答案，还能调用外部工具并根据结果继续决策 | **现代 Agent Loop 的理论基础**                                                              |
+| **2022.10**            | **LangChain**                                 | `Prompt + LLM + Tool + Retriever + Chain`                          | 把零散的 LLM 能力组合成应用                             | **LLM 应用框架时代开始**；LangChain 首版 Python 包于 2022-10-24 发布。([LangChain 博客][1]) |
+| **2023 上半年**        | **AutoGPT、BabyAGI、AgentGPT**                | `Goal → Plan → Act → Reflect → Repeat`                             | 用户只给最终目标，让 LLM 自己制定和执行计划             | **Autonomous Agent 热潮**；第一次大规模探索“全自动 Agent”                                   |
+| **2023 中后期**        | LangChain Agents、各种 Function Calling Agent | `LLM + Tools + Agent Loop`                                         | 稳定完成搜索、数据库、API 等工具调用                    | Agent 从 Demo 开始进入实际应用                                                              |
+| **2023.09 起**         | **Microsoft AutoGen**                         | `Agent ↔ Agent`，以消息通信组织多个 Agent                          | 单 Agent 能力有限，希望多个专业 Agent 协作              | **Multi-Agent 框架的重要代表**                                                              |
+| **2023–2024**          | **CrewAI**                                    | `Role + Goal + Task + Crew`                                        | 把研究员、程序员、审核员等角色组成“AI 团队”             | 把 Multi-Agent 做成非常直观的角色/组织模型                                                  |
+| **2023–2024**          | **Semantic Kernel**                           | LLM + Plugin + Planner + 普通程序代码                              | 将 Agent 能力嵌入传统企业软件                           | 代表微软偏 **Enterprise SDK** 的路线                                                        |
+| **2024 初**            | **LangGraph**                                 | `State + Node + Edge`                                              | 全自主 Agent 不稳定，因此显式定义状态和允许的执行路径   | **从 Autonomous Agent 转向 Controlled Workflow 的关键节点**                                 |
+| **2024**               | **LlamaIndex Workflows / Agents**             | Event-driven Workflow + RAG + Agent                                | 让 Agent 能可靠地围绕企业数据、RAG、工具执行复杂流程    | RAG 框架开始全面 Agent 化                                                                   |
+| **2024**               | **AutoGen 0.4 等新一代 Multi-Agent Runtime**  | Event / Message / Actor / Runtime                                  | Multi-Agent 的状态、消息、执行、调试、扩展问题          | Multi-Agent 从“几个模型聊天”转向真正的软件系统                                              |
+| **2024**               | **PydanticAI** 等轻量框架                     | `Typed Agent + Structured Output + Dependency Injection`           | 大型 Agent 框架抽象过多，希望回到普通 Python 工程模式   | **类型安全、轻量化 Agent SDK** 趋势                                                         |
+| **2024.11.25**         | **MCP**                                       | `Agent ↔ Tool/Data` 的统一协议                                     | 每个框架都要单独接 GitHub、数据库、文件系统等工具的问题 | **Agent 工具生态开始协议标准化**。([Anthropic][2])                                          |
+| **2025.03.11**         | **OpenAI Agents SDK + Responses API**         | `Agent + Tool + Handoff + Guardrail + Tracing`                     | 用更薄的 SDK 构建单 Agent / Multi-Agent，并结合原生工具 | 模型厂商正式进入 Agent Framework 层。([OpenAI][3])                                          |
+| **2025.04.09**         | **Google A2A**                                | `Agent ↔ Agent` 标准协议                                           | 不同公司、不同框架开发的 Agent 怎样相互发现、通信和协作 | **Agent 间协议标准化**。([Google 开发者博客][4])                                            |
+| **2025–2026**          | LangGraph、Agents SDK、Google ADK、AutoGen 等 | Durable execution、checkpoint、sandbox、tracing、human-in-the-loop | Agent 长时间运行、失败恢复、权限、安全、可观测性        | Agent 开始从“框架”向 **Runtime / Infrastructure** 演变                                      |
+| **2026 至今**          | 新一代 Agent Runtime / Harness                | `Model + Tools + State + Sandbox + Persistence + Runtime`          | 让 Agent 真正承担分钟级、小时级乃至更长的任务           | 当前重点已经越来越接近**后端、工作流引擎和分布式系统**                                      |
+
+
+# Agent应用
 ## Ollama
 
 ### 起步
@@ -166,8 +189,8 @@ Your working directory is F:\codes\learn\backend\python\MediaCrawler.
 ```
 
 - 这个工具编排还是很有意思的.
-## 其他工具
-# 历史调研
+
+# LLM历史
 ## 大模型: 一切的开始
 
 ### OpenAI: 我一开始没想挣钱的

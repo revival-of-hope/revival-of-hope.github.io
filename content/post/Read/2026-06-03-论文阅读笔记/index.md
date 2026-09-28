@@ -479,7 +479,7 @@ NP完全问题至今都无法找到多项式时间内的解法,而在80年代就
 8. 2023年<< LLaMA: Open and Efficient Foundation Language Models >>提出了LLaMA框架.
 9. 2025年<< DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning >>提出了DeepSeek-R1框架.
 
-
+### 碎碎念
 - 这些主要论文中间穿插着许多奠基者的研究成果,我也会适当地学习这些论文.
 - 由于我只是一个业余爱好者,只想准确的了解现代大模型背后的原理,所以只会挑选最经典或者最优秀的论文来大致学习一下.
 - (5/22): 早期论文大多会深入底层的原理,讲的特别深入和透彻,能够洋洋洒洒写三四十页;而越是新的论文,就越是含混不清,潦草的介绍了公式和框架就结束了,总共十几页中能有四五页真东西就不错了.这固然有版面限制的原因在,但我想还是因为风气出了问题.
@@ -1239,10 +1239,10 @@ $q(x) = \text{BERT}_q(x)$
 
 
 ![示意图](PixPin_2026-06-06_19-28-32.webp)
-## Training Compute-Optimal Large Language Models(2022)
-![首页](PixPin_2026-06-02_13-23-39.webp)
+
 ## Training language models to follow instructions with human feedback(2022)
 - InstructGPT,实际基本对应了GPT3.5
+
 ![首页](PixPin_2026-06-06_19-33-26.webp)
 
 ### 概览与总结
@@ -1272,6 +1272,15 @@ $q(x) = \text{BERT}_q(x)$
 
 ![对比图](PixPin_2026-06-09_14-58-20.webp)
 
+## ReAct: Synergizing Reasoning and Acting in Language Models(2022)
+- (9/28): Google加Princeton,强强联手,自然,姚顺雨是第一作者
+
+### 概要
+人类的优势在于可以在复杂的环境下同时执行`acting`和`reasoning`,即边做边思考下一步,如果将这种能力引入LLM,那么效果一定很好:
+
+![四种结果](PixPin_2026-09-28_14-57-18.webp)
+
+
 
 ## LLaMA: Open and Efficient Foundation Language Models(2023)
 ![首页](PixPin_2026-05-10_20-30-42.webp)
@@ -1296,7 +1305,7 @@ LLaMA参考了之前几篇了论文提出的解码器优化结构,如GPT-3,PaLM,
 - 非常遗憾的是,尽管阿里是比较早开始搭建大模型的中国公司,但它在开放模型权重的同时并没有开放训练数据集,对于独立研究者来说,这就跟去拉蒂娜只吃自取台一样.这无疑给中国大模型研究界开了一个不太好的头.
 
 ### 概览与总结
-QWEN的架构基本照搬了LLaMA的架构,移植了一些其他论文中提到的改进方法,实际的产出模型在某些方面可以与GPT3.5相比.
+QWEN的架构**基本照搬**了LLaMA的架构,移植了一些其他论文中提到的改进方法,实际的产出模型在某些方面可以与GPT3.5相比.
 
 ## Instruction Pre-Training: Language Models are Supervised Multitask Learners(2024)
 - 很明显,这个标题是对GPT-2标题的一个用典
@@ -1327,9 +1336,9 @@ specializes in low-power processors for wearables and IoT devices.
 
 LLM会提取出以下三条信息:
 
-• The entity NeoChip, with description “NeoChip is a publicly traded company specializing in low-power processors for wearables and IoT devices.”
-• The entity Quantum Systems, with description “Quantum Systems is a firm that previously owned NeoChip.”
-• A relationship between NeoChip and Quantum Systems, with description “Quantum Systems owned NeoChip from 2016 until NeoChip became publicly traded.”
+- The entity NeoChip, with description “NeoChip is a publicly traded company specializing in low-power processors for wearables and IoT devices.”
+- The entity Quantum Systems, with description “Quantum Systems is a firm that previously owned NeoChip.”
+- A relationship between NeoChip and Quantum Systems, with description “Quantum Systems owned NeoChip from 2016 until NeoChip became publicly traded.”
 
 之后,我们将每个主体和对应的描述储存在一个个节点中,将关系作为节点之间的边,关系相近的节点被聚拢在一起,称为社区(community).多个关系相近的社区又会被聚拢在一起,从而形成一个多层级的社区.每个社区都会由LLM生成一个关于该社区的摘要
 

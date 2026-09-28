@@ -8982,15 +8982,10 @@ INFO:__main__:Initial data created
 >但当项目大到几百个文件或者说需要多人开发时,那就必须要加测试了,因为人的脑容量终究是有限的,你不可能一个人记得住那么多东西,同样,你不能指望别人能记住所有东西.
 
 有个很现实的问题,没写过测试的人如何知道怎么写测试?唯一的方法就是去阅读经典项目了.
-
-
-
-### API测试
-- [Schemathesis文档](https://schemathesis.readthedocs.io/en/stable/)
-#### Schemathesis
+### Schemathesis自动化测试
 >Schemathesis automatically generates property-based tests from your OpenAPI or GraphQL schema, chains operations into realistic workflows, and exercises the edge cases that break your API.
 
-简单来说,Schemathesis可以根据你的openapi.json自动测试你的文档健壮性.
+简单来说,Schemathesis可以根据你的openapi.json自动测试你的API健壮性.
 
 Schemathesis最早发布于19年,迭代到现在的性能已经相当不错了,用法也很简单:
 ```bash
@@ -9006,3 +9001,5 @@ uvx schemathesis run http://localhost:8000/api/openapi.json --header "authorizat
 
 
 # 智能体进阶
+## ch17: 联网搜索引入
+## ch18: Agent框架测评
