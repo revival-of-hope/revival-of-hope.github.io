@@ -8976,7 +8976,7 @@ INFO:__main__:Initial data created
 ![效果图](PixPin_2026-09-24_14-23-25.webp)
 
 - 忘了将思考和对话的前端单独处理了...
-## ch16: 断章-测试引入
+## ch16: 断章-测试引入与API优化
 >并非是说测试不必要,但测试驱动开发还是太扯淡了,只要不是多人合作的大型项目,个人开发者是完全有能力搞清楚整个程序的来龙去脉的,加入测试只是怕自己以后开发的时候忘记了当时想起的需求而已.
 >
 >但当项目大到几百个文件或者说需要多人开发时,那就必须要加测试了,因为人的脑容量终究是有限的,你不可能一个人记得住那么多东西,同样,你不能指望别人能记住所有东西.
@@ -8994,6 +8994,70 @@ uvx schemathesis run http://localhost:8000/api/openapi.json --header "authorizat
 带上你网站的token后用schemathesis访问即可明白你的API写的怎么样:
 
 ![示意图](PixPin_2026-09-24_18-01-20.webp)
+
+### Scalar引入
+1. 安装scalar扩展:
+```bash
+uv add scalar-fastapi
+```
+2. 修改main.py,加入一行修饰即可:
+
+```py
+import uvicorn
+from fastapi import FastAPI
+from app.api.main import api_router
+from starlette.middleware.cors import CORSMiddleware
+from scalar_fastapi import add_scalar_reference
+
+app = FastAPI(
+    title="demo",
+    openapi_url="/api/openapi.json",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+)
+
+app.include_router(api_router, prefix="/api")
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+add_scalar_reference(app)
+
+
+def main():
+    uvicorn.run(
+        "main:app",
+        host="localhost",
+        port=8000,
+        workers=1,
+    )
+
+
+if __name__ == "__main__":
+    main()
+```
+3. 重建容器后打开`http://127.0.0.1:8000/scalar`:
+
+![界面](PixPin_2026-09-28_23-23-15.webp)
+
+这看上去就比原始的Swagger文档高档不少吧.
+
+不但有极端清晰的测试页面:
+
+![测试页面](PixPin_2026-09-28_23-24-50.webp)
+
+还能看明白用到的所有模型:
+
+![模型](PixPin_2026-09-28_23-28-22.webp)
 
 
 ## 总结

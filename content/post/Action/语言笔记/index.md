@@ -74,6 +74,61 @@ uv彻底终结了比赛,并让python的学习变得异常轻松.
 #### 中间件
 >“中间件”是一个函数，它会在每个特定的路径操作处理每个请求之前运行，也会在返回每个响应之前运行
 
+```py
+import time
+
+from fastapi import FastAPI, Request
+
+app = FastAPI()
+
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time = time.perf_counter() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
+```
+这个函数会在每一次HTTP请求到达client时自动运行,用于添加响应头.
+
+而中间件实际上也只有`http`这个粒度,顶多根据方法来筛选:
+```py
+@app.middleware("http")
+async def middleware(request: Request, call_next):
+    if request.method == "POST":
+        print("POST 请求")
+
+    return await call_next(request)
+```
+所以用处基本约等于没有.
+
+#### 后台任务
+我们可以定义在返回响应后运行的后台任务,这对需要在请求之后执行的操作很有用，但客户端不必在接收响应之前等待操作完成,例如:
+1. 执行操作后发送的电子邮件通知：
+   1. 由于连接到电子邮件服务器并发送电子邮件往往很“慢”（几秒钟），你可以立即返回响应并在后台发送电子邮件通知。
+2. 处理数据：
+   1. 例如，假设你收到的文件必须经过一个缓慢的过程，你可以返回一个"Accepted"(HTTP 202)响应并在后台处理它。
+
+```py
+from fastapi import BackgroundTasks, FastAPI
+
+app = FastAPI()
+
+
+def write_notification(email: str, message=""):
+    with open("log.txt", mode="w") as email_file:
+        content = f"notification for {email}: {message}"
+        email_file.write(content)
+
+
+@app.post("/send-notification/{email}")
+async def send_notification(email: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(write_notification, email, message="some notification")
+    return {"message": "Notification sent in the background"}
+```
+很明显,这个类只适合一些基础场景,稍微复杂一点的话就要用消息队列来搞了.
+
 
 ### 异步与多线程(9/27)
 
