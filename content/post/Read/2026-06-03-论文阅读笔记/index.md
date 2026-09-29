@@ -1422,17 +1422,6 @@ $q(x) = \text{BERT}_q(x)$
 
 ![对比图](PixPin_2026-06-09_14-58-20.webp)
 
-## 智能体构建
-### ReAct: Synergizing Reasoning and Acting in Language Models(2022)
-
-- (9/28): Google加Princeton,强强联手,自然,姚顺雨是第一作者
-
-#### 概要
-
-人类的优势在于可以在复杂的环境下同时执行`acting`和`reasoning`,即边做边思考下一步,如果将这种能力引入LLM,那么效果一定很好:
-
-![四种结果](PixPin_2026-09-28_14-57-18.webp)
-
 ### LLaMA: Open and Efficient Foundation Language Models(2023)
 
 ![首页](PixPin_2026-05-10_20-30-42.webp)
@@ -1464,55 +1453,6 @@ LLaMA参考了之前几篇了论文提出的解码器优化结构,如GPT-3,PaLM,
 #### 概览与总结
 
 QWEN的架构****基本照搬****了LLaMA的架构,移植了一些其他论文中提到的改进方法,实际的产出模型在某些方面可以与GPT3.5相比.
-
-### Instruction Pre-Training: Language Models are Supervised Multitask Learners(2024)
-
-- 很明显,这个标题是对GPT-2标题的一个用典
-
-![首页](PixPin_2026-06-01_21-05-56.webp)
-
-#### 概览与总结
-
-该论文提出两种预训练方式:
-
-1. Vanilla Pre-Training(普通预训练): GPT-3,GPT-2对应的预训练方式
-2. Instruction Pre-Training(指令预训练): 该论文提出的新型预训练方式
-
-![架构图](PixPin_2026-06-08_14-48-28.webp)
-
-实际效果也是不错的,训练出来的Llama3-8B在某些领域甚至可以超过Llama3-70B.
-
-### From Local to Global: A GraphRAG Approach to Query-Focused Summarization(2024)
-
-![首页](PixPin_2026-06-08_14-51-17.webp)
-
-- GraphRAG是由微软提出来的RAG改进版
-
-#### 概览与总结
-
-- [项目源码](https://github.com/microsoft/graphrag)
-
-首先,我们将语料切分成文本块,使用LLM处理语料,提取出里面的主体内容(entity)和对应的描述(description)与联系(relationship),比如对于这段语料:
-
->NeoChip’s (NC) shares surged in their first week of trading on the NewTech Ex-
-change. However, market analysts caution that the chipmaker’s public debut may
-not reflect trends for other technology IPOs. NeoChip, previously a private entity,
-was acquired by Quantum Systems in 2016. The innovative semiconductor firm
-specializes in low-power processors for wearables and IoT devices.
-LLM会提取出以下三条信息:
-
-- The entity NeoChip, with description “NeoChip is a publicly traded company specializing in low-power processors for wearables and IoT devices.”
-- The entity Quantum Systems, with description “Quantum Systems is a firm that previously owned NeoChip.”
-- A relationship between NeoChip and Quantum Systems, with description “Quantum Systems owned NeoChip from 2016 until NeoChip became publicly traded.”
-
-之后,我们将每个主体和对应的描述储存在一个个节点中,将关系作为节点之间的边,关系相近的节点被聚拢在一起,称为社区(community).多个关系相近的社区又会被聚拢在一起,从而形成一个多层级的社区.每个社区都会由LLM生成一个关于该社区的摘要
-
-对于每一次查询,我们可以选中与查询关系层级相同的一些社区,并用LLM从这些社区中总结得到待拼接的最优语料.
-
-很明显,这种方法需要我们用来处理语料的大模型足够强,否则得到的GraphRAG就不具备实际使用的价值.再说,光是处理语料就会消耗大量的token,而具体的查询方法和如何锁定社区,论文也并没有提到.
-
-总的来说,GraphRAG是相当不成熟和实验性的,不过由于是微软出品的,所以国内厂商还是迅速跟进了,至于效果如何,我看并没有多少显著的提升,不然早就发新论文了.
-
 ### DeepSeek-V3 Technical Report(2024)
 
 ![首页](PixPin_2026-06-10_20-52-27.webp)
@@ -1583,6 +1523,66 @@ LLM会提取出以下三条信息:
 ![语料图](PixPin_2026-06-10_15-52-25.webp)
 
 - 只要一直喂下去,模型因为发现没有按照格式来就会被打低分,自然就会先输出思考再输出回答了
+### DeepSeek-V4: Towards Highly Efficient Million-Token Context Intelligence(2026)
+
+![首页](PixPin_2026-06-12_13-11-36.webp)
+
+#### 概览与总结
+
+- DeepSeek-V4的参数大小为一万六千亿,已经远远超过了DeepSeek-R1的大小,但实际调用API的体验上
+
+![模型架构图](PixPin_2026-06-12_13-21-22.webp)
+
+不得不说,新模型的架构太难看懂了,掺杂了很多近两年甚至是当年提出的新架构,我已经完全看不懂了,还是看看对比图吧:
+
+![对比图](PixPin_2026-06-12_13-38-01.webp)
+
+而实际调用API的体验也是不错的,主要的瓶颈反而是在输出长度和对多模态的支持上,不过这也没办法,DeepSeek的技术积累和资金支持还是比不过那些国际企业的,不过这个表现就已经很惊人了.
+
+## 智能体构建
+### ReAct: Synergizing Reasoning and Acting in Language Models(2022)
+
+- (9/28): Google加Princeton,强强联手,自然,姚顺雨是第一作者
+
+#### 概要
+
+人类的优势在于可以在复杂的环境下同时执行`acting`和`reasoning`,即边做边思考下一步,如果将这种能力引入LLM,那么效果一定很好:
+
+![四种结果](PixPin_2026-09-28_14-57-18.webp)
+
+
+
+### From Local to Global: A GraphRAG Approach to Query-Focused Summarization(2024)
+
+![首页](PixPin_2026-06-08_14-51-17.webp)
+
+- GraphRAG是由微软提出来的RAG改进版
+
+#### 概览与总结
+
+- [项目源码](https://github.com/microsoft/graphrag)
+
+首先,我们将语料切分成文本块,使用LLM处理语料,提取出里面的主体内容(entity)和对应的描述(description)与联系(relationship),比如对于这段语料:
+
+>NeoChip’s (NC) shares surged in their first week of trading on the NewTech Ex-
+change. However, market analysts caution that the chipmaker’s public debut may
+not reflect trends for other technology IPOs. NeoChip, previously a private entity,
+was acquired by Quantum Systems in 2016. The innovative semiconductor firm
+specializes in low-power processors for wearables and IoT devices.
+LLM会提取出以下三条信息:
+
+- The entity NeoChip, with description “NeoChip is a publicly traded company specializing in low-power processors for wearables and IoT devices.”
+- The entity Quantum Systems, with description “Quantum Systems is a firm that previously owned NeoChip.”
+- A relationship between NeoChip and Quantum Systems, with description “Quantum Systems owned NeoChip from 2016 until NeoChip became publicly traded.”
+
+之后,我们将每个主体和对应的描述储存在一个个节点中,将关系作为节点之间的边,关系相近的节点被聚拢在一起,称为社区(community).多个关系相近的社区又会被聚拢在一起,从而形成一个多层级的社区.每个社区都会由LLM生成一个关于该社区的摘要
+
+对于每一次查询,我们可以选中与查询关系层级相同的一些社区,并用LLM从这些社区中总结得到待拼接的最优语料.
+
+很明显,这种方法需要我们用来处理语料的大模型足够强,否则得到的GraphRAG就不具备实际使用的价值.再说,光是处理语料就会消耗大量的token,而具体的查询方法和如何锁定社区,论文也并没有提到.
+
+总的来说,GraphRAG是相当不成熟和实验性的,不过由于是微软出品的,所以国内厂商还是迅速跟进了,至于效果如何,我看并没有多少显著的提升,不然早就发新论文了.
+
 
 ### KIMI K2: OPEN AGENTIC INTELLIGENCE(2025)
 
@@ -1604,21 +1604,6 @@ KIMI K2基本照搬了DeepSeek-V3的的架构,参数量提高到了一千亿,然
 
 KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智能体集群,实际效果还不错,但由于涉及的专业术语太多,不太适合我这种门外汉理解,就不过多深入了.
 
-### DeepSeek-V4: Towards Highly Efficient Million-Token Context Intelligence(2026)
-
-![首页](PixPin_2026-06-12_13-11-36.webp)
-
-#### 概览与总结
-
-- DeepSeek-V4的参数大小为一万六千亿,已经远远超过了DeepSeek-R1的大小,但实际调用API的体验上
-
-![模型架构图](PixPin_2026-06-12_13-21-22.webp)
-
-不得不说,新模型的架构太难看懂了,掺杂了很多近两年甚至是当年提出的新架构,我已经完全看不懂了,还是看看对比图吧:
-
-![对比图](PixPin_2026-06-12_13-38-01.webp)
-
-而实际调用API的体验也是不错的,主要的瓶颈反而是在输出长度和对多模态的支持上,不过这也没办法,DeepSeek的技术积累和资金支持还是比不过那些国际企业的,不过这个表现就已经很惊人了.
 
 ## 总结
 
