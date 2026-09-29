@@ -5,6 +5,9 @@ image: 28876767_p0-＼ ハッピーバースデイ ／.webp
 description: 科研固然枯燥,却是文明进步的基石
 math: true
 ---
+>[!TIP]
+>自从Arxiv推出了HTML阅读模式,就再也不用担心看英文论文麻烦了,直接Google网页翻译即可
+
 
 # 算法与数据结构论文
 
@@ -105,7 +108,7 @@ math: true
 
 ![看不懂一点](PixPin_2026-09-09_11-45-38.webp)
 
-### Paxos Made Simple(2001)
+### Paxos Made Simple(01)
 - 由于原始论文难以理解，Lamport在2001年发表了这篇简化版论文,这篇论文放弃了所有希腊城邦的比喻，用直白的语言重新描述了算法
 
 >The Paxos algorithm, when presented in plain English, is very simple.
@@ -161,7 +164,7 @@ Basic Paxos每达成一次共识都需要经历两轮网络通信，效率较低
 
 - 至于本人是怎么想出来的这种精妙结构,那只有天知道了
 
-### MapReduce: Simplified Data Processing on Large Clusters(2004)
+### MapReduce: Simplified Data Processing on Large Clusters(04)
 - MapReduce,Google出品
 #### 摘要
 MapReduce 是一种处理和生成大规模数据集的编程模型，以及与之配套的实现。
@@ -208,7 +211,7 @@ Reduce：把所有的 1 加起来
 首先执行Map,给相同的商品/记录分配同一个ID,在Shuffle阶段合并所有相同ID的商品/记录,这是通过Master监控的网络传输实现的,然后再由Reduce函数执行汇总同类数据的任务,并得到最终的统计值,这个统计值是会发送到共享文件夹中的.
 
 
-### Bitcoin: A Peer-to-Peer Electronic Cash System(2008)
+### Bitcoin: A Peer-to-Peer Electronic Cash System(08)
 - Bitcoin
 
 既然是这么NB的论文,那还是乖乖的通读全文吧.
@@ -247,7 +250,7 @@ Reduce：把所有的 1 加起来
 设计上是非常精巧的,问题来了,这到底是怎么想出来的,这和卷积神经网络一样巧夺天工的设计绝非常人所为.
 
 
-### Kafka: a Distributed Messaging System for Log Processing(2011)
+### Kafka: a Distributed Messaging System for Log Processing(11)
 - Kafka
 
 ![封面](PixPin_2026-07-27_09-35-35.webp)
@@ -261,7 +264,7 @@ Kafka, the information about how much each consumer has consumed is not maintain
 
 整篇论文也只是简单地谈了谈Kafka的基本原理而已,真要学习的话还得去看专门的文档.
 
-### In Search of an Understandable Consensus Algorithm(2014)
+### In Search of an Understandable Consensus Algorithm(14)
 - Raft,斯坦福大学出品
 
 #### 摘要
@@ -415,7 +418,7 @@ LSM-tree采用一种称为`rolling merge`的合并策略,每当插入使 \(C_0\)
 #### 总结
 论文剩下的部分就是计算LSM树的性能了,我当然是直接跳过的,知道它很NB就足够了.
 ![图示](PixPin_2026-07-19_10-36-47.webp)
-### HOT: A Height Optimized Trie Index for Main-Memory Database Systems(2018)
+### HOT: A Height Optimized Trie Index for Main-Memory Database Systems(18)
 #### 摘要
 >Trie 是一种树结构，其中一个节点的所有后代共享相同的前缀，而节点的子节点则根据键剩余部分的二进制表示进行查找。
 
@@ -651,7 +654,7 @@ $$x_{state}(t+1) = \mu \cdot x_{state}(t) + x_{output}(t)$$
 
 >在Transformer诞生之前,LSTM是主流的NLP框架,尽管它能够处理更长的时间步长,但在面对大量的数据时仍然无能无力,所以现在的大模型都不会使用它了.
 
-### A Neural Probabilistic Language Model(2003)
+### A Neural Probabilistic Language Model(03)
 
 - 这篇论文引入了embedding的雏形概念,是后续NLP模型的必要组成部分.
 
@@ -695,7 +698,7 @@ table → [-0.56, 0.21, -0.09, ...]
 
 整体原理相当简单,遗憾的是写文章的人相当咬文嚼字,长难句一大堆,不太喜欢把技术实现写明白点.
 
-### Linguistic Regularities in Continuous Space Word Representations(2013)
+### Linguistic Regularities in Continuous Space Word Representations(13)
 
 ![首页](PixPin_2026-05-27_13-38-36.webp)
 
@@ -713,7 +716,7 @@ $$\text{king} - \text{man} + \text{woman} \approx \text{queen}$$
 
 该论文通过实验证明,如果词向量的维度越高,计算出来的相似词的准确度就越高,部分解答了为什么词向量能够对应现实文本的语义,为后续的模型训练提供了一定的理论依据.
 
-### Efficient Estimation of Word Representations in Vector Space(2013)
+### Efficient Estimation of Word Representations in Vector Space(13)
 
 ![首页](PixPin_2026-05-27_13-13-00.webp)
 
@@ -725,13 +728,13 @@ $$\text{king} - \text{man} + \text{woman} \approx \text{queen}$$
 
 >CBOW根据上下文语境预测中间词,而Skip-gram根据中间词预测上下文
 
-### Dropout: A Simple Way to Prevent Neural Networks from Overfitting(2014)()
+### Dropout: A Simple Way to Prevent Neural Networks from Overfitting(14)()
 
 ![首页](PixPin_2026-05-29_12-15-41.webp)
 
 - 在一大堆公司冠名的论文中突然冒出来一个多伦多大学还是很惊艳的
 
-### Learning Phrase Representations using RNN Encoder–Decoder for Statistical Machine Translation(2014)
+### Learning Phrase Representations using RNN Encoder–Decoder for Statistical Machine Translation(14)
 
 ![首页](PixPin_2026-05-22_12-55-39.webp)
 
@@ -756,7 +759,7 @@ $$P(y_t \mid y_1, ..., y_{t-1}, c)$$
 
 由于当时SMT(statistical machine translation)是主流的NLP模型,所以该论文仅仅是把这个新架构作为SMT的补充部分,没有预想到它的潜力会有这么大.
 
-### Sequence to Sequence Learning with Neural Networks(2014)
+### Sequence to Sequence Learning with Neural Networks(14)
 
 ![首页](PixPin_2026-05-28_15-16-37.webp)
 
@@ -766,7 +769,7 @@ $$P(y_t \mid y_1, ..., y_{t-1}, c)$$
 
 - 这篇论文基本贡献只是把上一篇论文中的RNN隐藏层换成了LSTM单元,彻底脱离了SMT system,尽管如此,它的影响力还是比较大的,后续论文尊称该论文的模型架构为seq2seq模型.
 
-### Distilling the Knowledge in a Neural Network(2015)
+### Distilling the Knowledge in a Neural Network(15)
 
 ![首页](PixPin_2026-06-10_15-55-49.webp)
 
@@ -784,12 +787,12 @@ $$P(y_t \mid y_1, ..., y_{t-1}, c)$$
 
 尽管如此,直接构造一个小模型未必就会比蒸馏得到的小模型差,所以实际的用途还是比较有限,当然如果自己没有足够的算力用来训练,直接复用别人的开源模型拿来蒸馏,就可以得到一个规模相当的"新模型",这是一个非常值当的买卖,很多"科创公司"实际上也正是这样做的.
 
-### ADAM: A METHOD FOR STOCHASTIC OPTIMIZATION(2015)
+### ADAM: A METHOD FOR STOCHASTIC OPTIMIZATION(15)
 
 ![示意图](PixPin_2026-05-08_17-07-53.webp)
 
 - 这篇2015年的论文提出了一种新的神经网络学习方法:ADAM,是两年后推出的Transformer模型的核心算法,还是很有必要了解的
-- (2026/4): 第一次读论文,也不知道怎么读,总不至于全部复制过来再逐个翻译吧,想了想还是读完全文后做一点要点总结算了.
+- (26/4): 第一次读论文,也不知道怎么读,总不至于全部复制过来再逐个翻译吧,想了想还是读完全文后做一点要点总结算了.
 
 #### 引入
 
@@ -926,7 +929,7 @@ to implement and requires little memory.
 >Overall, we found Adam to be ****robust and well-suited to a wide range of non-convex optimization problems**** in the field machine learning.
 第一篇论文看下来的感受还是挺好的,既没有什么宏大叙事,也没有多少弯弯绕绕,很清楚的把一个算法的前前后后都讲清楚了,非常推荐阅读.
 
-### Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift(2015)
+### Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift(15)
 
 - 影响非常深远的BN方法就是这篇论文提出的
 
@@ -962,7 +965,7 @@ $$y_i = \gamma \hat{x}_i + \beta$$
 
 >实际上确实是很简单的处理,但偏偏就是很有效.
 
-### Deep Residual Learning for Image Recognition(2015)
+### Deep Residual Learning for Image Recognition(15)
 
 - 深度残差网络在2015年的ImageNet比赛中问世,成功击败了所有的竞争模型,一举夺魁.
 
@@ -982,9 +985,9 @@ $$y_i = \gamma \hat{x}_i + \beta$$
 
 - 至于要看具体是怎么做的,该论文提供了[github仓库](https://github.com/kaiminghe/deep-residual-networks),还是很不错的
 
->后续的<< Identity Mappings in Deep Residual Networks(2016) >>中这四个作者对ResNet做了进一步的分析,并提出了一个优化版本.
+>后续的<< Identity Mappings in Deep Residual Networks(16) >>中这四个作者对ResNet做了进一步的分析,并提出了一个优化版本.
 
-### Neural Machine Translation by Jointly Learning to Align and Translate(2016)
+### Neural Machine Translation by Jointly Learning to Align and Translate(16)
 
 ![首页](PixPin_2026-05-30_14-03-16.webp)
 
@@ -1003,7 +1006,7 @@ $$y_i = \gamma \hat{x}_i + \beta$$
 - 实际做法还是通过softmax计算每个向量h_i对于这个输出单词y_t的贡献,并做加权求和,而不是只选取贡献最大的向量h_i.
 
 ## Transformer兴起
-### Attention Is All You Need(2017)(待补充)
+### Attention Is All You Need(17)(待补充)
 
 ![示意图](PixPin_2026-05-10_20-31-11.webp)
 
@@ -1021,7 +1024,7 @@ $$y_i = \gamma \hat{x}_i + \beta$$
 1. Encoder: 由6个完全相同的层堆叠而成,每层由两个子层构成,一个是多头的注意力计算单元,一个是简单的全连接层,在这两个子层后,都跟着一个残差网络和正规化层,最终输出一个512维的向量
 2. Decoder: 同样由6个完全相同的层堆叠而成,在编码器的基础上多加了一个子层,用于在推理时处理之前的输出和在训练时喂入标准答案
 
-### Deep Reinforcement Learning from Human Preferences(2017)
+### Deep Reinforcement Learning from Human Preferences(17)
 
 - 该论文提出了著名了RLHF方法
 
@@ -1037,7 +1040,7 @@ $$y_i = \gamma \hat{x}_i + \beta$$
 
 这篇论文并没有实际的结果,只是通过几个实验数据说明了一件事: 神经网络的学习在RLHF的帮助下能够变得更加平滑,减缓梯度消失的问题.
 
-### Improving Language Understanding by Generative Pre-Training(2018)
+### Improving Language Understanding by Generative Pre-Training(18)
 
 ![首页](PixPin_2026-05-30_19-02-51.webp)
 
@@ -1098,7 +1101,7 @@ $$L_2(\mathcal{C}) = \sum_{(x,y)} \log P(y|x^1, \dots, x^m)$$
 
 - 实际上这与前面的步骤完全相同,只不过这次提供的语料是标注好了的而已.
 
-### BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding(2019)
+### BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding(19)
 
 ![首页](PixPin_2026-06-02_12-40-45.webp)
 
@@ -1122,7 +1125,7 @@ BERT使用了Transformer的编码器部分,除了参数上有更改外,基本架
 
 鉴于编码器的架构天生就适合处理文本,所以BERT适合文本分类,情感分析等文本处理任务,而不太适合文本生成任务.
 
-### Language Models are Unsupervised Multitask Learners(2019)
+### Language Models are Unsupervised Multitask Learners(19)
 
 - GPT-2
 
@@ -1138,7 +1141,7 @@ GPT-2的基本架构与GPT-1没有什么区别,值得注意的地方就是把上
 - OpenAI提供了gpt-2的示例代码,使用`git clone https://github.com/openai/gpt-2.git`下载即可查阅
   - 是用tensorflow实现的,所以看起来会不太习惯
 
-### Fine-Tuning Language Models from Human Preferences(2019)
+### Fine-Tuning Language Models from Human Preferences(19)
 
 ![首页](PixPin_2026-06-04_13-59-20.webp)
 
@@ -1154,7 +1157,7 @@ GPT-2的基本架构与GPT-1没有什么区别,值得注意的地方就是把上
 
 在文本生成任务上,RLHF比数据微调等方法的表现更佳,但在文本总结任务上,RLHF方法遭遇了重大的挫折,模型只是简单的复制粘贴原文,没能真正地去概括文章,尽管文章中提出这或许是数据质量的问题,但RLHF确实不太适合用来处理这类任务.
 
-### CodeBERT: A Pre-Trained Model for Programming and Natural Languages(2020)
+### CodeBERT: A Pre-Trained Model for Programming and Natural Languages(20)
 
 ![首页](PixPin_2026-06-03_14-08-45.webp)
 
@@ -1184,7 +1187,7 @@ CodeBERT的训练语料为Github上6种主流编程语言的仓库:
 
 总的来说,BERT型的编码器架构是不太适合用于代码生成的,所以之后还是以解码器结构为主流.
 
-### Language Models are Few-Shot Learners (2020)
+### Language Models are Few-Shot Learners (20)
 
 - GPT-3
 - 一年一篇突破性论文,你不发财谁发财.
@@ -1205,7 +1208,7 @@ CodeBERT的训练语料为Github上6种主流编程语言的仓库:
 
 也是因为这篇论文,后续的大参数语言模型都被称为****大语言模型(large language model).****
 
-### GLM: General Language Model Pretraining with Autoregressive Blank Infilling(2021)
+### GLM: General Language Model Pretraining with Autoregressive Blank Infilling(21)
 
 ![首页](PixPin_2026-06-10_16-30-44.webp)
 
@@ -1219,7 +1222,7 @@ CodeBERT的训练语料为Github上6种主流编程语言的仓库:
 
 - GLM只是对先前的一些模型和训练方法做了一些调整而已,并非完全是自己想出来的.由于这条路子不太适合大语言模型,所以我就不追根溯源了.
 
-### Evaluating Large Language Models Trained on Code(2021)
+### Evaluating Large Language Models Trained on Code(21)
 
 ![首页](PixPin_2026-06-03_14-39-27.webp)
 
@@ -1231,7 +1234,7 @@ CodeX的基本架构和GPT-3没有什么区别,只是使用的Github的代码数
 
 ![训练样本示意图](PixPin_2026-06-04_13-19-21.webp)
 
-### Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks(2021)
+### Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks(21)
 
 - 在Agent构建中被广泛应用的RAG概念就是这篇2021年的论文提出的
 
@@ -1363,7 +1366,7 @@ $q(x) = \text{BERT}_q(x)$
    1. 况且这篇论文没怎么讲如何实现参数微调,我有理由怀疑只是把语料喂进去重新训练了而已,而非是在输出端口进行微调.
 2. 鉴于大多数企业不具备自主开发优秀大模型的能力,就需要调用第三方的API,调用API的话就不能对模型做手脚,而是要对自己本地的语料进行处理,储存一个向量数据库,并在输出时进行拼接.至于怎么实现,我看也不是很成熟,不然为什么这么缺这方面的人才.
 
-### Efficiently Scaling Transformer Inference(2022)(待补充)
+### Efficiently Scaling Transformer Inference(22)(待补充)
 
 ![首页](PixPin_2026-06-04_14-38-14.webp)
 
@@ -1388,7 +1391,7 @@ $q(x) = \text{BERT}_q(x)$
 
 ![示意图](PixPin_2026-06-06_19-28-32.webp)
 
-### Training language models to follow instructions with human feedback(2022)
+### Training language models to follow instructions with human feedback(22)
 
 - InstructGPT,实际基本对应了GPT3.5
 
@@ -1412,7 +1415,7 @@ $q(x) = \text{BERT}_q(x)$
 
 很明显,即便是175B的GPT-3输出的答案实际上也是惨不忍睹的,但经过RLHF后,大模型突然变得像是能够理解我们在说什么一样,能够真正地输出一些能让人看懂的话了.
 
-### GPT-4 Technical Report(2023)
+### GPT-4 Technical Report(23)
 
 ![首页](PixPin_2026-06-09_14-31-09.webp)
 
@@ -1422,7 +1425,7 @@ $q(x) = \text{BERT}_q(x)$
 
 ![对比图](PixPin_2026-06-09_14-58-20.webp)
 
-### LLaMA: Open and Efficient Foundation Language Models(2023)
+### LLaMA: Open and Efficient Foundation Language Models(23)
 
 ![首页](PixPin_2026-05-10_20-30-42.webp)
 
@@ -1444,7 +1447,7 @@ LLaMA参考了之前几篇了论文提出的解码器优化结构,如GPT-3,PaLM,
 
 ![示意图](PixPin_2026-06-08_14-27-37.webp)
 
-### QWEN TECHNICAL REPORT(2023)
+### QWEN TECHNICAL REPORT(23)
 
 ![首页](PixPin_2026-06-09_21-29-04.webp)
 
@@ -1453,7 +1456,7 @@ LLaMA参考了之前几篇了论文提出的解码器优化结构,如GPT-3,PaLM,
 #### 概览与总结
 
 QWEN的架构****基本照搬****了LLaMA的架构,移植了一些其他论文中提到的改进方法,实际的产出模型在某些方面可以与GPT3.5相比.
-### DeepSeek-V3 Technical Report(2024)
+### DeepSeek-V3 Technical Report(24)
 
 ![首页](PixPin_2026-06-10_20-52-27.webp)
 
@@ -1481,7 +1484,7 @@ QWEN的架构****基本照搬****了LLaMA的架构,移植了一些其他论文�
 
 - 这实际上表明了,在没能力改动模型架构的前提下,堆砌语料是一个不错的选择
 
-### DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning(2025)
+### DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning(25)
 
 ![首页](PixPin_2026-06-09_15-01-49.webp)
 
@@ -1523,13 +1526,13 @@ QWEN的架构****基本照搬****了LLaMA的架构,移植了一些其他论文�
 ![语料图](PixPin_2026-06-10_15-52-25.webp)
 
 - 只要一直喂下去,模型因为发现没有按照格式来就会被打低分,自然就会先输出思考再输出回答了
-### DeepSeek-V4: Towards Highly Efficient Million-Token Context Intelligence(2026)
+### DeepSeek-V4: Towards Highly Efficient Million-Token Context Intelligence(26)
 
 ![首页](PixPin_2026-06-12_13-11-36.webp)
 
 #### 概览与总结
 
-- DeepSeek-V4的参数大小为一万六千亿,已经远远超过了DeepSeek-R1的大小,但实际调用API的体验上
+- DeepSeek-V4的参数大小为一万六千亿,已经远远超过了DeepSeek-R1的大小
 
 ![模型架构图](PixPin_2026-06-12_13-21-22.webp)
 
@@ -1538,9 +1541,15 @@ QWEN的架构****基本照搬****了LLaMA的架构,移植了一些其他论文�
 ![对比图](PixPin_2026-06-12_13-38-01.webp)
 
 而实际调用API的体验也是不错的,主要的瓶颈反而是在输出长度和对多模态的支持上,不过这也没办法,DeepSeek的技术积累和资金支持还是比不过那些国际企业的,不过这个表现就已经很惊人了.
+### DeepSeek-V4.1-Flash: Pushing the Limits of KV Cache Compression(2609)
+#### 概览
+![架构图](PixPin_2026-09-29_09-43-25.webp)
+
+简单来说就是挤牙膏,堆叠结构,我认为这已经复杂过头了,迟早需要重构成一个更优美的模型.
+
 
 ## 智能体构建
-### ReAct: Synergizing Reasoning and Acting in Language Models(2022)
+### ReAct: Synergizing Reasoning and Acting in Language Models(22)
 
 - (9/28): Google加Princeton,强强联手,自然,姚顺雨是第一作者
 
@@ -1552,7 +1561,7 @@ QWEN的架构****基本照搬****了LLaMA的架构,移植了一些其他论文�
 
 
 
-### From Local to Global: A GraphRAG Approach to Query-Focused Summarization(2024)
+### From Local to Global: A GraphRAG Approach to Query-Focused Summarization(24)
 
 ![首页](PixPin_2026-06-08_14-51-17.webp)
 
@@ -1584,7 +1593,7 @@ LLM会提取出以下三条信息:
 总的来说,GraphRAG是相当不成熟和实验性的,不过由于是微软出品的,所以国内厂商还是迅速跟进了,至于效果如何,我看并没有多少显著的提升,不然早就发新论文了.
 
 
-### KIMI K2: OPEN AGENTIC INTELLIGENCE(2025)
+### KIMI K2: OPEN AGENTIC INTELLIGENCE(25)
 
 ![首页](PixPin_2026-06-11_16-47-50.webp)
 
@@ -1592,7 +1601,7 @@ LLM会提取出以下三条信息:
 
 KIMI K2基本照搬了DeepSeek-V3的的架构,参数量提高到了一千亿,然后做了一点自己的优化,所以比DeepSeek-V3的表现还是要强不少的.
 
-### KIMI K2.5: VISUAL AGENTIC INTELLIGENCE(2026)
+### KIMI K2.5: VISUAL AGENTIC INTELLIGENCE(26)
 
 ![首页](PixPin_2026-06-11_16-48-03.webp)
 
@@ -1602,7 +1611,20 @@ KIMI K2基本照搬了DeepSeek-V3的的架构,参数量提高到了一千亿,然
 
 #### 概览与总结
 
-KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智能体集群,实际效果还不错,但由于涉及的专业术语太多,不太适合我这种门外汉理解,就不过多深入了.
+KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智能体集群,实际效果还不错.
+
+![Agent Swarm](PixPin_2026-09-29_09-29-56.webp)
+
+
+弄个自研的In-house Bench也是有点离谱了哈,那你分数不是肯定更高吗,明显是拿来凑数的:
+
+![对比](PixPin_2026-09-29_09-34-28.webp)
+### Kimi K3: Open Frontier Intelligence(2608)
+#### 概览
+弄了一个2.8T(接近3万亿)的MoE模型出来,上下文长度为1M的token,至于做了哪些优化,不好意思,依旧是挤牙膏.
+
+>总体而言，Kimi K3 的性能与最强的专有模型 Claude Fable 5 和 GPT-5.6 Sol 相比略逊一筹，但在基准测试套件中始终优于 Claude Opus 4.8、GPT-5.5 和 GLM-5.2
+
 
 
 ## 总结
@@ -1610,7 +1632,7 @@ KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智
 近两年的大模型架构已经变得非常复杂了,不在这个领域深耕个几年是不太可能看懂的.而光凭借上述这些论文,我就已经对大模型的整个历史发展有了一个非常深入的认识了,以后应该只会随缘更新一点以前的论文,至于最新的论文我看也没必要研究,说不定几年后,又会有一篇天才论文横空出世,彻底简化这种臃肿的堆叠架构,回到纯朴的数学之美.
 
 # 计算机视觉与多模态论文
-## You Only Look Once: Unified, Real-Time Object Detection(2016)
+## You Only Look Once: Unified, Real-Time Object Detection(16)
 ![首页](PixPin_2026-06-16_18-33-34.webp)
 
 ![效果图](PixPin_2026-06-16_18-36-10.webp)
@@ -1628,7 +1650,7 @@ KIMI K2.5的基座模型就是KIMI K2,掺入了视觉理解能力和所谓的智
 这个设计非常巧妙,确实是图像识别算法领域的一大飞跃.
 
 - 不过论文中的C是20,而最终张量的大小是SxSx30,这我就不太理解了,以后有机会再来勘误吧.
-## AN IMAGE IS WORTH 16X16 WORDS (2021)
+## AN IMAGE IS WORTH 16X16 WORDS (21)
 - 这些人不起点故弄玄虚的标题就不会写论文了吗...
 
 ![首页](PixPin_2026-06-16_22-32-30.webp)

@@ -1315,6 +1315,95 @@ retrieved_documents = [text_chunks[i] for i in indices[0]]
 ```
 非常明显,FAISS是一个临时性的内存数据库,不能持久化存储数据,但用起来确实很简单.
 #### Chroma使用
+其实都大差不差,创建embedding,比较相似度,访问相似度最高的几个结果,除了API上不太一样外,原理是一样的.
+#### pgvector
+先创建容器:
+
+```yaml
+version: '3.8'
+services:
+  db:
+    image: ankane/pgvector
+    container_name: postgres_with_pgvector
+    restart: always
+    environment:
+      POSTGRES_USER: rag_cookbook_user
+      POSTGRES_PASSWORD: rag_cookbook_user_pw
+      POSTGRES_DB: rag_cookbook
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+```
+然后连接数据库并插入
+```python
+from openai import OpenAI
+
+# Define text chunks
+text_chunks = [
+    "The sky is blue.",
+    "The sun is shining.",
+    "I love chocolate.",
+    "Ice cream is delicious.",
+    "Roses are red.",
+    "Violets are blue.",
+]
+
+client = OpenAI()
+model = "text-embedding-3-small"
+
+def get_embedding(text):
+    response = client.embeddings.create(input=text, model=model)
+    return response.data[0].embedding
+
+index = 0
+cur = conn.cursor()
+
+# Insert the embeddings into the table
+for text_chunk in text_chunks:
+    embedding = get_embedding(text_chunk)
+    cur.execute(
+        """INSERT INTO embeddings
+        (id, chunk, embedding)
+        VALUES (%s, %s, %s)""",
+        (index, text_chunk, embedding),
+    )
+    index += 1
+```
+可以发现这和普通的事务没有任何区别,这也就意味着当数据规模增大时,就不能用pgvector来处理了,因为关系型数据库无法在大数据量下做到低延迟.
+
+
+#### pgvector索引使用
+值得注意的是,pgvector支持给向量加上索引,有IVFFlat 和 HNSW两种方式
+
+```python
+import psycopg2
+from psycopg2 import Error
+
+ivfflat_sql = f"""
+    DROP TABLE IF EXISTS test_embedding_table;
+    CREATE TABLE test_embedding_table AS
+        SELECT * FROM job_description_table;
+    CREATE INDEX ON test_embedding_table
+        USING ivfflat (embedding vector_cosine_ops)
+        WITH (lists = 30);
+    -- Reduce the number of probes for faster search
+    SET ivfflat.probes = 3;
+    EXPLAIN ANALYZE SELECT 1 - (embedding <=> '{str(query_embedding)}')
+    AS cosine_similarity, *
+    FROM test_embedding_table
+    ORDER BY 1 - (embedding <=> '{str(query_embedding)}') DESC
+    LIMIT 20;
+"""
+
+cur.execute(ivfflat_sql)
+ivfflat_search = cur.fetchall()
+```
+
+当查询速度至关重要且内存充足时，请选择 HNSW（HNSW 会在 RAM 中存储更多数据）。当内存受限或需要更快的索引构建速度（即使查询速度略慢）时，请选择 IVF。对于大多数拥有数百万个向量的生产级 RAG 系统，HNSW 可提供最佳的查询性能。
 
 ### 检索
 ### Agentic RAG
@@ -1628,6 +1717,7 @@ MCP 由 Anthropic 开发，将于 2024 年 11 月发布，它是一种基于JSON
 | **SSE**<br>服务器发送事件 | MCP 服务器以 HTTP 服务的形式运行。<br><br>客户端向 `/messages` 发送 JSON-RPC 请求，而服务器则通过长连接（例如 `/sse`）以流式方式发送响应和通知。<br><br>这使得该通道为半双工模式（客户端到服务器通过 HTTP POST，服务器到客户端通过 SSE），但完全可网络寻址，并能够同时服务多个客户端。 | • **远程或云端部署**，其中工具必须可通过网络或反向代理/负载均衡器访问。<br>• **基于浏览器或前端的应用程序**，需要实时流式传输（逐令牌的 LLM 输出）而不需要 WebSocket 复杂性；SSE 可以穿透大多数防火墙和代理。                                                                                                                                          |
 
 
+### Multi Agent
 
 ## Vector Databases
 - 出版于2026年，出版商：O'Reilly，作者：Nitin Borwankar。
@@ -1706,7 +1796,9 @@ def process_large_dataset(sentences, batch_size=32):
 ```
 
 
-
+### FAISS使用
+### SQLite3使用
+### pgvector使用
 ## Redis设计与实现
 - 出版于2014年，作者：黄健宏。
 - 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
@@ -2063,16 +2155,17 @@ Redis的时间事件分为以下两类：
 *   **when**：毫秒精度的UNIX时间戳，记录了时间事件的到达（arrive）时间。
 *   **timeProc**：时间事件处理器，一个函数。当时间事件到达时，服务器就会调用相应的处理器来处理事件。一个时间事件是定时事件还是周期性事件取决于时间事件处理器的返回值
 
+Redis将所有时间事件都放在一个无序链表中,当执行器运行时会遍历整个链表,查找所有已经就绪的时间事件
 
-
-
+##### 处理流程
+![流程图](PixPin_2026-09-29_11-16-31.webp)
+#### 客户端
 
 ## The Design of Web APIs, Second Edition
 - 出版于2025年（第2版），出版商：Manning，作者：Arnaud Lauret。
 
-### 介绍
 
-#### 前言
+### 前言
 1. **“I can’t list friends of friends!”**
 2. **“What contains the `sts` property?”**
 3. **“Why don’t `createdAt` and `fromDate` use the same date-time format?”**

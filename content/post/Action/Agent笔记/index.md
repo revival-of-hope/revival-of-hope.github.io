@@ -5,6 +5,164 @@ image: 134718880_p0-さっさと片付けるわよ.webp
 
 ---
 # Models
+## LLM演进总表
+| 发布时间    | 模型名称                     | 所属系列     | 开放性       | 基座 / 主要借鉴                                 |                   参数规模 |       上下文长度 |                                  Coding 性能 |
+| ----------- | ---------------------------- | ------------ | ------------ | ----------------------------------------------- | -------------------------: | ---------------: | -------------------------------------------: |
+| **2018.06** | **GPT-1**                    | GPT          | 开放         | **Transformer**；生成式预训练 + 微调范式        |                   **117M** |          **512** |                              _ ([OpenAI][1]) |
+| **2019.02** | **GPT-2**                    | GPT          | 开放权重     | **GPT-1**                                       |                   **1.5B** |           **1K** |                              _ ([OpenAI][2]) |
+| **2020.05** | **GPT-3**                    | GPT          | 闭源         | **GPT-2 / GPT Decoder**                         |                   **175B** |           **2K** |                              _ ([OpenAI][3]) |
+| **2022.03** | **Chinchilla**               | Chinchilla   | 闭源研究模型 | **Gopher / Transformer**；重新优化参数-数据配比 |                    **70B** |                _ |                     _ ([Google DeepMind][4]) |
+| **2022.04** | **PaLM**                     | PaLM         | 闭源         | **Transformer + Pathways**                      |                   **540B** |                _ |                     _ ([Google Research][5]) |
+| **2022.11** | **GPT-3.5 / ChatGPT**        | GPT          | 闭源         | **GPT-3 + InstructGPT + RLHF**                  |                          _ |     **4K → 16K** |                                            _ |
+| **2023.02** | **LLaMA 65B**                | Llama        | 开放权重     | Transformer；**Chinchilla式数据/计算扩展思路**  |                    **65B** |           **2K** |                             _ ([Meta AI][6]) |
+| **2023.03** | **Claude 1**                 | Claude       | 闭源         | Transformer + **Constitutional AI**             |                          _ |    **9K → 100K** |                           _ ([Anthropic][7]) |
+| **2023.03** | **GPT-4**                    | GPT          | 闭源         | **GPT-3.x 技术谱系 + RLHF**                     |                          _ |     **8K / 32K** |                              _ ([OpenAI][8]) |
+| **2023.03** | **ChatGLM-6B**               | GLM          | 开放权重     | **GLM / GLM-130B 架构谱系**                     |                   **6.2B** |           **2K** |                                            _ |
+| **2023.07** | **Baichuan-13B**             | Baichuan     | 开放权重     | **Baichuan-7B；LLaMA式 Decoder**                |                    **13B** |           **4K** |                              _ ([GitHub][9]) |
+| **2023.07** | **Llama 2 70B**              | Llama        | 开放权重     | **LLaMA 1**                                     |                    **70B** |           **4K** |                            _ ([Meta AI][10]) |
+| **2023.07** | **Claude 2**                 | Claude       | 闭源         | **Claude 1**                                    |                          _ |         **100K** |                          _ ([Anthropic][11]) |
+| **2023.09** | **Mistral 7B**               | Mistral      | 开放权重     | **LLaMA式 Decoder + GQA + SWA**                 |                   **7.3B** |           **8K** |                                            _ |
+| **2023.11** | **Qwen-72B**                 | Qwen         | 开放权重     | **LLaMA-style 架构** → Qwen自有训练体系         |                    **72B** |          **32K** |                               _ ([Qwen][12]) |
+| **2023.11** | **Yi-34B-200K**              | Yi           | 开放权重     | **LLaMA 架构**                                  |                    **34B** |         **200K** |                             _ ([GitHub][13]) |
+| **2023.12** | **Gemini 1.0 Ultra**         | Gemini       | 闭源         | Transformer + 原生多模态训练                    |                          _ |          **32K** |                                            _ |
+| **2023.12** | **Mixtral 8×7B**             | Mistral      | 开放权重     | **Mistral + Sparse MoE**                        |      **46.7B / 12.9B激活** |          **32K** |                            _ ([Mistral][14]) |
+| **2024.02** | **Gemini 1.5 Pro**           | Gemini       | 闭源         | **Gemini 1.0 + MoE**                            |                          _ | **1M，后扩至2M** |                        _ ([blog.google][15]) |
+| **2024.03** | **Claude 3 Opus**            | Claude       | 闭源         | **Claude 2 系谱**                               |                          _ |         **200K** |                          _ ([Anthropic][16]) |
+| **2024.04** | **Llama 3 70B**              | Llama        | 开放权重     | **Llama 2**                                     |                    **70B** |           **8K** |                            _ ([Meta AI][17]) |
+| **2024.05** | **DeepSeek-V2**              | DeepSeek     | 开放权重     | **DeepSeek-V1 + DeepSeekMoE + MLA**             |         **236B / 21B激活** |         **128K** |                                            _ |
+| **2024.05** | **GPT-4o**                   | GPT          | 闭源         | **GPT-4系谱 + 原生多模态**                      |                          _ |         **128K** |                                            _ |
+| **2024.06** | **Qwen2-72B**                | Qwen         | 开放权重     | **Qwen1.5 + LLaMA-style Qwen谱系**              |                    **72B** |         **128K** |                               _ ([Qwen][18]) |
+| **2024.06** | **Claude 3.5 Sonnet**        | Claude       | 闭源         | **Claude 3**                                    |                          _ |         **200K** |                          _ ([Anthropic][19]) |
+| **2024.07** | **Llama 3.1 405B**           | Llama        | 开放权重     | **Llama 3**                                     |                   **405B** |         **128K** |                            _ ([Meta AI][20]) |
+| **2024.09** | **Qwen2.5-72B**              | Qwen         | 开放权重     | **Qwen2**                                       |                    **72B** |         **128K** |                               _ ([Qwen][21]) |
+| **2024.09** | **OpenAI o1**                | o系列        | 闭源         | **GPT系基础模型 + 大规模推理RL**                |                          _ |         **128K** |                                            _ |
+| **2024.12** | **Gemini 2.0 Flash**         | Gemini       | 闭源         | **Gemini 1.5**                                  |                          _ |           **1M** |                                            _ |
+| **2024.12** | **DeepSeek-V3**              | DeepSeek     | 开放权重     | **DeepSeek-V2 + MLA + DeepSeekMoE + MTP**       |         **671B / 37B激活** |         **128K** |                           _ ([DeepSeek][22]) |
+| **2025.01** | **DeepSeek-R1**              | DeepSeek     | 开放权重     | **DeepSeek-V3-Base + 大规模RL**                 |         **671B / 37B激活** |         **128K** |                           _ ([DeepSeek][23]) |
+| **2025.03** | **Gemini 2.5 Pro**           | Gemini       | 闭源         | **Gemini 2.0 + Thinking/RL**                    |                          _ |           **1M** |                        _ ([blog.google][24]) |
+| **2025.04** | **Llama 4 Scout / Maverick** | Llama        | 开放权重     | **Llama 3 + MoE + Behemoth教师蒸馏**            | **109B/17B；400B/17B激活** | **10M（Scout）** |                            _ ([Meta AI][25]) |
+| **2025.04** | **Qwen3-235B-A22B**          | Qwen         | 开放权重     | **Qwen2.5；LLaMA-style架构谱系**                |         **235B / 22B激活** |         **128K** |                               _ ([Qwen][26]) |
+| **2025.05** | **Claude Opus 4 / Sonnet 4** | Claude       | 闭源         | **Claude 3.x 系谱 + 长程Agent训练**             |                          _ |         **200K** |                          _ ([Anthropic][27]) |
+| **2025.06** | **Seed1.6**                  | Seed / 豆包  | 闭源         | **Seed1.5 Sparse-MoE**                          |         **230B / 23B激活** |         **256K** |                                            _ |
+| **2025.07** | **Kimi K2**                  | Kimi         | 开放权重     | **DeepSeek-V3 CausalLM / MLA 架构复用**         |           **1T / 32B激活** |         **128K** |                                            _ |
+| **2025.07** | **GLM-4.5**                  | GLM          | 开放权重     | **GLM-4系谱 + MoE**                             |         **355B / 32B激活** |         **128K** |                               _ ([Z.ai][28]) |
+| **2025.08** | **GPT-5**                    | GPT          | 闭源         | **GPT-4o + o系列推理 + Agent技术融合**          |                          _ |         **400K** |                             _ ([OpenAI][29]) |
+| **2026.02** | **Kimi K2.5**                | Kimi         | 开放权重     | **Kimi-K2-Base + 原生视觉联合预训练**           |          **≈1T / 32B激活** |         **256K** |                         _ ([Kimi Forum][30]) |
+| **2026.02** | **ERNIE 5.0**                | 文心 / ERNIE | 闭源         | **从头训练；统一多模态架构**                    |          **2.4T，<3%激活** |       **128K级** |                           _ ([百度文心][31]) |
+| **2026.02** | **GLM-5**                    | GLM          | 开放权重     | **GLM-4.5 + DeepSeek DSA**                      |         **744B / 40B激活** |                _ |                               _ ([Z.ai][32]) |
+| **2026.04** | **DeepSeek-V4 Pro**          | DeepSeek     | 开放权重     | **DeepSeek-V3 + DeepSeekMoE/MTP + DSA**         |         **1.6T / 49B激活** |           **1M** |             **AA 43（#9）** ([DeepSeek][33]) |
+| **2026.05** | **ERNIE 5.1**                | 文心 / ERNIE | 闭源         | **ERNIE 5.0**                                   |                          _ |                _ |                           _ ([百度文心][34]) |
+| **2026.06** | **MiniMax M3**               | MiniMax      | 开放权重     | **MiniMax M2 + MSA稀疏注意力**                  |                          _ |           **1M** |                            _ ([MiniMax][35]) |
+| **2026.06** | **Seed2.1 Pro**              | Seed / 豆包  | 闭源         | **Seed2.0**                                     |                          _ |                _ |                       _ ([字节跳动种子][36]) |
+| **2026.07** | **GPT-5.6 Sol**              | GPT          | 闭源         | **GPT-5.x 系谱**                                |                          _ |        **1.05M** |    **AA 55（#6）** ([OpenAI Developers][37]) |
+| **2026.07** | **Kimi K3**                  | Kimi         | 开放权重     | **Kimi K2系谱 + K3新架构**                      |       **2.8T / ≈104B激活** |           **1M** |     **AA 52（#8）** ([月球拍击人工智能][38]) |
+| **2026.08** | **Qwen3.8-2.4T-A95B**        | Qwen         | 开放权重     | **Qwen3 + Hybrid Attention / MoE**              |        **2.4T / ≈95B激活** |           **1M** |       **CodeArena #4†** ([AlibabaCloud][39]) |
+| **2026.08** | **GLM-5.3**                  | GLM          | 开放权重     | **GLM-5.2同一Base；主要扩大Post-training**      |                          _ |     **最高1M级** |                 **AA 54（#7）** ([Z.ai][40]) |
+| **2026.08** | **GLM-5.3-Flash**            | GLM          | 开放权重     | 新Base；**Sparse + Linear Attention + mHC**     |         **320B / 18B激活** |           **1M** |                               _ ([Z.ai][41]) |
+| **2026.09** | **Gemini 3.8 Flash**         | Gemini       | 闭源         | **Gemini 3.7 Flash**                            |                          _ |           **1M** | **AA 42（#10）** ([Artificial Analysis][42]) |
+| **2026.09** | **GPT-6 Astra**              | GPT          | 闭源         | **GPT-5.x / GPT-5.6技术谱系**                   |                          _ |        **1.05M** |               **AA 62（#3）** ([OpenAI][43]) |
+| **2026.09** | **Grok 4.7**                 | Grok         | 闭源         | **Grok 4.6 → 新的、更大Base**                   |                          _ |         **500K** |             **AA 56（#5）** ([SpaceXAI][44]) |
+| **2026.09** | **Claude Opus 5.5**          | Claude       | 闭源         | **Claude Opus 5系谱**                           |                          _ |                _ |            **AA 66（#2）** ([Anthropic][45]) |
+| **2026.09** | **GPT-6 Sol**                | GPT          | 闭源         | **GPT-6 Astra技术成果下放/优化**                |                          _ |        **1.05M** |    **AA 57（#4）** ([OpenAI Developers][46]) |
+| **2026.09** | **Claude Sonnet 5.5**        | Claude       | 闭源         | **Claude Sonnet 5系谱**                         |                          _ |                _ |            **AA 68（#1）** ([Anthropic][47]) |
+
+[1]: https://openai.com/index/language-unsupervised/?utm_source=chatgpt.com "Improving language understanding with unsupervised learning | OpenAI"
+
+[2]: https://openai.com/index/better-language-models/?utm_source=chatgpt.com "Better language models and their implications | OpenAI"
+
+[3]: https://openai.com/index/language-models-are-few-shot-learners/?utm_source=chatgpt.com "Language models are few-shot learners | OpenAI"
+
+[4]: https://deepmind.google/blog/an-empirical-analysis-of-compute-optimal-large-language-model-training/?utm_source=chatgpt.com "An empirical analysis of compute-optimal large language model training — Google DeepMind"
+
+[5]: https://research.google/blog/pathways-language-model-palm-scaling-to-540-billion-parameters-for-breakthrough-performance/?utm_source=chatgpt.com "Pathways Language Model (PaLM): Scaling to 540 Billion Parameters for Breakthrou"
+
+[6]: https://ai.meta.com/research/publications/llama-open-and-efficient-foundation-language-models/?utm_source=chatgpt.com "LLaMA: Open and Efficient Foundation Language Models | Research - AI at Meta"
+
+[7]: https://www.anthropic.com/news/100k-context-windows?utm_source=chatgpt.com "Introducing 100K context windows \ Anthropic"
+
+[8]: https://openai.com/index/gpt-4-research/?utm_source=chatgpt.com "GPT-4 | OpenAI"
+
+[9]: https://github.com/baichuan-inc/Baichuan-13B?utm_source=chatgpt.com "GitHub - baichuan-inc/Baichuan-13B: A 13B large language model developed by Baichuan Intelligent Technology · GitHub"
+
+[10]: https://ai.meta.com/research/publications/llama-2-open-foundation-and-fine-tuned-chat-models/?trk=article-ssr-frontend-pulse_little-text-block&utm_source=chatgpt.com "Llama 2: Open Foundation and Fine-Tuned Chat Models | Research - AI at Meta"
+
+[11]: https://www.anthropic.com/research/claude-2?utm_source=chatgpt.com "Claude 2 \ Anthropic"
+
+[12]: https://qwenlm.github.io/blog/qwen/?utm_source=chatgpt.com "Introducing Qwen | Qwen"
+
+[13]: https://github.com/01-ai/yi?utm_source=chatgpt.com "GitHub - 01-ai/Yi: A series of large language models trained from scratch by developers @01-ai · GitHub"
+
+[14]: https://mistral.ai/news/mixtral-of-experts/?utm_source=chatgpt.com "Mixtral of experts | Mistral AI"
+
+[15]: https://blog.google/innovation-and-ai/products/google-gemini-next-generation-model-february-2024/?utm_source=chatgpt.com "Introducing Gemini 1.5, Google's next-generation AI model"
+
+[16]: https://www.anthropic.com/news/claude-3-family?utm_source=chatgpt.com "Introducing the next generation of Claude"
+
+[17]: https://ai.meta.com/blog/meta-llama-3?utm_source=chatgpt.com "Introducing Meta Llama 3: The most capable openly available LLM to date"
+
+[18]: https://qwenlm.github.io/blog/qwen2/?utm_source=chatgpt.com "Hello Qwen2 | Qwen"
+
+[19]: https://www.anthropic.com/news/claude-3-5-sonnet?utm_source=chatgpt.com "Introducing Claude 3.5 Sonnet \ Anthropic"
+
+[20]: https://ai.meta.com/blog/meta-llama-3-1/?utm_source=chatgpt.com "Introducing Llama 3.1: Our most capable models to date"
+
+[21]: https://qwenlm.github.io/blog/qwen2.5-llm/?utm_source=chatgpt.com "Qwen2.5-LLM: Extending the boundary of LLMs | Qwen"
+
+[22]: https://www.deepseek.com/en/news/deepseek-v3/?utm_source=chatgpt.com "DeepSeek | Introducing DeepSeek-V3"
+
+[23]: https://deepseek.com/news/deepseek-r1/?utm_source=chatgpt.com "DeepSeek | DeepSeek-R1 发布，性能对标 OpenAI o1 正式版"
+
+[24]: https://blog.google/innovation-and-ai/models-and-research/google-deepmind/gemini-model-thinking-updates-march-2025/?utm_source=chatgpt.com "Gemini 2.5: Our newest Gemini model with thinking"
+
+[25]: https://ai.meta.com/blog/llama-4-multimodal-intelligence/?utm_source=chatgpt.com "The Llama 4 herd: The beginning of a new era of natively multimodal AI innovation"
+
+[26]: https://qwenlm.github.io/blog/qwen3/?utm_source=chatgpt.com "Qwen3: Think Deeper, Act Faster | Qwen"
+
+[27]: https://www.anthropic.com/news/claude-4?id=4420&utm_source=chatgpt.com "Introducing Claude 4 \ Anthropic"
+
+[28]: https://z.ai/blog/glm-4.5?utm_source=chatgpt.com "GLM-4.5: Reasoning, Coding, and Agentic Abililties"
+
+[29]: https://openai.com/index/introducing-gpt-5/?utm_source=chatgpt.com "Introducing GPT-5 | OpenAI"
+
+[30]: https://forum.moonshot.ai/t/kimi-k2-5-api-is-now-available/218?utm_source=chatgpt.com "🚀 Kimi K2.5 API is now available - Kimi K2 - Kimi Forum"
+
+[31]: https://ernie.baidu.com/blog/posts/ernie5.0/?utm_source=chatgpt.com "ERNIE 5.0: A 2.4 Trillion-Parameter Unified Multimodal Foundation Model | ERNIE Blog"
+
+[32]: https://z.ai/blog/glm-5?utm_source=chatgpt.com "GLM-5: From Vibe Coding to Agentic Engineering"
+
+[33]: https://deepseek.com/en/news/v4-preview/?utm_source=chatgpt.com "DeepSeek | DeepSeek-V4 Preview: Entering the Era of Affordable Million-Token Context"
+
+[34]: https://ernie.baidu.com/blog/posts/ernie-5.1-0508-release/?utm_source=chatgpt.com "ERNIE 5.1 Officially Released! Topping Multiple Leaderboards — A Model That Writes Better and Understands You More | ERNIE Blog"
+
+[35]: https://www.minimax.io/blog/minimax-m3?utm_source=chatgpt.com "MiniMax M3: Frontier Coding, 1M Context, Native Multimodality — All in One Model - MiniMax Research | MiniMax"
+
+[36]: https://seed.bytedance.com/en/blog/seed2-1-officially-released-advancing-ai-productivity?utm_source=chatgpt.com "Seed News - ByteDance Seed Team"
+
+[37]: https://developers.openai.com/api/docs/models/gpt-5.6-sol?utm_source=chatgpt.com "GPT-5.6 Sol Model | OpenAI API"
+
+[38]: https://www.moonshot.ai/?utm_source=chatgpt.com "Moonshot AI"
+
+[39]: https://www.alibabacloud.com/help/en/model-studio/qwen3-8-2-4t-a95b?utm_source=chatgpt.com "qwen3.8-2.4t-a95b Model Info - Alibaba Cloud Model Studio - Alibaba Cloud Documentation Center"
+
+[40]: https://z.ai/blog/glm-5.3?utm_source=chatgpt.com "GLM-5.3: Frontier Coding with Emergent Cyber Capabilities"
+
+[41]: https://z.ai/blog/glm-5.3-flash?utm_source=chatgpt.com "GLM-5.3-Flash: Frontier Intelligence, Flash Cost"
+
+[42]: https://artificialanalysis.ai/agents/coding-agents/comparisons/antigravity-sdk-vs-codex?utm_source=chatgpt.com "Antigravity SDK vs Codex: Coding Agent Comparison | Artificial Analysis"
+
+[43]: https://openai.com/index/gpt-6-astra/?utm_source=chatgpt.com "GPT-6 Astra: A new generation of intelligence | OpenAI"
+
+[44]: https://x.ai/news/grok-4-7?utm_source=chatgpt.com "Introducing Grok 4.7 | SpaceXAI"
+
+[45]: https://www.anthropic.com/claude-opus-5-5?trk=public_post_comment-text&utm_source=chatgpt.com "Introducing Claude Opus 5.5 \ Anthropic"
+
+[46]: https://developers.openai.com/api/docs/models/compare?model=gpt-6-sol&utm_source=chatgpt.com "Compare models | OpenAI API"
+
+[47]: https://www.anthropic.com/claude-sonnet-5-5?utm_source=chatgpt.com "Introducing Claude Sonnet 5.5 \ Anthropic"
+
+
+这实际上是一场你死我活的淘汰赛,总会有公司率先退出竞争或者破产倒闭,不可能永远维持百花齐放的场面,毕竟资源终归是有限的.
+
 ## 语音识别
 
 # Agent搭建
