@@ -353,7 +353,7 @@ Your working directory is F:\codes\learn\backend\python\MediaCrawler.
 
 ### OpenAI: 我一开始没想挣钱的
 
-* [wiki]([https://en.wikipedia.org/wiki/OpenAI]%28https://en.wikipedia.org/wiki/OpenAI%29)
+* [wiki](https://en.wikipedia.org/wiki/OpenAI)
 
 #### 草莽开端
 
@@ -403,11 +403,11 @@ OpenAI在2015年以非盈利公司的性质成立,创始人有很多,但最值�
 
 ### Anthropic: 娜拉走后怎样
 
-* [wiki]([https://en.wikipedia.org/wiki/Anthropic]%28https://en.wikipedia.org/wiki/Anthropic%29)
+* [wiki](https://en.wikipedia.org/wiki/Anthropic)
 
 Anthropic由七个OpenAI的前员工在2021年一月成立,启动资金为1亿美金,由Daniela Amodei和Dario Amodei兄妹分别担任主席和CEO.
 
-* 关于Dario Amodei的早期经历以及离开百度的原因,可以看[这篇文章]([https://www.guancha.cn/economy/2025_09_09_789531.shtml]%28https://www.guancha.cn/economy/2025_09_09_789531.shtml%29)
+* 关于Dario Amodei的早期经历以及离开百度的原因,可以看[这篇文章](https://www.guancha.cn/economy/2025_09_09_789531.shtml)
 
 Anthropic于2022年暑期就已经训练出了Claude的测试版本,但直到2023年三月才正式发布1.0版本,由于公司的底蕴并不深厚,所以一开始的表现平平无奇.
 
@@ -421,7 +421,7 @@ Anthropic于2022年暑期就已经训练出了Claude的测试版本,但直到202
 
 ### Google DeepMind: 明明是我先来的
 
-* [wiki]([https://en.wikipedia.org/wiki/Google_DeepMind]%28https://en.wikipedia.org/wiki/Google_DeepMind%29)
+* [wiki](https://en.wikipedia.org/wiki/Google_DeepMind)
 
 #### 传奇开场
 
@@ -451,7 +451,7 @@ Anthropic于2022年暑期就已经训练出了Claude的测试版本,但直到202
 
 ### DeepSeek: 给世界带来一点中国震撼
 
-* [wiki]([https://en.wikipedia.org/wiki/Liang_Wenfeng]%28https://en.wikipedia.org/wiki/Liang_Wenfeng%29)
+* [wiki](https://en.wikipedia.org/wiki/Liang_Wenfeng)
 
 #### 幻方量化
 
@@ -465,7 +465,7 @@ Anthropic于2022年暑期就已经训练出了Claude的测试版本,但直到202
 
 尽管DeepSeek实际的对话体验还是远远比不上御三家的,但它以极低的成本揭示了堆叠显卡不如优化架构的事实,所以在竞争如此激烈的大模型产业中还是占有了一席之地.
 
-> [纽约时报]([https://www.nytimes.com/2026/02/23/technology/anthropic-chinese-startups-distillation.html)报道,Anthropic指控](https://www.nytimes.com/2026/02/23/technology/anthropic-chinese-startups-distillation.html\)报道,Anthropic指控) DeepSeek 使用数千个欺诈账户生成数百万条与Claude的对话，以训练其自身的大型语言模型.我倒希望是假的,真没必要哥们儿.
+> [纽约时报](https://www.nytimes.com/2026/02/23/technology/anthropic-chinese-startups-distillation.html)报道,Anthropic指控DeepSeek 使用数千个欺诈账户生成数百万条与Claude的对话，以训练其自身的大型语言模型.我倒希望是假的,真没必要哥们儿.
 
 ### 散户们: 留条活路吧(待补充)
 
@@ -473,11 +473,11 @@ Anthropic于2022年暑期就已经训练出了Claude的测试版本,但直到202
 
 #### 月之暗面: 大佬下场
 
-* [wiki]([https://en.wikipedia.org/wiki/Kimi_%28chatbot%29]%28https://en.wikipedia.org/wiki/Kimi_%28chatbot%29%29)
+* [wiki](https://en.wikipedia.org/wiki/Kimi_(AI))
 
 #### 豆包: 谔谔
 
-* [wiki]([https://en.wikipedia.org/wiki/Doubao]%28https://en.wikipedia.org/wiki/Doubao%29)
+* [wiki](https://en.wikipedia.org/wiki/Doubao])
 
 ## 多模态: 让暴风雨来得更猛烈些吧(废)
 

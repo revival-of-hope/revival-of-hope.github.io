@@ -898,6 +898,19 @@ func main() {
 ```
 如果将mod文件里的go版本改为1.21及以下,那么每次打印出来的是相同的地址,代表每次循环时，Go 只是把切片 x 中的下一个值，拷贝到同一个变量 v 的内存空间里,但如果改成1.22及以上,那么每次打印的是不同地址,代表每
 
+####  包的介绍
+在Go中一个目录就是一个包,不能包含多个包,包也不能包含多个目录.
+
+Go 语言并没有使用特殊的关键字，而是通过大小写来判断包级标识符是否在其声明的包之外可见。名称以大写字母开头的标识符会被导出。相反，名称以小写字母或下划线开头的标识符只能在其声明的包内部访问
+
+```go
+package math
+
+func Double(a int) int {
+	return a * 2
+}
+```
+导入一个包但未使用该包导出的任何标识符，会导致编译时错误。这确保 Go 编译器生成的二进制文件仅包含程序实际使用的代码。
 
 ### ch15: 测试
 Go中普遍使用官方库来写测试,适用`go test`命令来运行测试:
@@ -922,739 +935,6 @@ if got != want {
 }
 ```
 
-
-## RAG with Python Cookbook
-- 出版于2026年，作者：Deepak Dhyani。
-- 原来学不会RAG不是我的问题,只是其他的教材太烂了
-
-### RAG介绍
-
-| RAG 拟合度 | 用例                                              | 适配理由                                                                                                                         |
-| ---------: | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-|      **1** | 我想和我的季度报告聊聊                            | 只有单份文档，数据量较小。直接阅读或使用 ChatGPT、Claude 等通用大模型即可完成，自建 RAG 的收益很低。                             |
-|      **2** | 请帮我总结这一份文档                              | 通用大模型已经能够较好地完成单文档总结任务，引入 RAG 通常不会带来明显额外价值。                                                  |
-|      **2** | 自动执行需要作出高风险决策的任务                  | 技术上可以实现，但大模型仍可能出错。若缺少人工审核、审计机制和故障保护等措施，风险较高，因此不适合单纯依赖 RAG 自动完成。        |
-|      **4** | 大量会议录音不断积累，但其中的信息无法进入知识库  | RAG 可以将音频、视频、长篇非结构化笔记等难以检索的信息转化为可搜索、可查询的知识，具有持续价值；最终效果会受到语音转录质量影响。 |
-|      **4** | 将技术图纸与规格文档进行核对                      | 适合利用多模态模型结合 RAG 进行跨材料比对，可以减少大量人工核查工作；但需要完善的评估机制和异常处理流程。                        |
-|      **5** | 有 1 万份合同，需要找出其中包含自动续约条款的合同 | 文档规模很大，人工逐份检查成本过高；任务目标明确，可以通过检索和信息提取定位相关合同，结果也容易人工验证。                       |
-|      **5** | 客户支持工单中包含大量产品问题，但无法有效汇总    | RAG 适合跨大量文档检索、聚合和发现重复模式，可以从大量工单中识别共同问题及趋势，这是人工难以大规模完成的任务。                   |
-|      **5** | 每天收到数百条客户咨询，需要自动分配给合适的团队  | 属于高频、重复的分类与路由任务，任务标准清晰，结果容易评估，并且可以通过自动化显著降低人工成本。                                 |
-
-**核心判断原则：**RAG 的价值通常随着**数据量、跨文档检索需求、信息更新频率和人工处理成本**的增加而提高。对于单份、短小且可以直接放入大模型上下文的文档，通常没有必要专门构建 RAG 系统。
-
->当数据结构不规则且变化多端时，这种能力尤为重要。当每个输入略有不同但处理方式类似时，例如客户电子邮件、合同条款或事件报告，可以使用 RAG。不要将 RAG 用于简单的查找、固定格式的数据提取或基于不变规则的任务。如果您可以编写正则表达式（regex）或 SQL 查询来处理 95% 的情况，那么 RAG 只会增加不必要的复杂性和成本。
-
-RAG常用的库和框架如下:
-
-| 类别                              | 示例库                                                                          | 主要作用                                                                                                                        |
-| --------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **RAG 与代理式 RAG 编排**         | LangChain、LangGraph、LlamaIndex                                                | 将检索器、生成器、提示词、记忆等常见 RAG 组件封装为统一抽象，并负责连接向量数据库、LLM 和传统数据库，使开发者更专注于业务逻辑。 |
-| **大语言模型与嵌入模型**          | OpenAI、Anthropic、Transformers、Sentence Transformers                          | 为 RAG 系统提供核心智能能力，用于理解用户查询、生成向量嵌入以及生成最终回答。                                                   |
-| **向量存储**                      | Chroma、FAISS、Pinecone、Milvus、Weaviate                                       | 存储和检索向量嵌入，通过相似度搜索快速找到与用户查询相关的内容。                                                                |
-| **数据处理**                      | pandas、NumPy、PyPDF2、pypdf、python-docx、Unstructured、openpyxl、scikit-learn | 用于数据处理、文件读取、清洗和预处理，在文档进入 RAG 系统之前将原始数据转换为可处理的形式。                                     |
-| **多模态与媒体处理**              | Pillow、Pytesseract、MoviePy、pdf2image、OpenCV                                 | 用于加载和处理图片、视频、播客、PDF、Word、PowerPoint 等不同媒体和文件格式。                                                    |
-| **文本处理与自然语言处理（NLP）** | NLTK、Transformers、Rank-BM25、Beautiful Soup 4                                 | 用于文本清洗、分词、关键词检索、传统 NLP 分析等任务，避免所有文本处理步骤都依赖大语言模型。                                     |
-| **评估与监控**                    | Ragas、Phoenix、LangSmith、Prometheus-Eval                                      | 提供预定义的评估指标，用于衡量检索器、生成器以及整个 RAG 应用的准确性、质量和运行表现。                                         |
-| **Web 框架与部署**                | Streamlit、Gradio、Flask、Django                                                | 用于构建 RAG 应用的用户界面和 Web 服务。其中 Streamlit、Gradio 更适合快速原型，Flask、Django 更适合完整应用开发。               |
-| **数据库与存储**                  | SQLAlchemy、Psycopg 2、SQLite3                                                  | 用于连接传统 SQL 数据库，并通过数据库连接器或 ORM 将关系型数据作为 RAG 系统的数据来源。                                         |
-
-### 基础模型
-
-#### Ollama
->Ollama 在http://localhost:11434/v1 公开了一个与 OpenAI 兼容的端点，因此您现有的代码几乎无需更改。
-
-```py
-from openai import OpenAI
-
-# Point the client to your local Ollama server
-client = OpenAI(
-    base_url="http://localhost:11434/v1",
-    api_key="ollama",  # Ollama does not require a real key,
-                       # but the SDK expects one
-)
-
-response = client.chat.completions.create(
-    model="qwen3:4b",
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {
-            "role": "user",
-            "content": "What is retrieval augmented generation?"
-        },
-    ],
-)
-
-print(response.choices[0].message.content)
-```
-还可以试试选用多个模型:
-
-```py
-from openai import OpenAI
-
-models = ["llama2", "mistral", "codellama"]
-
-client = OpenAI(
-    base_url="http://localhost:11434/v1",
-    api_key="ollama"
-)
-
-for model in models:
-    print(f"\n--- Testing {model} ---")
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "user", "content": "Explain RAG in one sentence."}
-        ]
-    )
-
-    print(response.choices[0].message.content)
-```
-
-> **将公开排行榜视为筛选工具，而非最终决策标准。常见的局限性包括以下几点：**
->
-> **基准泄漏或数据污染**
-> 一些基准测试题及答案是公开的，可能已被直接或间接包含在训练数据中，从而抬高模型分数。
->
-> **古德哈特定律或过度优化**
-> 一旦某个基准成为目标，模型开发者可能会专门针对该基准进行调整，从而提高分数，但并不会相应提高模型的通用能力。
->
-> **与实际使用情况不符**
-> 生产环境中的具体配置——包括提示模板、检索质量、工具使用、长上下文、多语言内容、量化方式以及延迟限制——都会显著影响最终结果。
-> 因此，即使某个模型在公开排行榜上“胜出”，在你自己的 RAG 查询或真实业务场景中，也可能表现得更差。
-
-#### 图片解析
-
-```py
-from pydantic import BaseModel
-from openai import OpenAI
-import base64
-
-
-class Invoice(BaseModel):
-    invoice_number: str
-    vendor: str
-    total: float
-    currency: str
-
-
-client = OpenAI()
-
-with open("invoice.png", "rb") as f:
-    image_base64 = base64.b64encode(f.read()).decode("utf-8")
-
-result = client.responses.parse(
-    model="gpt-5-mini",
-    input=[
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "input_text",
-                    "text": "Extract the invoice data."
-                },
-                {
-                    "type": "input_image",
-                    "image_url": f"data:image/png;base64,{image_base64}"
-                },
-            ],
-        }
-    ],
-    text_format=Invoice,
-)
-```
-
-第一次知道API还可以定制返回模型,不过对话中是不需要的,工具调用时却很有必要
-
-### 加载数据
-
-![数据分布](PixPin_2026-09-19_13-31-13.webp)
-
-大多数RAG 检索器都使用文本嵌入，因此，一个切实可行的第一步是将不同的格式转换为一致的文本表示形式
-
-![架构图](PixPin_2026-09-19_13-31-57.webp)
-
->本书从零开始构建核心组件，以阐明其基本概念。在生产环境中，诸如 LangChain 或LlamaIndex 之类的编排框架可以加速开发，但它们也引入了频繁的破坏性变更、快速演进的 API 和额外的抽象等问题。
-
-- 找了这么多书终于有个愿意认真做RAG的了.
-
-#### 加载Word
->当您不需要区分元素类型时，可以使用 python-docx 进行简单的文本提取。当您需要保留文档结构（标题、段落、列表、图像）以便对元素进行针对性处理时，请使用 Unstructured。
-
-![基本流程](PixPin_2026-09-19_13-38-00.webp)
-
-首先安装所需的库:
-
-```bash
-pip install python-docx unstructured pandas
-```
-
-##### python-docx
-**示例代码**
-
-```py
-import os
-from docx import Document
-
-file_path = "./test.docx"
-
-doc = Document(file_path)
-
-text = []
-for paragraph in doc.paragraphs:
-    text.append(paragraph.text)
-
-full_text = "\n".join(text)
-
-print(full_text)
-```
-运行代码,效果确实可以:
-
-![效果图](PixPin_2026-09-19_13-42-08.webp)
-
-尽管代码中将所有的结构信息都被除去,只剩下了文本信息,但是原本的`python-docx`库肯定不止这点功能.
-
-看一下[官网](https://python-docx.readthedocs.io/en/latest/user/quickstart.html),发现这个库反而主要是用来生成和加工docx的,单纯提取docx反而是一个比较边角料的功能.
-
->`.docx` 不是一个二进制 Word 文件，而本质上是一个 ZIP 压缩包，内部包含大量 XML、图片和关系文件。
-
-如:
-
-```text
-test.docx
-│
-├── [Content_Types].xml
-├── _rels/
-├── docProps/
-│   ├── core.xml
-│   └── app.xml
-│
-└── word/
-    ├── document.xml 放置正文
-    ├── styles.xml
-    ├── settings.xml
-    ├── numbering.xml
-    ├── comments.xml
-    ├── header1.xml
-    ├── footer1.xml
-    ├── media/
-    │   ├── image1.png
-    │   └── image2.jpeg
-    └── _rels/
-```
-
-不过对于做RAG来说,确实文本信息就已经足够了...
-
-##### unstructured
-unstructured库更多的像是一个集成库,可以支持多种文档,先看看示例代码:
-
-```py
-from unstructured.partition.docx import partition_docx
-
-file_path = "./test.docx"
-elements = partition_docx(filename=file_path)
-
-list_of_elements = []
-
-for element in elements:
-    element_dict = {
-        "element_id": element.id,
-        "file_path": file_path,
-        "category": element.category,
-        # e.g., "Title", "NarrativeText", "ListItem"
-        "text": element.text,
-        "last_modified": element.metadata.last_modified,
-    }
-
-    list_of_elements.append(element_dict)
-
-
-for v in list_of_elements:
-    print(v, "\n")
-```
-
-![效果图](PixPin_2026-09-19_13-59-38.webp)
-
-简单来说就是`python-docx`库的粒度太细了,毕竟RAG完全不需要docx的样式信息,像这样就刚刚好.
-
-#### 加载PDF
-
-```py
-from pathlib import Path
-
-import pandas as pd
-import PyPDF2
-
-file_path = Path("./Vector Databases.pdf")
-list_of_pages = []
-
-with file_path.open("rb") as file:
-    reader = PyPDF2.PdfReader(file)
-    metadata = reader.metadata or {}
-
-    for page_number, page in enumerate(reader.pages, start=1):
-        page_dict = {
-            "file_name": metadata.get("/Title") or file_path.name,
-            "producer": metadata.get("/Producer"),
-            "page_number": page_number,
-            "text": page.extract_text() or "",
-            "images": list(page.images),
-        }
-
-        list_of_pages.append(page_dict)
-
-pages_df = pd.DataFrame(list_of_pages)
-
-print(pages_df)
-```
->PyPDF2 可以从包含可选择字符的文本的数字生成的 PDF 文件中提取文本。该库无法处理扫描的 PDF 文件或基于图像的文档，因为这些文档中的文本以像素而非字符的形式存在,那就只能用OCR了.
-
-#### 加载csv和excel
-我们有三种方案:
-1. 用openpyxl 库打开和加载 Excel 文件
-2. 将表格转换成md并直接粘贴给AI,适用于数据量小的表格
-3. 将表格转换成数据库存储,并使用SQL查询来实现RAG
-
-#### 加载音频
-有了Whisper模型后,我们可以直接将音频转写为文本,如果需要质量更高的转写,就要用到一些API了.
-
-#### OCR
-本教程使用的是开源OCR引擎Tesseract,不过也有其他替代品:
-
-| 文档类型                                           | 体积           | 推荐方法                                                                            |
-| :------------------------------------------------- | :------------- | :---------------------------------------------------------------------------------- |
-| **纯文本 PDF**<br>普通文档、合同、书籍、文章       | < 1,000 份/月  | **OCR (Tesseract)**<br>快速、免费、本地运行                                         |
-| **纯文本 PDF**<br>普通文档、合同、书籍、文章       | > 10,000 份/月 | **OCR (Tesseract 或 EasyOCR)**<br>大规模应用时具有成本效益                          |
-| **混合内容**<br>文本 + 表格 + 图像                 | < 500 份/月    | **多模态模型** (GPT-5 mini, Claude Haiku, Gemini Flash)<br>单次处理，结果稳健       |
-| **混合内容**<br>文本 + 表格 + 图像                 | > 5,000 份/月  | **混合方法**<br>首先对文档进行分类，对简单页面使用 OCR，对复杂页面使用多模态方法    |
-| **复杂的版面设计**<br>技术图表、手写笔记、混合字体 | 任何体积       | **多模态模型** (GPT-5.2, Claude Sonnet, Gemini Pro)<br>在复杂文档上具有更高的准确率 |
-| **敏感数据**<br>不能离开基础设施                   | 任何体积       | **OCR (开源)**<br>Tesseract, PaddleOCR, EasyOCR：完全控制，本地部署                 |
-
-#### 直接用API
-调用多模态模型的API来直接处理图片和文档
-
-### 嵌入(Embeddings)
-
-#### 相似度计算
-余弦相似度衡量的是两个向量之间的角度，而不是它们的绝对距离。对于 RAG 系统而言，余弦相似度是首选的距离度量方法，因为它侧重于语义方向而非向量的大小.
-
-这种对长度差异的鲁棒性至关重要，因为用户查询通常比检索到的文档短得多。如果没有进行归一化处理，较长的文档会因为篇幅较长而非相关性较高而主导排名。
-
-#### 嵌入模型选择
-
-![大量模型](PixPin_2026-09-22_10-03-20.webp)
-
-近年来，嵌入模型的发展速度不如语言学习模型（LLM）那么快。许多多年前构建的随机抽取（RAG）系统仍然使用 OpenAI 的 text-embedding-ada-002 模型，因为其精度对于检索任务来说仍然足够。这种稳定性意味着模型选择只需一次决策，很少需要重新调整
-
-### 向量数据库
->FAISS was released in 2017, followed by Milvus and Weaviate in 2019, Vald in 2020, Pinecone in 2021, and Chroma in 2023.
-
-与此同时,PostgreSQL 和 Elasticsearch等传统数据库也已在其现有平台中添加了矢量搜索功能
-
-
-#### 选择数据库
-如果embedding需要和用户数据放在一起,那么就需要使用传统数据库+插件的形式,如果只用于离线分析,那么就可以用FAISS或者本地的Chroma,如果系统规模很大,那么就用Pinecone或者Milvus.
-
-| 决策问题                                       | 如果答案为“是”，优先考虑                  |
-| ---------------------------------------------- | ----------------------------------------- |
-| **是否允许将数据发送到第三方托管的云服务？**   | **Pinecone** 或 **云托管 PostgreSQL**     |
-| **目前是否已经在使用 PostgreSQL 或 MongoDB？** | **pgvector** 或 **MongoDB Vector Search** |
-| **是否需要将关键词检索与向量检索结合使用？**   | **Elasticsearch、OpenSearch 或 Weaviate** |
-| **小型团队是否希望尽量降低部署和运维成本？**   | **Chroma** 或 **托管版 Pinecone**         |
-
-![示意图](PixPin_2026-09-28_10-38-10.webp)
-
-#### FAISS使用
-```python
-import faiss
-import numpy as np
-from openai import OpenAI
-
-# Example list of sample strings
-text_chunks = [
-    "The sky is blue.",
-    "The sun is shining.",
-    "I love chocolate.",
-    "Ice cream is delicious.",
-    "Roses are red.",
-    "Violets are blue.",
-]
-
-# Initialize the OpenAI embeddings model
-client = OpenAI()
-model = "text-embedding-3-small"
-
-# Generate embeddings for the sample strings
-def get_embedding(text):
-    response = client.embeddings.create(input=text, model=model)
-    return response.data[0].embedding
-
-document_embeddings = np.array(
-    [get_embedding(text) for text in text_chunks]
-)
-
-# Convert embeddings to float32 (FAISS requires float32 type)
-document_embeddings = document_embeddings.astype("float32")
-
-# Create a FAISS index (using L2 distance)
-index = faiss.IndexFlatL2(document_embeddings.shape[1])
-
-# Add embeddings to the index
-index.add(document_embeddings)
-
-# Generate a query embedding for the user query
-query = "What color are violets?"
-query_embedding = np.array(get_embedding(query)).astype("float32")
-
-# Perform the search: k = number of closest documents you want to retrieve
-k = 5
-distances, indices = index.search(query_embedding.reshape(1, -1), k)
-
-# Retrieve the documents corresponding to the indices
-retrieved_documents = [text_chunks[i] for i in indices[0]]
-```
-非常明显,FAISS是一个临时性的内存数据库,不能持久化存储数据,但用起来确实很简单.
-#### Chroma使用
-其实都大差不差,创建embedding,比较相似度,访问相似度最高的几个结果,除了API上不太一样外,原理是一样的.
-#### pgvector
-先创建容器:
-
-```yaml
-version: '3.8'
-services:
-  db:
-    image: ankane/pgvector
-    container_name: postgres_with_pgvector
-    restart: always
-    environment:
-      POSTGRES_USER: rag_cookbook_user
-      POSTGRES_PASSWORD: rag_cookbook_user_pw
-      POSTGRES_DB: rag_cookbook
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-volumes:
-  pgdata:
-```
-然后连接数据库并插入
-```python
-from openai import OpenAI
-
-# Define text chunks
-text_chunks = [
-    "The sky is blue.",
-    "The sun is shining.",
-    "I love chocolate.",
-    "Ice cream is delicious.",
-    "Roses are red.",
-    "Violets are blue.",
-]
-
-client = OpenAI()
-model = "text-embedding-3-small"
-
-def get_embedding(text):
-    response = client.embeddings.create(input=text, model=model)
-    return response.data[0].embedding
-
-index = 0
-cur = conn.cursor()
-
-# Insert the embeddings into the table
-for text_chunk in text_chunks:
-    embedding = get_embedding(text_chunk)
-    cur.execute(
-        """INSERT INTO embeddings
-        (id, chunk, embedding)
-        VALUES (%s, %s, %s)""",
-        (index, text_chunk, embedding),
-    )
-    index += 1
-```
-可以发现这和普通的事务没有任何区别,这也就意味着当数据规模增大时,就不能用pgvector来处理了,因为关系型数据库无法在大数据量下做到低延迟.
-
-
-#### pgvector索引使用
-值得注意的是,pgvector支持给向量加上索引,有IVFFlat 和 HNSW两种方式
-
-```python
-import psycopg2
-from psycopg2 import Error
-
-ivfflat_sql = f"""
-    DROP TABLE IF EXISTS test_embedding_table;
-    CREATE TABLE test_embedding_table AS
-        SELECT * FROM job_description_table;
-    CREATE INDEX ON test_embedding_table
-        USING ivfflat (embedding vector_cosine_ops)
-        WITH (lists = 30);
-    -- Reduce the number of probes for faster search
-    SET ivfflat.probes = 3;
-    EXPLAIN ANALYZE SELECT 1 - (embedding <=> '{str(query_embedding)}')
-    AS cosine_similarity, *
-    FROM test_embedding_table
-    ORDER BY 1 - (embedding <=> '{str(query_embedding)}') DESC
-    LIMIT 20;
-"""
-
-cur.execute(ivfflat_sql)
-ivfflat_search = cur.fetchall()
-```
-
-当查询速度至关重要且内存充足时，请选择 HNSW（HNSW 会在 RAM 中存储更多数据）。当内存受限或需要更快的索引构建速度（即使查询速度略慢）时，请选择 IVF。对于大多数拥有数百万个向量的生产级 RAG 系统，HNSW 可提供最佳的查询性能。
-
-### 检索
-### Agentic RAG
-#### 自定义工具
-```python
-import requests
-
-def get_weather(latitude, longitude):
-    '''
-    This function calls the open-meteo API to get the weather data for a
-    given latitude and longitude.
-
-    Args:
-        latitude (float): The latitude of the location to get weather
-            data for.
-        longitude (float): The longitude of the location to get
-            weather data for.
-
-    Returns:
-        dict: A dictionary containing the weather data for the given
-            latitude and longitude.
-    '''
-    response = requests.get(
-        "https://api.open-meteo.com/v1/forecast"
-        f"?latitude={latitude}"
-        f"&longitude={longitude}"
-        "&current=temperature_2m,wind_speed_10m"
-        "&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m"
-    )
-    data = response.json()
-    return data['current']['temperature_2m']
-```
->使用自定义工具来实现特定领域的功能，例如内部数据库、专有 API或业务计算。确保每个工具只专注于一项职责
-#### Workflow Patterns
-1. Prompt chaining: 如从PDF中提取文本并进行翻译,每一个调用都依赖于前一个调用的输出,所以必须顺序执行
-
-```py
-outline = llm("为文章生成提纲")
-
-draft = llm(f"""
-根据以下提纲撰写初稿：
-{outline}
-""")
-
-review = llm(f"""
-审查以下初稿：
-{draft}
-""")
-```
-
-2. Routing: 由LLM选择合适的工具或者子工作流程
-
-![示意图](PixPin_2026-09-24_08-31-31.webp)
-```py
-route = llm(f"""
-判断问题类型：
-1. 数学
-2. 编程
-3. 哲学
-
-问题：
-{question}
-""")
-
-if route == "1":
-    answer = math_agent(question)
-elif route == "2":
-    answer = coding_agent(question)
-else:
-    answer = philosophy_agent(question)
-```
-
-3. Parallel tasks: 并行调用多个工具或者API,从而缩短处理时间
-```py
-import asyncio
-
-async def analyze():
-    results = await asyncio.gather(
-        llm_async("分析论证结构"),
-        llm_async("检查事实错误"),
-        llm_async("检查语言问题"),
-    )
-
-    return results
-
-final = llm(f"""
-综合以下三个审查结果：
-{results}
-""")
-```
-
-4. Orchestrator-workers: 根据用户的问题，orchestrator可以调用一个或多个worker,并综合所有内容生成响应
-
-```py
-plan = llm("""
-请把这个研究任务拆成若干独立子任务。
-返回 JSON。
-""")
-
-results = []
-
-for task in tasks:
-    result = llm(f"完成任务：{task}")
-    results.append(result)
-
-final = llm(f"""
-综合以下研究结果：
-
-{results}
-""")
-```
-
-5. Evaluator-optimizer: 一个LLM创建初始草稿，另一个LLM对其进行审核。系统在草稿创建和评估之间反复迭代，直到评估者满意或达到最大迭代次数为止
-
-```py
-draft = llm(prompt)
-
-for i in range(5):
-
-    evaluation = llm(f"""
-    评价以下答案。
-    如果合格，返回 PASS。
-    否则给出修改建议。
-
-    {draft}
-    """)
-
-    if "PASS" in evaluation:
-        break
-
-    draft = llm(f"""
-    根据以下意见修改答案。
-
-    原答案：
-    {draft}
-
-    修改意见：
-    {evaluation}
-    """)
-```
-#### Agentic Frameworks
-
-| 等级                                                          | 示例工具 / 框架                   | 这一层级的核心特征                                                                                                                                              | 适用场景与说明                                                                                                                                                                                                          |
-| ------------------------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1. 低代码 / 无代码平台**                                    | **Microsoft Copilot Studio** 等   | 通过可视化界面和预置能力快速搭建 Agent / 工作流，尽量减少底层代码与基础设施开发。                                                                               | 适合**希望快速落地、开发资源有限**的团队。若企业已经使用微软生态，Copilot Studio 往往更容易接入现有系统。优点是上手快、工程负担低；代价是**定制能力和底层控制力较弱**。*截图中该行前半部分缺失，此处根据可见内容整理。* |
-| **2. Agent 框架：代码优先（Agentic Frameworks, Code-first）** | **OpenAI Agents SDK、LangGraph**  | 提供构建 Agent 所需的基础组件，例如**工具调用（Tools）、状态 / 记忆与持久化（State / Memory / Persistence）、运行追踪（Tracing）**，以及常见的 Agent 设计模式。 | 适合希望**比完全从零开发更快**，同时又想保留**代码级控制权**的场景。较轻量的框架（如 OpenAI Agents SDK）通常能减少框架绑定，使以后切换框架或迁移到自研架构更容易。                                                      |
-| **3. 从零构建：最大控制（From Scratch, Maximum Control）**    | **直接调用模型 API + 自研编排层** | 直接调用 LLM 提供商的 API，并自行实现**编排（Orchestration）、工具系统、状态管理、记忆、可观测性（Observability）**等完整基础设施。                             | 适合需要**最高灵活性、可控性或系统健壮性**，且团队有能力维护完整技术栈的场景，包括**日志（Logging）、链路追踪（Tracing）、安全护栏（Guardrails）**等。工程投入最大，但拥有最高程度的架构自主权。                        |
-
-
-
-
-| 典型场景                                                  | 从零构建 | 轻量级框架 | 高抽象框架 | 优化后的说明                                                                                                                                                                                                                               |
-| --------------------------------------------------------- | :------: | :--------: | :--------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **需要在几周内完成 Agentic RAG 应用，并快速投入生产**     |    △     |     ✓      |     ✓      | **框架更适合快速交付。** LangChain 等高抽象框架已经封装了大量 RAG、工具调用和 Agent 能力，可以显著缩短开发周期；轻量级框架也能减少样板代码。完全从零构建通常需要自行处理编排、状态、错误恢复等基础设施，达到稳定生产状态所需时间更长。     |
-| **应用由大量初、中级开发人员共同维护**                    |    △     |     ✓      |     ✓      | **框架有利于团队协作和代码规范化。** 从零构建通常要求开发人员较深入地理解 Agent Loop、状态管理、工具调用等机制；框架则提供统一的接口、项目结构和常见设计模式，使不同经验水平的开发者更容易遵循一致的开发规范。                             |
-| **系统需要服务数千乃至数百万用户，强调稳定性与可扩展性**  |    ✓     |     ✓      |     ○      | **越接近底层，通常越容易精细控制性能和依赖。** 从零构建或采用轻量级框架，可以减少不必要的中间层与第三方依赖，从而更容易进行性能优化、水平扩展和故障定位。高抽象框架同样可以扩展，但复杂抽象和额外依赖可能增加性能调优与故障排查成本。      |
-| **需要针对特定业务需求构建高度灵活、深度定制的 Agent**    |    ✓     |     ✓      |     △      | **从零构建拥有最高控制力。** 开发者可以完全决定 Agent Loop、工具系统、提示词、状态结构、记忆机制以及各组件之间的交互方式。轻量级框架通常也能保留较大的定制空间；高抽象框架虽然开发方便，但当需求偏离其预设模式时，可能受到框架抽象的限制。 |
-| **需要实时调试、可观测性、执行透明度以及审计 / 合规日志** |    ○     |     ✓      |     ✓      | **框架通常能够减少可观测性基础设施的建设成本。** 许多 Agent 框架已经提供 tracing、运行轨迹、工具调用记录和调试能力，可以观察 Agent 每一步的执行过程。从零构建也能够实现完整的日志、链路追踪和审计系统，但这些能力通常需要自行设计和维护。  |
-
-**符号说明：** ✓ = 较适合；○ = 可以采用，但存在一定额外成本；△ = 通常不是该场景下的优先方案。
-
-
-#### asyncio加速
-```py
-async def main():
-    images = convert_from_path(
-        "../datasets/sample_data_asyncio/Laptop_Order_Invoice.pdf",
-        dpi=200
-    )
-
-    end_page_to_process = 3
-
-    results = await asyncio.gather(
-        *[
-            extract_entities_from_image(img, i + 1)
-            for i, img in enumerate(images[:end_page_to_process])
-        ]
-    )
-
-    client = openai.AsyncOpenAI()
-
-    response = await client.chat.completions.create(
-        model="gpt-5.2",
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": "Merge these JSON lists into one. "
-                                "They are all from the same invoice.",
-                    },
-                    {
-                        "type": "text",
-                        "text": "\n".join(results),
-                    },
-                ],
-            }
-        ],
-    )
-
-    merged_json = response.choices[0].message.content
-    return merged_json
-```
-
-调用工具时,我们自然希望越快处理完越好,比如对pdf进行分页拆分,最好的方法就是开多个线程同时进行处理,并使用异步调用.
-#### OpenAI Agents SDK介绍
-OpenAI Agents SDK是OpenAI推出的智能体构建轻量框架,待我日后试试效果
-
-#### LangGraph
-![介绍](PixPin_2026-09-27_10-18-17.webp)
-
->对于简单的线性工作流程，请避免使用 LangGraph。如果您的代理执行的是固定序列，没有分支逻辑或共享状态，那么图抽象只会增加复杂性而没有带来任何好处。
-
-当协调多个共享上下文的代理时，状态管理尤为重要。LangGraph 会自动维护共享状态。
-
-### Graph RAG
-
-![示意图](PixPin_2026-09-23_11-06-45.webp)
-
-最常用的图数据库自然是Neo4j
-
-#### 补充: docker启动neo4j
-
-```yml
-services:
-  neo4j:
-    image: neo4j:5
-    container_name: neo4j
-    ports:
-      - "7474:7474" # Web 管理界面
-      - "7687:7687" # Bolt 协议，程序连接用
-    environment:
-      NEO4J_AUTH: neo4j/your_password
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-
-volumes:
-  neo4j_data:
-  neo4j_logs:
-```
-`NEO4J_AUTH: neo4j/your_password`字段分别对应账户名和密码
-
-非常遗憾的是,这部分的叙述非常草率,所以只好我自己去看文档学习了
-
-### 评估RAG系统
-给了一些比较实用的判断RAG效果的方案
-
-### 总结
-干货确实很多,尤其是前几章,读起来很有收获.
 
 
 ## AI Agents in Action,Second Edition
@@ -1718,87 +998,37 @@ MCP 由 Anthropic 开发，将于 2024 年 11 月发布，它是一种基于JSON
 
 
 ### Multi Agent
+#### 背景
+单智能体系统出现后不久，开发者和研究人员便开始增加智能体的数量。其理念很简单：**智能体越多，就能处理和解决更复杂的目标**。
 
-## Vector Databases
-- 出版于2026年，出版商：O'Reilly，作者：Nitin Borwankar。
+2023 年的浪潮（AutoGPT 和 BabyAGI）率先风靡一时，但都在几周内暴露出同样的缺陷。在演示中，一个智能体不断生成子目标的无约束循环令人印象深刻，但在实践中却十分脆弱。下一波浪潮则着眼于**结构化**：
 
-### 介绍
+- **MetaGPT** 引入了基于角色的团队，模拟软件公司（CEO、产品经理、工程师、QA）。
+- **CrewAI** 和 **AutoGen** 则规范了协作团队模式，明确了智能体的职责和沟通渠道。
 
-#### 相似性搜索
-想象一下，你正在搜索一家公司的知识库，然后你输入“如何才能拿回我的钱？”接下来会发生什么？
+到 2024 年，实验的重点已经从 *"增加智能体数量就能解决问题"* 转向 *"合适的智能体结构就能解决问题"*，并涌现出几种关键架构。
 
-1. keyword search: 系统对你的查询进行分词后直接搜索文档,但如果文档使用诸如`Refund policy`等相近的词则找不到答案
-2. Semantic search: 系统会尝试理解用户输入,并匹配多种语义相近的结果
+也是在这一时期，**日益复杂的单智能体系统（increasingly complex single-agent systems）**开始涌现。其概念很简单：单个智能体无需复杂的多智能体协调与通信策略（a lone agent eliminated the need for complex multi-agent coordination and communication strategies）。然而，在实践中，单智能体在以下方面都存在局限性：
 
-传统的关系型数据库和NoSQL数据库都无法很好的适应向量处理,而单纯的向量数据库(只存储向量)又丢失了查询的灵活性和存储效率,也不再具备索引功能,所以一个折衷的方式就是混合架构,将向量功能作为扩展插入到关系型数据库和NoSQL数据库中
+- **工具使用（tool use）**
+- **推理与规划详细任务（reasoning and planning for detailed tasks）**
+- **切换关注点（the ability to switch focus）**
 
-### 嵌入
-#### 两种嵌入思想
-![示意图](PixPin_2026-09-28_11-49-09.webp)
-#### 实践指南
-1. 批处理: 加快处理速度
-```py
-# Good practice
-embeddings = model.encode(sentences, batch_size=32)
-# Bad practice
-embeddings = [model.encode(sentence) for sentence in sentences]
-```
-2. 控制长度: 不要嵌入一整个段落,而是分成固定大小的片段
+#### 三种架构
+![图示](PixPin_2026-09-30_12-36-42.webp)
 
-```py
-# Good practice
-max_seq_length = model.max_seq_length
-def chunk_text(text, max_length=max_seq_length):
-    # Split into sentences or chunks
-    chunks = [text[i:i + max_length] for i in range(0, len(text), max_length)]
-    return chunks
+优缺点:
 
-# Process long document
-long_text_embeddings = model.encode(chunk_text(long_document))
-```
-3. 归一化: 所有向量都要弄成统一的长度,不然无法比较
-```py
-# Good practice
-embeddings = model.encode(sentences, normalize_embeddings=True)
-# Or manually normalize if needed
-from sklearn.preprocessing import normalize
-embeddings = normalize(embeddings)
-```
+| Pattern           | Pros                                                                                                                                                                                 | Cons                                                                                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flow**          | • Breaks down a complex single agent<br>• One large goal can be easily decomposed<br>• No need for complex decision-making<br>• Easy to evaluate and debug                           | • Lacks the ability to partially execute all agents; generally all or nothing<br>• Poor decision-making ability<br>• Fragile: if a single agent fails, the whole flow fails |
+| **Orchestrator**  | • Handles complex decision-making<br>• Executes some or all agents as needed<br>• Well-suited for direct user interaction<br>• Robust; worker agent failures can be easily recovered | • Complex to build, debug, and evaluate<br>• Orchestrators need strong evaluation, guardrails, and feedback mechanisms                                                      |
+| **Collaboration** | • Ambiguous, complex goals and tasks with multiple possible outcomes                                                                                                                 | • Costly, with high token usage and high latency<br>• Difficult to build evaluations and feedback mechanisms                                                                |
 
-4. 使用GPU:
-```py
-# Good practice
-model = SentenceTransformer('all-MiniLM-L6-v2', device='cuda')
-# With error handling
-import torch
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model = SentenceTransformer(‘all-MiniLM-L6-v2’, device=device)
-```
-5. 控制内存使用: GPU太贵了
-```python
-# Good practice
-import gc
-import torch
-
-def process_large_dataset(sentences, batch_size=32):
-    embeddings = []
-    for i in range(0, len(sentences), batch_size):
-        batch = sentences[i:i + batch_size]
-        batch_embeddings = model.encode(batch)
-        embeddings.extend(batch_embeddings)
-
-        # Clear GPU memory if needed
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        gc.collect()
-
-    return embeddings
-```
+## Agentic Design Patterns
+- 出版于2025年，作者：Antonio Gullí。
 
 
-### FAISS使用
-### SQLite3使用
-### pgvector使用
 ## Redis设计与实现
 - 出版于2014年，作者：黄健宏。
 - 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
@@ -2219,47 +1449,6 @@ API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也
 最理想状态。系统既能同时调度多个独立任务，又能把这些任务或单个大任务的子任务分配给多个 CPU 核心同时执行。
 ### 进程间通信
 
-## Rootkit和Bootkit：现代恶意软件逆向分析和下一代威胁(待补充)
-- 出版于2019年（英文原版），作者：Alex Matrosov。
-- Rootkit: 针对操作系统内核
-- Bootkit: 针对MBR等引导扇区
-
-### Rootkit
-
-#### TDL3
-为了在系统重新启动时幸存下来，TDL3通过在驱动程序的二进制文件中注入恶意代码来感染加载操作系统所必需的一个引导启动驱动程序.
-
-一旦选择了一个目标驱动程序，TDL3感染程序就会用一个恶意加载程序覆盖它的资源部分.rsrc的前几百个字节，从而修改驱动程序在内存中的映像。这个加载程序非常简单：它只是在启动时从硬盘上加载它需要的其余恶意软件代码。
-
-这种方式只能针对x32位系统起作用,因为x64位系统需要对内核代码进行完整性的检查,通过数字签名即可阻止TDL3的运行.
-
-![目标](PixPin_2026-07-30_12-23-56.webp)
-
->TDL3是第一个将配置文件和有效负载存储在目标系统隐藏的加密存储区域的恶意软件系统，不依赖于操作系统提供的文件系统服务。
-
-#### Festi
->本章专门讨论发现的最先进的垃圾邮件和分布式拒绝服务
-（DDoS）僵尸网络之一—Win32/Festi僵尸网络，我们将其简称为Festi。Festi拥有强大的垃圾邮件发送和DDoS功能，以及有趣的Rootkit功能，这使得它可以连接到文件系统和系统注册表而不被人发现。Festi还通过使用调试器和沙箱规避技术来对抗动态分析，以隐藏自己的存在。
-
-Festi的Dropper（植入程序）有一个相当简单的功能—在系统中安装一个内核模式驱动程序，该驱动程序实现了恶意软件的主要逻辑。内核模式组件注册为“系统启动”内核模式驱动程序，并随机生成名称，这意味着在初始化期间，恶意驱动程序将在系统启动时加载和执行。
-
-内核模式驱动程序有两个主要职责：从命令和控制（C&C）服务器请求配置信
-息，以及以插件的形式下载和执行恶意模块（见图2-2）。每个插件专用于特定的任
-务，例如对指定的网络资源执行DDoS攻击，或向C&C服务器提供的电子邮件列表发送
-垃圾邮件。
-
-有趣的是，插件并不存储在系统硬盘驱动器上，而是存储在易失性内存中，这意
-味着当受感染的计算机被关闭或重新启动时，插件就会从系统内存中消失。这使得恶
-意软件的取证分析变得非常困难，因为存储在硬盘上的唯一文件是主内核模式驱动程
-序，它既不包含有效负载，也不包含攻击目标的任何信息。
-
-### Bootkit
-可以看到,由于操作系统的安全性能不断提高,Rootkit已经式微,随之而来的是更加深入底层的Bootkit类型软件.
-
-![示意图](PixPin_2026-08-03_10-18-49.webp)
-
-#### ch5
-这一章很有看头,讲述了从BIOS启动操作系统的一般过程
 
 ## Elasticsearch in Action, Second Edition(待补充)
 - 出版于2023年（第2版），出版商：Manning，作者：Madhusudhan Konda。
@@ -2291,12 +1480,6 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 
 主分片负责存储文档，而副本分片（简称副本）顾名思义是主分片的副本。每个分片可以有多个副本，也可不设置副本，但这种方式不推荐用于生产环境——在实际生产环境中，通常会为每个分片创建多个副本。副本存储着数据副本，既能提升系统冗余度，又能帮助加速搜索查询。
 
-## THE GHIDRA BOOK(待补充)
-- 出版于2020年，作者：Chris Eagle。
-
-### 介绍
-Ghidra 是一款免费开源的软件逆向工程（SRE）工具套件。它最初是美国国家安全局（NSA）的一个项目，如今得到了日益壮大的 Ghidra爱好者社区的支持。
-
 
 
 ## Fundamentals of Data Engineering(待补充)
@@ -2316,167 +1499,12 @@ Ghidra 是一款免费开源的软件逆向工程（SRE）工具套件。它最�
 ## Systems Performance,2nd edition(待补充)
 - 出版于2020年（第2版），作者：Brendan Gregg。
 
-非常好的书,待我工作后再来看
+### ch1: 介绍
+讲的特别好,很适合运维来看
 
-### 介绍
-第一章的情景演练很有看头,可以明白运维平常都在干什么活儿.
+### ch2: 方法论
+#### 术语和模型
 
-系统性能的量度有以下几点:
-1. 延迟: 如I/O用时
-2. 可观测性: 运维使用不同工具来观测系统的运行情况
-
-## On Java 8(待补充)
-- 出版于2017年（在线原版），作者：Bruce Eckel。
-- [中文翻译版链接](https://zyb0408.github.io/gitbooks/onjava8/)
-
-讲的还算详细和有体系,但由于我已经了解过其中的大多数内容了,所以就只摘抄一些比较难懂和重要的部分,很多我这辈子都未必能用到的零碎知识点就直接跳过了.
-
-### Java的垃圾回收
-
-#### 文章摘录
-如果你以前用过的语言，在堆上分配对象的代价十分高昂，你可能自然会觉得 Java 中所有对象（基本类型除外）在堆上分配的方式也十分高昂。然而，垃圾回收器能很明显地提高对象的创建速度。这听起来很奇怪——存储空间的释放影响了存储空间的分配，但这确实是某些 Java 虚拟机的工作方式。这也意味着，Java 从堆空间分配的速度可以和其他语言在栈上分配空间的速度相媲美。
-
-例如，你可以把 C++ 里的堆想象成一个院子，里面每个对象都负责管理自己的地盘。一段时间后，对象可能被销毁，但地盘必须复用。在某些 Java 虚拟机中，堆的实现截然不同：它更像一个传送带，每分配一个新对象，它就向前移动一格。这意味着对象存储空间的分配速度特别快。Java 的"堆指针"只是简单地移动到尚未分配的区域，所以它的效率与 C++ 在栈上分配空间的效率相当。当然实际过程中，在簿记工作方面还有少量额外开销，但是这部分开销比不上查找可用空间开销大。
-
-你可能意识到了，Java 中的堆并非完全像传送带那样工作。要是那样的话，势必会导致频繁的内存页面调度——将其移进移出硬盘，因此会显得需要拥有比实际需要更多的内存。页面调度会显著影响性能。最终，在创建了足够多的对象后，内存资源被耗尽。其中的秘密在于垃圾回收器的介入。当它工作时，一边回收内存，一边使堆中的对象紧凑排列，这样"堆指针"就可以很容易地移动到更靠近传送带的开始处，也就尽量避免了页面错误。垃圾回收器通过重新排列对象，实现了一种高速的、有无限空间可分配的堆模型。
-
-要想理解 Java 中的垃圾回收，先了解其他系统中的垃圾回收机制将会很有帮助。一种简单但速度很慢的垃圾回收机制叫做引用计数。每个对象中含有一个引用计数器，每当有引用指向该对象时，引用计数加 1。当引用离开作用域或被置为 null 时，引用计数减 1。因此，管理引用计数是一个开销不大但是在程序的整个生命周期频繁发生的负担。垃圾回收器会遍历含有全部对象的列表，当发现某个对象的引用计数为 0 时，就释放其占用的空间（但是，引用计数模式经常会在计数为 0 时立即释放对象）。这个机制存在一个缺点：如果对象之间存在循环引用，那么它们的引用计数都不为 0，就会出现应该被回收但无法被回收的情况。对垃圾回收器而言，定位这样的循环引用所需的工作量极大。引用计数常用来说明垃圾回收的工作方式，但似乎从未被应用于任何一种 Java 虚拟机实现中。
-
-- Python一直采用的垃圾回收机制就是引用计数
-
-在更快的策略中，垃圾回收器并非基于引用计数。它们依据的是：对于任意"活"的对象，一定能最终追溯到其存活在栈或静态存储区中的引用。这个引用链条可能会穿过数个对象层次，由此，如果从栈或静态存储区出发，遍历所有的引用，你将会发现所有"活"的对象。对于发现的每个引用，必须追踪它所引用的对象，然后是该对象包含的所有引用，如此反复进行，直到访问完"根源于栈或静态存储区的引用"所形成的整个网络。你所访问过的对象一定是"活"的。注意，这解决了对象间循环引用的问题，这些对象不会被发现，因此也就被自动回收了。
-
-在这种方式下，Java 虚拟机采用了一种自适应的垃圾回收技术。至于如何处理找到的存活对象，取决于不同的 Java 虚拟机实现。其中有一种做法叫做停止-复制（stop-and-copy）。顾名思义，这需要先暂停程序的运行（不属于后台回收模式），然后将所有存活的对象从当前堆复制到另一个堆，没有复制的就是需要被垃圾回收的。另外，当对象被复制到新堆时，它们是一个挨着一个紧凑排列，然后就可以按照前面描述的那样简单、直接地分配新空间了。
-
-当对象从一处复制到另一处，所有指向它的引用都必须修正。位于栈或静态存储区的引用可以直接被修正，但可能还有其他指向这些对象的引用，它们在遍历的过程中才能被找到（可以想象成一个表格，将旧地址映射到新地址）。
-
-这种所谓的"复制回收器"效率低下主要因为两个原因。其一：得有两个堆，然后在这两个分离的堆之间来回折腾，得维护比实际需要多一倍的空间。某些 Java 虚拟机对此问题的处理方式是，按需从堆中分配几块较大的内存，复制动作发生在这些大块内存之间。
-
-其二在于复制本身。一旦程序进入稳定状态之后，可能只会产生少量垃圾，甚至没有垃圾。尽管如此，复制回收器仍然会将所有内存从一处复制到另一处，这很浪费。为了避免这种状况，一些 Java 虚拟机会进行检查：要是没有新垃圾产生，就会转换到另一种模式（即"自适应"）。这种模式称为标记-清扫（mark-and-sweep），Sun 公司早期版本的 Java 虚拟机一直使用这种技术。对一般用途而言，"标记-清扫"方式速度相当慢，但是当你知道程序只会产生少量垃圾甚至不产生垃圾时，它的速度就很快了。
-
-"标记-清扫"所依据的思路仍然是从栈和静态存储区出发，遍历所有的引用，找出所有存活的对象。但是，每当找到一个存活对象，就给对象设一个标记，并不回收它。只有当标记过程完成后，清理动作才开始。在清理过程中，没有标记的对象将被释放，不会发生任何复制动作。"标记-清扫"后剩下的堆空间是不连续的，垃圾回收器要是希望得到连续空间的话，就需要重新整理剩下的对象。
-
-"停止-复制"指的是这种垃圾回收动作不是在后台进行的；相反，垃圾回收动作发生的同时，程序将会暂停。在 Oracle 公司的文档中会发现，许多参考文献将垃圾回收视为低优先级的后台进程，但是早期版本的 Java 虚拟机并不是这么实现垃圾回收器的。当可用内存较低时，垃圾回收器会暂停程序。同样，"标记-清扫"工作也必须在程序暂停的情况下才能进行。
-
-如前文所述，这里讨论的 Java 虚拟机中，内存分配以较大的"块"为单位。如果对象较大，它会占用单独的块。严格来说，"停止-复制"要求在释放旧对象之前，必须先将所有存活对象从旧堆复制到新堆，这导致了大量的内存复制行为。有了块，垃圾回收器就可以把对象复制到废弃的块。每个块都有年代数来记录自己是否存活。通常，如果块在某处被引用，其年代数加 1，垃圾回收器会对上次回收动作之后新分配的块进行整理。这对处理大量短命的临时对象很有帮助。垃圾回收器会定期进行完整的清理动作——大型对象仍然不会复制（只是年代数会增加），含有小型对象的那些块则被复制并整理。Java 虚拟机会监视，如果所有对象都很稳定，垃圾回收的效率降低的话，就切换到"标记-清扫"方式。同样，Java 虚拟机会跟踪"标记-清扫"的效果，如果堆空间出现很多碎片，就会切换回"停止-复制"方式。这就是"自适应"的由来，你可以给它个啰嗦的称呼："自适应的、分代的、停止-复制、标记-清扫"式的垃圾回收器。
-
-Java 虚拟机中有许多附加技术用来提升速度。尤其是与加载器操作有关的，被称为"即时"（Just-In-Time, JIT）编译器的技术。这种技术可以把程序全部或部分翻译成本地机器码，所以不需要 JVM 来进行翻译，因此运行得更快。当需要装载某个类（通常是创建该类的第一个对象）时，编译器会先找到其 .class 文件，然后将该类的字节码装入内存。你可以让即时编译器编译所有代码，但这种做法有两个缺点：一是这种加载动作贯穿整个程序生命周期内，累加起来需要花更多时间；二是会增加可执行代码的长度（字节码要比即时编译器展开后的本地机器码小很多），这会导致页面调度，从而一定降低程序速度。另一种做法称为惰性评估，意味着即时编译器只有在必要的时候才编译代码。这样，从未被执行的代码也许就压根不会被 JIT 编译。新版 JDK 中的 Java HotSpot 技术就采用了类似的做法，代码每被执行一次就优化一些，所以执行的次数越多，它的速度就越快。
-
-#### 总结
-首先我们需要知道的是**Java将对象通通放在堆上**,当有新的对象要被分配时,Java 的"堆指针"只是简单地移动到尚未分配的区域，所以它的效率与 C++ 在栈上分配空间的效率相当。
-
-但是,当对象数量一多,内存容量极小的缓存(cache)就有可能没有保留我们所需的对象,需要从主存(main memory)甚至是硬盘中读取,俗称(缓存不命中,cache miss),这大大延长了扫描对象的时间,从而影响程序运行的速度,所以我们需要通过**垃圾回收**机制处理**未被实际引用**的对象.
-
-早期的JVM采用两种垃圾回收机制,分别对应程序启动和程序稳定运行的情况:
-1. **停止-复制（stop-and-copy）**: 暂停程序运行,将所有对象复制到一个新的堆
-2. **标记-清扫（mark-and-sweep）**: 当程序产生的垃圾很少时,再用停止-复制机制的开销就太大了,所以我们可以通过遍历栈和静态存储区的方式,**标记**那些被实际引用的对象,并在遍历结束后**清扫**未被标记的对象.
-
-这两种垃圾回收都必须在程序暂停时才可以进行,所以还是不够理想,至于更深入的讨论,需要去阅读其他书籍来理解
-
-### 函数式编程
->大多数面向对象语言都或多或少的学习和吸收了函数式语言的特点,Java也不例外,在Java 8中引入了Lambda表达式和函数式编程.
-
-#### 新旧对比
-下面是传统方式和Java 8的方式对比:
-
-```java
-// functional/Strategize.java
-
-interface Strategy {
-  String approach(String msg);
-}
-
-class Soft implements Strategy {
-  public String approach(String msg) {
-    return msg.toLowerCase() + "?";
-  }
-}
-
-class Unrelated {
-  static String twice(String msg) {
-    return msg + " " + msg;
-  }
-}
-
-public class Strategize {
-  Strategy strategy;
-  String msg;
-  Strategize(String msg) {
-    strategy = new Soft(); // [1]
-    this.msg = msg;
-  }
-
-  void communicate() {
-    System.out.println(strategy.approach(msg));
-  }
-
-  void changeStrategy(Strategy strategy) {
-    this.strategy = strategy;
-  }
-
-  public static void main(String[] args) {
-    Strategy[] strategies = {
-      new Strategy() { // [2]
-        public String approach(String msg) {
-          return msg.toUpperCase() + "!";
-        }
-      },
-      msg -> msg.substring(0, 5), // [3]
-      Unrelated::twice // [4]
-    };
-    Strategize s = new Strategize("Hello there");
-    s.communicate();
-    for(Strategy newStrategy : strategies) {
-      s.changeStrategy(newStrategy); // [5]
-      s.communicate(); // [6]
-    }
-  }
-}
-```
-
-**输出结果**
-
-```java
-hello there?
-HELLO THERE!
-Hello
-Hello there Hello there
-```
-
-对应序号的说明:
-
-- [1] 在 Strategize 中，Soft 作为默认策略，在构造函数中赋值。
-- [2] 一种略显简短且更自发的方法是创建一个匿名内部类。即使这样，仍有相当数量的冗余代码。你总是要仔细观察：“哦，原来这样，这里使用了匿名内部类。”
-- [3] Java 8 的 Lambda 表达式。由箭头 -> 分隔开参数和函数体，箭头左边是参数，箭头右侧是从 Lambda 返回的表达式，即函数体。这实现了与定义类、匿名内部类相同的效果，但代码少得多。
-- [4] Java 8 的方法引用，由 :: 区分。在 :: 的左边是类或对象的名称，在 :: 的右边是方法的名称，但没有参数列表。
-- [5] 在使用默认的 Soft strategy 之后，我们逐步遍历数组中的所有 Strategy，并使用 changeStrategy() 方法将每个 Strategy 放入 变量 s 中。
-- [6] 现在，每次调用 communicate() 都会产生不同的行为，具体取决于此刻正在使用的策略代码对象。我们传递的是行为，而非仅数据
-
->在 Java 8 之前，我们能够通过 [1] 和 [2] 的方式传递功能。然而，这种语法的读写非常笨拙，并且我们别无选择。方法引用和 Lambda 表达式的出现让我们可以在需要时传递功能，而不是仅在必要才这么做。
-
-上述的代码对于新手来说非常难以理解,所以接下来要好好探析一下.
-
-#### Lambda表达式
-Lambda 表达式是使用最小可能语法编写的函数定义：
-
-1. Lambda 表达式产生函数，而不是类。 在 JVM（Java Virtual Machine，Java 虚拟机）上，一切都是一个类，因此在幕后执行各种操作使 Lambda 看起来像函数 —— 但作为程序员，你可以高兴地假装它们“只是函数”。
-2. Lambda 语法尽可能少，这正是为了使 Lambda 易于编写和使用。
-
-## The Garbage Collection Handbook(第一版)(待补充)
-- 出版于2011年（第1版），作者：Richard Jones。
-
-### 前置概念
-- 堆: 一段或连续几段连续内存组成的空间集合,内存颗粒(granule)是堆内存分配的最小单位,通常是一个字(word)或者双字.内存单元(cell)是由数个连续的颗粒组成的内存块.
-- 对象(object): 为应用程序分配的内存单元
-- 赋值器: 分配新的对象,并修改对象之间的引用关系,从而改变对象图.
-  - 赋值器有三种操作: New,从堆分配器获得一个新的堆对象;Read,访问某个对象;Write,修改某个对象
-- 回收器(collector): 执行垃圾回收代码,找到不可达对象并将其回收
-- 分配器(allocator): 分配或者释放存储空间
-
-标记-清扫（mark-sweep）、标记-复制（mark-copy）、标记-整理（mark-compact）、引用计数（reference counting）是4种最基本的垃圾回收策略。大多数回收器会以不同的组合方式来应用这些策略.
-
-### 标记-清扫算法
-- 这是一种间接回收算法,并非直接检测垃圾本身,而是先确定所有的存活对象,再反过来判定其他对象都是垃圾.
 
 ## Kubernetes in Action, Second Edition(待补充)
 - 出版于2026年（第2版），出版商：Manning，作者：Marko Lukša。
@@ -2707,236 +1735,9 @@ public class MaxTemperature {
 ### 引言
 >建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
 
-## Hugo in Action(待补充)
-- 出版于2022年，出版商：Manning，作者：Atishay Jain。
-
-### 引言
->2013 年 7 月，我将博客迁移到 Hugo，并向世界发布了我的第一个Go 项目。当时，我完全没有想到，这个最初只是为了个人博客而编写的项目，竟会彻底改变我的人生，乃至整个世界
-
-### 基础
-
-#### Jamstack
-**Jamstack** 一词由 Netlify 的联合创始人兼首席执行官 **Matt Biilmann** 于 2016 年提出,是一种架构思想,最初来自:
-
-```text
-J = JavaScript
-A = APIs
-M = Markup
-```
-
-**Jamstack** 摒弃了数据库，将所有内容存储在部署期间编译的文件中，然后通过**内容分发网络（CDN）**进行分发。**应用程序编程接口（API）** 提供动态的、基于服务器的内容，这些内容由第三方维护或由云服务提供商托管，网站所有者只需极少的日常参与。这样，开发人员就无需处理安全更新、**拒绝服务（DoS）**攻击以及持续监控以抵御黑客攻击等任务。
-
-Hugo 是目前最流行的 Jamstack 框架之一，拥有最快的构建速度。它让我们摆脱了设置、维护和日常维护的烦恼
-
-### 总结
-仔细一想,我目前根本用不到里面的任何知识好不好...
-
-## Prometheus: Up & Running(待补充)
-
-### 介绍
-- Prometheus是一个开源的、基于指标的监控系统.
-
-监控(monitor)可以定义如下:
-* **告警（Alerting）**：知道事情何时出错，通常是监控最重要的用途。监控系统应能够在出现异常时通知人工介入检查。
-* **调试（Debugging）**：当人工介入后，需要进一步调查问题，确定根本原因，并最终解决已经出现的故障。
-* **热门趋势（Trending）**：告警和调试通常发生在几分钟到几小时的时间尺度上。虽然趋势分析没有那么紧急，但了解系统如何被使用、如何随时间变化同样重要。趋势信息可以为设计决策、容量规划等工作提供依据。
-* **水管工程（Plumbing）**：监控系统本质上也是一套数据处理管道。在实践中，有时可以复用监控系统的部分能力去完成其他任务，而不必重新构建专门的解决方案。严格来说这不完全属于监控，但实际工程中很常见。
-
-![架构图](PixPin_2026-09-17_11-37-00.webp)
-
-### 入门
-
-#### 补充: 使用docker运行Prometheus
-新建一个文件夹,放三个文件:
-
-**prometheus.yml**
-
-```yml
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
-
-scrape_configs:
-  # 监控 Prometheus 自身
-  - job_name: "prometheus"
-
-    static_configs:
-      - targets:
-          - "localhost:9090"
-```
-**dockerfile**
-
-```dockerfile
-FROM prom/prometheus:latest
-
-COPY prometheus.yml /etc/prometheus/prometheus.yml
-
-EXPOSE 9090
-```
-
-**compose.yml**
-
-```yml
-services:
-  prometheus:
-    build:
-      context: .
-      dockerfile: Dockerfile
-
-    container_name: prometheus
-
-    ports:
-      - "9090:9090"
-
-    volumes:
-      # 持久化 Prometheus 时序数据
-      - prometheus_data:/prometheus
-
-      # 开发时推荐挂载配置文件，
-      # 修改配置后不需要重新 build 镜像
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=15d"
-      - "--web.enable-lifecycle"
-
-    restart: unless-stopped
-
-volumes:
-  prometheus_data:
-```
-
-然后用`docker compose up -d`运行,成功打开页面:
-
-![网页](PixPin_2026-09-17_11-54-18.webp)
-
-#### 表达式浏览器(Expression Browser)
-
-![查询执行](PixPin_2026-09-19_18-50-22.webp)
-
->我们的Prometheus大约使用了73 MB内存。你可能会好奇，为什么这个指标用字节而非兆字节或千兆字节来展示，那样可能更易读。答案是，可读性很大程度上取决于上下文，即使在不同环境中使用同一二进制，其数值也可能相差多个数量级：一个内部RPC可能只需微秒级完成，而轮询一个长期运行的进程则可能耗时数小时甚至数天。因此，Prometheus的惯例是采用基础单位，如字节和秒，并将美化显示的职责交给像Grafana这样的前端工具。
-
-![图标查看](PixPin_2026-09-19_18-52-47.webp)
-
-#### Alert(告警)
-运行目标:
-
-```yml
-global:
-  scrape_interval: 10s
-  evaluation_interval: 10s
-rule_files:
-  - rules.yml
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-            - localhost:9093
-scrape_configs:
-  - job_name: prometheus
-    static_configs:
-      - targets:
-          - localhost:9090
-  - job_name: node
-    static_configs:
-      - targets:
-          - localhost:9100
-```
-要想设定报警规则,就要写一个`rules.yml`出来:
-
-```yml
-groups:
-  - name: example
-    rules:
-      - alert: InstanceDown
-        expr: up == 0
-        for: 1m
-```
-除此之外,我们还需要将alert发送到我们指定的alertmanager上,所以还需要编写一个`alertmanager.yml`:
-
-```yml
-global:
-  smtp_smarthost: 'localhost:25'
-  smtp_from: 'yourprometheus@example.org'
-route:
-  receiver: example-email
-  group_by: [alertname]
-receivers:
-  - name: example-email
-    email_configs:
-      - to: 'youraddress@example.org'
-```
-
-### Application Monitoring
-
-#### Instrumentation
-
-##### 简单程序
-
-```py
-import http.server
-from prometheus_client import start_http_server
-
-
-class MyHandler(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Hello,World!")
-
-
-start_http_server(8000)
-server = http.server.HTTPServer(("localhost", 8001), MyHandler)
-server.serve_forever()
-```
-访问http://localhost:8000/会看到如下界面:
-
-![示意图](PixPin_2026-09-20_10-03-35.webp)
-
-再访问 http://localhost:8001/ 即可看到`Hello,World!"
-
-修改之前的Prometheus.yml:
-
-```yml
-global:
-  scrape_interval: 10s
-scrape_configs:
-  - job_name: example
-    static_configs:
-      - targets: ["host.docker.internal:8000"]
-
-```
-然后运行Prometheus来监听:
-
-![界面](PixPin_2026-09-20_10-14-30.webp)
-
-##### Counter
-
-```py
-
-import http.server
-from prometheus_client import start_http_server, Counter
-
-REQUESTS = Counter("hello_worlds_total", "Hello Worlds requested.")
-
-
-class MyHandler(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        REQUESTS.inc()
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Hello,World!")
-
-
-start_http_server(8000)
-server = http.server.HTTPServer(("localhost", 8001), MyHandler)
-server.serve_forever()
-```
-Count用于统计程序的各种自定义指标
-### 总结
-暂时弃坑,毕竟目前根本用不到好吧
+## 深入剖析Nginx
+- 出版于2013年，作者：高群凯。
+- 这种深入剖析的书都能让人不得不佩服作者的毅力,枯燥的源码是很难看得下去的.
 
 # 基础
 
@@ -14193,23 +12994,6 @@ ELF格式的可重定位目标文件格式如下:
 
 - 整体来说的话,只有链接一章值得一看,因为这方面的专业书籍实在太少了.
 
-## 深入剖析Nginx
-- 出版于2013年，作者：高群凯。
-- 这种深入剖析的书都能让人不得不佩服作者的毅力,枯燥的源码是很难看得下去的.
-
-### 进程模型
-
-![图示](PixPin_2026-07-16_10-19-49.webp)
-
-Nginx的进程有监控进程和工作进程两类,各有一个无限for ( ;;)循环，以便进程持续的等待和处理自己负责的事务，直到进程退出。
-
-为了实现多进程,Nginx效仿Linux实现了Slab机制,用于在多个进程之间共享内存,而不需要向操作系统进行额外的申请,这也是Nginx能够实现高并发的原因.
-
-### 数据结构
-Nginx内置了内存池机制,按照页数来分配内存
-
-### 总结
-源码固然枯燥,分析也很枯燥,不太推荐阅读.
 
 ## 深入浅出密码学
 - 出版于2010年（英文原版），作者：Christof Paar。
@@ -15320,13 +14104,286 @@ x86 处理器的机器指令大体上可由五大部分组成:
 
 ### 总结
 非常不错的书呢,不过实战的部分由于不太可能复刻,所以都直接跳过了,但收获是很大的,姑且能看懂一点汇编代码了吧.
+## On Java 8(待补充)
+- 出版于2017年（在线原版），作者：Bruce Eckel。
+- [中文翻译版链接](https://zyb0408.github.io/gitbooks/onjava8/)
+## Hugo in Action(待补充)
+- 出版于2022年，出版商：Manning，作者：Atishay Jain。
+
+### 引言
+>2013 年 7 月，我将博客迁移到 Hugo，并向世界发布了我的第一个Go 项目。当时，我完全没有想到，这个最初只是为了个人博客而编写的项目，竟会彻底改变我的人生，乃至整个世界
+
+### 基础
+
+#### Jamstack
+**Jamstack** 一词由 Netlify 的联合创始人兼首席执行官 **Matt Biilmann** 于 2016 年提出,是一种架构思想,最初来自:
+
+```text
+J = JavaScript
+A = APIs
+M = Markup
+```
+
+**Jamstack** 摒弃了数据库，将所有内容存储在部署期间编译的文件中，然后通过**内容分发网络（CDN）**进行分发。**应用程序编程接口（API）** 提供动态的、基于服务器的内容，这些内容由第三方维护或由云服务提供商托管，网站所有者只需极少的日常参与。这样，开发人员就无需处理安全更新、**拒绝服务（DoS）**攻击以及持续监控以抵御黑客攻击等任务。
+
+Hugo 是目前最流行的 Jamstack 框架之一，拥有最快的构建速度。它让我们摆脱了设置、维护和日常维护的烦恼
+
+### 总结
+仔细一想,我目前根本用不到里面的任何知识好不好...
+
+## Prometheus: Up & Running(待补充)
+
+### 介绍
+- Prometheus是一个开源的、基于指标的监控系统.
+
+监控(monitor)可以定义如下:
+* **告警（Alerting）**：知道事情何时出错，通常是监控最重要的用途。监控系统应能够在出现异常时通知人工介入检查。
+* **调试（Debugging）**：当人工介入后，需要进一步调查问题，确定根本原因，并最终解决已经出现的故障。
+* **热门趋势（Trending）**：告警和调试通常发生在几分钟到几小时的时间尺度上。虽然趋势分析没有那么紧急，但了解系统如何被使用、如何随时间变化同样重要。趋势信息可以为设计决策、容量规划等工作提供依据。
+* **水管工程（Plumbing）**：监控系统本质上也是一套数据处理管道。在实践中，有时可以复用监控系统的部分能力去完成其他任务，而不必重新构建专门的解决方案。严格来说这不完全属于监控，但实际工程中很常见。
+
+![架构图](PixPin_2026-09-17_11-37-00.webp)
+
+### 入门
+
+#### 补充: 使用docker运行Prometheus
+新建一个文件夹,放三个文件:
+
+**prometheus.yml**
+
+```yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # 监控 Prometheus 自身
+  - job_name: "prometheus"
+
+    static_configs:
+      - targets:
+          - "localhost:9090"
+```
+**dockerfile**
+
+```dockerfile
+FROM prom/prometheus:latest
+
+COPY prometheus.yml /etc/prometheus/prometheus.yml
+
+EXPOSE 9090
+```
+
+**compose.yml**
+
+```yml
+services:
+  prometheus:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: prometheus
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      # 持久化 Prometheus 时序数据
+      - prometheus_data:/prometheus
+
+      # 开发时推荐挂载配置文件，
+      # 修改配置后不需要重新 build 镜像
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+```
+
+然后用`docker compose up -d`运行,成功打开页面:
+
+![网页](PixPin_2026-09-17_11-54-18.webp)
+
+#### 表达式浏览器(Expression Browser)
+
+![查询执行](PixPin_2026-09-19_18-50-22.webp)
+
+>我们的Prometheus大约使用了73 MB内存。你可能会好奇，为什么这个指标用字节而非兆字节或千兆字节来展示，那样可能更易读。答案是，可读性很大程度上取决于上下文，即使在不同环境中使用同一二进制，其数值也可能相差多个数量级：一个内部RPC可能只需微秒级完成，而轮询一个长期运行的进程则可能耗时数小时甚至数天。因此，Prometheus的惯例是采用基础单位，如字节和秒，并将美化显示的职责交给像Grafana这样的前端工具。
+
+![图标查看](PixPin_2026-09-19_18-52-47.webp)
+
+#### Alert(告警)
+运行目标:
+
+```yml
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+rule_files:
+  - rules.yml
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - localhost:9093
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090
+  - job_name: node
+    static_configs:
+      - targets:
+          - localhost:9100
+```
+要想设定报警规则,就要写一个`rules.yml`出来:
+
+```yml
+groups:
+  - name: example
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+```
+除此之外,我们还需要将alert发送到我们指定的alertmanager上,所以还需要编写一个`alertmanager.yml`:
+
+```yml
+global:
+  smtp_smarthost: 'localhost:25'
+  smtp_from: 'yourprometheus@example.org'
+route:
+  receiver: example-email
+  group_by: [alertname]
+receivers:
+  - name: example-email
+    email_configs:
+      - to: 'youraddress@example.org'
+```
+
+### Application Monitoring
+
+#### Instrumentation
+
+##### 简单程序
+
+```py
+import http.server
+from prometheus_client import start_http_server
+
+
+class MyHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Hello,World!")
+
+
+start_http_server(8000)
+server = http.server.HTTPServer(("localhost", 8001), MyHandler)
+server.serve_forever()
+```
+访问http://localhost:8000/会看到如下界面:
+
+![示意图](PixPin_2026-09-20_10-03-35.webp)
+
+再访问 http://localhost:8001/ 即可看到`Hello,World!"
+
+修改之前的Prometheus.yml:
+
+```yml
+global:
+  scrape_interval: 10s
+scrape_configs:
+  - job_name: example
+    static_configs:
+      - targets: ["host.docker.internal:8000"]
+
+```
+然后运行Prometheus来监听:
+
+![界面](PixPin_2026-09-20_10-14-30.webp)
+
+##### Counter
+
+```py
+
+import http.server
+from prometheus_client import start_http_server, Counter
+
+REQUESTS = Counter("hello_worlds_total", "Hello Worlds requested.")
+
+
+class MyHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        REQUESTS.inc()
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Hello,World!")
+
+
+start_http_server(8000)
+server = http.server.HTTPServer(("localhost", 8001), MyHandler)
+server.serve_forever()
+```
+Count用于统计程序的各种自定义指标
+### 总结
+暂时弃坑,毕竟目前根本用不到好吧
+## Rootkit和Bootkit：现代恶意软件逆向分析和下一代威胁(待补充)
+- 出版于2019年（英文原版），作者：Alex Matrosov。
+- Rootkit: 针对操作系统内核
+- Bootkit: 针对MBR等引导扇区
+
+### Rootkit
+
+#### TDL3
+为了在系统重新启动时幸存下来，TDL3通过在驱动程序的二进制文件中注入恶意代码来感染加载操作系统所必需的一个引导启动驱动程序.
+
+一旦选择了一个目标驱动程序，TDL3感染程序就会用一个恶意加载程序覆盖它的资源部分.rsrc的前几百个字节，从而修改驱动程序在内存中的映像。这个加载程序非常简单：它只是在启动时从硬盘上加载它需要的其余恶意软件代码。
+
+这种方式只能针对x32位系统起作用,因为x64位系统需要对内核代码进行完整性的检查,通过数字签名即可阻止TDL3的运行.
+
+![目标](PixPin_2026-07-30_12-23-56.webp)
+
+>TDL3是第一个将配置文件和有效负载存储在目标系统隐藏的加密存储区域的恶意软件系统，不依赖于操作系统提供的文件系统服务。
+
+#### Festi
+>本章专门讨论发现的最先进的垃圾邮件和分布式拒绝服务
+（DDoS）僵尸网络之一—Win32/Festi僵尸网络，我们将其简称为Festi。Festi拥有强大的垃圾邮件发送和DDoS功能，以及有趣的Rootkit功能，这使得它可以连接到文件系统和系统注册表而不被人发现。Festi还通过使用调试器和沙箱规避技术来对抗动态分析，以隐藏自己的存在。
+
+Festi的Dropper（植入程序）有一个相当简单的功能—在系统中安装一个内核模式驱动程序，该驱动程序实现了恶意软件的主要逻辑。内核模式组件注册为“系统启动”内核模式驱动程序，并随机生成名称，这意味着在初始化期间，恶意驱动程序将在系统启动时加载和执行。
+
+内核模式驱动程序有两个主要职责：从命令和控制（C&C）服务器请求配置信
+息，以及以插件的形式下载和执行恶意模块（见图2-2）。每个插件专用于特定的任
+务，例如对指定的网络资源执行DDoS攻击，或向C&C服务器提供的电子邮件列表发送
+垃圾邮件。
+
+有趣的是，插件并不存储在系统硬盘驱动器上，而是存储在易失性内存中，这意
+味着当受感染的计算机被关闭或重新启动时，插件就会从系统内存中消失。这使得恶
+意软件的取证分析变得非常困难，因为存储在硬盘上的唯一文件是主内核模式驱动程
+序，它既不包含有效负载，也不包含攻击目标的任何信息。
+
+### Bootkit
+可以看到,由于操作系统的安全性能不断提高,Rootkit已经式微,随之而来的是更加深入底层的Bootkit类型软件.
+
+![示意图](PixPin_2026-08-03_10-18-49.webp)
+
+#### ch5
+这一章很有看头,讲述了从BIOS启动操作系统的一般过程
+### 总结
+在可预见的几年内是不需要用到这本书的.
 
 # Agent
 
-## Agentic Design Patterns
-- 出版于2025年，作者：Antonio Gullí。
 
-不推荐阅读,一开始以为是讲Agent设计的,但实际上是讲一些宽泛的关于Agent使用的知识,调用几个框架就结束了,甚至还教你怎么写提示词😅
 
 ## AI Engineering Building Applications with Foundation Models
 - 出版于2025年，出版商：O'Reilly，作者：Chip Huyen。
@@ -16548,6 +15605,833 @@ Transformers 库最基础的对象就是 pipeline() 函数，它封装了预训�
 还算值得一看,看完之后基本了解了两件事:
 1. 早期的推荐算法背后的数学原理是相当简单的,不太需要费脑子去设计,市面上有相当多的成熟算法可以选用;而现在的推荐算法都是基于机器学习实现的,需要相当大的计算量,而效果我看并没有多好,不如老老实实地用以前的方法为好.
 2. 推荐算法最重要的地方反而是数据集,无论是给新用户推荐,还是给老用户推荐,都需要事先有一个相当大规模的测试集,才能够大致划出一个恰当的范围,不会轻易让用户流失.
+## RAG with Python Cookbook
+- 出版于2026年，作者：Deepak Dhyani。
+- 原来学不会RAG不是我的问题,只是其他的教材太烂了
+
+### RAG介绍
+
+| RAG 拟合度 | 用例                                              | 适配理由                                                                                                                         |
+| ---------: | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+|      **1** | 我想和我的季度报告聊聊                            | 只有单份文档，数据量较小。直接阅读或使用 ChatGPT、Claude 等通用大模型即可完成，自建 RAG 的收益很低。                             |
+|      **2** | 请帮我总结这一份文档                              | 通用大模型已经能够较好地完成单文档总结任务，引入 RAG 通常不会带来明显额外价值。                                                  |
+|      **2** | 自动执行需要作出高风险决策的任务                  | 技术上可以实现，但大模型仍可能出错。若缺少人工审核、审计机制和故障保护等措施，风险较高，因此不适合单纯依赖 RAG 自动完成。        |
+|      **4** | 大量会议录音不断积累，但其中的信息无法进入知识库  | RAG 可以将音频、视频、长篇非结构化笔记等难以检索的信息转化为可搜索、可查询的知识，具有持续价值；最终效果会受到语音转录质量影响。 |
+|      **4** | 将技术图纸与规格文档进行核对                      | 适合利用多模态模型结合 RAG 进行跨材料比对，可以减少大量人工核查工作；但需要完善的评估机制和异常处理流程。                        |
+|      **5** | 有 1 万份合同，需要找出其中包含自动续约条款的合同 | 文档规模很大，人工逐份检查成本过高；任务目标明确，可以通过检索和信息提取定位相关合同，结果也容易人工验证。                       |
+|      **5** | 客户支持工单中包含大量产品问题，但无法有效汇总    | RAG 适合跨大量文档检索、聚合和发现重复模式，可以从大量工单中识别共同问题及趋势，这是人工难以大规模完成的任务。                   |
+|      **5** | 每天收到数百条客户咨询，需要自动分配给合适的团队  | 属于高频、重复的分类与路由任务，任务标准清晰，结果容易评估，并且可以通过自动化显著降低人工成本。                                 |
+
+**核心判断原则：**RAG 的价值通常随着**数据量、跨文档检索需求、信息更新频率和人工处理成本**的增加而提高。对于单份、短小且可以直接放入大模型上下文的文档，通常没有必要专门构建 RAG 系统。
+
+>当数据结构不规则且变化多端时，这种能力尤为重要。当每个输入略有不同但处理方式类似时，例如客户电子邮件、合同条款或事件报告，可以使用 RAG。不要将 RAG 用于简单的查找、固定格式的数据提取或基于不变规则的任务。如果您可以编写正则表达式（regex）或 SQL 查询来处理 95% 的情况，那么 RAG 只会增加不必要的复杂性和成本。
+
+RAG常用的库和框架如下:
+
+| 类别                              | 示例库                                                                          | 主要作用                                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **RAG 与代理式 RAG 编排**         | LangChain、LangGraph、LlamaIndex                                                | 将检索器、生成器、提示词、记忆等常见 RAG 组件封装为统一抽象，并负责连接向量数据库、LLM 和传统数据库，使开发者更专注于业务逻辑。 |
+| **大语言模型与嵌入模型**          | OpenAI、Anthropic、Transformers、Sentence Transformers                          | 为 RAG 系统提供核心智能能力，用于理解用户查询、生成向量嵌入以及生成最终回答。                                                   |
+| **向量存储**                      | Chroma、FAISS、Pinecone、Milvus、Weaviate                                       | 存储和检索向量嵌入，通过相似度搜索快速找到与用户查询相关的内容。                                                                |
+| **数据处理**                      | pandas、NumPy、PyPDF2、pypdf、python-docx、Unstructured、openpyxl、scikit-learn | 用于数据处理、文件读取、清洗和预处理，在文档进入 RAG 系统之前将原始数据转换为可处理的形式。                                     |
+| **多模态与媒体处理**              | Pillow、Pytesseract、MoviePy、pdf2image、OpenCV                                 | 用于加载和处理图片、视频、播客、PDF、Word、PowerPoint 等不同媒体和文件格式。                                                    |
+| **文本处理与自然语言处理（NLP）** | NLTK、Transformers、Rank-BM25、Beautiful Soup 4                                 | 用于文本清洗、分词、关键词检索、传统 NLP 分析等任务，避免所有文本处理步骤都依赖大语言模型。                                     |
+| **评估与监控**                    | Ragas、Phoenix、LangSmith、Prometheus-Eval                                      | 提供预定义的评估指标，用于衡量检索器、生成器以及整个 RAG 应用的准确性、质量和运行表现。                                         |
+| **Web 框架与部署**                | Streamlit、Gradio、Flask、Django                                                | 用于构建 RAG 应用的用户界面和 Web 服务。其中 Streamlit、Gradio 更适合快速原型，Flask、Django 更适合完整应用开发。               |
+| **数据库与存储**                  | SQLAlchemy、Psycopg 2、SQLite3                                                  | 用于连接传统 SQL 数据库，并通过数据库连接器或 ORM 将关系型数据作为 RAG 系统的数据来源。                                         |
+
+### 基础模型
+
+#### Ollama
+>Ollama 在http://localhost:11434/v1 公开了一个与 OpenAI 兼容的端点，因此您现有的代码几乎无需更改。
+
+```py
+from openai import OpenAI
+
+# Point the client to your local Ollama server
+client = OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="ollama",  # Ollama does not require a real key,
+                       # but the SDK expects one
+)
+
+response = client.chat.completions.create(
+    model="qwen3:4b",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {
+            "role": "user",
+            "content": "What is retrieval augmented generation?"
+        },
+    ],
+)
+
+print(response.choices[0].message.content)
+```
+还可以试试选用多个模型:
+
+```py
+from openai import OpenAI
+
+models = ["llama2", "mistral", "codellama"]
+
+client = OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="ollama"
+)
+
+for model in models:
+    print(f"\n--- Testing {model} ---")
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "user", "content": "Explain RAG in one sentence."}
+        ]
+    )
+
+    print(response.choices[0].message.content)
+```
+
+> **将公开排行榜视为筛选工具，而非最终决策标准。常见的局限性包括以下几点：**
+>
+> **基准泄漏或数据污染**
+> 一些基准测试题及答案是公开的，可能已被直接或间接包含在训练数据中，从而抬高模型分数。
+>
+> **古德哈特定律或过度优化**
+> 一旦某个基准成为目标，模型开发者可能会专门针对该基准进行调整，从而提高分数，但并不会相应提高模型的通用能力。
+>
+> **与实际使用情况不符**
+> 生产环境中的具体配置——包括提示模板、检索质量、工具使用、长上下文、多语言内容、量化方式以及延迟限制——都会显著影响最终结果。
+> 因此，即使某个模型在公开排行榜上“胜出”，在你自己的 RAG 查询或真实业务场景中，也可能表现得更差。
+
+#### 图片解析
+
+```py
+from pydantic import BaseModel
+from openai import OpenAI
+import base64
+
+
+class Invoice(BaseModel):
+    invoice_number: str
+    vendor: str
+    total: float
+    currency: str
+
+
+client = OpenAI()
+
+with open("invoice.png", "rb") as f:
+    image_base64 = base64.b64encode(f.read()).decode("utf-8")
+
+result = client.responses.parse(
+    model="gpt-5-mini",
+    input=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_text",
+                    "text": "Extract the invoice data."
+                },
+                {
+                    "type": "input_image",
+                    "image_url": f"data:image/png;base64,{image_base64}"
+                },
+            ],
+        }
+    ],
+    text_format=Invoice,
+)
+```
+
+第一次知道API还可以定制返回模型,不过对话中是不需要的,工具调用时却很有必要
+
+### 加载数据
+
+![数据分布](PixPin_2026-09-19_13-31-13.webp)
+
+大多数RAG 检索器都使用文本嵌入，因此，一个切实可行的第一步是将不同的格式转换为一致的文本表示形式
+
+![架构图](PixPin_2026-09-19_13-31-57.webp)
+
+>本书从零开始构建核心组件，以阐明其基本概念。在生产环境中，诸如 LangChain 或LlamaIndex 之类的编排框架可以加速开发，但它们也引入了频繁的破坏性变更、快速演进的 API 和额外的抽象等问题。
+
+- 找了这么多书终于有个愿意认真做RAG的了.
+
+#### 加载Word
+>当您不需要区分元素类型时，可以使用 python-docx 进行简单的文本提取。当您需要保留文档结构（标题、段落、列表、图像）以便对元素进行针对性处理时，请使用 Unstructured。
+
+![基本流程](PixPin_2026-09-19_13-38-00.webp)
+
+首先安装所需的库:
+
+```bash
+pip install python-docx unstructured pandas
+```
+
+##### python-docx
+**示例代码**
+
+```py
+import os
+from docx import Document
+
+file_path = "./test.docx"
+
+doc = Document(file_path)
+
+text = []
+for paragraph in doc.paragraphs:
+    text.append(paragraph.text)
+
+full_text = "\n".join(text)
+
+print(full_text)
+```
+运行代码,效果确实可以:
+
+![效果图](PixPin_2026-09-19_13-42-08.webp)
+
+尽管代码中将所有的结构信息都被除去,只剩下了文本信息,但是原本的`python-docx`库肯定不止这点功能.
+
+看一下[官网](https://python-docx.readthedocs.io/en/latest/user/quickstart.html),发现这个库反而主要是用来生成和加工docx的,单纯提取docx反而是一个比较边角料的功能.
+
+>`.docx` 不是一个二进制 Word 文件，而本质上是一个 ZIP 压缩包，内部包含大量 XML、图片和关系文件。
+
+如:
+
+```text
+test.docx
+│
+├── [Content_Types].xml
+├── _rels/
+├── docProps/
+│   ├── core.xml
+│   └── app.xml
+│
+└── word/
+    ├── document.xml 放置正文
+    ├── styles.xml
+    ├── settings.xml
+    ├── numbering.xml
+    ├── comments.xml
+    ├── header1.xml
+    ├── footer1.xml
+    ├── media/
+    │   ├── image1.png
+    │   └── image2.jpeg
+    └── _rels/
+```
+
+不过对于做RAG来说,确实文本信息就已经足够了...
+
+##### unstructured
+unstructured库更多的像是一个集成库,可以支持多种文档,先看看示例代码:
+
+```py
+from unstructured.partition.docx import partition_docx
+
+file_path = "./test.docx"
+elements = partition_docx(filename=file_path)
+
+list_of_elements = []
+
+for element in elements:
+    element_dict = {
+        "element_id": element.id,
+        "file_path": file_path,
+        "category": element.category,
+        # e.g., "Title", "NarrativeText", "ListItem"
+        "text": element.text,
+        "last_modified": element.metadata.last_modified,
+    }
+
+    list_of_elements.append(element_dict)
+
+
+for v in list_of_elements:
+    print(v, "\n")
+```
+
+![效果图](PixPin_2026-09-19_13-59-38.webp)
+
+简单来说就是`python-docx`库的粒度太细了,毕竟RAG完全不需要docx的样式信息,像这样就刚刚好.
+
+#### 加载PDF
+
+```py
+from pathlib import Path
+
+import pandas as pd
+import PyPDF2
+
+file_path = Path("./Vector Databases.pdf")
+list_of_pages = []
+
+with file_path.open("rb") as file:
+    reader = PyPDF2.PdfReader(file)
+    metadata = reader.metadata or {}
+
+    for page_number, page in enumerate(reader.pages, start=1):
+        page_dict = {
+            "file_name": metadata.get("/Title") or file_path.name,
+            "producer": metadata.get("/Producer"),
+            "page_number": page_number,
+            "text": page.extract_text() or "",
+            "images": list(page.images),
+        }
+
+        list_of_pages.append(page_dict)
+
+pages_df = pd.DataFrame(list_of_pages)
+
+print(pages_df)
+```
+>PyPDF2 可以从包含可选择字符的文本的数字生成的 PDF 文件中提取文本。该库无法处理扫描的 PDF 文件或基于图像的文档，因为这些文档中的文本以像素而非字符的形式存在,那就只能用OCR了.
+
+#### 加载csv和excel
+我们有三种方案:
+1. 用openpyxl 库打开和加载 Excel 文件
+2. 将表格转换成md并直接粘贴给AI,适用于数据量小的表格
+3. 将表格转换成数据库存储,并使用SQL查询来实现RAG
+
+#### 加载音频
+有了Whisper模型后,我们可以直接将音频转写为文本,如果需要质量更高的转写,就要用到一些API了.
+
+#### OCR
+本教程使用的是开源OCR引擎Tesseract,不过也有其他替代品:
+
+| 文档类型                                           | 体积           | 推荐方法                                                                            |
+| :------------------------------------------------- | :------------- | :---------------------------------------------------------------------------------- |
+| **纯文本 PDF**<br>普通文档、合同、书籍、文章       | < 1,000 份/月  | **OCR (Tesseract)**<br>快速、免费、本地运行                                         |
+| **纯文本 PDF**<br>普通文档、合同、书籍、文章       | > 10,000 份/月 | **OCR (Tesseract 或 EasyOCR)**<br>大规模应用时具有成本效益                          |
+| **混合内容**<br>文本 + 表格 + 图像                 | < 500 份/月    | **多模态模型** (GPT-5 mini, Claude Haiku, Gemini Flash)<br>单次处理，结果稳健       |
+| **混合内容**<br>文本 + 表格 + 图像                 | > 5,000 份/月  | **混合方法**<br>首先对文档进行分类，对简单页面使用 OCR，对复杂页面使用多模态方法    |
+| **复杂的版面设计**<br>技术图表、手写笔记、混合字体 | 任何体积       | **多模态模型** (GPT-5.2, Claude Sonnet, Gemini Pro)<br>在复杂文档上具有更高的准确率 |
+| **敏感数据**<br>不能离开基础设施                   | 任何体积       | **OCR (开源)**<br>Tesseract, PaddleOCR, EasyOCR：完全控制，本地部署                 |
+
+#### 直接用API
+调用多模态模型的API来直接处理图片和文档
+
+### 嵌入(Embeddings)
+
+#### 相似度计算
+余弦相似度衡量的是两个向量之间的角度，而不是它们的绝对距离。对于 RAG 系统而言，余弦相似度是首选的距离度量方法，因为它侧重于语义方向而非向量的大小.
+
+这种对长度差异的鲁棒性至关重要，因为用户查询通常比检索到的文档短得多。如果没有进行归一化处理，较长的文档会因为篇幅较长而非相关性较高而主导排名。
+
+#### 嵌入模型选择
+
+![大量模型](PixPin_2026-09-22_10-03-20.webp)
+
+近年来，嵌入模型的发展速度不如语言学习模型（LLM）那么快。许多多年前构建的随机抽取（RAG）系统仍然使用 OpenAI 的 text-embedding-ada-002 模型，因为其精度对于检索任务来说仍然足够。这种稳定性意味着模型选择只需一次决策，很少需要重新调整
+
+### 向量数据库
+>FAISS was released in 2017, followed by Milvus and Weaviate in 2019, Vald in 2020, Pinecone in 2021, and Chroma in 2023.
+
+与此同时,PostgreSQL 和 Elasticsearch等传统数据库也已在其现有平台中添加了矢量搜索功能
+
+
+#### 选择数据库
+如果embedding需要和用户数据放在一起,那么就需要使用传统数据库+插件的形式,如果只用于离线分析,那么就可以用FAISS或者本地的Chroma,如果系统规模很大,那么就用Pinecone或者Milvus.
+
+| 决策问题                                       | 如果答案为“是”，优先考虑                  |
+| ---------------------------------------------- | ----------------------------------------- |
+| **是否允许将数据发送到第三方托管的云服务？**   | **Pinecone** 或 **云托管 PostgreSQL**     |
+| **目前是否已经在使用 PostgreSQL 或 MongoDB？** | **pgvector** 或 **MongoDB Vector Search** |
+| **是否需要将关键词检索与向量检索结合使用？**   | **Elasticsearch、OpenSearch 或 Weaviate** |
+| **小型团队是否希望尽量降低部署和运维成本？**   | **Chroma** 或 **托管版 Pinecone**         |
+
+![示意图](PixPin_2026-09-28_10-38-10.webp)
+
+#### FAISS使用
+```python
+import faiss
+import numpy as np
+from openai import OpenAI
+
+# Example list of sample strings
+text_chunks = [
+    "The sky is blue.",
+    "The sun is shining.",
+    "I love chocolate.",
+    "Ice cream is delicious.",
+    "Roses are red.",
+    "Violets are blue.",
+]
+
+# Initialize the OpenAI embeddings model
+client = OpenAI()
+model = "text-embedding-3-small"
+
+# Generate embeddings for the sample strings
+def get_embedding(text):
+    response = client.embeddings.create(input=text, model=model)
+    return response.data[0].embedding
+
+document_embeddings = np.array(
+    [get_embedding(text) for text in text_chunks]
+)
+
+# Convert embeddings to float32 (FAISS requires float32 type)
+document_embeddings = document_embeddings.astype("float32")
+
+# Create a FAISS index (using L2 distance)
+index = faiss.IndexFlatL2(document_embeddings.shape[1])
+
+# Add embeddings to the index
+index.add(document_embeddings)
+
+# Generate a query embedding for the user query
+query = "What color are violets?"
+query_embedding = np.array(get_embedding(query)).astype("float32")
+
+# Perform the search: k = number of closest documents you want to retrieve
+k = 5
+distances, indices = index.search(query_embedding.reshape(1, -1), k)
+
+# Retrieve the documents corresponding to the indices
+retrieved_documents = [text_chunks[i] for i in indices[0]]
+```
+非常明显,FAISS是一个临时性的内存数据库,不能持久化存储数据,但用起来确实很简单.
+#### Chroma使用
+其实都大差不差,创建embedding,比较相似度,访问相似度最高的几个结果,除了API上不太一样外,原理是一样的.
+#### pgvector
+先创建容器:
+
+```yaml
+version: '3.8'
+services:
+  db:
+    image: ankane/pgvector
+    container_name: postgres_with_pgvector
+    restart: always
+    environment:
+      POSTGRES_USER: rag_cookbook_user
+      POSTGRES_PASSWORD: rag_cookbook_user_pw
+      POSTGRES_DB: rag_cookbook
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+```
+然后连接数据库并插入
+```python
+from openai import OpenAI
+
+# Define text chunks
+text_chunks = [
+    "The sky is blue.",
+    "The sun is shining.",
+    "I love chocolate.",
+    "Ice cream is delicious.",
+    "Roses are red.",
+    "Violets are blue.",
+]
+
+client = OpenAI()
+model = "text-embedding-3-small"
+
+def get_embedding(text):
+    response = client.embeddings.create(input=text, model=model)
+    return response.data[0].embedding
+
+index = 0
+cur = conn.cursor()
+
+# Insert the embeddings into the table
+for text_chunk in text_chunks:
+    embedding = get_embedding(text_chunk)
+    cur.execute(
+        """INSERT INTO embeddings
+        (id, chunk, embedding)
+        VALUES (%s, %s, %s)""",
+        (index, text_chunk, embedding),
+    )
+    index += 1
+```
+可以发现这和普通的事务没有任何区别,这也就意味着当数据规模增大时,就不能用pgvector来处理了,因为关系型数据库无法在大数据量下做到低延迟.
+
+
+#### pgvector索引使用
+值得注意的是,pgvector支持给向量加上索引,有IVFFlat 和 HNSW两种方式
+
+```python
+import psycopg2
+from psycopg2 import Error
+
+ivfflat_sql = f"""
+    DROP TABLE IF EXISTS test_embedding_table;
+    CREATE TABLE test_embedding_table AS
+        SELECT * FROM job_description_table;
+    CREATE INDEX ON test_embedding_table
+        USING ivfflat (embedding vector_cosine_ops)
+        WITH (lists = 30);
+    -- Reduce the number of probes for faster search
+    SET ivfflat.probes = 3;
+    EXPLAIN ANALYZE SELECT 1 - (embedding <=> '{str(query_embedding)}')
+    AS cosine_similarity, *
+    FROM test_embedding_table
+    ORDER BY 1 - (embedding <=> '{str(query_embedding)}') DESC
+    LIMIT 20;
+"""
+
+cur.execute(ivfflat_sql)
+ivfflat_search = cur.fetchall()
+```
+
+当查询速度至关重要且内存充足时，请选择 HNSW（HNSW 会在 RAM 中存储更多数据）。当内存受限或需要更快的索引构建速度（即使查询速度略慢）时，请选择 IVF。对于大多数拥有数百万个向量的生产级 RAG 系统，HNSW 可提供最佳的查询性能。
+
+### 检索(待补充)
+有以下七种检索的优化方法:
+| 技术                     | 描述                                                 |
+| ------------------------ | ---------------------------------------------------- |
+| **元数据过滤**           | 利用元数据，根据对用户的了解来筛选搜索结果。         |
+| **多查询检索**           | 为同一提示创建多个版本，以便查找更多相关文档。       |
+| **查询路由系统**         | 使用查询路由系统来确定回答该问题的最佳数据源或工具。 |
+| **自动合并检索器**       | 通过对相关数据进行分组，检索更大、更有意义的文本块。 |
+| **句子窗口检索**         | 包含附近的句子，以便为检索到的文本添加上下文。       |
+| **假设文档嵌入（HyDE）** | 生成假设文档以改进搜索结果。                         |
+| **查询分解**             | 将复杂查询拆分成更简单的子查询。                     |
+| **重新排名**             | 通过 LLM 审查和评估检索到的文档的相关性。            |
+
+
+
+### Agentic RAG
+#### 自定义工具
+```python
+import requests
+
+def get_weather(latitude, longitude):
+    '''
+    This function calls the open-meteo API to get the weather data for a
+    given latitude and longitude.
+
+    Args:
+        latitude (float): The latitude of the location to get weather
+            data for.
+        longitude (float): The longitude of the location to get
+            weather data for.
+
+    Returns:
+        dict: A dictionary containing the weather data for the given
+            latitude and longitude.
+    '''
+    response = requests.get(
+        "https://api.open-meteo.com/v1/forecast"
+        f"?latitude={latitude}"
+        f"&longitude={longitude}"
+        "&current=temperature_2m,wind_speed_10m"
+        "&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m"
+    )
+    data = response.json()
+    return data['current']['temperature_2m']
+```
+>使用自定义工具来实现特定领域的功能，例如内部数据库、专有 API或业务计算。确保每个工具只专注于一项职责
+#### Workflow Patterns
+1. Prompt chaining: 如从PDF中提取文本并进行翻译,每一个调用都依赖于前一个调用的输出,所以必须顺序执行
+
+```py
+outline = llm("为文章生成提纲")
+
+draft = llm(f"""
+根据以下提纲撰写初稿：
+{outline}
+""")
+
+review = llm(f"""
+审查以下初稿：
+{draft}
+""")
+```
+
+2. Routing: 由LLM选择合适的工具或者子工作流程
+
+![示意图](PixPin_2026-09-24_08-31-31.webp)
+```py
+route = llm(f"""
+判断问题类型：
+1. 数学
+2. 编程
+3. 哲学
+
+问题：
+{question}
+""")
+
+if route == "1":
+    answer = math_agent(question)
+elif route == "2":
+    answer = coding_agent(question)
+else:
+    answer = philosophy_agent(question)
+```
+
+3. Parallel tasks: 并行调用多个工具或者API,从而缩短处理时间
+```py
+import asyncio
+
+async def analyze():
+    results = await asyncio.gather(
+        llm_async("分析论证结构"),
+        llm_async("检查事实错误"),
+        llm_async("检查语言问题"),
+    )
+
+    return results
+
+final = llm(f"""
+综合以下三个审查结果：
+{results}
+""")
+```
+
+4. Orchestrator-workers: 根据用户的问题，orchestrator可以调用一个或多个worker,并综合所有内容生成响应
+
+```py
+plan = llm("""
+请把这个研究任务拆成若干独立子任务。
+返回 JSON。
+""")
+
+results = []
+
+for task in tasks:
+    result = llm(f"完成任务：{task}")
+    results.append(result)
+
+final = llm(f"""
+综合以下研究结果：
+
+{results}
+""")
+```
+
+5. Evaluator-optimizer: 一个LLM创建初始草稿，另一个LLM对其进行审核。系统在草稿创建和评估之间反复迭代，直到评估者满意或达到最大迭代次数为止
+
+```py
+draft = llm(prompt)
+
+for i in range(5):
+
+    evaluation = llm(f"""
+    评价以下答案。
+    如果合格，返回 PASS。
+    否则给出修改建议。
+
+    {draft}
+    """)
+
+    if "PASS" in evaluation:
+        break
+
+    draft = llm(f"""
+    根据以下意见修改答案。
+
+    原答案：
+    {draft}
+
+    修改意见：
+    {evaluation}
+    """)
+```
+#### Agentic Frameworks
+
+| 等级                                                          | 示例工具 / 框架                   | 这一层级的核心特征                                                                                                                                              | 适用场景与说明                                                                                                                                                                                                          |
+| ------------------------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. 低代码 / 无代码平台**                                    | **Microsoft Copilot Studio** 等   | 通过可视化界面和预置能力快速搭建 Agent / 工作流，尽量减少底层代码与基础设施开发。                                                                               | 适合**希望快速落地、开发资源有限**的团队。若企业已经使用微软生态，Copilot Studio 往往更容易接入现有系统。优点是上手快、工程负担低；代价是**定制能力和底层控制力较弱**。*截图中该行前半部分缺失，此处根据可见内容整理。* |
+| **2. Agent 框架：代码优先（Agentic Frameworks, Code-first）** | **OpenAI Agents SDK、LangGraph**  | 提供构建 Agent 所需的基础组件，例如**工具调用（Tools）、状态 / 记忆与持久化（State / Memory / Persistence）、运行追踪（Tracing）**，以及常见的 Agent 设计模式。 | 适合希望**比完全从零开发更快**，同时又想保留**代码级控制权**的场景。较轻量的框架（如 OpenAI Agents SDK）通常能减少框架绑定，使以后切换框架或迁移到自研架构更容易。                                                      |
+| **3. 从零构建：最大控制（From Scratch, Maximum Control）**    | **直接调用模型 API + 自研编排层** | 直接调用 LLM 提供商的 API，并自行实现**编排（Orchestration）、工具系统、状态管理、记忆、可观测性（Observability）**等完整基础设施。                             | 适合需要**最高灵活性、可控性或系统健壮性**，且团队有能力维护完整技术栈的场景，包括**日志（Logging）、链路追踪（Tracing）、安全护栏（Guardrails）**等。工程投入最大，但拥有最高程度的架构自主权。                        |
+
+
+
+
+| 典型场景                                                  | 从零构建 | 轻量级框架 | 高抽象框架 | 优化后的说明                                                                                                                                                                                                                               |
+| --------------------------------------------------------- | :------: | :--------: | :--------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **需要在几周内完成 Agentic RAG 应用，并快速投入生产**     |    △     |     ✓      |     ✓      | **框架更适合快速交付。** LangChain 等高抽象框架已经封装了大量 RAG、工具调用和 Agent 能力，可以显著缩短开发周期；轻量级框架也能减少样板代码。完全从零构建通常需要自行处理编排、状态、错误恢复等基础设施，达到稳定生产状态所需时间更长。     |
+| **应用由大量初、中级开发人员共同维护**                    |    △     |     ✓      |     ✓      | **框架有利于团队协作和代码规范化。** 从零构建通常要求开发人员较深入地理解 Agent Loop、状态管理、工具调用等机制；框架则提供统一的接口、项目结构和常见设计模式，使不同经验水平的开发者更容易遵循一致的开发规范。                             |
+| **系统需要服务数千乃至数百万用户，强调稳定性与可扩展性**  |    ✓     |     ✓      |     ○      | **越接近底层，通常越容易精细控制性能和依赖。** 从零构建或采用轻量级框架，可以减少不必要的中间层与第三方依赖，从而更容易进行性能优化、水平扩展和故障定位。高抽象框架同样可以扩展，但复杂抽象和额外依赖可能增加性能调优与故障排查成本。      |
+| **需要针对特定业务需求构建高度灵活、深度定制的 Agent**    |    ✓     |     ✓      |     △      | **从零构建拥有最高控制力。** 开发者可以完全决定 Agent Loop、工具系统、提示词、状态结构、记忆机制以及各组件之间的交互方式。轻量级框架通常也能保留较大的定制空间；高抽象框架虽然开发方便，但当需求偏离其预设模式时，可能受到框架抽象的限制。 |
+| **需要实时调试、可观测性、执行透明度以及审计 / 合规日志** |    ○     |     ✓      |     ✓      | **框架通常能够减少可观测性基础设施的建设成本。** 许多 Agent 框架已经提供 tracing、运行轨迹、工具调用记录和调试能力，可以观察 Agent 每一步的执行过程。从零构建也能够实现完整的日志、链路追踪和审计系统，但这些能力通常需要自行设计和维护。  |
+
+**符号说明：** ✓ = 较适合；○ = 可以采用，但存在一定额外成本；△ = 通常不是该场景下的优先方案。
+
+
+#### asyncio加速
+```py
+async def main():
+    images = convert_from_path(
+        "../datasets/sample_data_asyncio/Laptop_Order_Invoice.pdf",
+        dpi=200
+    )
+
+    end_page_to_process = 3
+
+    results = await asyncio.gather(
+        *[
+            extract_entities_from_image(img, i + 1)
+            for i, img in enumerate(images[:end_page_to_process])
+        ]
+    )
+
+    client = openai.AsyncOpenAI()
+
+    response = await client.chat.completions.create(
+        model="gpt-5.2",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Merge these JSON lists into one. "
+                                "They are all from the same invoice.",
+                    },
+                    {
+                        "type": "text",
+                        "text": "\n".join(results),
+                    },
+                ],
+            }
+        ],
+    )
+
+    merged_json = response.choices[0].message.content
+    return merged_json
+```
+
+调用工具时,我们自然希望越快处理完越好,比如对pdf进行分页拆分,最好的方法就是开多个线程同时进行处理,并使用异步调用.
+#### OpenAI Agents SDK介绍
+OpenAI Agents SDK是OpenAI推出的智能体构建轻量框架,待我日后试试效果
+
+#### LangGraph
+![介绍](PixPin_2026-09-27_10-18-17.webp)
+
+>对于简单的线性工作流程，请避免使用 LangGraph。如果您的代理执行的是固定序列，没有分支逻辑或共享状态，那么图抽象只会增加复杂性而没有带来任何好处。
+
+当协调多个共享上下文的代理时，状态管理尤为重要。LangGraph 会自动维护共享状态。
+
+### Graph RAG
+
+![示意图](PixPin_2026-09-23_11-06-45.webp)
+
+最常用的图数据库自然是Neo4j
+
+#### 补充: docker启动neo4j
+
+```yml
+services:
+  neo4j:
+    image: neo4j:5
+    container_name: neo4j
+    ports:
+      - "7474:7474" # Web 管理界面
+      - "7687:7687" # Bolt 协议，程序连接用
+    environment:
+      NEO4J_AUTH: neo4j/your_password
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+```
+`NEO4J_AUTH: neo4j/your_password`字段分别对应账户名和密码
+
+非常遗憾的是,这部分的叙述非常草率,所以只好我自己去看文档学习了
+
+### 评估RAG系统
+给了一些比较实用的判断RAG效果的方案
+
+### 总结
+干货确实很多,尤其是前几章,读起来很有收获.
+
+## Vector Databases(待补充)
+- 出版于2026年，出版商：O'Reilly，作者：Nitin Borwankar。
+- 非常适合作为工具书,入门某个新框架
+### 介绍
+
+#### 相似性搜索
+想象一下，你正在搜索一家公司的知识库，然后你输入“如何才能拿回我的钱？”接下来会发生什么？
+
+1. keyword search: 系统对你的查询进行分词后直接搜索文档,但如果文档使用诸如`Refund policy`等相近的词则找不到答案
+2. Semantic search: 系统会尝试理解用户输入,并匹配多种语义相近的结果
+
+传统的关系型数据库和NoSQL数据库都无法很好的适应向量处理,而单纯的向量数据库(只存储向量)又丢失了查询的灵活性和存储效率,也不再具备索引功能,所以一个折衷的方式就是混合架构,将向量功能作为扩展插入到关系型数据库和NoSQL数据库中
+
+### 嵌入
+#### 两种嵌入思想
+![示意图](PixPin_2026-09-28_11-49-09.webp)
+#### 实践指南
+1. 批处理: 加快处理速度
+```py
+# Good practice
+embeddings = model.encode(sentences, batch_size=32)
+# Bad practice
+embeddings = [model.encode(sentence) for sentence in sentences]
+```
+2. 控制长度: 不要嵌入一整个段落,而是分成固定大小的片段
+
+```py
+# Good practice
+max_seq_length = model.max_seq_length
+def chunk_text(text, max_length=max_seq_length):
+    # Split into sentences or chunks
+    chunks = [text[i:i + max_length] for i in range(0, len(text), max_length)]
+    return chunks
+
+# Process long document
+long_text_embeddings = model.encode(chunk_text(long_document))
+```
+3. 归一化: 所有向量都要弄成统一的长度,不然无法比较
+```py
+# Good practice
+embeddings = model.encode(sentences, normalize_embeddings=True)
+# Or manually normalize if needed
+from sklearn.preprocessing import normalize
+embeddings = normalize(embeddings)
+```
+
+4. 使用GPU:
+```py
+# Good practice
+model = SentenceTransformer('all-MiniLM-L6-v2', device='cuda')
+# With error handling
+import torch
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+model = SentenceTransformer(‘all-MiniLM-L6-v2’, device=device)
+```
+5. 控制内存使用: GPU太贵了
+```python
+# Good practice
+import gc
+import torch
+
+def process_large_dataset(sentences, batch_size=32):
+    embeddings = []
+    for i in range(0, len(sentences), batch_size):
+        batch = sentences[i:i + batch_size]
+        batch_embeddings = model.encode(batch)
+        embeddings.extend(batch_embeddings)
+
+        # Clear GPU memory if needed
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        gc.collect()
+
+    return embeddings
+```
+
+
+### FAISS使用
+### SQLite3使用
+### pgvector使用
 
 # 高级
 
