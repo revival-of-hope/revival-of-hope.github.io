@@ -1025,6 +1025,10 @@ MCP 由 Anthropic 开发，将于 2024 年 11 月发布，它是一种基于JSON
 | **Orchestrator**  | • Handles complex decision-making<br>• Executes some or all agents as needed<br>• Well-suited for direct user interaction<br>• Robust; worker agent failures can be easily recovered | • Complex to build, debug, and evaluate<br>• Orchestrators need strong evaluation, guardrails, and feedback mechanisms                                                      |
 | **Collaboration** | • Ambiguous, complex goals and tasks with multiple possible outcomes                                                                                                                 | • Costly, with high token usage and high latency<br>• Difficult to build evaluations and feedback mechanisms                                                                |
 
+
+![编排方式](PixPin_2026-09-30_12-59-34.webp)
+
+
 ## Agentic Design Patterns
 - 出版于2025年，作者：Antonio Gullí。
 
