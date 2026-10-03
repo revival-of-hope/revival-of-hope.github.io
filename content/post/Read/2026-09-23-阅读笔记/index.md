@@ -912,6 +912,87 @@ func Double(a int) int {
 ```
 导入一个包但未使用该包导出的任何标识符，会导致编译时错误。这确保 Go 编译器生成的二进制文件仅包含程序实际使用的代码。
 
+Go模块系统采用最小版本选择原则：在所有依赖项的go.mod文件中，你总是会获取到声明为可正常工作的最低依赖版本。假设你的模块直接依赖于模块A、B和C，这三个模块都依赖于模块D。模块A的go.mod声明它依赖于v1.1.0，模块B声明它依赖于v1.2.0，模块C声明它依赖于v1.2.3。Go只会导入模块D一次，并会选择v1.2.3版本，因为正如Go模块参考文档中所述，这是满足所有要求的最低版本。
+### ch11: tooling(待补充)
+#### go install和go get
+```bash
+go get example.com/pkg@v1.2.3      # 更新 go.mod 到 v1.2.3
+go install example.com/cmd@v1.2.3   # 安装 v1.2.3 版本的可执行文件
+```
+
+```bash
+go install example.com/cmd@latest   # 安装最新版，忽略 go.mod
+go get example.com/pkg@latest       # 将依赖更新到最新版，并写入 go.mod
+```
+go get用于更新当前mod的依赖,而go install用于编译并安装包,并在环境变量中注册对应的可执行文件.
+### ch12: 并发
+#### Goroutine
+>可以将 goroutine 理解为由 Go 运行时管理的轻量级线程。当 Go 程序启动时，Go 运行时会创建若干线程，并启动一个 goroutine 来运行你的程序
+
+- 创建 Goroutine 比创建线程更快，因为你不需要创建操作系统级别的资源。
+
+- Goroutine 的初始栈大小小于线程栈大小，并且可以根据需要增长。这使得 goroutine 更节省内存。
+
+- 在 goroutine 之间切换比在线程之间切换更快，因为它完全在进程内进行，避免了（相对）缓慢的操作系统调用。
+
+- 由于 goroutine 调度器是 Go 进程的一部分，因此它能够优化其决策。该调度器与网络轮询器协同工作，检测何时 goroutine 因 I/O 阻塞而可以取消调度。它还与垃圾回收器集成，确保分配给 Go 进程的所有操作系统线程之间的工作负载得到适当的均衡。
+
+这些优势使得 Go 程序能够同时生成成百上千甚至数万个 goroutine。如果你尝试用一种本身就支持线程的语言启动数千个线程，你的程序运行速度将会变得极其缓慢。
+
+- 说真的,光看了这些我还是不知道Goroutine是什么,唯一的方法就是去看源码了.
+
+#### Channels
+Channel是一种内置类型,同样使用make函数创建:
+```go
+ch := make(chan int)
+```
+与映射（Map）类似，通道（Channel）也是引用类型,因此通道的零值是 nil .
+
+Channel的写法非常神奇:
+```go
+a := <-ch // reads a value from ch
+ch <- b // write the value in b to ch
+```
+- 其实我觉得`->`和`<-`来标记更好,但估计设计的时候考虑到这样写更麻烦了吧
+
+写入通道的每个值只能被读取一次。如果多个 goroutine 从同一个通道读取数据，则写入通道的值只会被其中一个 goroutine 读取。
+
+>单个 goroutine 很少会同时读取和写入同一个通道。当将通道赋值给变量或字段，或将其传递给函数时，请在 `chan` 关键字前使用箭头（例如 `ch <-chan int`），以表明 goroutine 仅从该通道读取数据。在 `chan` 关键字后使用箭头（例如 `ch chan<- int`），以表明 goroutine 仅向该通道写入数据。这样做可以让 Go 编译器确保通道仅由函数读取或写入。
+
+- 设计思想上确实很有意思,这天然就解决了通信并发的问题还不用加锁
+
+
+Go 也支持缓冲通道。这些通道可以缓冲有限数量的写入操作，而不会阻塞。如果通道在读取操作发生之前缓冲区已满，则后续的写入操作会暂停写入 goroutine，直到通道中的数据被读取完毕。正如向缓冲区已满的通道写入数据会阻塞一样，从缓冲区为空的通道读取数据也会阻塞。
+
+创建方法如下,指定缓冲区的容量:
+```go
+ch := make(chan int, 10)
+```
+
+完成向频道写入数据后，可以使用内置的 close 函数将其关闭：
+
+```go
+close(ch)
+```
+
+通道一旦关闭，任何写入或再次关闭通道的尝试都会导致程序崩溃。有趣的是，尝试从已关闭的通道读取数据总是会成功。如果通道已缓冲且仍有一些值尚未读取，则会按顺序返回这些值。如果通道未缓冲或已缓冲的通道中没有更多值，则返回该通道类型的零值。
+
+因此,为了区分写入的零值和通道关闭返回的零值,我们读取通道时最好这么写:
+```go
+v, ok := <-ch
+```
+如果 ok 设置为 true ，则通道已打开；如果设置为 false ，则通道已关闭。
+
+| 操作             | 无缓冲，开放             | 无缓冲，已关闭                         | 缓冲，开放                           | 缓冲，已关闭                                                               |
+| ---------------- | ------------------------ | -------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------- |
+| **读 (Read)**    | 暂停，直到有内容写入。   | 返回零值（使用逗号可判断是否已关闭）。 | 如果缓冲区为空，则暂停。             | 返回缓冲区中剩余的值；若缓冲区为空，则返回零值（可用逗号判断是否已关闭）。 |
+| **写 (Write)**   | 暂停，直到有内容被读取。 | **恐慌 (PANIC)**                       | 如果缓冲区已满，则暂停。             | **恐慌 (PANIC)**                                                           |
+| **关闭 (Close)** | 正常生效。               | **恐慌 (PANIC)**                       | 正常生效；缓冲区中剩余的值依然存在。 | **恐慌 (PANIC)**                                                           |
+
+
+#### select
+
+### ch13: 标准库
 ### ch15: 测试
 Go中普遍使用官方库来写测试,适用`go test`命令来运行测试:
 
@@ -1028,6 +1109,10 @@ MCP 由 Anthropic 开发，将于 2024 年 11 月发布，它是一种基于JSON
 
 ![编排方式](PixPin_2026-09-30_12-59-34.webp)
 
+- 想法固然是好的,但这需要在API足够强大的基础上才可以实施,一个顶级API足够碾压一堆弱智AI了
+#### 具体设计(待补充)
+以后再来读
+### Agent reasoning and planning
 
 ## Agentic Design Patterns
 - 出版于2025年，作者：Antonio Gullí。
@@ -1395,6 +1480,24 @@ Redis将所有时间事件都放在一个无序链表中,当执行器运行时�
 ![流程图](PixPin_2026-09-29_11-16-31.webp)
 #### 客户端
 
+Redis服务器是典型的一对多服务器程序：一个服务器可以与多个客户端建立网络连接，每个客户端可以向服务器发送命令请求，而服务器则接收并处理客户端发送的命令请求，并向客户端返回命令回复
+
+对于每个与服务器进行连接的客户端，服务器都为这些客户端建立了相应的 `redis.h/redisClient` 结构（客户端状态），这个结构保存了客户端当前的状态信息，以及执行相关功能时需要用到的数据结构，其中包括：
+
+- 客户端的套接字描述符。
+- 客户端的名字。
+- 客户端的标志值（flag）。
+- 指向客户端正在使用的数据库的指针，以及该数据库的号码。
+- 客户端当前要执行的命令、命令的参数、命令参数的个数，以及指向命令实现函数的指针。
+- 客户端的输入缓冲区和输出缓冲区。
+- 客户端的复制状态信息，以及进行复制所需的数据结构。
+- 客户端执行 BRPOP、BLPOP 等列表阻塞命令时使用的数据结构。
+- 客户端的事务状态，以及执行 WATCH 命令时用到的数据结构。
+- 客户端执行发布与订阅功能时用到的数据结构。
+- 客户端的身份验证标志。
+- 客户端的创建时间，客户端和服务器最后一次通信的时间，以及客户端的输出缓冲区大小超出软性限制（soft limit）的时间。
+
+
 ## The Design of Web APIs, Second Edition
 - 出版于2025年（第2版），出版商：Manning，作者：Arnaud Lauret。
 
@@ -1433,25 +1536,6 @@ API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也
 
 尽管我们拥有的存储容量和网络带宽比以往任何时候都要多，但存储和传输视频的需求仍在不断超出可用容量。到2023年，约三分之二的消费级电视机已达到4K分辨率或更高。将高性能视频编解码器集成到智能手机和电视等消费设备中，以及对高分辨率视频的期望，使得在存储或传输前压缩或编码视频，并在显示前解码视频成为常态
 
-## Grokking Concurrency(待补充)
-- 出版于2023年，出版商：Manning，作者：Kirill Bobrov。
-
-### 介绍
-
-#### 并发与并行
-* An application can be concurrent but not parallel. It processes more than one task over a given period (i.e., juggling more than one task even if no two tasks are executing at the same instant—this is described in more detail in Chapter 6).
-
-单核多任务。系统通过时间片轮转交替执行多个任务。一段时间内多个任务都有进展，但同一时刻只有一个任务在占用 CPU 执行。
-* An application can be parallel but not concurrent, which means it processes multiple subtasks of a single task simultaneously.
-
-多核加速同一任务。将单个大任务拆分成多个子任务，在多核 CPU 上同时执行。
-* An application can be neither parallel nor concurrent, which means it processes one task at a time sequentially, and the task is never broken into subtasks.
-
-纯串行。单线程，按顺序从头到尾执行一个任务，不拆分任务。
-* An application can be both parallel and concurrent, which means it processes multiple tasks or subtasks of a single task concurrently at the same time (executing them in parallel).
-
-最理想状态。系统既能同时调度多个独立任务，又能把这些任务或单个大任务的子任务分配给多个 CPU 核心同时执行。
-### 进程间通信
 
 
 ## Elasticsearch in Action, Second Edition(待补充)
@@ -6258,6 +6342,26 @@ jobs:
 
 ### 总结
 剩下的内容就都是扯淡了,不过前面的内容讲的还算详细,配合第一章的实战来看就能基本搞懂Github Actions是什么了.
+## Grokking Concurrency(待补充)
+- 出版于2023年，出版商：Manning，作者：Kirill Bobrov。
+
+### 介绍
+
+#### 并发与并行
+* An application can be concurrent but not parallel. It processes more than one task over a given period (i.e., juggling more than one task even if no two tasks are executing at the same instant—this is described in more detail in Chapter 6).
+
+单核多任务。系统通过时间片轮转交替执行多个任务。一段时间内多个任务都有进展，但同一时刻只有一个任务在占用 CPU 执行。
+* An application can be parallel but not concurrent, which means it processes multiple subtasks of a single task simultaneously.
+
+多核加速同一任务。将单个大任务拆分成多个子任务，在多核 CPU 上同时执行。
+* An application can be neither parallel nor concurrent, which means it processes one task at a time sequentially, and the task is never broken into subtasks.
+
+纯串行。单线程，按顺序从头到尾执行一个任务，不拆分任务。
+* An application can be both parallel and concurrent, which means it processes multiple tasks or subtasks of a single task concurrently at the same time (executing them in parallel).
+
+最理想状态。系统既能同时调度多个独立任务，又能把这些任务或单个大任务的子任务分配给多个 CPU 核心同时执行。
+### 总结
+其实讲的还不错,当我想复习的时候可以来看看,但还是不如专业的书籍
 
 ## Go语言圣经
 - 出版于2015年（英文原版），作者：Alan A. A. Donovan。

@@ -1,5 +1,5 @@
 ---
-title: "论文阅读笔记"
+title: "论文笔记"
 date: 2026-06-03T09:30:22+08:00
 image: 28876767_p0-＼ ハッピーバースデイ ／.webp
 description: 科研固然枯燥,却是文明进步的基石
@@ -11,8 +11,70 @@ math: true
 
 # 算法与数据结构论文
 
-## 分布式算法
-简单来说就是,Lamport一人单刷了一半以上的副本...
+## 并发与分布式算法
+### 并发系统时间线
+| 时间          | 并发思想                       | 代表人物                                   | 代表论文 / 原始文献                                                                                       | 可访问链接                                                                                                                                                                                     | 今天的典型继承                                                                                                            |
+| ------------- | ------------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **1963**      | **Coroutine（协程）**          | Melvin Conway                              | *Design of a Separable Transition-Diagram Compiler*                                                       | [ACM 原文](https://doi.org/10.1145/366663.366704?utm_source=chatgpt.com)                                                                                                                       | Python coroutine、generator、async/await 的思想源头之一 ([数字对象识别][1])                                               |
+| **1965**      | **互斥 / Critical Section**    | Edsger Dijkstra                            | *Solution of a Problem in Concurrent Programming Control*                                                 | [ACM 论文](https://dl.acm.org/doi/pdf/10.1145/365559.365617?utm_source=chatgpt.com)                                                                                                            | mutex、lock、临界区 ([埃因霍温理工大学研究门户][2])                                                                       |
+| **1965→1968** | **Semaphore / 协作顺序进程**   | Dijkstra                                   | *Cooperating Sequential Processes*                                                                        | [Dijkstra Archive PDF](https://www.cs.utexas.edu/users/EWD/ewd01xx/EWD123.PDF?utm_source=chatgpt.com)                                                                                          | semaphore、进程同步、生产者消费者；手稿形成于1965，1968年正式收入文集 ([德克萨斯大学奥斯汀分校计算机科学][3])             |
+| **1973**      | **Actor Model**                | Carl Hewitt, Peter Bishop, Richard Steiger | *A Universal Modular ACTOR Formalism for Artificial Intelligence*                                         | [IJCAI 官方 PDF](https://www.ijcai.org/Proceedings/73/Papers/027B.pdf?utm_source=chatgpt.com)                                                                                                  | Erlang、Elixir、Akka、消息驱动系统 ([IJCAI][4])                                                                           |
+| **1974**      | **Monitor（管程）**            | C. A. R. Hoare                             | *Monitors: An Operating System Structuring Concept*                                                       | [论文 PDF](https://citeseerx.ist.psu.edu/document?doi=8dfc5b25dcad0f4a4019210cef440adb3e01159f&repid=rep1&type=pdf&utm_source=chatgpt.com)                                                     | Java `synchronized`、condition variable、mutex 封装 ([CiteSeerX][5])                                                      |
+| **1974**      | **Kahn Process Network**       | Gilles Kahn                                | *The Semantics of a Simple Language for Parallel Programming*                                             | [Columbia PDF](https://www.cs.columbia.edu/~sedwards/papers/kahn1974semantics.pdf?utm_source=chatgpt.com)                                                                                      | dataflow、stream processing、pipeline ([哥伦比亚大学计算机科学系][6])                                                     |
+| **1978**      | **CSP（通信顺序进程）**        | C. A. R. Hoare                             | *Communicating Sequential Processes*                                                                      | [Oxford PDF](https://www.cs.ox.ac.uk/files/6164/H76%20-%20Communicating.pdf?utm_source=chatgpt.com)                                                                                            | Go goroutine + channel + `select`；正式 CACM 论文发表于1978年 ([dr. heap references][7])                                  |
+| **1978**      | **Happened-before / 逻辑时钟** | Leslie Lamport                             | *Time, Clocks, and the Ordering of Events in a Distributed System*                                        | [Microsoft Research](https://www.microsoft.com/en-us/research/publication/time-clocks-ordering-events-distributed-system/?utm_source=chatgpt.com)                                              | 分布式系统因果关系、Lamport Clock、Vector Clock ([Microsoft][8])                                                          |
+| **1979**      | **Sequential Consistency**     | Leslie Lamport                             | *How to Make a Multiprocessor Computer That Correctly Executes Multiprocess Programs*                     | [论文 PDF](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/How-to-Make-a-Multiprocessor-Computer-That-Correctly-Executes-Multiprocess-Programs.pdf?utm_source=chatgpt.com) | CPU memory model、Java/C++ 内存模型的重要理论基础 ([Microsoft][9])                                                        |
+| **1985**      | **Future**                     | Robert Halstead                            | *MULTILISP: A Language for Concurrent Symbolic Computation*                                               | [论文 PDF](https://pages.cs.wisc.edu/~fischer/cs538.s01/multilisp.pdf?utm_source=chatgpt.com)                                                                                                  | `Future`、Java `CompletableFuture`、异步任务结果 ([威斯康星大学计算机科学用户页面][10])                                   |
+| **1988**      | **Promise / 异步调用**         | Barbara Liskov, Liuba Shrira               | *Promises: Linguistic Support for Efficient Asynchronous Procedure Calls in Distributed Systems*          | [论文记录 / PDF](https://scispace.com/papers/promises-linguistic-support-for-efficient-asynchronous-3c1qgkrrhy?utm_source=chatgpt.com)                                                         | JavaScript Promise、Future/Promise 抽象 ([SciSpace][11])                                                                  |
+| **1990**      | **Linearizability（线性化）**  | Maurice Herlihy, Jeannette Wing            | *Linearizability: A Correctness Condition for Concurrent Objects*                                         | [Brown University PDF](https://cs.brown.edu/~mph/HerlihyW90/p463-herlihy.pdf?utm_source=chatgpt.com)                                                                                           | 并发容器、原子数据结构、分布式存储正确性 ([布朗大学计算机科学系][12])                                                     |
+| **1991**      | **Wait-free / Non-blocking**   | Maurice Herlihy                            | *Wait-Free Synchronization*                                                                               | [论文 PDF](https://people.cs.umass.edu/~emery/classes/cmpsci691s-fall2004/papers/herlihy93waitfree.pdf?utm_source=chatgpt.com)                                                                 | CAS、lock-free/wait-free queue、Concurrent Data Structures ([Meta Science Observatory][13])                               |
+| **1993**      | **Transactional Memory**       | Herlihy, Moss                              | *Transactional Memory: Architectural Support for Lock-Free Data Structures*                               | [论文页面 / PDF](https://www.researchgate.net/publication/3557037_Transactional_Memory_Architectural_Support_For_Lock-free_Data_Structures?utm_source=chatgpt.com)                             | STM、Intel TSX、事务式共享内存 ([ResearchGate][14])                                                                       |
+| **1993–1995** | **Reactor / Event Loop**       | Douglas Schmidt                            | *Reactor: An Object Behavioral Pattern for Demultiplexing and Dispatching Handles for Synchronous Events* | [作者主页 PDF](https://www.dre.vanderbilt.edu/~schmidt/PDF/Reactor.pdf?utm_source=chatgpt.com)                                                                                                 | Redis、Nginx、Netty、Node.js、Python asyncio 的重要架构基础 ([德雷范德比尔特大学][15])                                    |
+| **1999**      | **Work Stealing**              | Blumofe, Leiserson                         | *Scheduling Multithreaded Computations by Work Stealing*                                                  | [ACM 免费论文](https://doi.org/10.1145/324133.324234?utm_source=chatgpt.com)                                                                                                                   | Java ForkJoinPool、Cilk、Rust Rayon 等多核任务调度 ([数字对象识别][16])                                                   |
+| **2001**      | **SEDA / 分阶段事件驱动**      | Matt Welsh, David Culler, Eric Brewer      | *SEDA: An Architecture for Well-Conditioned, Scalable Internet Services*                                  | [ACM 免费论文](https://doi.org/10.1145/502059.502057?utm_source=chatgpt.com)                                                                                                                   | 高并发服务器、stage/queue、backpressure ([数字对象识别][17])                                                              |
+| **2002**      | **协作式任务 + 自动栈管理**    | Adya et al.                                | *Cooperative Task Management Without Manual Stack Management*                                             | [USENIX 全文](https://www.usenix.org/conference/2002-usenix-annual-technical-conference/cooperative-task-management-without-manual-stack?utm_source=chatgpt.com)                               | 现代协程、事件驱动和 `async/await` 编程模型的重要过渡 ([Microsoft][18])                                                   |
+| **2018**      | **Structured Concurrency**     | Nathaniel J. Smith                         | *Notes on structured concurrency, or: Go statement considered harmful*                                    | [原文](https://vorpus.org/blog/notes-on-structured-concurrency-or-go-statement-considered-harmful/?utm_source=chatgpt.com)                                                                     | Python `TaskGroup`、Kotlin `coroutineScope`、Swift TaskGroup；这一项是影响很大的技术文章，而非传统期刊论文 ([Vorpus][19]) |
+
+[1]: https://doi.org/10.1145/366663.366704?utm_source=chatgpt.com "Design of a separable transition-diagram compiler | Communications of the ACM"
+
+[2]: https://research.tue.nl/en/publications/solution-of-a-problem-in-concurrent-programming-control/?utm_source=chatgpt.com "Solution of a problem in concurrent programming control - Research portal Eindhoven University of Technology"
+
+[3]: https://www.cs.utexas.edu/~EWD/indexBibTeX.html?utm_source=chatgpt.com "E.W. Dijkstra Archive: BibTeX Index"
+
+[4]: https://www.ijcai.org/Proceedings/73/Papers/027B.pdf?utm_source=chatgpt.com "Artificial Intelligence"
+
+[5]: https://citeseerx.ist.psu.edu/document?doi=8dfc5b25dcad0f4a4019210cef440adb3e01159f&repid=rep1&type=pdf&utm_source=chatgpt.com "Monitors: An Operating System Structuring Concept"
+
+[6]: https://www.cs.columbia.edu/~sedwards/papers/kahn1974semantics.pdf?utm_source=chatgpt.com "G. Kahn, *The semantics of a simple language for parallel programming* — 473"
+
+[7]: https://refs.drheap.org/hoare1978communicating/?utm_source=chatgpt.com "Communicating sequential processes · dr. heap references"
+
+[8]: https://www.microsoft.com/en-us/research/publication/time-clocks-ordering-events-distributed-system/?utm_source=chatgpt.com "Time, Clocks and the Ordering of Events in a Distributed System - Microsoft Research"
+
+[9]: https://www.microsoft.com/en-us/research/publication/make-multiprocessor-computer-correctly-executes-multiprocess-programs/?lang=fr-ca&utm_source=chatgpt.com "How to Make a Multiprocessor Computer That Correctly Executes Multiprocess Programs - Microsoft Research"
+
+[10]: https://pages.cs.wisc.edu/~fischer/cs538.s01/multilisp.pdf?utm_source=chatgpt.com "Multilisp: A Language for Concurrent Symbolic Computation"
+
+[11]: https://scispace.com/papers/promises-linguistic-support-for-efficient-asynchronous-3c1qgkrrhy?utm_source=chatgpt.com "Promises: linguistic support for efficient asynchronous procedure calls in distributed systems (1988) | Barbara Liskov | 397 Citations"
+
+[12]: https://cs.brown.edu/~mph/HerlihyW90/p463-herlihy.pdf?utm_source=chatgpt.com "Linearizability: A Correctness Condition for"
+
+[13]: https://explore.metascienceobservatory.org/papers/W2085407655?utm_source=chatgpt.com "Wait-free synchronization"
+
+[14]: https://www.researchgate.net/publication/3557037_Transactional_Memory_Architectural_Support_For_Lock-free_Data_Structures?utm_source=chatgpt.com "(PDF) Transactional Memory: Architectural Support For Lock-free Data Structures"
+
+[15]: https://www.dre.vanderbilt.edu/~schmidt/PDF/Reactor.pdf?utm_source=chatgpt.com "Reactor
+An Object Behavioral Pattern for
+Demultipl"
+
+[16]: https://doi.org/10.1145/324133.324234?utm_source=chatgpt.com "Scheduling multithreaded computations by work stealing | Journal of the ACM"
+
+[17]: https://doi.org/10.1145/502059.502057?utm_source=chatgpt.com "SEDA: an architecture for well-conditioned, scalable internet services: ACM SIGOPS Operating Systems Review: Vol 35, No 5"
+
+[18]: https://www.microsoft.com/en-us/research/publication/cooperative-task-management-without-manual-stack-management/?utm_source=chatgpt.com "Cooperative Task Management without Manual Stack Management - Microsoft Research"
+
+[19]: https://vorpus.org/blog/notes-on-structured-concurrency-or-go-statement-considered-harmful/?utm_source=chatgpt.com "Notes on structured concurrency, or: Go statement considered harmful — njs blog"
+
 
 ### Self-stabilizing Systems in Spite of Distributed Control(1974)
 - 早期思想
@@ -351,7 +413,7 @@ Raft的基本原理如下:
 
 这篇论文非常精巧,也就意味着非常难看懂,简单来说,跳表是一个用概率模型改造后的B+树,也就是说,每个节点提升的可能性是由概率p决定的,从而实现了高层稀疏,底层密集的类B+树模型,这样一来,反而简化了构造难度,实现快速的插入和替换.
 
-这种结构天生决定了跳表适合存在内存中,从而不需要换页也能高速I/O.
+
 #### 摘要
 二叉树可以用于表示字典、有序表等抽象数据类型。当元素以随机顺序插入时，二叉树表现良好。但某些操作序列，例如按照元素的有序顺序依次插入，会产生退化的数据结构，导致性能非常差。
 
@@ -374,7 +436,7 @@ Raft的基本原理如下:
 这不就是一个天然的层次索引结构吗,而如果我们不是按照二分之一的位置来划分指针,而是用二分之一的概率(标准情况下都是1/2)提升指针,这就是跳表了
 
 剩下的部分就是用来证明跳表的概率结构的优越性了,不仅查询花费小,而且插入和查找都还过得去
-#### 总结
+
 ### Log-Structured Merge-tree(1996)
 - LSM树
 #### 摘要
