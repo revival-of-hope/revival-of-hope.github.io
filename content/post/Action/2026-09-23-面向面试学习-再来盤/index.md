@@ -47,6 +47,9 @@ tags:
    2. 为什么是Byte呢,因为操作系统是按字节寻址的,即每个地址对应的是一个8位的数组
 3. inode是什么，存放什么内容;
 4. 硬链接和软连接是什么区别，使用场景上有什么区别
+5. 你在终端执行 python app.py，程序正在运行。如果此时按下 Ctrl+C 和 Ctrl+Z，分别会发生什么？
+   1. Ctrl+C是发送 SIGINT，请求中断,Python 通常抛出 KeyboardInterrupt，未捕获时退出
+   2. Ctrl+Z是发送 SIGTSTP，暂停进程,程序暂停，仍然存在，终端回到命令提示符
 #### 容器
 1. k8s多个pod，怎么发现这个新的pod
 

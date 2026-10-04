@@ -991,6 +991,117 @@ v, ok := <-ch
 
 
 #### select
+select 关键字允许 goroutine 从一组多个通道中的一个读取数据或向其中一个通道写入数据。它看起来很像一个空白的 switch 语句：
+
+```go
+select {
+case v := <-ch:
+    fmt.Println(v)
+case v := <-ch2:
+    fmt.Println(v)
+case ch3 <- x:
+    fmt.Println("wrote", x)
+case <-ch4:
+    fmt.Println("got value on ch4, but ignored it")
+}
+```
+
+如果多个 case 都具有可读写的通道会发生什么？select 算法很简单：它从所有可以继续执行的 case 中随机选择一个；顺序无关紧要。这与 switch 语句截然不同，后者总是选择第一个解析为 true 的 case。它也完美地解决了饥饿问题，因为没有哪个 case 比其他的更有优势，所有 case 都会同时被检查。
+##### 补充: go关键字
+我寻思我也没跳内容啊,怎么突然就看不懂代码了.
+
+go关键字把一个函数调用放到一个新的 goroutine 中并发执行，而当前 goroutine 不等待它执行完就继续执行:
+```go
+go func() {
+    fmt.Println("hello")
+}()
+```
+go不关心函数的返回值,只起到开启goroutine的作用.
+##### 继续
+如果两个 goroutine 都访问相同的两个通道，则这两个 goroutine 必须以相同的顺序访问它们，否则就会发生死锁:
+```go
+func main() {
+	ch1 := make(chan int)
+	ch2 := make(chan int)
+
+	go func() {
+		inGoroutine := 1
+		ch1 <- inGoroutine
+		fromMain := <-ch2
+		fmt.Println("goroutine:", inGoroutine, fromMain)
+	}()
+
+	inMain := 2
+	ch2 <- inMain
+	fromGoroutine := <-ch1
+	fmt.Println("main:", inMain, fromGoroutine)
+}
+```
+由于上述的ch1和ch2都是没有缓冲区的,如果没有接收者,发送方就会被阻塞.无论是哪个Goroutine先运行,由于另一边缺少接收者,那么就会被阻塞,转而执行另一个Goroutine,从而形成死锁.
+
+但这可以用select来解决:
+```go
+func main() {
+	ch1 := make(chan int)
+	ch2 := make(chan int)
+	go func() {
+		inGoroutine := 1
+		ch1 <- inGoroutine
+		fromMain := <-ch2
+		fmt.Println("goroutine:", inGoroutine, fromMain)
+	}()
+	inMain := 2
+	var fromGoroutine int
+	select {
+	case ch2 <- inMain:
+	case fromGoroutine = <-ch1:
+	}
+	fmt.Println("main:", inMain, fromGoroutine)
+}
+```
+
+与 switch 语句类似， select 语句也可以包含 default 子句
+
+```go
+select {
+case v := <-ch:
+    fmt.Println("read from ch:", v)
+default:
+    fmt.Println("no value written to ch")
+}
+```
+#### goroutine回收
+每次启动 goroutine 函数时，必须确保它最终会退出。与变量不同，Go 运行时无法检测到 goroutine 是否会被再次使用。如果 goroutine 没有退出，其栈上分配给变量的所有内存都会一直保留，并且堆上任何以 goroutine 栈变量为根的内存都无法被垃圾回收。这被称为 goroutine 内存泄漏。
+
+解决方法是使用context:
+```go
+func countTo(ctx context.Context, max int) <-chan int {
+	ch := make(chan int)
+	go func() {
+		defer close(ch)
+		for i := 0; i < max; i++ {
+			select {
+			case <-ctx.Done():
+				return
+			case ch <- i:
+			}
+		}
+	}()
+	return ch
+}
+
+func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ch := countTo(ctx, 10)
+	for i := range ch {
+		if i > 5 {
+			break
+		}
+		fmt.Println(i)
+	}
+}
+```
 
 ### ch13: 标准库
 ### ch15: 测试
@@ -1113,6 +1224,96 @@ MCP 由 Anthropic 开发，将于 2024 年 11 月发布，它是一种基于JSON
 #### 具体设计(待补充)
 以后再来读
 ### Agent reasoning and planning
+1. 选用CoT模型和对非CoT模型使用CoT提示词
+2. ToT和Reflextion则是两个比较高级的框架技巧:
+
+![ToT](PixPin_2026-10-04_13-58-25.webp)
+
+![Reflextion](PixPin_2026-10-04_13-58-51.webp)
+### RAG
+自然不如专门的书来得详细,可以直接跳过
+### 设计循环
+```python
+async def run_orchestrator_loop(
+    goal: str, max_iterations: int = 15
+) -> ResearchState:
+    search_server = MCPServerStdio(
+        name="Brave Search",
+        params={
+            "command": "npx",
+            "args": ["-y", "@anthropic/brave-search-mcp"],
+            "env": {"BRAVE_API_KEY": os.environ["BRAVE_API_KEY"]},
+        },
+    )
+    async with search_server:
+        workers = {
+            "Research Worker": research_worker.clone(
+                mcp_servers=[search_server]
+            ),
+            "Analysis Worker": analysis_worker,
+        }
+        state = ResearchState(
+            goal=goal, max_iterations=max_iterations,
+            follow_up_questions=[goal],
+        )
+        plan = OrchestratorPlan()
+        for iteration in range(max_iterations):
+            orch_input = dict(
+                goal=state.goal,
+                current_state=state.to_context(),
+                plan=str(dict(
+                    sub_tasks=[
+                        dict(name=st.name, status=st.status,
+                             notes=st.notes)
+                        for st in plan.sub_tasks],
+                    strategy=plan.overall_strategy,
+                    focus=plan.current_focus,
+                )),
+                iteration=iteration + 1,
+                max_iterations=max_iterations,
+            )
+            decision = (await Runner.run(
+                orchestrator_agent, input=str(orch_input)
+            )).final_output
+
+            if decision.is_complete or \
+               decision.next_action == "finalize":
+                state.status = "complete"
+                break
+
+            if decision.next_action == "delegate":
+                worker = workers.get(decision.target_worker)
+                if worker:
+                    worker_result = (await Runner.run(
+                        worker, input=decision.task_description
+                    )).final_output
+                    state.findings.append(
+                        worker_result.summary_of_findings
+                    )
+                    state.sources_consulted.extend(
+                        worker_result.sources_used
+                    )
+                    apply_plan_updates(
+                        state, plan, worker_result
+                    )
+
+            if decision.next_action == "re_plan":
+                for update in decision.plan_updates:
+                    existing = {st.name: st
+                                for st in plan.sub_tasks}
+                    if update.name in existing:
+                        existing[update.name].status = \
+                            update.status
+                    else:
+                        plan.sub_tasks.append(Subtopic(
+                            name=update.name,
+                            status=update.status,
+                            notes=update.notes,
+                        ))
+
+            state.iteration_count = iteration + 1
+        return state
+```
 
 ## Agentic Design Patterns
 - 出版于2025年，作者：Antonio Gullí。
