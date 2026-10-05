@@ -396,6 +396,8 @@ Redis服务器是典型的一对多服务器程序：一个服务器可以与多
 ### 多机数据库
 不用一次是不可能学会的,待我先实战一段时间再来
 
+## Docker Up & Running
+### ch1: 引言
 
 ## Agentic Design Patterns
 - 出版于2025年，作者：Antonio Gullí。
@@ -404,25 +406,6 @@ Redis服务器是典型的一对多服务器程序：一个服务器可以与多
 - 一直久闻大名,现在就来试试水
 ### 存储引擎
 ## 推荐系统：前沿与实践
-
-
-## The Design of Web APIs, Second Edition
-- 出版于2025年（第2版），出版商：Manning，作者：Arnaud Lauret。
-
-
-### 前言
-1. **“I can’t list friends of friends!”**
-2. **“What contains the `sts` property?”**
-3. **“Why don’t `createdAt` and `fromDate` use the same date-time format?”**
-4. **“Identifying friends requires a `userId`, but storing a message requires a username! Can’t we use the same user ID in all operations?”**
-5. **“The ‘List friends’ operation is useless; to get useful data, I must call the ‘Read friend’ operation for each friend!”**
-6. **“The HTTP response indicates a success, but its data contains an error!”**
-7. **“How can I know what’s wrong with my API call if I only get an ‘Invalid request’ error message?”**
-8. **“Are you sure about the mobile and web applications taking care of friend identification with the Face Detection API before sharing a message with photos?”**
-
-API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也会大打折扣
-
->不是每个人都能有幸从白纸一张开始设计API。现有的API可能存在并且设计得不够理想。我们的目的并非指责过去的设计，而是要防止API设计的技术债务继续增加
 
 
 
@@ -17311,7 +17294,21 @@ CREATE TABLE Accounts (
 前几章看看就可以了,收获并不大,不如直接看维基百科还来的快一些.
 
 
+## The Design of Web APIs, Second Edition
+- 出版于2025年（第2版），出版商：Manning，作者：Arnaud Lauret。
 
+
+### 前言
+1. **“I can’t list friends of friends!”**
+2. **“What contains the `sts` property?”**
+3. **“Why don’t `createdAt` and `fromDate` use the same date-time format?”**
+
+API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也会大打折扣
+
+>不是每个人都能有幸从白纸一张开始设计API。现有的API可能存在并且设计得不够理想。我们的目的并非指责过去的设计，而是要防止API设计的技术债务继续增加
+
+### 总结
+没能和实战相互结合,也没能具体深入讨论API与应用其他部分的结合,因此就是在建空中楼阁,完全不推荐.
 # 推荐阅读书籍
 看了那么多书,自然能找到几本写的不错的.这里只放了一些核心的书籍,至于那些写的一般的书尽管有一定的阅读价值,但想了想还是不放上来,虽然说"人要从错误中学习",但能少走弯路就别走吧.
 ## 基础

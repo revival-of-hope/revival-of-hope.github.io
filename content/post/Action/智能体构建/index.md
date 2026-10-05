@@ -37,26 +37,26 @@ image: 67189487_p0-最凶最悪.webp
 
 flowchart TB
 
-    N1[FastAPI 基础]
+    N1[FastAPI基础]
     N2[极简智能体]
     N3[加入数据库]
-    N4[加入 Docker]
+    N4[加入Docker]
     N5[加入用户验证]
     N6[重写前端<br/>（待完成）]
 
     N7[实现多轮对话]
     N8[加入管理员]
     N9[加入日志和检查工具]
-    N10[换用 Responses API]
-    N11[引入联网搜索和 MCP]
-    N12[加入简单 RAG]
-    N13[结合 Agent 框架]
-    N14[实现多样化 RAG]
-    N15[加入 Redis 和消息队列]
-    N16[Kubernetes 引入]
+    N10[换用Responses API]
+    N11[引入联网搜索和MCP]
+    N12[加入简单RAG]
+    N13[结合Agent框架]
+    N14[实现多样化RAG]
+    N15[加入Redis和消息队列]
+    N16[Kubernetes引入]
 
-    N17[引入 API 测试]
-    N18[优化 API 界面]
+    N17[引入API测试]
+    N18[优化API界面]
 
     N1 --> N2 --> N3 --> N4 --> N5 --> N6
     N5 --> N7 --> N8 --> N9 --> N10 --> N11 --> N12 --> N13 --> N14 --> N15 --> N16
@@ -9116,4 +9116,633 @@ if __name__ == "__main__":
 
 # 智能体进阶
 ## ch17: 联网搜索引入和MCP使用
+### 背景介绍
+目前,我们的Agent还不能叫做Agent,毕竟联网搜索都做不到呢.不过联网搜索并非有那么难实现,大致思想如下:
+1. 设置一个循环,让LLM能够自己识别是否需要搜索并决定搜索内容
+2. 先由API或者本地LLM识别用户需求,当LLM提取到需要搜索的语义时,`web_search`设置为True
+3. 如果web_search为True,则启动搜索工具,并返回需要的网页具体内容给LLM
+4. LLM处理并总结内容,结合用户上一轮的需求,得到最终结果
+
+
+#### 例子
+比如用户问：
+
+>2026 年有哪些适合牙科诊所的 AI Voice Agent？
+
+LLM 不一定直接拿整句话搜索，而可能生成多个 query：
+```text
+AI voice agent dental practices
+dental AI receptionist 2026
+AI dental phone scheduling software
+dental voice AI PMS integration
+```
+而高级点的Agent可能还会做问题拆分:
+```text
+问题：哪个牙科 AI Voice Agent 最好？
+
+拆解：
+1. 有哪些主要厂商？
+2. 各自支持什么 PMS？
+3. 是否支持保险核验？
+4. 是否支持 outbound calling？
+5. 价格是多少？
+```
+
+之后就是调用搜索引擎,并清洗数据和HTML得到纯文本,再进行一轮筛选和排行:
+```text
+相关性
+
+0.96 Third Voice
+0.94 Flexbone
+0.91 Dentina
+0.87 Powervox
+0.42 SEO blog
+0.17 无关页面
+```
+最后再将问题交给LLM:
+```text
+用户问题：
+有哪些适合牙科诊所的 AI Voice Agent？
+
+搜索结果：
+
+Source 1
+Title: Third Voice
+URL: ...
+Content:
+AI voice agents that handle scheduling,
+insurance verification...
+
+Source 2
+Title: Flexbone
+URL: ...
+Content:
+AI agents answer inbound calls...
+...
+
+请基于以上资料回答用户问题，并标明出处。
+```
+
+### 搜索工具测评
+为什么我们不直接用fastapi打开baidu和google发送请求呢,想想也知道太麻烦了啊,不但需要动态适配搜索引擎的API变化,还需要一个个分别定制调用框架.
+
+而用第三方的搜索工具就没这么麻烦了,调个API就完事了,不少还自带了HTML清洗,甚至还有总结功能.
+
+
+| 服务                   |                    免费额度 | 是否持续刷新     | 大致够用程度               | 我的评价                  |
+| ---------------------- | --------------------------: | ---------------- | -------------------------- | ------------------------- |
+| **Exa**                | 注册赠送额外 $10 + 每月 $10 | ✅ 每月           | 基础搜索约 1,428 次/月     | **很推荐**                |
+| **Tavily**             |            1,000 credits/月 | ✅ 每月           | 通常约数百～1000 次搜索    | **最适合 Agent 入门**     |
+| **Jina Search/Reader** |       新 API Key 10M tokens | ⚠️ 主要是初始额度 | Search 每次至少 10k tokens | **很适合搜索+网页读取**   |
+| **SerpAPI**            |             250 searches/月 | ✅ 每月           | 250 次                     | Google/Scholar 类搜索很好 |
+| **Brave Search API**   |                       $5/月 | ✅ 每月           | Search 约 1000 次/月       | 免费但要绑卡              |
+| **SearXNG**            |     自己部署则 API 本身免费 | 无限*            | 取决于服务器/上游限制      | **真正零 API 成本**       |
+
+AI是这么说的,但我还是得亲身试一试
+#### Exa
+![注册后直接送额度](PixPin_2026-10-05_12-34-01.webp)
+```py
+from exa_py import Exa
+
+exa = Exa()
+
+results = exa.search(
+    "best blog posts about vector databases",
+    contents={"highlights": True},
+)
+
+for result in results.results:
+    print(result.title, result.url)
+```
+上述代码运行后一共返回了 10 个网页结果。每个结果基本包含两部分：`网页标题 + URL`，以及一大段从网页中抽取出来的 正文/摘要内容,还是做的很不错的.
+#### Tavily
+![界面很帅](PixPin_2026-10-05_13-04-02.webp)
+
+```py
+from tavily import TavilyClient
+
+tavily_client = TavilyClient(api_key="tvly-YOUR_API_KEY")
+response = tavily_client.search("Who is Leo Messi?")
+
+print(response)
+```
+
+```py
+from tavily import TavilyClient
+
+tavily_client = TavilyClient(api_key="tvly-YOUR_API_KEY")
+response = tavily_client.research("What are the latest developments in AI?")
+
+print(response)
+```
+效果也挺不错的
+
+![支持5种调用](PixPin_2026-10-05_13-08-07.webp)
+#### SearXNG
+另外几个都大差不差,但这个SearXNG值得注意.
+
+SearXNG来源于2014年的开源聚合搜索引擎searx,核心理念就是聚合:
+```text
+用户
+ ↓
+searx
+ ├── Google
+ ├── Bing
+ ├── DuckDuckGo
+ ├── Wikipedia
+ └── 其他搜索服务
+ ↓
+合并结果
+```
+SearXNG帮我们封装了对多种搜索引擎的支持,直接用docker部署就可以访问端口调用API了:
+
+1. 下载compose和env文件:
+
+```bash
+curl -fsSL -O https://raw.githubusercontent.com/searxng/searxng/master/container/docker-compose.yml -O https://raw.githubusercontent.com/searxng/searxng/master/container/.env.example
+```
+
+2. 复制环境并启动docker:
+```bash
+cp .env.example .env 
+docker compose up -d 
+```
+访问`http://localhost:8080/`即可看到效果
+
+![效果图](PixPin_2026-10-05_14-47-28.webp)
+
+看一下compose文件:
+```yml
+# Read the documentation before using the `docker-compose.yml` file:
+# https://docs.searxng.org/admin/installation-docker.html
+
+name: searxng
+
+services:
+  core:
+    container_name: searxng-core
+    image: docker.io/searxng/searxng:${SEARXNG_VERSION:-latest}
+    restart: always
+    ports:
+      - ${SEARXNG_HOST:+${SEARXNG_HOST}:}${SEARXNG_PORT:-8080}:${SEARXNG_PORT:-8080}
+    env_file: ./.env
+    volumes:
+      - ./core-config/:/etc/searxng/:Z
+      - core-data:/var/cache/searxng/
+
+  valkey:
+    container_name: searxng-valkey
+    image: docker.io/valkey/valkey:9-alpine
+    command: valkey-server --save 30 1 --loglevel warning
+    restart: always
+    volumes:
+      - valkey-data:/data/
+
+volumes:
+  core-data:
+  valkey-data:
+```
+Valkey是Redis的一个替代品,但我们目前甚至可以不用它,只用SearXNG就足够了.
+
+现在我们先修改一下bind mount的yml文件,让它支持json输出:
+```yml
+use_default_settings: true
+search:
+  formats:
+    - html
+    - json
+
+server:
+  image_proxy: true
+```
+修改后重启容器,访问`http://localhost:8080/search?q=OpenAI&format=json`即可看到格式化输出:
+
+![图片](PixPin_2026-10-05_15-00-46.webp)
+
+可以看到,SearXNG并不能深入读取网页,而是像Google搜索一样返回摘要和元信息,所以如果想要做RAG,要么再加一层爬虫来读取获得的url,要么就只能忍痛割爱了.
+
+#### ddgs
+ddgs是我意外发现的宝藏python库,部署方法很简单:
+```bash
+git clone https://github.com/deedy5/ddgs && cd ddgs
+docker-compose up --build -d
+```
+
+不过,更强大的地方在于,它可以直接作为python库导入并使用,还不要API!
+```py
+from ddgs import DDGS
+
+def web_search(query: str):
+    return DDGS().text(
+        query,
+        max_results=8,
+    )
+
+results = web_search("Redis 8 new features")
+
+for r in results:
+    print(r["title"])
+    print(r["href"])
+    print(r["body"])
+```
+目前支持以下引擎:
+
+![示意图](PixPin_2026-10-05_15-08-48.webp)
+
+- 完全够用了好不好
+
+而光是这样肯定不够,ddgs还可以直接提取网页为md:
+```py
+from ddgs import DDGS
+
+ddgs = DDGS()
+
+results = ddgs.text("OpenAI Responses API", max_results=5)
+
+url = results[0]["href"]
+
+page = ddgs.extract(url)
+
+print(page["content"])
+```
+
+![效果图](PixPin_2026-10-05_15-12-13.webp)
+
+这个封装比起SearXNG可要好上太多了,要不了一两年这个库肯定能够大火特火.
+#### 总结
+综上所述,我们需要的搜索工具最好是能够根据查询自己返回全文的,尽管Exa和Tavily等平台支持智能总结,但架不住用多了要收费啊,而久负盛名的SearXNG在RAG方面的表现是最差的,毕竟只能返回元信息,还要经过第二轮的处理.
+
+因此,ddgs从中脱颖而出,轻易解决了我们的烦恼.
+
+### 接入ddgs
+#### 准备阶段
+换用Responses API后,让用户在前端手动勾选联网搜索就不对了,应该直接大手一挥说,我们这个Agent天生就有联网搜索,智能判断用户需求,不用用户自己勾选.
+
+而我们的底气就在于,Responses API是真的能够自己判断是否要联网搜索的,我们在后端连循环都不用写了,直接在API端就处理完毕了,先弄个demo看看效果:
+
+**线性流程**
+```py
+import json
+
+from ddgs import DDGS
+from openai import OpenAI
+
+DEEPSEEK_API_KEY = "..."
+
+MODEL = "deepseek-flash"
+BASE_URL = "https://api.deepseek.com"
+
+QUESTION = "请联网搜索 DeepSeek Responses API 最近的官方信息，并根据搜索到的网页内容做一个简短总结，附上来源。"
+
+
+def web_search(query: str):
+    ddgs = DDGS()
+
+    result = ddgs.text(
+        query,
+        max_results=1,
+    )[0]
+
+    url = result["href"]
+
+    page = ddgs.extract(
+        url,
+        fmt="text_markdown",
+    )
+
+    return {
+        "title": result.get("title", ""),
+        "url": url,
+        "snippet": result.get("body", ""),
+        "content": page.get("content", "")[:12000],
+    }
+
+
+client = OpenAI(
+    api_key=DEEPSEEK_API_KEY,
+    base_url=BASE_URL,
+)
+
+
+tool = {
+    "type": "function",
+    "name": "web_search",
+    "description": "搜索互联网并读取网页正文。需要当前或最新信息时使用。",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "搜索关键词",
+            }
+        },
+        "required": ["query"],
+        "additionalProperties": False,
+    },
+}
+
+
+# 第一次请求：让模型自己决定是否搜索
+response = client.responses.create(
+    model=MODEL,
+    reasoning={"effort": "none"},
+    instructions=(
+        "如果问题需要当前或最新信息，可以自主调用 web_search。"
+        "如果使用搜索结果，请根据网页正文总结，并附上来源 URL。"
+    ),
+    input=QUESTION,
+    tools=[tool],
+    tool_choice="auto",
+)
+
+
+call = next(
+    (item for item in response.output if item.type == "function_call"),
+    None,
+)
+
+
+if call is None:
+    print("模型没有调用搜索工具。\n")
+    print(response.output_text)
+
+else:
+    print("模型自主调用了搜索工具。")
+    print("工具：", call.name)
+    print("参数：", call.arguments)
+
+    args = json.loads(call.arguments)
+
+    search_result = web_search(args["query"])
+
+    print("\n搜索结果：")
+    print("标题：", search_result["title"])
+    print("URL：", search_result["url"])
+
+    # 第二次请求：
+    # 不再提供 tools，只把工具结果交回模型进行总结
+    final = client.responses.create(
+        model=MODEL,
+        reasoning={"effort": "none"},
+        instructions=(
+            "请根据搜索工具返回的网页内容回答原问题。" "给出简短总结，并附来源 URL。"
+        ),
+        input=[
+            {
+                "role": "user",
+                "content": QUESTION,
+            },
+            {
+                "type": "function_call",
+                "call_id": call.call_id,
+                "name": call.name,
+                "arguments": call.arguments,
+            },
+            {
+                "type": "function_call_output",
+                "call_id": call.call_id,
+                "output": json.dumps(
+                    search_result,
+                    ensure_ascii=False,
+                ),
+            },
+        ],
+    )
+
+    print("\n最终总结：\n")
+    print(final.output_text)
+```
+
+```bash
+模型自主调用了搜索工具。
+工具： web_search
+参数： {"query": "DeepSeek Responses API 官方"}
+
+搜索结果：
+标题： Using the Responses API | DeepSeek API Docs
+URL： https://api-docs.deepseek.com/guides/responses_api/
+
+最终总结：
+
+## 总结
+```
+
+**循环流程**
+```py
+import json
+
+from ddgs import DDGS
+from openai import OpenAI
+
+
+DEEPSEEK_API_KEY = ""
+
+MODEL = "deepseek-flash"
+BASE_URL = "https://api.deepseek.com"
+
+QUESTION = "请联网搜索 DeepSeek Responses API 最近的官方信息，并根据搜索到的网页内容做一个简短总结，附上来源。"
+
+
+# =========================================================
+# 工具实现
+# =========================================================
+
+def web_search(query: str):
+    ddgs = DDGS()
+
+    result = ddgs.text(
+        query,
+        max_results=1,
+    )[0]
+
+    url = result["href"]
+
+    page = ddgs.extract(
+        url,
+        fmt="text_markdown",
+    )
+
+    return {
+        "title": result.get("title", ""),
+        "url": url,
+        "snippet": result.get("body", ""),
+        "content": page.get("content", "")[:12000],
+    }
+
+
+# =========================================================
+# OpenAI-compatible client
+# =========================================================
+
+client = OpenAI(
+    api_key=DEEPSEEK_API_KEY,
+    base_url=BASE_URL,
+)
+
+
+# =========================================================
+# Tool Schema
+# =========================================================
+
+tool = {
+    "type": "function",
+    "name": "web_search",
+    "description": "搜索互联网并读取网页正文。需要当前或最新信息时使用。",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "搜索关键词",
+            }
+        },
+        "required": ["query"],
+        "additionalProperties": False,
+    },
+}
+
+
+# =========================================================
+# Agent
+# =========================================================
+
+history = [
+    {
+        "role": "user",
+        "content": QUESTION,
+    }
+]
+
+MAX_ROUNDS = 10
+
+
+for round_number in range(MAX_ROUNDS):
+
+    print(f"\n========== 第 {round_number + 1} 轮 ==========")
+
+    response = client.responses.create(
+        model=MODEL,
+
+        # 关闭 thinking，避免还需要回传 reasoning_text
+        reasoning={
+            "effort": "none"
+        },
+
+        instructions=(
+            "你可以自主调用 web_search 搜索互联网。"
+            "如果资料不足，可以再次搜索。"
+            "当信息已经足够时，直接回答用户问题。"
+            "最终回答必须根据搜索结果进行总结，并附来源 URL。"
+        ),
+
+        input=history,
+
+        tools=[
+            tool
+        ],
+
+        tool_choice="auto",
+    )
+
+    # 找这一轮所有工具调用
+    calls = [
+        item
+        for item in response.output
+        if item.type == "function_call"
+    ]
+
+    # =====================================================
+    # 没有工具调用 → Agent 已经得到最终答案
+    # =====================================================
+
+    if not calls:
+        print("\n模型不再调用工具。")
+        print("\n最终回答：\n")
+        print(response.output_text)
+        break
+
+
+    # =====================================================
+    # 模型调用了工具
+    # =====================================================
+
+    print(f"模型调用了 {len(calls)} 个工具：")
+
+    for call in calls:
+
+        print("\n工具：", call.name)
+        print("参数：", call.arguments)
+
+        # 把模型发出的 function_call
+        # 放进历史记录
+        history.append(
+            {
+                "type": "function_call",
+                "call_id": call.call_id,
+                "name": call.name,
+                "arguments": call.arguments,
+            }
+        )
+
+        args = json.loads(
+            call.arguments
+        )
+
+
+        # =================================================
+        # 真正执行工具
+        # =================================================
+
+        if call.name == "web_search":
+
+            result = web_search(
+                args["query"]
+            )
+
+        else:
+
+            result = {
+                "error": f"未知工具：{call.name}"
+            }
+
+
+        print("\n搜索结果：")
+
+        if "title" in result:
+            print("标题：", result["title"])
+            print("URL：", result["url"])
+
+
+        # =================================================
+        # 把工具执行结果返回给模型
+        # =================================================
+
+        history.append(
+            {
+                "type": "function_call_output",
+                "call_id": call.call_id,
+                "output": json.dumps(
+                    result,
+                    ensure_ascii=False,
+                ),
+            }
+        )
+
+
+else:
+    print(
+        f"\nAgent 已达到最大工具调用轮数 {MAX_ROUNDS}，停止运行。"
+    )
+```
+
+要知道,如果不用LLM的话,最难的地方是提取是否需要调用搜索工具的语义啊,而现在我们直接就可以根据封装的API来调用工具了,可以说是相当简单了.
+
+现在的问题就是,如何把我们的ddgs接入agents里面了.
+#### 重构agents文件夹
+是时候引入一点设计模式的思想了,我们之前的类封装简直是在瞎写,完全没有一点美感.
+
+
+
+#### 正式接入ddgs服务
+
 ## ch18: Agent框架测评
