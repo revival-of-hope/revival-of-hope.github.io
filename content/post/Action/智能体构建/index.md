@@ -1,7 +1,7 @@
 ---
-title: "智能体构建教程-fastapi与nextjs强强联手!"
+title: "Agent构建笔记"
 date: 2026-07-27T16:41:18+08:00
-description: 封面图片也很适配呢~
+description: 持续更新中~
 image: 67189487_p0-最凶最悪.webp
 ---
 ## ch0: 前言
@@ -15,13 +15,63 @@ image: 67189487_p0-最凶最悪.webp
 
 - [推测](https://en.theblockbeats.news/flash/343837)
 
-这么大规模的模型训练,需要成百上千万张显卡的协同操作,这已经完全超出了普通人所能触及的界限了,用带了4060显卡的电脑跑了几个B的模型玩玩就可以了.
+这么大规模的模型训练,需要成百上千万张显卡的协同操作,这已经完全超出了普通人所能触及的界限了,用带了4060显卡的电脑跑个几B的模型玩玩就可以了.
 
 因此,AI浪潮与草根程序员并没有任何关系,就算你懂得了基本原理,又何谈去贡献自己的力量呢.
 
 所以,唯一能让自己有点参与感的方法就是去调用大公司恩赐下来的API,并通过自己的手段来优化API的使用,帮助更多的普通人以更简单的方式接触和认识AI.这也是我写这篇教程的部分初衷.
 
 >不敢说我的教程写的有多好,但我保证我的技术栈是最前沿的,前端用的是最新版本的next.js 16,后端用的是fastapi+sqlmodel,使用uv管理python包,加上docker compose部署,翻遍GitHub仓库都很难找到一个差不多的项目吧.
+
+### 大纲
+```mermaid
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#f4f8ff",
+    "primaryBorderColor": "#6c8cff",
+    "lineColor": "#6c8cff",
+    "fontFamily": "Microsoft YaHei, PingFang SC, sans-serif"
+  }
+}}%%
+
+flowchart TB
+
+    N1[FastAPI 基础]
+    N2[极简智能体]
+    N3[加入数据库]
+    N4[加入 Docker]
+    N5[加入用户验证]
+    N6[重写前端<br/>（待完成）]
+
+    N7[实现多轮对话]
+    N8[加入管理员]
+    N9[加入日志和检查工具]
+    N10[换用 Responses API]
+    N11[引入联网搜索和 MCP]
+    N12[加入简单 RAG]
+    N13[结合 Agent 框架]
+    N14[实现多样化 RAG]
+    N15[加入 Redis 和消息队列]
+    N16[Kubernetes 引入]
+
+    N17[引入 API 测试]
+    N18[优化 API 界面]
+
+    N1 --> N2 --> N3 --> N4 --> N5 --> N6
+    N5 --> N7 --> N8 --> N9 --> N10 --> N11 --> N12 --> N13 --> N14 --> N15 --> N16
+    N10 --> N17 --> N18
+
+    classDef core fill:#eaf2ff,stroke:#5b8def,stroke-width:2px,color:#1f2d3d;
+    classDef ext fill:#edf9f1,stroke:#57b26a,stroke-width:2px,color:#1f2d3d;
+    classDef qa fill:#fff6e8,stroke:#f0a43c,stroke-width:2px,color:#1f2d3d;
+    classDef todo fill:#fff1f0,stroke:#ff7875,stroke-width:2px,color:#a8071a;
+
+    class N1,N2,N3,N4,N5 core;
+    class N6 todo;
+    class N7,N8,N9,N10,N11,N12,N13,N14,N15,N16 ext;
+    class N17,N18 qa;
+```
 # fastapi基础
 ## ch1: 使用fastapi响应普通的网络请求
 ### CORS问题
@@ -74,7 +124,7 @@ async def helloword() -> dict:
     return {"data": "hello,world"}
 ```
 - 如果使用`uv init`的话,将这个文件复制到main.py里就行了.
-- **uvicorn**默认在`127.0.0.1:8000`启动服务器
+- **uvicorn**默认在`http://127.0.0.1:8000`启动服务器
 
 使用`uvicorn main:app`运行这个代码后访问前端页面:
 ![示意图](PixPin_2026-05-14_19-22-19.webp)
@@ -2032,7 +2082,7 @@ async def chat(request: ChatMessage):
 
 ## ch6: 给智能体加入数据库
 ### 准备阶段
-现在,让我们试着给上面这个智能体加入postgre数据库,我们需要先明确来两个要点.
+现在,让我们试着给上面这个智能体加入postgresql,我们需要先明确来两个要点.
 1. 哪些路由要用到数据库?
 2. 数据库中要用到几个表?表的关系如何设定?
 
@@ -8981,7 +9031,7 @@ INFO:__main__:Initial data created
 >
 >但当项目大到几百个文件或者说需要多人开发时,那就必须要加测试了,因为人的脑容量终究是有限的,你不可能一个人记得住那么多东西,同样,你不能指望别人能记住所有东西.
 
-有个很现实的问题,没写过测试的人如何知道怎么写测试?唯一的方法就是去阅读经典项目了.
+有个很现实的问题,没写过测试的人如何知道怎么写测试?唯一的方法就是去阅读经典项目了.不过好在python的第三方库太多了,我们有一些不用自己写测试的邪修方法
 ### Schemathesis自动化测试
 >Schemathesis automatically generates property-based tests from your OpenAPI or GraphQL schema, chains operations into realistic workflows, and exercises the edge cases that break your API.
 
@@ -9065,5 +9115,5 @@ if __name__ == "__main__":
 
 
 # 智能体进阶
-## ch17: 联网搜索引入
+## ch17: 联网搜索引入和MCP使用
 ## ch18: Agent框架测评

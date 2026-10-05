@@ -7,6 +7,735 @@ math: true
 ---
 
 # 阅读中
+## Redis设计与实现
+- 出版于2014年，作者：黄健宏。
+- 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
+
+### 数据结构与对象
+
+#### simple dynamic string，SDS
+>Redis没有直接使用C语言传统的字符串表示（以空字符结尾的字符数组，以下简称C字符串），而是自己构建了一种名为简单动态字符串（simple dynamic string，SDS）的抽象类型，并将SDS用作Redis的默认字符串表示。
+
+主要原因自然是C字符串本身的问题,如字符串拼接函数`strcat`不会自动扩容,C字符串默认以`./0`结尾,并不会记录自身的长度,而是需要程序员自己控制.
+
+格式如下:
+
+![格式图](PixPin_2026-09-13_12-38-08.webp)
+
+- len记载占用空间,free记载剩余空间,通过结构体实现
+
+#### 链表
+Redis中的链表设计如下:
+* 双端：链表节点带有 `prev` 和 `next` 指针，获取某个节点的前置节点和后置节点的复杂度都是 O(1)。
+* 无环：表头节点的 `prev` 指针和表尾节点的 `next` 指针都指向 `NULL`，对链表的访问以 `NULL` 为终点。
+* 带表头指针和表尾指针：通过 `list` 结构的 `head` 指针和 `tail` 指针，程序获取链表的表头节点和表尾节点的复杂度为 O(1)。
+* 带链表长度计数器：程序使用 `list` 结构的 `len` 属性来对 `list` 持有的链表节点进行计数，程序获取链表中节点数量的复杂度为 O(1)。
+* 多态：链表节点使用 `void*` 指针来保存节点值，并且可以通过 `list` 结构的 `dup`、`free`、`match` 三个属性为节点值设置类型特定函数，所以链表可以用于保存各种不同类型的值。
+
+#### 字典
+>字典在Redis中的应用相当广泛，比如Redis的数据库就是使用字典来作为底层实现的，对数据库的增、删、查、改操作也是构建在对字典的操作之上的。
+
+##### 哈希表
+Redis的字典使用哈希表实现:
+
+```c
+typedef struct dictht {
+    // 哈希表数组
+    dictEntry **table;//指针数组
+
+    // 哈希表大小
+    unsigned long size;
+
+    // 哈希表大小掩码，用于计算索引值
+    // 总是等于 size - 1
+    unsigned long sizemask;
+
+    // 该哈希表已有节点的数量
+    unsigned long used;
+} dictht;
+```
+具体的单节点结构如下:
+
+```c
+typedef struct dictEntry {
+    // 键
+    void *key;
+
+    // 值
+    union {
+        void *val;
+        uint64_t u64;
+        int64_t s64;
+    } v;
+
+    // 指向下一个哈希表节点，形成链表
+    struct dictEntry *next;
+} dictEntry;
+```
+- 这里的union非常有意思,完美解决了节点的替换问题.
+
+##### 哈希算法
+Redis计算哈希值和索引值的方法如下：
+
+```c
+// 使用字典设置的哈希函数，计算键 key 的哈希值
+hash = dict->type->hashFunction(key);
+
+// 使用哈希表的 sizemask 属性和哈希值，计算出索引值
+// 根据情况不同，ht[x] 可以是 ht[0] 或者 ht[1]
+index = hash & dict->ht[x].sizemask;
+```
+hashFunction用的算法是MurmurHash2算法,而现在用的则是SipHash算法
+
+##### 哈希冲突
+发生哈希冲突时,由于没有指向尾部的指针,所以Redis会将新节点放在链表的头部
+
+##### rehash
+当哈希冲突过多/加入节点过多时,Redis会自动执行Rehash来渐进式地扩展哈希表,详细步骤如下:
+1. 为 `ht[1]` 分配空间，让字典同时持有 `ht[0]` 和 `ht[1]` 两个哈希表。
+2. 在字典中维持一个索引计数器变量 `rehashidx`，并将它的值设置为 `0`，表示 rehash 工作正式开始。
+3. 在 rehash 进行期间，每次对字典执行添加、删除、查找或者更新操作时，程序除了执行指定的操作以外，还会顺带将 `ht[0]` 哈希表在 `rehashidx` 索引上的所有键值对 rehash 到 `ht[1]`。当 rehash 工作完成之后，程序将 `rehashidx` 属性的值增一。
+4. 随着字典操作的不断执行，最终在某个时间点上，`ht[0]` 的所有键值对都会被 rehash 至 `ht[1]`。这时程序将 `rehashidx` 属性的值设为 `-1`，表示 rehash 操作已完成。
+
+设计上确实很简单,但不是那么容易想得到的.
+
+#### 跳表
+>和链表、字典等数据结构被广泛地应用在Redis内部不同，Redis只在两个地方用到了跳跃表，一个是实现有序集合键，另一个是在集群节点中用作内部数据结构，除此之外，跳跃表在Redis里面没有其他用途
+
+- 我以前还以为Redis主要靠跳表呢,结果并没有我想的那么简单
+
+#### 整数集合
+>整数集合（intset）是集合键的底层实现之一，当一个集合只包含整数值元素，并且这个集合的元素数量不多时，Redis就会使用整数集合作为集合键的底层实现。
+
+基本原理就是把整数按照顺序放进一块连续内存中,所有元素的类型统一,有三种类型:
+
+```text
+INTSET_ENC_INT16
+INTSET_ENC_INT32
+INTSET_ENC_INT64
+```
+
+#### 压缩列表
+>压缩列表（ziplist）是列表键和哈希键的底层实现之一。当一个列表键只包含少量列表项，并且每个列表项要么就是小整数值，要么就是长度比较短的字符串，那么Redis就会使用压缩列表来做列表键的底层实现。
+
+可以说只是一个优化过的链表而已.
+
+#### 对象
+>在前面的数个章节里，我们陆续介绍了Redis用到的所有主要数据结构，比如简单动态字符串（SDS）、双端链表、字典、压缩列表、整数集合等等。
+>
+>Redis并没有直接使用这些数据结构来实现键值对数据库，而是基于这些数据结构创建了一个对象系统，这个系统包含字符串对象、列表对象、哈希对象、集合对象和有序集合对象这五种类型的对象，每种对象都用到了至少一种我们前面所介绍的数据结构。
+
+##### 对象类型
+Redis使用对象来表示数据库中的键和值，每次当我们在Redis的数据库中新创建一个键值对时，我们至少会创建两个对象，一个对象用作键值对的键（键对象），另一个对象用作键值对的值（值对象）。
+
+经典的5个对象类型如下:
+
+| 类型常量       | 对象的名称   |
+| -------------- | ------------ |
+| `REDIS_STRING` | 字符串对象   |
+| `REDIS_LIST`   | 列表对象     |
+| `REDIS_HASH`   | 哈希对象     |
+| `REDIS_SET`    | 集合对象     |
+| `REDIS_ZSET`   | 有序集合对象 |
+
+>对于Redis数据库保存的键值对来说，键总是一个字符串对象，而值则可以是字符串对象、列表对象、哈希对象、集合对象或者有序集合对象的其中一种，
+
+##### 字符串对象
+字符串对象的编码可以是int、raw或者embstr,分别对应整数,长字符串,短于32字节的字符串
+
+##### 列表对象
+列表对象的编码可以是ziplist或者linkedlist,当列表中所有字符串元素的长度都小于64字节,且保存元素少于512个时,使用zpilist,否则就用linkedlist,二者的实现方式上有一点不同:
+
+linkedlist是一个真正的双端列表,而ziplist中所有元素紧凑排列在一段连续内存中.
+
+|     命令      | ziplist 编码的实现方法                                                                                                     | linkedlist 编码的实现方法                                                                                          |
+| :-----------: | :------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------- |
+|  **`LPUSH`**  | 调用 `ziplistPush` 函数，将新元素推入到压缩列表的表头                                                                      | 调用 `listAddNodeHead` 函数，将新元素推入到双端链表的表头                                                          |
+|  **`RPUSH`**  | 调用 `ziplistPush` 函数，将新元素推入到压缩列表的表尾                                                                      | 调用 `listAddNodeTail` 函数，将新元素推入到双端链表的表尾                                                          |
+|  **`LPOP`**   | 调用 `ziplistIndex` 函数定位压缩列表的表头节点，在向用户返回节点所保存的元素之后，调用 `ziplistDelete` 函数删除表头节点    | 调用 `listFirst` 函数定位双端链表的表头节点，在向用户返回节点所保存的元素之后，调用 `listDelNode` 函数删除表头节点 |
+|  **`RPOP`**   | 调用 `ziplistIndex` 函数定位压缩列表的表尾节点，在向用户返回节点所保存的元素之后，调用 `ziplistDelete` 函数删除表尾节点    | 调用 `listLast` 函数定位双端链表的表尾节点，在向用户返回节点所保存的元素之后，调用 `listDelNode` 函数删除表尾节点  |
+| **`LINDEX`**  | 调用 `ziplistIndex` 函数定位压缩列表中的指定节点，然后返回节点所保存的元素                                                 | 调用 `listIndex` 函数定位双端链表中的指定节点，然后返回节点所保存的元素                                            |
+|  **`LLEN`**   | 调用 `ziplistLen` 函数返回压缩列表的长度                                                                                   | 调用 `listLength` 函数返回双端链表的长度                                                                           |
+| **`LINSERT`** | 插入新节点到压缩列表的表头或者表尾时，使用 `ziplistPush` 函数；插入新节点到压缩列表的其他位置时，使用 `ziplistInsert` 函数 | 调用 `listInsertNode` 函数，将新节点插入到双端链表的指定位置                                                       |
+
+问了一下AI,现在list的主要实现变成了`quicklist`,是一个由多个`ziplist`组成的链表,这个设计确实很不错
+
+##### 哈希对象
+哈希对象的编码可以是ziplist或者hashtable。
+
+如果使用ziplist,那么就满足以下性质:
+- **保存了同一键值对的两个节点总是紧挨在一起**，保存键的节点在前，保存值的节点在后；
+- **先添加到哈希对象中的键值对**会被放在压缩列表的表头方向，而**后来添加到哈希对象中的键值对**会被放在压缩列表的表尾方向。
+
+这与列表其实没有任何区别,只不过存储的量多了一倍而已,同样,当所有元素的字符串长度小于64字节,键值对数量小于512时才会启用ziplist,否则使用hashtable.
+
+hashtable使用前面所说的字典实现.
+
+##### 集合对象
+集合对象的编码可以是intset或者hashtable。同样也是根据元素数量来进行转换的.
+
+##### 有序集合对象
+有序集合的编码可以是ziplist或者skiplist。
+
+如果是ziplist,每次插入都要重新排序,显然很地狱,所以只在元素数量小于128个,且所有成员长度小于64字节时才启用.
+
+而skiplist编码的zset结构同时包含了一个字典和一个跳表,跳表负责将元素从小到大排列,用于存放数据,而哈希字典用于记录元素和分值(score)的映射,从而实现O(1)的查找.二者通过指针共享地址,所以不会浪费内存.
+
+#### 内存回收
+由于C没有垃圾回收,所以Redis构建了一个引用计数的垃圾回收机制
+
+### 单机数据库
+
+#### 数据库
+Redis Server负责创建和管理Redis数据库,初始化Server时,默认会创建16个数据库.
+
+Redis是一个键值对（key-value pair）数据库服务器，服务器中的每个数据库都由一个redis.h/redisDb结构表示，其中，redisDb结构的dict字典保存了数据库中的所有键值对，我们将这个字典称为键空间（key space）:
+
+![结构图](PixPin_2026-09-21_10-12-01.webp)
+
+我们还可以对key设置过期时间,如下方结构所示:
+
+```text
+dict
+┌────────┬──────────────────┐
+│ key    │ value            │
+├────────┼──────────────────┤
+│ user:1 │ HashObject       │
+│ msg:1  │ StringObject     │
+│ list:1 │ ListObject       │
+└────────┴──────────────────┘
+
+expires
+┌────────┬──────────────────┐
+│ key    │ expire time      │
+├────────┼──────────────────┤
+│ user:1 │ 1760000000000    │
+│ msg:1  │ 1760000500000    │
+└────────┴──────────────────┘
+```
+
+##### 删除机制
+现在剩下的问题是：**如果一个键过期了，那么它什么时候会被删除呢？**
+
+*   **定时删除**：在设置键的过期时间的同时，创建一个定时器（timer），让定时器在键的过期时间来临时，立即执行对键的删除操作。
+*   **惰性删除**：放任键过期不管，但是每次从键空间中获取键时，都检查取得的键是否过期，如果过期的话，就删除该键；如果没有过期，就返回该键。
+*   **定期删除**：每隔一段时间，程序就对数据库进行一次检查，删除里面的过期键。至于要删除多少过期键，以及要检查多少个数据库，则由算法决定。
+
+在这三种策略中，第一种和第三种为**主动删除策略**，而第二种则为**被动删除策略**。
+
+而Redis服务器实际使用的是惰性删除和定期删除两种策略
+
+当服务器运行在复制模式下时，从服务器的过期键删除动作由主服务器控制：
+
+*   主服务器在删除一个过期键之后，会显式地向所有从服务器发送一个DEL命令，告知从服务器删除这个过期键。
+*   从服务器在执行客户端发送的读命令时，即使碰到过期键也不会将过期键删除，而是继续像处理未过期的键一样来处理过期键。
+*   从服务器只有在接到主服务器发来的DEL命令之后，才会删除过期键。
+
+通过由主服务器来控制从服务器统一地删除过期键，可以保证主从服务器数据的一致性，也正是因为这个原因，当一个过期键仍然存在于主服务器的数据库时，这个过期键在从服务器里的复制品也会继续存在。
+
+#### RDB(Redis DataBase)持久化
+因为Redis是内存数据库，它将自己的数据库状态储存在内存里面，所以如果不想办法将储存在内存中的数据库状态保存到磁盘里面，那么一旦服务器进程退出，服务器中的数据库状态也会消失不见。
+
+为了解决这个问题，Redis提供了RDB持久化功能，这个功能可以将Redis在内存中的数据库状态保存到磁盘里面，避免数据意外丢失,RDB持久化既可以手动执行，也可以根据服务器配置选项定期执行，该功能可以将某个时间点上的数据库状态保存到一个RDB文件中,这是一个经过压缩的二进制文件,可以还原生成RDB文件时的数据库状态
+
+##### 创建与载入RDB文件
+有两个Redis命令可以用于生成RDB文件，一个是SAVE，另一个是BGSAVE。
+
+SAVE命令会阻塞Redis服务器进程，直到RDB文件创建完毕为止，在服务器进程阻塞期间，服务器不能处理任何命令请求,即便是主从服务器部署,这么做也是不太合理的.
+
+而BGSAVE命令会派生出一个子进程,由子进程负责创建RDB文件,服务器进程继续处理请求.
+
+而RDB文件的载入是在服务器启动时自动执行的,不需要我们额外输入命令:
+
+```bash
+$ redis-server
+[7379] 30 Aug 21:07:01.270 # Server started, Redis version 2.9.11
+[7379] 30 Aug 21:07:01.289 * DB loaded from disk: 0.018 seconds
+[7379] 30 Aug 21:07:01.289 * The server is now ready to accept connections on port 6379
+```
+
+另外值得一提的是，因为AOF文件的更新频率通常比RDB文件的更新频率高，所以：
+- 如果服务器开启了AOF持久化功能，那么服务器会优先使用AOF文件来还原数据库状态。
+- 只有在AOF持久化功能处于关闭状态时，服务器才会使用RDB文件来还原数据库状态。
+
+因为BGSAVE命令可以在不阻塞服务器进程的情况下执行，所以Redis允许用户通过设置服务器配置的save选项，让服务器每隔一段时间自动执行一次BGSAVE命令。
+
+举个例子，如果我们向服务器提供以下配置：
+
+```bash
+save 900 1
+save 300 10
+save 60 10000
+```
+
+那么只要满足以下三个条件中的任意一个，BGSAVE命令就会被执行：
+-  服务器在900秒之内，对数据库进行了至少1次修改。
+-  服务器在300秒之内，对数据库进行了至少10次修改。
+-  服务器在60秒之内，对数据库进行了至少10000次修改。
+
+##### RDB文件结构
+
+![文件结构](PixPin_2026-09-22_09-23-40.webp)
+
+**databases 部分**包含着零个或任意多个数据库，以及各个数据库中的键值对数据：
+
+- 如果服务器的数据库状态为空（所有数据库都是空的），那么这个部分也为空，长度为 0 字节。
+- 如果服务器的数据库状态为非空（有至少一个数据库非空），那么这个部分也为非空，根据数据库所保存键值对的数量、类型和内容不同，这个部分的长度也会有所不同。
+
+**EOF 常量**的长度为 1 字节，这个常量标志着 RDB 文件正文内容的结束，当读入程序遇到这个值的时候，它知道所有数据库的所有键值对都已经载入完毕了。
+
+**check_sum** 是一个 8 字节长的无符号整数，保存着一个校验和，这个校验和是程序通过对 `REDIS`、`db_version`、`databases`、`EOF` 四个部分的内容进行计算得出的。服务器在载入 RDB 文件时，会将载入数据所计算出的校验和与 `check_sum` 所记录的校验和进行对比，以此来检查 RDB 文件是否有出错或者损坏的情况出现。
+
+每个非空数据库在RDB文件中都可以保存为SELECTDB、db_number、key_value_pairs三个部分:
+
+![示意图](PixPin_2026-09-22_09-25-45.webp)
+
+**SELECTDB 常量**的长度为 1 字节，当读入程序遇到这个值的时候，它知道接下来要读入的将是一个数据库号码。
+
+**db_number** 保存着一个数据库号码，根据号码的大小不同，这个部分的长度可以是 1 字节、2 字节或者 5 字节。当程序读入 `db_number` 部分之后，服务器会调用 `SELECT` 命令，根据读入的数据库号码进行数据库切换，使得之后读入的键值对可以载入到正确的数据库中。
+
+**key_value_pairs** 部分保存了数据库中的**所有**键值对数据，如果键值对带有过期时间，那么过期时间也会和键值对保存在一起。根据键值对的数量、类型、内容以及是否有过期时间等条件的不同，`key_value_pairs` 部分的长度也会有所不同。
+
+由此来看,Redis只适合存放那种比较小和短的数据,否则RDB文件的大小会非常惊人.而且在现代生产环境里，只使用 DB 0 是非常常见、也通常更推荐的做法,所以不用担心多个数据库的RDB叠加起来的超大内存占用.
+
+#### AOF(Append Only File)持久化
+>与RDB持久化通过保存数据库中的键值对来记录数
+据库状态不同，AOF持久化是通过保存Redis服务器所执行的写命令来记录数据库状态的:
+
+![示意图](PixPin_2026-09-23_10-15-37.webp)
+
+因为Redis的命令请求协议是纯文本格式，所以我们可以直接打开一个AOF文件，观察里面的内容,例如先执行这三个命令:
+
+```bash
+redis> SET msg "hello"
+OK
+redis> SADD fruits "apple" "banana" "cherry"
+(integer) 3
+redis> RPUSH numbers 128 256 512
+(integer) 3
+```
+然后查看AOF:
+
+```bash
+*2\r\n$6\r\nSELECT\r\n$1\r\n0\r\n
+*3\r\n$3\r\nSET\r\n$3\r\nmsg\r\n$5\r\nhello\r\n
+*5\r\n$4\r\nSADD\r\n$6\r\nfruits\r\n$5\r\napple\r\n$6\r\nbanana\r\n$6\r\ncherry\r\n
+*5\r\n$5\r\nRPUSH\r\n$7\r\nnumbers\r\n$3\r\n128\r\n$3\r\n256\r\n$3\r\n512\r\n
+```
+
+>Redis的服务器进程就是一个事件循环（loop），这个循环中的文件事件负责接收客户端的命令请求，以及向客户端发送命令回复，而时间事件则负责执行像serverCron函数这样需要定时运行的函数,如此一来,每次loop结束后,都需要调用AOF相关的函数,考虑是否将缓冲区中的命令写入和保存到AOF文件中
+
+#### 事件
+Redis服务器是一个事件驱动程序，服务器需要处理以下两类事件：
+
+- 文件事件（file event）：Redis服务器通过套接字与客户端（或者其他Redis服务器）进行连接，而文件事件就是服务器对套接字操作的抽象。服务器与客户端（或者其他服务器）的通信会产生相应的文件事件，而服务器则通过监听并处理这些事件来完成一系列网络通信操作
+- 时间事件（time event）：Redis服务器中的一些操作（比如serverCron函数）需要在给定的时间点执行，而时间事件就是服务器对这类定时操作的抽象。
+##### 文件事件
+**Redis基于Reactor模式开发了自己的网络事件处理器：这个处理器被称为文件事件处理器（file event handler）：**
+
+*   文件事件处理器使用I/O多路复用（multiplexing）程序来同时监听多个套接字，并根据套接字目前执行的任务来为套接字关联不同的事件处理器。
+
+*   当被监听的套接字准备好执行连接应答（accept）、读取（read）、写入（write）、关闭（close）等操作时，与操作相对应的文件事件就会产生，这时文件事件处理器就会调用套接字之前关联好的事件处理器来处理这些事件。
+
+![结构图](PixPin_2026-09-28_12-30-05.webp)
+
+尽管多个文件事件可能会并发地出现，但I/O多路复用程序总是会将所有产生事件的套接字都放到一个队列里面,然后顺序处理,但由于处理速度很快(毕竟全都在内存中实现),所以不会影响高并发.
+
+I/O多路复用程序可以监听多个套接字的`ae.h/AE_READABLE`事件和`ae.h/AE_WRITABLE`事件，这两类事件和套接字操作之间的对应关系如下：
+
+*   当套接字变得可读时（客户端对套接字执行write操作，或者执行close操作），或者有新的可应答（acceptable）套接字出现时（客户端对服务器的监听套接字执行connect操作），套接字产生`AE_READABLE`事件。
+
+*   当套接字变得可写时（客户端对套接字执行read操作），套接字产生`AE_WRITABLE`事件。
+
+I/O多路复用程序允许服务器同时监听套接字的`AE_READABLE`事件和`AE_WRITABLE`事件，如果一个套接字同时产生了这两种事件，那么文件事件分派器会优先处理`AE_READABLE`事件，等到`AE_READABLE`事件处理完之后，才处理`AE_WRITABLE`事件。
+
+这也就是说，如果一个套接字又可读又可写的话，那么服务器将先读套接字，后写套接字。
+
+##### 时间事件
+Redis的时间事件分为以下两类：
+
+*   定时事件：让一段程序在指定的时间之后执行一次。比如说，让程序X在当前时间的30毫秒之后执行一次。
+*   周期性事件：让一段程序每隔指定时间就执行一次。比如说，让程序Y每隔30毫秒就执行一次。
+
+一个时间事件主要由以下三个属性组成：
+
+*   **id**：服务器为时间事件创建的全局唯一ID（标识号）。ID号按从小到大的顺序递增，新事件的ID号比旧事件的ID号要大。
+*   **when**：毫秒精度的UNIX时间戳，记录了时间事件的到达（arrive）时间。
+*   **timeProc**：时间事件处理器，一个函数。当时间事件到达时，服务器就会调用相应的处理器来处理事件。一个时间事件是定时事件还是周期性事件取决于时间事件处理器的返回值
+
+Redis将所有时间事件都放在一个无序链表中,当执行器运行时会遍历整个链表,查找所有已经就绪的时间事件
+
+##### 处理流程
+![流程图](PixPin_2026-09-29_11-16-31.webp)
+#### 客户端
+
+Redis服务器是典型的一对多服务器程序：一个服务器可以与多个客户端建立网络连接，每个客户端可以向服务器发送命令请求，而服务器则接收并处理客户端发送的命令请求，并向客户端返回命令回复
+
+对于每个与服务器进行连接的客户端，服务器都为这些客户端建立了相应的 `redis.h/redisClient` 结构（客户端状态），这个结构保存了客户端当前的状态信息，以及执行相关功能时需要用到的数据结构，其中包括：
+
+- 客户端的套接字描述符。
+- 客户端的名字。
+- 客户端的标志值（flag）。
+- 指向客户端正在使用的数据库的指针，以及该数据库的号码。
+- 客户端当前要执行的命令、命令的参数、命令参数的个数，以及指向命令实现函数的指针。
+- 客户端的输入缓冲区和输出缓冲区。
+- 客户端的复制状态信息，以及进行复制所需的数据结构。
+- 客户端执行 BRPOP、BLPOP 等列表阻塞命令时使用的数据结构。
+- 客户端的事务状态，以及执行 WATCH 命令时用到的数据结构。
+- 客户端执行发布与订阅功能时用到的数据结构。
+- 客户端的身份验证标志。
+- 客户端的创建时间，客户端和服务器最后一次通信的时间，以及客户端的输出缓冲区大小超出软性限制（soft limit）的时间。
+
+#### 服务器
+从客户端发送 SET KEY VALUE 命令到获得回复 OK 期间，客户端和服务器共需要执行以下操作：
+
+1. 客户端向服务器发送命令请求 SET KEY VALUE
+2. 服务器接收并处理客户端发来的命令请求 SET KEY VALUE，在数据库中进行设置操作，并产生命令回复 OK
+3. 服务器将命令回复 OK 发送给客户端
+4. 客户端接收服务器返回的命令回复 OK，并将这个回复打印给用户观看
+### 多机数据库
+不用一次是不可能学会的,待我先实战一段时间再来
+
+
+## Agentic Design Patterns
+- 出版于2025年，作者：Antonio Gullí。
+
+## 数据库系统内幕
+- 一直久闻大名,现在就来试试水
+### 存储引擎
+## 推荐系统：前沿与实践
+
+
+## The Design of Web APIs, Second Edition
+- 出版于2025年（第2版），出版商：Manning，作者：Arnaud Lauret。
+
+
+### 前言
+1. **“I can’t list friends of friends!”**
+2. **“What contains the `sts` property?”**
+3. **“Why don’t `createdAt` and `fromDate` use the same date-time format?”**
+4. **“Identifying friends requires a `userId`, but storing a message requires a username! Can’t we use the same user ID in all operations?”**
+5. **“The ‘List friends’ operation is useless; to get useful data, I must call the ‘Read friend’ operation for each friend!”**
+6. **“The HTTP response indicates a success, but its data contains an error!”**
+7. **“How can I know what’s wrong with my API call if I only get an ‘Invalid request’ error message?”**
+8. **“Are you sure about the mobile and web applications taking care of friend identification with the Face Detection API before sharing a message with photos?”**
+
+API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也会大打折扣
+
+>不是每个人都能有幸从白纸一张开始设计API。现有的API可能存在并且设计得不够理想。我们的目的并非指责过去的设计，而是要防止API设计的技术债务继续增加
+
+
+
+## Vision Language Models
+- 出版于2026年，出版商：O'Reilly，作者：Merve Noyan。
+
+### 导论
+
+#### Brief Introduction to Computer Vision
+## Coding Video,A Practical Guide to HEVC and Beyond(待补充)
+- 出版于2024年，作者：Iain E. Richardson。
+
+### 介绍
+>一秒标准的未压缩SD(576p)视频，每秒25帧，大约占用15.5 MB存储空间。这意味着，通过网络或广播频道实时传输这段视频，即每秒发送一秒可播放的视频内容，需要124 Mbit/s的带宽。而一秒未压缩的UHD/4K视频、每秒50帧捕捉，则大约占用620 MB存储空间，实时传输将需要高达5 Gbit/s的传输带宽。
+
+- 由此可知,我们在电子产品中存储的视频都是压缩形式的,只在播放时进行实时的解码.
+
+![说明图](PixPin_2026-08-09_10-23-28.webp)
+
+尽管我们拥有的存储容量和网络带宽比以往任何时候都要多，但存储和传输视频的需求仍在不断超出可用容量。到2023年，约三分之二的消费级电视机已达到4K分辨率或更高。将高性能视频编解码器集成到智能手机和电视等消费设备中，以及对高分辨率视频的期望，使得在存储或传输前压缩或编码视频，并在显示前解码视频成为常态
+
+
+
+## Elasticsearch in Action, Second Edition(待补充)
+- 出版于2023年（第2版），出版商：Manning，作者：Madhusudhan Konda。
+- [为什么不用Solr](https://learnku.com/articles/43880)
+
+### 概述
+传统的数据库仅能返回普通的查询结果,而若是要实现智能提示和多样化搜索,就需要搜索引擎这些经过了优化处理的数据库来解决了.
+
+Es的底层引擎为使用Java编写的Lucene,再在外面套了一层符合Rest规范的API,然后还有一个配套的前端管理程序Kibana.
+
+![示意图](PixPin_2026-07-29_10-55-57.webp)
+
+![创建过程](PixPin_2026-07-29_11-01-18.webp)
+
+![查询过程](PixPin_2026-07-29_11-06-37.webp)
+
+到这里我们也看明白了,Es的使用方法就是通过Restful API来传输Json文档而已,这种方法非常高效,而且掩盖了背后的复杂优化过程.
+
+- 不过,也只有搜索引擎才能这么干,毕竟搜索请求都是幂等的,所以不会受到并发的困扰.而对于普通的数据库来说,只好老老实实地通过底层驱动连接了,如果有人能够想到更美妙的解决方法,诺奖不说,图灵奖是绝对有的.
+
+>Elasticsearch has an algorithm called **Okapi Best Match 25** (BM25), which is an **enhanced** term frequency/inverse document frequency (**TF/IDF**) similarity algorithm that calculates the relevancy scores for the results and sorts them in that order when presenting them to the client.
+
+而在执行搜索时,我们也可以手动给关键字分配对应的权重,来返回自己想要的搜索结果,而在我们平常的搜索时,这一过程都是自动进行的.
+
+### 架构
+Elasticsearch按节点和数据类型对数据进行分类。每个节点都有一个专用文件夹，其中包含若干存储相关数据的桶。Elasticsearch会根据每种数据类型创建一组桶（在Elasticsearch术语中称为索引）
+
+分片是 Apache Lucene 的物理实例，是幕后将数据存入和取出存储的关键载体。换言之，分片负责数据的物理存储与检索工作。从 7.x 版本起，默认情况下新创建的每个索引仅配备一个主分片和一个副本
+
+主分片负责存储文档，而副本分片（简称副本）顾名思义是主分片的副本。每个分片可以有多个副本，也可不设置副本，但这种方式不推荐用于生产环境——在实际生产环境中，通常会为每个分片创建多个副本。副本存储着数据副本，既能提升系统冗余度，又能帮助加速搜索查询。
+
+
+
+## Fundamentals of Data Engineering(待补充)
+- 出版于2022年，出版商：O'Reilly，作者：Joe Reis。
+
+### ch1
+这一章的数据工程历史介绍很有看头.
+
+>“Big data is like teenage sex: everyone talks about it, nobody really knows how to do it, everyone thinks everyone else is doing it, so everyone claims they are doing it.”
+
+>尽管许多数据科学家热衷于构建和调优机器学习模型，但现实是，据估计，他们70%到80%的时间都耗费在数据层次结构的底层三个部分——数据收集、数据清理、数据处理——而只有极少时间用于分析和机器学习。
+
+- 确实很对,大部分时间都是花在摆弄数据表格上了.
+
+![图示](PixPin_2026-08-09_14-08-51.webp)
+
+## Systems Performance,2nd edition(待补充)
+- 出版于2020年（第2版），作者：Brendan Gregg。
+
+### ch1: 介绍
+讲的特别好,很适合运维来看
+
+### ch2: 方法论
+#### 术语和模型
+
+
+## Kubernetes in Action, Second Edition(待补充)
+- 出版于2026年（第2版），出版商：Manning，作者：Marko Lukša。
+
+### 入门
+
+#### Introducing Kubernetes
+>Kubernetes 一词源自希腊语，意为“领航员”或“舵手”,最初由Google开发.
+
+Kubernetes 集群包含分为两个组的节点:
+1. control plane nodes: 控制整个集群
+
+![图示](PixPin_2026-07-09_17-26-06.webp)
+
+2. worker nodes: 实际工作的节点.
+
+![图示](PixPin_2026-07-09_17-27-13.webp)
+
+#### 容器介绍(过)
+每个容器都有着独立的文件系统和进程ID,如果是有Shell的Linux镜像的话,还可以使用bash命令.
+
+#### 容器管理
+Kubernetes部署的单位称为deployment对象,该对象对应了一个或者多个Pod,每个Pod由一个或者多个紧密相关的容器组成,他们共享相同的网络接口和命名空间:
+
+![示意图](PixPin_2026-07-14_17-59-51.webp)
+
+>每个 Pod 都有自己的 IP、主机名、进程、网络接口及其他资源。同
+一 Pod 内的容器会认为它们是计算机中唯一运行的程序，即使与其它
+Pod 位于同一节点，也不会感知到这些 Pod 中的进程。
+
+```shell
+$ kubectl get pods
+NAME                     READY   STATUS    RESTARTS   AGE
+kiada-9d785b578-p449x    0/1     Pending   0          1m     #1
+
+```
+
+##### 暴露应用程序
+我们使用create deployment命令创建一个deployment对象,但要使得这个对象暴露在主机端口,则需要使用expose deployment命令创建一个Service对象,从而可以被外界访问
+
+```bash
+kubectl expose deployment kiada --type=LoadBalancer --port 8080
+```
+
+##### 扩展容器
+
+```bash
+$ kubectl scale deployment kiada --replicas=3
+deployment.apps/kiada scaled
+```
+- `--replicas=3`参数会创建三个完全相同的容器,这就是我们所说的`横向扩展`
+
+```shell
+$ kubectl get deploy
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+kiada   3/3     3            3           18m
+
+```
+可以看到我们创建了三个Pod,每个Pod都包含了一个Kiada容器.
+
+当有多个通过`replicas`创建的相同Pod时,Pod之间便会自动进行负载均衡,每次由一个随机的Pod来处理到来的请求
+
+>严格来说，Deployment 对象的用途仅仅是创建特定数量的 Pod 对
+象。您可能会想，是否可以直接创建 Pod，而不通过 Deployment
+来代劳。当然可以这么做，但如果需要运行多个副本，您就必须手动
+逐个创建每个 Pod，并确保为其分配唯一的名称。此后，您还需要持
+续监控这些 Pod，一旦它们突然消失或所在节点发生故障，就得立即
+替换它们。这正是几乎从不直接创建 Pod、而是使用 Deployment
+的根本原因。
+
+
+## Hadoop: The Definitive Guide(4th)(待补充)
+- 出版于2015年（第4版），出版商：O'Reilly，作者：Tom White。
+
+### 基础
+
+#### 起源
+Hadoop这个名字并不是一个首字母缩略词；它是一个杜撰出来的名字。该项目的创建者Doug Cutting解释了这个名字的由来：
+
+>The name my kid gave a stuffed yellow elephant. Short, relatively easy to spell and pronounce, meaningless, and not used elsewhere
+
+Hadoop起源于Lucene的研发过程,结合了04年Google公开的MapReduce算法,并在08年成为Apache的顶级项目,在之后被主流企业广泛使用
+
+#### MapReduce
+
+##### 简单例子
+1. 首先我们有一个数据集,想要从中找出每一年的最大数
+
+```text
+(0,   0067011990999991950051507004...9999999N9+00001+99999999999...)
+(106, 0043011990999991950051512004...9999999N9+00221+99999999999...)
+(212, 0043011990999991950051518004...9999999N9-00111+99999999999...)
+(318, 0043012650999991949032412004...0500001N9+01111+99999999999...)
+(424, 0043012650999991949032418004...0500001N9+00781+99999999999...)
+```
+2. 设置一个Map函数,从中过滤后并提取出标准格式的信息:
+
+```text
+(1950, 0)
+(1950, 22)
+(1950, -11)
+(1949, 111)
+(1949, 78)
+```
+整理得到:
+
+```text
+(1949, [111, 78])
+(1950, [0, 22, -11])
+```
+3. 设置一个Reduce函数,遍历Map函数的结果得到最终值:
+
+```text
+(1949, 111)
+(1950, 22)
+```
+
+流程图如下:
+
+![示意图](PixPin_2026-09-11_11-28-10.webp)
+
+Map函数:
+
+```java
+import java.io.IOException;
+
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+
+public class MaxTemperatureMapper
+        extends Mapper<LongWritable, Text, Text, IntWritable> {
+
+    private static final int MISSING = 9999;
+
+    @Override
+    public void map(LongWritable key, Text value, Context context)
+            throws IOException, InterruptedException {
+
+        String line = value.toString();
+        String year = line.substring(15, 19);
+
+        int airTemperature;
+
+        if (line.charAt(87) == '+') { // parseInt doesn't like leading plus signs
+            airTemperature = Integer.parseInt(line.substring(88, 92));
+        } else {
+            airTemperature = Integer.parseInt(line.substring(87, 92));
+        }
+
+        String quality = line.substring(92, 93);
+
+        if (airTemperature != MISSING && quality.matches("[01459]")) {
+            context.write(new Text(year), new IntWritable(airTemperature));
+        }
+    }
+}
+```
+Reduce函数:
+
+```java
+import java.io.IOException;
+
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
+
+public class MaxTemperatureReducer
+        extends Reducer<Text, IntWritable, Text, IntWritable> {
+
+    @Override
+    public void reduce(Text key, Iterable<IntWritable> values, Context context)
+            throws IOException, InterruptedException {
+
+        int maxValue = Integer.MIN_VALUE;
+
+        for (IntWritable value : values) {
+            maxValue = Math.max(maxValue, value.get());
+        }
+
+        context.write(key, new IntWritable(maxValue));
+    }
+}
+```
+
+在实现了Map和Reduce方法后,调用方法如下:
+
+```java
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class MaxTemperature {
+
+    public static void main(String[] args) throws Exception {
+        if (args.length != 2) {
+            System.err.println("Usage: MaxTemperature <input path> <output path>");
+            System.exit(-1);
+        }
+
+        Job job = new Job();
+        job.setJarByClass(MaxTemperature.class);
+        job.setJobName("Max temperature");
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        job.setMapperClass(MaxTemperatureMapper.class);
+        job.setReducerClass(MaxTemperatureReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+```
+
+#### The Hadoop Distributed Filesystem(HDFS)
+
+
+## The Architecture of Open Source Applications(待补充)
+
+### 引言
+>建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
+
+## 深入剖析Nginx
+- 出版于2013年，作者：高群凯。
+- 这种深入剖析的书都能让人不得不佩服作者的毅力,枯燥的源码是很难看得下去的.
+
+# 基础
 ## Learning Go
 
 ### ch1: 搭建环境
@@ -1102,8 +1831,9 @@ func main() {
 	}
 }
 ```
-
-### ch13: 标准库
+#### mutex(待补充)
+### ch13&&ch14(待补充)
+等真的用到了再来看
 ### ch15: 测试
 Go中普遍使用官方库来写测试,适用`go test`命令来运行测试:
 
@@ -1129,906 +1859,6 @@ if got != want {
 
 
 
-## AI Agents in Action,Second Edition
-- 出版于2026年（第2版），出版商：Manning，作者：Micheal Lanham。
-
-### 介绍
-
-#### 背景
-
-| 模式                                     | 审批机制                                                                                                                 | 自主程度 | 典型用途                                               | 示例平台                                                     |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------: | ------------------------------------------------------ | ------------------------------------------------------------ |
-| **直接式 LLM 对话**（Direct LLM Chat）   | **无需工具调用。** 模型仅根据用户输入直接生成文本回复。                                                                  |   **无** | 问答、文本起草、头脑风暴、知识学习                     | 原版 **ChatGPT（2022）**；早期 **Claude（2023）**            |
-| **工具增强型 LLM**（Tool-Augmented LLM） | **单次调用级的隐式授权。** 用户的一次提示可触发模型调用一个工具，通常无需逐步确认。                                      |   **低** | 图像生成、联网搜索、简单信息查询                       | 集成 **DALL·E** 的 ChatGPT；集成 **Google Search** 的 Gemini |
-| **AI 助手**（Assistant）                 | **任务级审批。** 系统执行具体操作时，通常需要用户对关键步骤或每项操作进行确认。                                          |   **中** | 结对编程、带引用的资料研究、文档编辑                   | **GitHub Copilot Chat**、**Cursor**、Excel 中的 **Claude**   |
-| **AI 智能体**（Agent）                   | **目标级授权 + 高风险操作审批。** 用户设定总体目标，智能体自主规划并执行多个步骤；涉及高风险或敏感操作时再请求用户确认。 |   **高** | 多步骤研究、代码仓库级重构、浏览器自动化、复杂任务执行 | **Claude Code**、**OpenAI Operator**、**Devin**              |
-
-实现一个目标很有可能需要调用多个工具:
-
-| 目标（Goals）           | 任务（Tasks）        | 工具（Tools）         |
-| ----------------------- | -------------------- | --------------------- |
-| **创建图像**            | 创建图像             | `create_image`        |
-| **前往卡尔加里（YYC）** | 搜索航班             | `search_flights`      |
-| **前往卡尔加里（YYC）** | 预订航班             | `book_flights`        |
-| **前往卡尔加里（YYC）** | 预订酒店             | `book_hotels`         |
-| **前往卡尔加里（YYC）** | 预订交通             | `book_transportation` |
-| **购买一台电脑**        | 搜索符合需求的电脑   | `web_search`          |
-| **购买一台电脑**        | 比较配置、功能与价格 | `web_search`          |
-| **购买一台电脑**        | 下单购买电脑         | `order`               |
-
-#### MCP
->传统上，智能体和生命周期管理（LLM）只能使用代码库中现有的工具。这种限制很快就成了问题，因为智能体开发者往往花费更多时间构建工具，而不是开发智能体本身。试想一下，一个智能体需要读取你的日历、发送 Slack 消息、查询 Postgres 数据库并创建 Jira 工单。如果没有共享协议，开发者就必须编写和维护四个独立的工具封装器，跟进四套不同的 API 变更，并且每次都要重新实现相同的身份验证、重试和模式处理逻辑。如果一个团队要开发多个智能体，那么大部分工程时间都将耗费在工具底层架构上，而不是智能体的行为本身。
-
-这种情况如今已有所改变。诸如`Model Context Protocol` (MCP) 之类的协议允许智能体与自身代码库之外的工具进行交互。智能体无需在内部重新构建每个集成，而是可以调用由服务提供商或社区维护的专用工具服务器。MCP 的出现标志着智能体构建方式的转变，从嵌入在每个智能体代码库中的定制工具库，转向标准化的、可发现的外部工具服务器生态系统。
-
-- 这确实是我现在做Agent项目的痛点,想要将联网搜索接入Agent里,没有经验的话根本无从下手
-
-MCP 由 Anthropic 开发，将于 2024 年 11 月发布，它是一种基于JSON-RPC 2.0 的开放标准。其设计目标是使人工智能系统能够以一致、安全且高效的方式连接到外部服务.
-### MCP
-![MCP之前的困境](PixPin_2026-09-29_08-21-33.webp)
-
-#### 部署方式
-*   **本地部署（STDIO 传输）**
-    *   低延迟通信
-    *   无网络开销
-    *   进程管理简单
-    *   非常适合开发与单机部署
-*   **远程部署（SSE 传输）**
-    *   分布式代理架构
-    *   跨多个代理共享工具服务器
-    *   可扩展的云原生部署
-    *   多租户与负载均衡
-*   **混合部署**
-    *   本地服务器：用于处理敏感操作（如文件访问、本地数据库）
-    *   远程服务器：用于提供共享服务（如网络搜索、外部 API）
-    *   代理间通信：通过远程 MCP 服务器进行代理与代理之间的通信
-
-| 名称                      | 工作原理                                                                                                                                                                                                                                                                               | 何时应该使用它                                                                                                                                                                                                                                                                                                                                         |
-| :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **STDIO**<br>标准         | 客户端在同一主机上以子进程的形式启动 MCP 服务器，并通过该进程的标准输入/输出管道交换 JSON-RPC 2.0 消息。<br><br>由于不涉及任何网络协议栈，因此该链路延迟很低，但严格来说是一对一的：只有启动服务器的父进程才能与其通信。                                                               | • **本地开发或快速 CLI 实验**，希望将所有操作都保留在单个 shell 会话中。<br>• **命令行工具或脚本**，用于启动一个专门用于当前任务的辅助 MCP 服务器（例如，`mcp dev my_server.py`）。<br>• **以交互方式运行的容器**（`docker run -it ...`），并通过 stdio 进行通信，以避免打开端口。<br>• **简单的流程间集成**，不需要远程访问、反向代理或多客户端支持。 |
-| **SSE**<br>服务器发送事件 | MCP 服务器以 HTTP 服务的形式运行。<br><br>客户端向 `/messages` 发送 JSON-RPC 请求，而服务器则通过长连接（例如 `/sse`）以流式方式发送响应和通知。<br><br>这使得该通道为半双工模式（客户端到服务器通过 HTTP POST，服务器到客户端通过 SSE），但完全可网络寻址，并能够同时服务多个客户端。 | • **远程或云端部署**，其中工具必须可通过网络或反向代理/负载均衡器访问。<br>• **基于浏览器或前端的应用程序**，需要实时流式传输（逐令牌的 LLM 输出）而不需要 WebSocket 复杂性；SSE 可以穿透大多数防火墙和代理。                                                                                                                                          |
-
-
-### Multi Agent
-#### 背景
-单智能体系统出现后不久，开发者和研究人员便开始增加智能体的数量。其理念很简单：**智能体越多，就能处理和解决更复杂的目标**。
-
-2023 年的浪潮（AutoGPT 和 BabyAGI）率先风靡一时，但都在几周内暴露出同样的缺陷。在演示中，一个智能体不断生成子目标的无约束循环令人印象深刻，但在实践中却十分脆弱。下一波浪潮则着眼于**结构化**：
-
-- **MetaGPT** 引入了基于角色的团队，模拟软件公司（CEO、产品经理、工程师、QA）。
-- **CrewAI** 和 **AutoGen** 则规范了协作团队模式，明确了智能体的职责和沟通渠道。
-
-到 2024 年，实验的重点已经从 *"增加智能体数量就能解决问题"* 转向 *"合适的智能体结构就能解决问题"*，并涌现出几种关键架构。
-
-也是在这一时期，**日益复杂的单智能体系统（increasingly complex single-agent systems）**开始涌现。其概念很简单：单个智能体无需复杂的多智能体协调与通信策略（a lone agent eliminated the need for complex multi-agent coordination and communication strategies）。然而，在实践中，单智能体在以下方面都存在局限性：
-
-- **工具使用（tool use）**
-- **推理与规划详细任务（reasoning and planning for detailed tasks）**
-- **切换关注点（the ability to switch focus）**
-
-#### 三种架构
-![图示](PixPin_2026-09-30_12-36-42.webp)
-
-优缺点:
-
-| Pattern           | Pros                                                                                                                                                                                 | Cons                                                                                                                                                                        |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Flow**          | • Breaks down a complex single agent<br>• One large goal can be easily decomposed<br>• No need for complex decision-making<br>• Easy to evaluate and debug                           | • Lacks the ability to partially execute all agents; generally all or nothing<br>• Poor decision-making ability<br>• Fragile: if a single agent fails, the whole flow fails |
-| **Orchestrator**  | • Handles complex decision-making<br>• Executes some or all agents as needed<br>• Well-suited for direct user interaction<br>• Robust; worker agent failures can be easily recovered | • Complex to build, debug, and evaluate<br>• Orchestrators need strong evaluation, guardrails, and feedback mechanisms                                                      |
-| **Collaboration** | • Ambiguous, complex goals and tasks with multiple possible outcomes                                                                                                                 | • Costly, with high token usage and high latency<br>• Difficult to build evaluations and feedback mechanisms                                                                |
-
-
-![编排方式](PixPin_2026-09-30_12-59-34.webp)
-
-- 想法固然是好的,但这需要在API足够强大的基础上才可以实施,一个顶级API足够碾压一堆弱智AI了
-#### 具体设计(待补充)
-以后再来读
-### Agent reasoning and planning
-1. 选用CoT模型和对非CoT模型使用CoT提示词
-2. ToT和Reflextion则是两个比较高级的框架技巧:
-
-![ToT](PixPin_2026-10-04_13-58-25.webp)
-
-![Reflextion](PixPin_2026-10-04_13-58-51.webp)
-### RAG
-自然不如专门的书来得详细,可以直接跳过
-### 设计循环
-```python
-async def run_orchestrator_loop(
-    goal: str, max_iterations: int = 15
-) -> ResearchState:
-    search_server = MCPServerStdio(
-        name="Brave Search",
-        params={
-            "command": "npx",
-            "args": ["-y", "@anthropic/brave-search-mcp"],
-            "env": {"BRAVE_API_KEY": os.environ["BRAVE_API_KEY"]},
-        },
-    )
-    async with search_server:
-        workers = {
-            "Research Worker": research_worker.clone(
-                mcp_servers=[search_server]
-            ),
-            "Analysis Worker": analysis_worker,
-        }
-        state = ResearchState(
-            goal=goal, max_iterations=max_iterations,
-            follow_up_questions=[goal],
-        )
-        plan = OrchestratorPlan()
-        for iteration in range(max_iterations):
-            orch_input = dict(
-                goal=state.goal,
-                current_state=state.to_context(),
-                plan=str(dict(
-                    sub_tasks=[
-                        dict(name=st.name, status=st.status,
-                             notes=st.notes)
-                        for st in plan.sub_tasks],
-                    strategy=plan.overall_strategy,
-                    focus=plan.current_focus,
-                )),
-                iteration=iteration + 1,
-                max_iterations=max_iterations,
-            )
-            decision = (await Runner.run(
-                orchestrator_agent, input=str(orch_input)
-            )).final_output
-
-            if decision.is_complete or \
-               decision.next_action == "finalize":
-                state.status = "complete"
-                break
-
-            if decision.next_action == "delegate":
-                worker = workers.get(decision.target_worker)
-                if worker:
-                    worker_result = (await Runner.run(
-                        worker, input=decision.task_description
-                    )).final_output
-                    state.findings.append(
-                        worker_result.summary_of_findings
-                    )
-                    state.sources_consulted.extend(
-                        worker_result.sources_used
-                    )
-                    apply_plan_updates(
-                        state, plan, worker_result
-                    )
-
-            if decision.next_action == "re_plan":
-                for update in decision.plan_updates:
-                    existing = {st.name: st
-                                for st in plan.sub_tasks}
-                    if update.name in existing:
-                        existing[update.name].status = \
-                            update.status
-                    else:
-                        plan.sub_tasks.append(Subtopic(
-                            name=update.name,
-                            status=update.status,
-                            notes=update.notes,
-                        ))
-
-            state.iteration_count = iteration + 1
-        return state
-```
-
-## Agentic Design Patterns
-- 出版于2025年，作者：Antonio Gullí。
-
-
-## Redis设计与实现
-- 出版于2014年，作者：黄健宏。
-- 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
-
-### 数据结构与对象
-
-#### simple dynamic string，SDS
->Redis没有直接使用C语言传统的字符串表示（以空字符结尾的字符数组，以下简称C字符串），而是自己构建了一种名为简单动态字符串（simple dynamic string，SDS）的抽象类型，并将SDS用作Redis的默认字符串表示。
-
-主要原因自然是C字符串本身的问题,如字符串拼接函数`strcat`不会自动扩容,C字符串默认以`./0`结尾,并不会记录自身的长度,而是需要程序员自己控制.
-
-格式如下:
-
-![格式图](PixPin_2026-09-13_12-38-08.webp)
-
-- len记载占用空间,free记载剩余空间,通过结构体实现
-
-#### 链表
-Redis中的链表设计如下:
-* 双端：链表节点带有 `prev` 和 `next` 指针，获取某个节点的前置节点和后置节点的复杂度都是 O(1)。
-* 无环：表头节点的 `prev` 指针和表尾节点的 `next` 指针都指向 `NULL`，对链表的访问以 `NULL` 为终点。
-* 带表头指针和表尾指针：通过 `list` 结构的 `head` 指针和 `tail` 指针，程序获取链表的表头节点和表尾节点的复杂度为 O(1)。
-* 带链表长度计数器：程序使用 `list` 结构的 `len` 属性来对 `list` 持有的链表节点进行计数，程序获取链表中节点数量的复杂度为 O(1)。
-* 多态：链表节点使用 `void*` 指针来保存节点值，并且可以通过 `list` 结构的 `dup`、`free`、`match` 三个属性为节点值设置类型特定函数，所以链表可以用于保存各种不同类型的值。
-
-#### 字典
->字典在Redis中的应用相当广泛，比如Redis的数据库就是使用字典来作为底层实现的，对数据库的增、删、查、改操作也是构建在对字典的操作之上的。
-
-##### 哈希表
-Redis的字典使用哈希表实现:
-
-```c
-typedef struct dictht {
-    // 哈希表数组
-    dictEntry **table;//指针数组
-
-    // 哈希表大小
-    unsigned long size;
-
-    // 哈希表大小掩码，用于计算索引值
-    // 总是等于 size - 1
-    unsigned long sizemask;
-
-    // 该哈希表已有节点的数量
-    unsigned long used;
-} dictht;
-```
-具体的单节点结构如下:
-
-```c
-typedef struct dictEntry {
-    // 键
-    void *key;
-
-    // 值
-    union {
-        void *val;
-        uint64_t u64;
-        int64_t s64;
-    } v;
-
-    // 指向下一个哈希表节点，形成链表
-    struct dictEntry *next;
-} dictEntry;
-```
-- 这里的union非常有意思,完美解决了节点的替换问题.
-
-##### 哈希算法
-Redis计算哈希值和索引值的方法如下：
-
-```c
-// 使用字典设置的哈希函数，计算键 key 的哈希值
-hash = dict->type->hashFunction(key);
-
-// 使用哈希表的 sizemask 属性和哈希值，计算出索引值
-// 根据情况不同，ht[x] 可以是 ht[0] 或者 ht[1]
-index = hash & dict->ht[x].sizemask;
-```
-hashFunction用的算法是MurmurHash2算法,而现在用的则是SipHash算法
-
-##### 哈希冲突
-发生哈希冲突时,由于没有指向尾部的指针,所以Redis会将新节点放在链表的头部
-
-##### rehash
-当哈希冲突过多/加入节点过多时,Redis会自动执行Rehash来渐进式地扩展哈希表,详细步骤如下:
-1. 为 `ht[1]` 分配空间，让字典同时持有 `ht[0]` 和 `ht[1]` 两个哈希表。
-2. 在字典中维持一个索引计数器变量 `rehashidx`，并将它的值设置为 `0`，表示 rehash 工作正式开始。
-3. 在 rehash 进行期间，每次对字典执行添加、删除、查找或者更新操作时，程序除了执行指定的操作以外，还会顺带将 `ht[0]` 哈希表在 `rehashidx` 索引上的所有键值对 rehash 到 `ht[1]`。当 rehash 工作完成之后，程序将 `rehashidx` 属性的值增一。
-4. 随着字典操作的不断执行，最终在某个时间点上，`ht[0]` 的所有键值对都会被 rehash 至 `ht[1]`。这时程序将 `rehashidx` 属性的值设为 `-1`，表示 rehash 操作已完成。
-
-设计上确实很简单,但不是那么容易想得到的.
-
-#### 跳表
->和链表、字典等数据结构被广泛地应用在Redis内部不同，Redis只在两个地方用到了跳跃表，一个是实现有序集合键，另一个是在集群节点中用作内部数据结构，除此之外，跳跃表在Redis里面没有其他用途
-
-- 我以前还以为Redis主要靠跳表呢,结果并没有我想的那么简单
-
-#### 整数集合
->整数集合（intset）是集合键的底层实现之一，当一个集合只包含整数值元素，并且这个集合的元素数量不多时，Redis就会使用整数集合作为集合键的底层实现。
-
-基本原理就是把整数按照顺序放进一块连续内存中,所有元素的类型统一,有三种类型:
-
-```text
-INTSET_ENC_INT16
-INTSET_ENC_INT32
-INTSET_ENC_INT64
-```
-
-#### 压缩列表
->压缩列表（ziplist）是列表键和哈希键的底层实现之一。当一个列表键只包含少量列表项，并且每个列表项要么就是小整数值，要么就是长度比较短的字符串，那么Redis就会使用压缩列表来做列表键的底层实现。
-
-可以说只是一个优化过的链表而已.
-
-#### 对象
->在前面的数个章节里，我们陆续介绍了Redis用到的所有主要数据结构，比如简单动态字符串（SDS）、双端链表、字典、压缩列表、整数集合等等。
->
->Redis并没有直接使用这些数据结构来实现键值对数据库，而是基于这些数据结构创建了一个对象系统，这个系统包含字符串对象、列表对象、哈希对象、集合对象和有序集合对象这五种类型的对象，每种对象都用到了至少一种我们前面所介绍的数据结构。
-
-##### 对象类型
-Redis使用对象来表示数据库中的键和值，每次当我们在Redis的数据库中新创建一个键值对时，我们至少会创建两个对象，一个对象用作键值对的键（键对象），另一个对象用作键值对的值（值对象）。
-
-经典的5个对象类型如下:
-
-| 类型常量       | 对象的名称   |
-| -------------- | ------------ |
-| `REDIS_STRING` | 字符串对象   |
-| `REDIS_LIST`   | 列表对象     |
-| `REDIS_HASH`   | 哈希对象     |
-| `REDIS_SET`    | 集合对象     |
-| `REDIS_ZSET`   | 有序集合对象 |
-
->对于Redis数据库保存的键值对来说，键总是一个字符串对象，而值则可以是字符串对象、列表对象、哈希对象、集合对象或者有序集合对象的其中一种，
-
-##### 字符串对象
-字符串对象的编码可以是int、raw或者embstr,分别对应整数,长字符串,短于32字节的字符串
-
-##### 列表对象
-列表对象的编码可以是ziplist或者linkedlist,当列表中所有字符串元素的长度都小于64字节,且保存元素少于512个时,使用zpilist,否则就用linkedlist,二者的实现方式上有一点不同:
-
-linkedlist是一个真正的双端列表,而ziplist中所有元素紧凑排列在一段连续内存中.
-
-|     命令      | ziplist 编码的实现方法                                                                                                     | linkedlist 编码的实现方法                                                                                          |
-| :-----------: | :------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------- |
-|  **`LPUSH`**  | 调用 `ziplistPush` 函数，将新元素推入到压缩列表的表头                                                                      | 调用 `listAddNodeHead` 函数，将新元素推入到双端链表的表头                                                          |
-|  **`RPUSH`**  | 调用 `ziplistPush` 函数，将新元素推入到压缩列表的表尾                                                                      | 调用 `listAddNodeTail` 函数，将新元素推入到双端链表的表尾                                                          |
-|  **`LPOP`**   | 调用 `ziplistIndex` 函数定位压缩列表的表头节点，在向用户返回节点所保存的元素之后，调用 `ziplistDelete` 函数删除表头节点    | 调用 `listFirst` 函数定位双端链表的表头节点，在向用户返回节点所保存的元素之后，调用 `listDelNode` 函数删除表头节点 |
-|  **`RPOP`**   | 调用 `ziplistIndex` 函数定位压缩列表的表尾节点，在向用户返回节点所保存的元素之后，调用 `ziplistDelete` 函数删除表尾节点    | 调用 `listLast` 函数定位双端链表的表尾节点，在向用户返回节点所保存的元素之后，调用 `listDelNode` 函数删除表尾节点  |
-| **`LINDEX`**  | 调用 `ziplistIndex` 函数定位压缩列表中的指定节点，然后返回节点所保存的元素                                                 | 调用 `listIndex` 函数定位双端链表中的指定节点，然后返回节点所保存的元素                                            |
-|  **`LLEN`**   | 调用 `ziplistLen` 函数返回压缩列表的长度                                                                                   | 调用 `listLength` 函数返回双端链表的长度                                                                           |
-| **`LINSERT`** | 插入新节点到压缩列表的表头或者表尾时，使用 `ziplistPush` 函数；插入新节点到压缩列表的其他位置时，使用 `ziplistInsert` 函数 | 调用 `listInsertNode` 函数，将新节点插入到双端链表的指定位置                                                       |
-
-问了一下AI,现在list的主要实现变成了`quicklist`,是一个由多个`ziplist`组成的链表,这个设计确实很不错
-
-##### 哈希对象
-哈希对象的编码可以是ziplist或者hashtable。
-
-如果使用ziplist,那么就满足以下性质:
-- **保存了同一键值对的两个节点总是紧挨在一起**，保存键的节点在前，保存值的节点在后；
-- **先添加到哈希对象中的键值对**会被放在压缩列表的表头方向，而**后来添加到哈希对象中的键值对**会被放在压缩列表的表尾方向。
-
-这与列表其实没有任何区别,只不过存储的量多了一倍而已,同样,当所有元素的字符串长度小于64字节,键值对数量小于512时才会启用ziplist,否则使用hashtable.
-
-hashtable使用前面所说的字典实现.
-
-##### 集合对象
-集合对象的编码可以是intset或者hashtable。同样也是根据元素数量来进行转换的.
-
-##### 有序集合对象
-有序集合的编码可以是ziplist或者skiplist。
-
-如果是ziplist,每次插入都要重新排序,显然很地狱,所以只在元素数量小于128个,且所有成员长度小于64字节时才启用.
-
-而skiplist编码的zset结构同时包含了一个字典和一个跳表,跳表负责将元素从小到大排列,用于存放数据,而哈希字典用于记录元素和分值(score)的映射,从而实现O(1)的查找.二者通过指针共享地址,所以不会浪费内存.
-
-#### 内存回收
-由于C没有垃圾回收,所以Redis构建了一个引用计数的垃圾回收机制
-
-### 单机数据库
-
-#### 数据库
-Redis Server负责创建和管理Redis数据库,初始化Server时,默认会创建16个数据库.
-
-Redis是一个键值对（key-value pair）数据库服务器，服务器中的每个数据库都由一个redis.h/redisDb结构表示，其中，redisDb结构的dict字典保存了数据库中的所有键值对，我们将这个字典称为键空间（key space）:
-
-![结构图](PixPin_2026-09-21_10-12-01.webp)
-
-我们还可以对key设置过期时间,如下方结构所示:
-
-```text
-dict
-┌────────┬──────────────────┐
-│ key    │ value            │
-├────────┼──────────────────┤
-│ user:1 │ HashObject       │
-│ msg:1  │ StringObject     │
-│ list:1 │ ListObject       │
-└────────┴──────────────────┘
-
-expires
-┌────────┬──────────────────┐
-│ key    │ expire time      │
-├────────┼──────────────────┤
-│ user:1 │ 1760000000000    │
-│ msg:1  │ 1760000500000    │
-└────────┴──────────────────┘
-```
-
-##### 删除机制
-现在剩下的问题是：**如果一个键过期了，那么它什么时候会被删除呢？**
-
-*   **定时删除**：在设置键的过期时间的同时，创建一个定时器（timer），让定时器在键的过期时间来临时，立即执行对键的删除操作。
-*   **惰性删除**：放任键过期不管，但是每次从键空间中获取键时，都检查取得的键是否过期，如果过期的话，就删除该键；如果没有过期，就返回该键。
-*   **定期删除**：每隔一段时间，程序就对数据库进行一次检查，删除里面的过期键。至于要删除多少过期键，以及要检查多少个数据库，则由算法决定。
-
-在这三种策略中，第一种和第三种为**主动删除策略**，而第二种则为**被动删除策略**。
-
-而Redis服务器实际使用的是惰性删除和定期删除两种策略
-
-当服务器运行在复制模式下时，从服务器的过期键删除动作由主服务器控制：
-
-*   主服务器在删除一个过期键之后，会显式地向所有从服务器发送一个DEL命令，告知从服务器删除这个过期键。
-*   从服务器在执行客户端发送的读命令时，即使碰到过期键也不会将过期键删除，而是继续像处理未过期的键一样来处理过期键。
-*   从服务器只有在接到主服务器发来的DEL命令之后，才会删除过期键。
-
-通过由主服务器来控制从服务器统一地删除过期键，可以保证主从服务器数据的一致性，也正是因为这个原因，当一个过期键仍然存在于主服务器的数据库时，这个过期键在从服务器里的复制品也会继续存在。
-
-#### RDB(Redis DataBase)持久化
-因为Redis是内存数据库，它将自己的数据库状态储存在内存里面，所以如果不想办法将储存在内存中的数据库状态保存到磁盘里面，那么一旦服务器进程退出，服务器中的数据库状态也会消失不见。
-
-为了解决这个问题，Redis提供了RDB持久化功能，这个功能可以将Redis在内存中的数据库状态保存到磁盘里面，避免数据意外丢失,RDB持久化既可以手动执行，也可以根据服务器配置选项定期执行，该功能可以将某个时间点上的数据库状态保存到一个RDB文件中,这是一个经过压缩的二进制文件,可以还原生成RDB文件时的数据库状态
-
-##### 创建与载入RDB文件
-有两个Redis命令可以用于生成RDB文件，一个是SAVE，另一个是BGSAVE。
-
-SAVE命令会阻塞Redis服务器进程，直到RDB文件创建完毕为止，在服务器进程阻塞期间，服务器不能处理任何命令请求,即便是主从服务器部署,这么做也是不太合理的.
-
-而BGSAVE命令会派生出一个子进程,由子进程负责创建RDB文件,服务器进程继续处理请求.
-
-而RDB文件的载入是在服务器启动时自动执行的,不需要我们额外输入命令:
-
-```bash
-$ redis-server
-[7379] 30 Aug 21:07:01.270 # Server started, Redis version 2.9.11
-[7379] 30 Aug 21:07:01.289 * DB loaded from disk: 0.018 seconds
-[7379] 30 Aug 21:07:01.289 * The server is now ready to accept connections on port 6379
-```
-
-另外值得一提的是，因为AOF文件的更新频率通常比RDB文件的更新频率高，所以：
-- 如果服务器开启了AOF持久化功能，那么服务器会优先使用AOF文件来还原数据库状态。
-- 只有在AOF持久化功能处于关闭状态时，服务器才会使用RDB文件来还原数据库状态。
-
-因为BGSAVE命令可以在不阻塞服务器进程的情况下执行，所以Redis允许用户通过设置服务器配置的save选项，让服务器每隔一段时间自动执行一次BGSAVE命令。
-
-举个例子，如果我们向服务器提供以下配置：
-
-```bash
-save 900 1
-save 300 10
-save 60 10000
-```
-
-那么只要满足以下三个条件中的任意一个，BGSAVE命令就会被执行：
--  服务器在900秒之内，对数据库进行了至少1次修改。
--  服务器在300秒之内，对数据库进行了至少10次修改。
--  服务器在60秒之内，对数据库进行了至少10000次修改。
-
-##### RDB文件结构
-
-![文件结构](PixPin_2026-09-22_09-23-40.webp)
-
-**databases 部分**包含着零个或任意多个数据库，以及各个数据库中的键值对数据：
-
-- 如果服务器的数据库状态为空（所有数据库都是空的），那么这个部分也为空，长度为 0 字节。
-- 如果服务器的数据库状态为非空（有至少一个数据库非空），那么这个部分也为非空，根据数据库所保存键值对的数量、类型和内容不同，这个部分的长度也会有所不同。
-
-**EOF 常量**的长度为 1 字节，这个常量标志着 RDB 文件正文内容的结束，当读入程序遇到这个值的时候，它知道所有数据库的所有键值对都已经载入完毕了。
-
-**check_sum** 是一个 8 字节长的无符号整数，保存着一个校验和，这个校验和是程序通过对 `REDIS`、`db_version`、`databases`、`EOF` 四个部分的内容进行计算得出的。服务器在载入 RDB 文件时，会将载入数据所计算出的校验和与 `check_sum` 所记录的校验和进行对比，以此来检查 RDB 文件是否有出错或者损坏的情况出现。
-
-每个非空数据库在RDB文件中都可以保存为SELECTDB、db_number、key_value_pairs三个部分:
-
-![示意图](PixPin_2026-09-22_09-25-45.webp)
-
-**SELECTDB 常量**的长度为 1 字节，当读入程序遇到这个值的时候，它知道接下来要读入的将是一个数据库号码。
-
-**db_number** 保存着一个数据库号码，根据号码的大小不同，这个部分的长度可以是 1 字节、2 字节或者 5 字节。当程序读入 `db_number` 部分之后，服务器会调用 `SELECT` 命令，根据读入的数据库号码进行数据库切换，使得之后读入的键值对可以载入到正确的数据库中。
-
-**key_value_pairs** 部分保存了数据库中的**所有**键值对数据，如果键值对带有过期时间，那么过期时间也会和键值对保存在一起。根据键值对的数量、类型、内容以及是否有过期时间等条件的不同，`key_value_pairs` 部分的长度也会有所不同。
-
-由此来看,Redis只适合存放那种比较小和短的数据,否则RDB文件的大小会非常惊人.而且在现代生产环境里，只使用 DB 0 是非常常见、也通常更推荐的做法,所以不用担心多个数据库的RDB叠加起来的超大内存占用.
-
-#### AOF(Append Only File)持久化
->与RDB持久化通过保存数据库中的键值对来记录数
-据库状态不同，AOF持久化是通过保存Redis服务器所执行的写命令来记录数据库状态的:
-
-![示意图](PixPin_2026-09-23_10-15-37.webp)
-
-因为Redis的命令请求协议是纯文本格式，所以我们可以直接打开一个AOF文件，观察里面的内容,例如先执行这三个命令:
-
-```bash
-redis> SET msg "hello"
-OK
-redis> SADD fruits "apple" "banana" "cherry"
-(integer) 3
-redis> RPUSH numbers 128 256 512
-(integer) 3
-```
-然后查看AOF:
-
-```bash
-*2\r\n$6\r\nSELECT\r\n$1\r\n0\r\n
-*3\r\n$3\r\nSET\r\n$3\r\nmsg\r\n$5\r\nhello\r\n
-*5\r\n$4\r\nSADD\r\n$6\r\nfruits\r\n$5\r\napple\r\n$6\r\nbanana\r\n$6\r\ncherry\r\n
-*5\r\n$5\r\nRPUSH\r\n$7\r\nnumbers\r\n$3\r\n128\r\n$3\r\n256\r\n$3\r\n512\r\n
-```
-
->Redis的服务器进程就是一个事件循环（loop），这个循环中的文件事件负责接收客户端的命令请求，以及向客户端发送命令回复，而时间事件则负责执行像serverCron函数这样需要定时运行的函数,如此一来,每次loop结束后,都需要调用AOF相关的函数,考虑是否将缓冲区中的命令写入和保存到AOF文件中
-
-#### 事件
-Redis服务器是一个事件驱动程序，服务器需要处理以下两类事件：
-
-- 文件事件（file event）：Redis服务器通过套接字与客户端（或者其他Redis服务器）进行连接，而文件事件就是服务器对套接字操作的抽象。服务器与客户端（或者其他服务器）的通信会产生相应的文件事件，而服务器则通过监听并处理这些事件来完成一系列网络通信操作
-- 时间事件（time event）：Redis服务器中的一些操作（比如serverCron函数）需要在给定的时间点执行，而时间事件就是服务器对这类定时操作的抽象。
-##### 文件事件
-**Redis基于Reactor模式开发了自己的网络事件处理器：这个处理器被称为文件事件处理器（file event handler）：**
-
-*   文件事件处理器使用I/O多路复用（multiplexing）程序来同时监听多个套接字，并根据套接字目前执行的任务来为套接字关联不同的事件处理器。
-
-*   当被监听的套接字准备好执行连接应答（accept）、读取（read）、写入（write）、关闭（close）等操作时，与操作相对应的文件事件就会产生，这时文件事件处理器就会调用套接字之前关联好的事件处理器来处理这些事件。
-
-![结构图](PixPin_2026-09-28_12-30-05.webp)
-
-尽管多个文件事件可能会并发地出现，但I/O多路复用程序总是会将所有产生事件的套接字都放到一个队列里面,然后顺序处理,但由于处理速度很快(毕竟全都在内存中实现),所以不会影响高并发.
-
-I/O多路复用程序可以监听多个套接字的`ae.h/AE_READABLE`事件和`ae.h/AE_WRITABLE`事件，这两类事件和套接字操作之间的对应关系如下：
-
-*   当套接字变得可读时（客户端对套接字执行write操作，或者执行close操作），或者有新的可应答（acceptable）套接字出现时（客户端对服务器的监听套接字执行connect操作），套接字产生`AE_READABLE`事件。
-
-*   当套接字变得可写时（客户端对套接字执行read操作），套接字产生`AE_WRITABLE`事件。
-
-I/O多路复用程序允许服务器同时监听套接字的`AE_READABLE`事件和`AE_WRITABLE`事件，如果一个套接字同时产生了这两种事件，那么文件事件分派器会优先处理`AE_READABLE`事件，等到`AE_READABLE`事件处理完之后，才处理`AE_WRITABLE`事件。
-
-这也就是说，如果一个套接字又可读又可写的话，那么服务器将先读套接字，后写套接字。
-
-##### 时间事件
-Redis的时间事件分为以下两类：
-
-*   定时事件：让一段程序在指定的时间之后执行一次。比如说，让程序X在当前时间的30毫秒之后执行一次。
-*   周期性事件：让一段程序每隔指定时间就执行一次。比如说，让程序Y每隔30毫秒就执行一次。
-
-一个时间事件主要由以下三个属性组成：
-
-*   **id**：服务器为时间事件创建的全局唯一ID（标识号）。ID号按从小到大的顺序递增，新事件的ID号比旧事件的ID号要大。
-*   **when**：毫秒精度的UNIX时间戳，记录了时间事件的到达（arrive）时间。
-*   **timeProc**：时间事件处理器，一个函数。当时间事件到达时，服务器就会调用相应的处理器来处理事件。一个时间事件是定时事件还是周期性事件取决于时间事件处理器的返回值
-
-Redis将所有时间事件都放在一个无序链表中,当执行器运行时会遍历整个链表,查找所有已经就绪的时间事件
-
-##### 处理流程
-![流程图](PixPin_2026-09-29_11-16-31.webp)
-#### 客户端
-
-Redis服务器是典型的一对多服务器程序：一个服务器可以与多个客户端建立网络连接，每个客户端可以向服务器发送命令请求，而服务器则接收并处理客户端发送的命令请求，并向客户端返回命令回复
-
-对于每个与服务器进行连接的客户端，服务器都为这些客户端建立了相应的 `redis.h/redisClient` 结构（客户端状态），这个结构保存了客户端当前的状态信息，以及执行相关功能时需要用到的数据结构，其中包括：
-
-- 客户端的套接字描述符。
-- 客户端的名字。
-- 客户端的标志值（flag）。
-- 指向客户端正在使用的数据库的指针，以及该数据库的号码。
-- 客户端当前要执行的命令、命令的参数、命令参数的个数，以及指向命令实现函数的指针。
-- 客户端的输入缓冲区和输出缓冲区。
-- 客户端的复制状态信息，以及进行复制所需的数据结构。
-- 客户端执行 BRPOP、BLPOP 等列表阻塞命令时使用的数据结构。
-- 客户端的事务状态，以及执行 WATCH 命令时用到的数据结构。
-- 客户端执行发布与订阅功能时用到的数据结构。
-- 客户端的身份验证标志。
-- 客户端的创建时间，客户端和服务器最后一次通信的时间，以及客户端的输出缓冲区大小超出软性限制（soft limit）的时间。
-
-
-## The Design of Web APIs, Second Edition
-- 出版于2025年（第2版），出版商：Manning，作者：Arnaud Lauret。
-
-
-### 前言
-1. **“I can’t list friends of friends!”**
-2. **“What contains the `sts` property?”**
-3. **“Why don’t `createdAt` and `fromDate` use the same date-time format?”**
-4. **“Identifying friends requires a `userId`, but storing a message requires a username! Can’t we use the same user ID in all operations?”**
-5. **“The ‘List friends’ operation is useless; to get useful data, I must call the ‘Read friend’ operation for each friend!”**
-6. **“The HTTP response indicates a success, but its data contains an error!”**
-7. **“How can I know what’s wrong with my API call if I only get an ‘Invalid request’ error message?”**
-8. **“Are you sure about the mobile and web applications taking care of friend identification with the Face Detection API before sharing a message with photos?”**
-
-API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也会大打折扣
-
->不是每个人都能有幸从白纸一张开始设计API。现有的API可能存在并且设计得不够理想。我们的目的并非指责过去的设计，而是要防止API设计的技术债务继续增加
-
-
-
-## Vision Language Models
-- 出版于2026年，出版商：O'Reilly，作者：Merve Noyan。
-
-### 导论
-
-#### Brief Introduction to Computer Vision
-## Coding Video,A Practical Guide to HEVC and Beyond(待补充)
-- 出版于2024年，作者：Iain E. Richardson。
-
-### 介绍
->一秒标准的未压缩SD(576p)视频，每秒25帧，大约占用15.5 MB存储空间。这意味着，通过网络或广播频道实时传输这段视频，即每秒发送一秒可播放的视频内容，需要124 Mbit/s的带宽。而一秒未压缩的UHD/4K视频、每秒50帧捕捉，则大约占用620 MB存储空间，实时传输将需要高达5 Gbit/s的传输带宽。
-
-- 由此可知,我们在电子产品中存储的视频都是压缩形式的,只在播放时进行实时的解码.
-
-![说明图](PixPin_2026-08-09_10-23-28.webp)
-
-尽管我们拥有的存储容量和网络带宽比以往任何时候都要多，但存储和传输视频的需求仍在不断超出可用容量。到2023年，约三分之二的消费级电视机已达到4K分辨率或更高。将高性能视频编解码器集成到智能手机和电视等消费设备中，以及对高分辨率视频的期望，使得在存储或传输前压缩或编码视频，并在显示前解码视频成为常态
-
-
-
-## Elasticsearch in Action, Second Edition(待补充)
-- 出版于2023年（第2版），出版商：Manning，作者：Madhusudhan Konda。
-- [为什么不用Solr](https://learnku.com/articles/43880)
-
-### 概述
-传统的数据库仅能返回普通的查询结果,而若是要实现智能提示和多样化搜索,就需要搜索引擎这些经过了优化处理的数据库来解决了.
-
-Es的底层引擎为使用Java编写的Lucene,再在外面套了一层符合Rest规范的API,然后还有一个配套的前端管理程序Kibana.
-
-![示意图](PixPin_2026-07-29_10-55-57.webp)
-
-![创建过程](PixPin_2026-07-29_11-01-18.webp)
-
-![查询过程](PixPin_2026-07-29_11-06-37.webp)
-
-到这里我们也看明白了,Es的使用方法就是通过Restful API来传输Json文档而已,这种方法非常高效,而且掩盖了背后的复杂优化过程.
-
-- 不过,也只有搜索引擎才能这么干,毕竟搜索请求都是幂等的,所以不会受到并发的困扰.而对于普通的数据库来说,只好老老实实地通过底层驱动连接了,如果有人能够想到更美妙的解决方法,诺奖不说,图灵奖是绝对有的.
-
->Elasticsearch has an algorithm called **Okapi Best Match 25** (BM25), which is an **enhanced** term frequency/inverse document frequency (**TF/IDF**) similarity algorithm that calculates the relevancy scores for the results and sorts them in that order when presenting them to the client.
-
-而在执行搜索时,我们也可以手动给关键字分配对应的权重,来返回自己想要的搜索结果,而在我们平常的搜索时,这一过程都是自动进行的.
-
-### 架构
-Elasticsearch按节点和数据类型对数据进行分类。每个节点都有一个专用文件夹，其中包含若干存储相关数据的桶。Elasticsearch会根据每种数据类型创建一组桶（在Elasticsearch术语中称为索引）
-
-分片是 Apache Lucene 的物理实例，是幕后将数据存入和取出存储的关键载体。换言之，分片负责数据的物理存储与检索工作。从 7.x 版本起，默认情况下新创建的每个索引仅配备一个主分片和一个副本
-
-主分片负责存储文档，而副本分片（简称副本）顾名思义是主分片的副本。每个分片可以有多个副本，也可不设置副本，但这种方式不推荐用于生产环境——在实际生产环境中，通常会为每个分片创建多个副本。副本存储着数据副本，既能提升系统冗余度，又能帮助加速搜索查询。
-
-
-
-## Fundamentals of Data Engineering(待补充)
-- 出版于2022年，出版商：O'Reilly，作者：Joe Reis。
-
-### ch1
-这一章的数据工程历史介绍很有看头.
-
->“Big data is like teenage sex: everyone talks about it, nobody really knows how to do it, everyone thinks everyone else is doing it, so everyone claims they are doing it.”
-
->尽管许多数据科学家热衷于构建和调优机器学习模型，但现实是，据估计，他们70%到80%的时间都耗费在数据层次结构的底层三个部分——数据收集、数据清理、数据处理——而只有极少时间用于分析和机器学习。
-
-- 确实很对,大部分时间都是花在摆弄数据表格上了.
-
-![图示](PixPin_2026-08-09_14-08-51.webp)
-
-## Systems Performance,2nd edition(待补充)
-- 出版于2020年（第2版），作者：Brendan Gregg。
-
-### ch1: 介绍
-讲的特别好,很适合运维来看
-
-### ch2: 方法论
-#### 术语和模型
-
-
-## Kubernetes in Action, Second Edition(待补充)
-- 出版于2026年（第2版），出版商：Manning，作者：Marko Lukša。
-
-### 入门
-
-#### Introducing Kubernetes
->Kubernetes 一词源自希腊语，意为“领航员”或“舵手”,最初由Google开发.
-
-Kubernetes 集群包含分为两个组的节点:
-1. control plane nodes: 控制整个集群
-
-![图示](PixPin_2026-07-09_17-26-06.webp)
-
-2. worker nodes: 实际工作的节点.
-
-![图示](PixPin_2026-07-09_17-27-13.webp)
-
-#### 容器介绍(过)
-每个容器都有着独立的文件系统和进程ID,如果是有Shell的Linux镜像的话,还可以使用bash命令.
-
-#### 容器管理
-Kubernetes部署的单位称为deployment对象,该对象对应了一个或者多个Pod,每个Pod由一个或者多个紧密相关的容器组成,他们共享相同的网络接口和命名空间:
-
-![示意图](PixPin_2026-07-14_17-59-51.webp)
-
->每个 Pod 都有自己的 IP、主机名、进程、网络接口及其他资源。同
-一 Pod 内的容器会认为它们是计算机中唯一运行的程序，即使与其它
-Pod 位于同一节点，也不会感知到这些 Pod 中的进程。
-
-```shell
-$ kubectl get pods
-NAME                     READY   STATUS    RESTARTS   AGE
-kiada-9d785b578-p449x    0/1     Pending   0          1m     #1
-
-```
-
-##### 暴露应用程序
-我们使用create deployment命令创建一个deployment对象,但要使得这个对象暴露在主机端口,则需要使用expose deployment命令创建一个Service对象,从而可以被外界访问
-
-```bash
-kubectl expose deployment kiada --type=LoadBalancer --port 8080
-```
-
-##### 扩展容器
-
-```bash
-$ kubectl scale deployment kiada --replicas=3
-deployment.apps/kiada scaled
-```
-- `--replicas=3`参数会创建三个完全相同的容器,这就是我们所说的`横向扩展`
-
-```shell
-$ kubectl get deploy
-NAME    READY   UP-TO-DATE   AVAILABLE   AGE
-kiada   3/3     3            3           18m
-
-```
-可以看到我们创建了三个Pod,每个Pod都包含了一个Kiada容器.
-
-当有多个通过`replicas`创建的相同Pod时,Pod之间便会自动进行负载均衡,每次由一个随机的Pod来处理到来的请求
-
->严格来说，Deployment 对象的用途仅仅是创建特定数量的 Pod 对
-象。您可能会想，是否可以直接创建 Pod，而不通过 Deployment
-来代劳。当然可以这么做，但如果需要运行多个副本，您就必须手动
-逐个创建每个 Pod，并确保为其分配唯一的名称。此后，您还需要持
-续监控这些 Pod，一旦它们突然消失或所在节点发生故障，就得立即
-替换它们。这正是几乎从不直接创建 Pod、而是使用 Deployment
-的根本原因。
-
-
-## Hadoop: The Definitive Guide(4th)(待补充)
-- 出版于2015年（第4版），出版商：O'Reilly，作者：Tom White。
-
-### 基础
-
-#### 起源
-Hadoop这个名字并不是一个首字母缩略词；它是一个杜撰出来的名字。该项目的创建者Doug Cutting解释了这个名字的由来：
-
->The name my kid gave a stuffed yellow elephant. Short, relatively easy to spell and pronounce, meaningless, and not used elsewhere
-
-Hadoop起源于Lucene的研发过程,结合了04年Google公开的MapReduce算法,并在08年成为Apache的顶级项目,在之后被主流企业广泛使用
-
-#### MapReduce
-
-##### 简单例子
-1. 首先我们有一个数据集,想要从中找出每一年的最大数
-
-```text
-(0,   0067011990999991950051507004...9999999N9+00001+99999999999...)
-(106, 0043011990999991950051512004...9999999N9+00221+99999999999...)
-(212, 0043011990999991950051518004...9999999N9-00111+99999999999...)
-(318, 0043012650999991949032412004...0500001N9+01111+99999999999...)
-(424, 0043012650999991949032418004...0500001N9+00781+99999999999...)
-```
-2. 设置一个Map函数,从中过滤后并提取出标准格式的信息:
-
-```text
-(1950, 0)
-(1950, 22)
-(1950, -11)
-(1949, 111)
-(1949, 78)
-```
-整理得到:
-
-```text
-(1949, [111, 78])
-(1950, [0, 22, -11])
-```
-3. 设置一个Reduce函数,遍历Map函数的结果得到最终值:
-
-```text
-(1949, 111)
-(1950, 22)
-```
-
-流程图如下:
-
-![示意图](PixPin_2026-09-11_11-28-10.webp)
-
-Map函数:
-
-```java
-import java.io.IOException;
-
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
-
-public class MaxTemperatureMapper
-        extends Mapper<LongWritable, Text, Text, IntWritable> {
-
-    private static final int MISSING = 9999;
-
-    @Override
-    public void map(LongWritable key, Text value, Context context)
-            throws IOException, InterruptedException {
-
-        String line = value.toString();
-        String year = line.substring(15, 19);
-
-        int airTemperature;
-
-        if (line.charAt(87) == '+') { // parseInt doesn't like leading plus signs
-            airTemperature = Integer.parseInt(line.substring(88, 92));
-        } else {
-            airTemperature = Integer.parseInt(line.substring(87, 92));
-        }
-
-        String quality = line.substring(92, 93);
-
-        if (airTemperature != MISSING && quality.matches("[01459]")) {
-            context.write(new Text(year), new IntWritable(airTemperature));
-        }
-    }
-}
-```
-Reduce函数:
-
-```java
-import java.io.IOException;
-
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
-
-public class MaxTemperatureReducer
-        extends Reducer<Text, IntWritable, Text, IntWritable> {
-
-    @Override
-    public void reduce(Text key, Iterable<IntWritable> values, Context context)
-            throws IOException, InterruptedException {
-
-        int maxValue = Integer.MIN_VALUE;
-
-        for (IntWritable value : values) {
-            maxValue = Math.max(maxValue, value.get());
-        }
-
-        context.write(key, new IntWritable(maxValue));
-    }
-}
-```
-
-在实现了Map和Reduce方法后,调用方法如下:
-
-```java
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-
-public class MaxTemperature {
-
-    public static void main(String[] args) throws Exception {
-        if (args.length != 2) {
-            System.err.println("Usage: MaxTemperature <input path> <output path>");
-            System.exit(-1);
-        }
-
-        Job job = new Job();
-        job.setJarByClass(MaxTemperature.class);
-        job.setJobName("Max temperature");
-
-        FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
-
-        job.setMapperClass(MaxTemperatureMapper.class);
-        job.setReducerClass(MaxTemperatureReducer.class);
-
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(IntWritable.class);
-
-        System.exit(job.waitForCompletion(true) ? 0 : 1);
-    }
-}
-```
-
-#### The Hadoop Distributed Filesystem(HDFS)
-
-
-## The Architecture of Open Source Applications(待补充)
-
-### 引言
->建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
-
-## 深入剖析Nginx
-- 出版于2013年，作者：高群凯。
-- 这种深入剖析的书都能让人不得不佩服作者的毅力,枯燥的源码是很难看得下去的.
-
-# 基础
 
 
 ## Architecting ASP.NET Core Applications&&# Mastering ASP.NET Core 10
@@ -16741,6 +16571,195 @@ def process_large_dataset(sentences, batch_size=32):
 ### FAISS使用
 ### SQLite3使用
 ### pgvector使用
+## AI Agents in Action,Second Edition
+- 出版于2026年（第2版），出版商：Manning，作者：Micheal Lanham。
+
+### 介绍
+
+#### 背景
+
+| 模式                                     | 审批机制                                                                                                                 | 自主程度 | 典型用途                                               | 示例平台                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------: | ------------------------------------------------------ | ------------------------------------------------------------ |
+| **直接式 LLM 对话**（Direct LLM Chat）   | **无需工具调用。** 模型仅根据用户输入直接生成文本回复。                                                                  |   **无** | 问答、文本起草、头脑风暴、知识学习                     | 原版 **ChatGPT（2022）**；早期 **Claude（2023）**            |
+| **工具增强型 LLM**（Tool-Augmented LLM） | **单次调用级的隐式授权。** 用户的一次提示可触发模型调用一个工具，通常无需逐步确认。                                      |   **低** | 图像生成、联网搜索、简单信息查询                       | 集成 **DALL·E** 的 ChatGPT；集成 **Google Search** 的 Gemini |
+| **AI 助手**（Assistant）                 | **任务级审批。** 系统执行具体操作时，通常需要用户对关键步骤或每项操作进行确认。                                          |   **中** | 结对编程、带引用的资料研究、文档编辑                   | **GitHub Copilot Chat**、**Cursor**、Excel 中的 **Claude**   |
+| **AI 智能体**（Agent）                   | **目标级授权 + 高风险操作审批。** 用户设定总体目标，智能体自主规划并执行多个步骤；涉及高风险或敏感操作时再请求用户确认。 |   **高** | 多步骤研究、代码仓库级重构、浏览器自动化、复杂任务执行 | **Claude Code**、**OpenAI Operator**、**Devin**              |
+
+实现一个目标很有可能需要调用多个工具:
+
+| 目标（Goals）           | 任务（Tasks）        | 工具（Tools）         |
+| ----------------------- | -------------------- | --------------------- |
+| **创建图像**            | 创建图像             | `create_image`        |
+| **前往卡尔加里（YYC）** | 搜索航班             | `search_flights`      |
+| **前往卡尔加里（YYC）** | 预订航班             | `book_flights`        |
+| **前往卡尔加里（YYC）** | 预订酒店             | `book_hotels`         |
+| **前往卡尔加里（YYC）** | 预订交通             | `book_transportation` |
+| **购买一台电脑**        | 搜索符合需求的电脑   | `web_search`          |
+| **购买一台电脑**        | 比较配置、功能与价格 | `web_search`          |
+| **购买一台电脑**        | 下单购买电脑         | `order`               |
+
+#### MCP
+>传统上，智能体和生命周期管理（LLM）只能使用代码库中现有的工具。这种限制很快就成了问题，因为智能体开发者往往花费更多时间构建工具，而不是开发智能体本身。试想一下，一个智能体需要读取你的日历、发送 Slack 消息、查询 Postgres 数据库并创建 Jira 工单。如果没有共享协议，开发者就必须编写和维护四个独立的工具封装器，跟进四套不同的 API 变更，并且每次都要重新实现相同的身份验证、重试和模式处理逻辑。如果一个团队要开发多个智能体，那么大部分工程时间都将耗费在工具底层架构上，而不是智能体的行为本身。
+
+这种情况如今已有所改变。诸如`Model Context Protocol` (MCP) 之类的协议允许智能体与自身代码库之外的工具进行交互。智能体无需在内部重新构建每个集成，而是可以调用由服务提供商或社区维护的专用工具服务器。MCP 的出现标志着智能体构建方式的转变，从嵌入在每个智能体代码库中的定制工具库，转向标准化的、可发现的外部工具服务器生态系统。
+
+- 这确实是我现在做Agent项目的痛点,想要将联网搜索接入Agent里,没有经验的话根本无从下手
+
+MCP 由 Anthropic 开发，将于 2024 年 11 月发布，它是一种基于JSON-RPC 2.0 的开放标准。其设计目标是使人工智能系统能够以一致、安全且高效的方式连接到外部服务.
+### MCP
+![MCP之前的困境](PixPin_2026-09-29_08-21-33.webp)
+
+#### 部署方式
+*   **本地部署（STDIO 传输）**
+    *   低延迟通信
+    *   无网络开销
+    *   进程管理简单
+    *   非常适合开发与单机部署
+*   **远程部署（SSE 传输）**
+    *   分布式代理架构
+    *   跨多个代理共享工具服务器
+    *   可扩展的云原生部署
+    *   多租户与负载均衡
+*   **混合部署**
+    *   本地服务器：用于处理敏感操作（如文件访问、本地数据库）
+    *   远程服务器：用于提供共享服务（如网络搜索、外部 API）
+    *   代理间通信：通过远程 MCP 服务器进行代理与代理之间的通信
+
+| 名称                      | 工作原理                                                                                                                                                                                                                                                                               | 何时应该使用它                                                                                                                                                                                                                                                                                                                                         |
+| :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **STDIO**<br>标准         | 客户端在同一主机上以子进程的形式启动 MCP 服务器，并通过该进程的标准输入/输出管道交换 JSON-RPC 2.0 消息。<br><br>由于不涉及任何网络协议栈，因此该链路延迟很低，但严格来说是一对一的：只有启动服务器的父进程才能与其通信。                                                               | • **本地开发或快速 CLI 实验**，希望将所有操作都保留在单个 shell 会话中。<br>• **命令行工具或脚本**，用于启动一个专门用于当前任务的辅助 MCP 服务器（例如，`mcp dev my_server.py`）。<br>• **以交互方式运行的容器**（`docker run -it ...`），并通过 stdio 进行通信，以避免打开端口。<br>• **简单的流程间集成**，不需要远程访问、反向代理或多客户端支持。 |
+| **SSE**<br>服务器发送事件 | MCP 服务器以 HTTP 服务的形式运行。<br><br>客户端向 `/messages` 发送 JSON-RPC 请求，而服务器则通过长连接（例如 `/sse`）以流式方式发送响应和通知。<br><br>这使得该通道为半双工模式（客户端到服务器通过 HTTP POST，服务器到客户端通过 SSE），但完全可网络寻址，并能够同时服务多个客户端。 | • **远程或云端部署**，其中工具必须可通过网络或反向代理/负载均衡器访问。<br>• **基于浏览器或前端的应用程序**，需要实时流式传输（逐令牌的 LLM 输出）而不需要 WebSocket 复杂性；SSE 可以穿透大多数防火墙和代理。                                                                                                                                          |
+
+
+### Multi Agent
+#### 背景
+单智能体系统出现后不久，开发者和研究人员便开始增加智能体的数量。其理念很简单：**智能体越多，就能处理和解决更复杂的目标**。
+
+2023 年的浪潮（AutoGPT 和 BabyAGI）率先风靡一时，但都在几周内暴露出同样的缺陷。在演示中，一个智能体不断生成子目标的无约束循环令人印象深刻，但在实践中却十分脆弱。下一波浪潮则着眼于**结构化**：
+
+- **MetaGPT** 引入了基于角色的团队，模拟软件公司（CEO、产品经理、工程师、QA）。
+- **CrewAI** 和 **AutoGen** 则规范了协作团队模式，明确了智能体的职责和沟通渠道。
+
+到 2024 年，实验的重点已经从 *"增加智能体数量就能解决问题"* 转向 *"合适的智能体结构就能解决问题"*，并涌现出几种关键架构。
+
+也是在这一时期，**日益复杂的单智能体系统（increasingly complex single-agent systems）**开始涌现。其概念很简单：单个智能体无需复杂的多智能体协调与通信策略（a lone agent eliminated the need for complex multi-agent coordination and communication strategies）。然而，在实践中，单智能体在以下方面都存在局限性：
+
+- **工具使用（tool use）**
+- **推理与规划详细任务（reasoning and planning for detailed tasks）**
+- **切换关注点（the ability to switch focus）**
+
+#### 三种架构
+![图示](PixPin_2026-09-30_12-36-42.webp)
+
+优缺点:
+
+| Pattern           | Pros                                                                                                                                                                                 | Cons                                                                                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flow**          | • Breaks down a complex single agent<br>• One large goal can be easily decomposed<br>• No need for complex decision-making<br>• Easy to evaluate and debug                           | • Lacks the ability to partially execute all agents; generally all or nothing<br>• Poor decision-making ability<br>• Fragile: if a single agent fails, the whole flow fails |
+| **Orchestrator**  | • Handles complex decision-making<br>• Executes some or all agents as needed<br>• Well-suited for direct user interaction<br>• Robust; worker agent failures can be easily recovered | • Complex to build, debug, and evaluate<br>• Orchestrators need strong evaluation, guardrails, and feedback mechanisms                                                      |
+| **Collaboration** | • Ambiguous, complex goals and tasks with multiple possible outcomes                                                                                                                 | • Costly, with high token usage and high latency<br>• Difficult to build evaluations and feedback mechanisms                                                                |
+
+
+![编排方式](PixPin_2026-09-30_12-59-34.webp)
+
+- 想法固然是好的,但这需要在API足够强大的基础上才可以实施,一个顶级API足够碾压一堆弱智AI了
+#### 具体设计(待补充)
+以后再来读
+### Agent reasoning and planning
+1. 选用CoT模型和对非CoT模型使用CoT提示词
+2. ToT和Reflextion则是两个比较高级的框架技巧:
+
+![ToT](PixPin_2026-10-04_13-58-25.webp)
+
+![Reflextion](PixPin_2026-10-04_13-58-51.webp)
+### RAG
+自然不如专门的书来得详细,可以直接跳过
+### 设计循环
+```python
+async def run_orchestrator_loop(
+    goal: str, max_iterations: int = 15
+) -> ResearchState:
+    search_server = MCPServerStdio(
+        name="Brave Search",
+        params={
+            "command": "npx",
+            "args": ["-y", "@anthropic/brave-search-mcp"],
+            "env": {"BRAVE_API_KEY": os.environ["BRAVE_API_KEY"]},
+        },
+    )
+    async with search_server:
+        workers = {
+            "Research Worker": research_worker.clone(
+                mcp_servers=[search_server]
+            ),
+            "Analysis Worker": analysis_worker,
+        }
+        state = ResearchState(
+            goal=goal, max_iterations=max_iterations,
+            follow_up_questions=[goal],
+        )
+        plan = OrchestratorPlan()
+        for iteration in range(max_iterations):
+            orch_input = dict(
+                goal=state.goal,
+                current_state=state.to_context(),
+                plan=str(dict(
+                    sub_tasks=[
+                        dict(name=st.name, status=st.status,
+                             notes=st.notes)
+                        for st in plan.sub_tasks],
+                    strategy=plan.overall_strategy,
+                    focus=plan.current_focus,
+                )),
+                iteration=iteration + 1,
+                max_iterations=max_iterations,
+            )
+            decision = (await Runner.run(
+                orchestrator_agent, input=str(orch_input)
+            )).final_output
+
+            if decision.is_complete or \
+               decision.next_action == "finalize":
+                state.status = "complete"
+                break
+
+            if decision.next_action == "delegate":
+                worker = workers.get(decision.target_worker)
+                if worker:
+                    worker_result = (await Runner.run(
+                        worker, input=decision.task_description
+                    )).final_output
+                    state.findings.append(
+                        worker_result.summary_of_findings
+                    )
+                    state.sources_consulted.extend(
+                        worker_result.sources_used
+                    )
+                    apply_plan_updates(
+                        state, plan, worker_result
+                    )
+
+            if decision.next_action == "re_plan":
+                for update in decision.plan_updates:
+                    existing = {st.name: st
+                                for st in plan.sub_tasks}
+                    if update.name in existing:
+                        existing[update.name].status = \
+                            update.status
+                    else:
+                        plan.sub_tasks.append(Subtopic(
+                            name=update.name,
+                            status=update.status,
+                            notes=update.notes,
+                        ))
+
+            state.iteration_count = iteration + 1
+        return state
+```
+想法上很简单,设置一定量的循环次数,每次检查当前任务目标,并将其分配给子Agent.但真要做成一个完备的Agent还是有难度的.
+
+### 总结
+剩余内容就没必要看了
 
 # 高级
 
