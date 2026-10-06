@@ -7,6 +7,388 @@ math: true
 ---
 
 # 阅读中
+
+
+## Docker Up & Running,3rd edtion
+### ch1: 引言
+>Docker 最初是由 dotCloud 公司的创始人兼首席执行官 Solomon Hykes 于 2013 年 3 月 15 日在加利福尼亚州圣克拉拉举行的 Python 开发者大会上，以五分钟的闪电演讲向世界推出的——事先没有任何预告，也没有大张旗鼓的宣传。在这次发布时，除了 dotCloud 之外，只有大约 40 人有机会体验 Docker。
+
+最初，许多不熟悉 Docker 的人将其视为某种虚拟化平台，但实际上，它是第一个广泛应用的工具，它基于一种名为容器化的新兴技术。Docker 和 Linux 容器对众多行业领域产生了重大影响，其中包括 Vagrant、KVM、OpenStack、Mesos、Capistrano、Ansible、Chef、Puppet 等工具和技术。
+
+在部署过程中，旧应用程序的整个运行环境都会被抛弃。应用程序环境中的任何东西都不会比应用程序本身存在更长时间，这是一个看似简单却意义深远的理念。这意味着应用程序不太可能意外地依赖于先前版本遗留的工件。这意味着从本地文件系统中获取的短暂调试更改不太可能在后续版本中继续存在。
+### ch2: 概览
+服务提供商和商业供应商尤其不愿构建可能受制于与其利益重叠的公司意志的平台。因此，Docker 公司在那段时间面临着一些公开的挑战。为了赢得公众好感并支持其产品在市场上的更广泛应用，Docker 公司于 2015 年 6 月决定赞助开放容器倡议（OCI）。该倡议的首个完整规范于 2017 年 7 月发布，其很大程度上基于 Docker 镜像格式的版本 2。现在，容器镜像和容器运行时都可以申请 OCI 认证。
+
+最主要的运行时就是containerd了,他是现代版本的 Docker 和 Kubernetes 中的默认高级运行时,底层运行时则可以是runc和crun等.
+
+![Docker架构](PixPin_2026-10-06_12-25-29.webp)
+
+服务器负责构建和管理容器,而客户端负责向服务器发出指令.
+
+每个 Docker 主机通常运行一个 Docker 服务器，该服务器可以管理任意数量的容器。然后，您可以使用命令行工具（docker）与服务器通信，既可以从服务器本身通信，也可以在安全措施到位的情况下从远程客户端通信
+
+尽管 Docker 在生产环境编排领域的光芒很大程度上被 Google 的 Kubernetes 所掩盖，但值得注意的是，在 2022 年初发布 1.24 版本之前，Kubernetes 也高度依赖 Docker。不过，Docker 的编排工具仍然非常实用，尤其是 Compose，对于本地开发来说非常方便。
+
+首先，Docker 的架构主要面向无状态应用，或者将状态外部化到数据库或缓存等数据存储中的应用。这类应用最容易容器化。Docker 为这类应用强制执行了一些优秀的开发原则，但这也就意味着，**像把数据库引擎放在 Docker 容器里这样的操作有点像逆流而上**。这并不是说你不能这样做，甚至也不是说你不应该这样做；只是这并非 Docker 最常见的用例。
+## Agentic Design Patterns
+- 出版于2025年，作者：Antonio Gullí。
+### ch1: Prompt Chaining
+简单来说就是将复杂问题拆分成链式的递进式子任务,从而显著提高可靠性.
+
+从我的亲身经历来看是很有用的,让Agent分阶段构建的效果远超过一次构建的成果.
+
+![结构](PixPin_2026-10-06_13-49-10.webp)
+### ch2: 路由
+
+## 数据库系统内幕
+- 一直久闻大名,现在就来试试水
+### 存储引擎
+
+## 推荐系统：前沿与实践
+比我想的要好很多,以前看的那几本相关书简直是垃圾
+### 概述和历史
+1987年，**麻省理工学院与密歇根州立大学**的研究人员提出了一个颇具前瞻性的构想：设计一种新型的信息共享系统，**只将相关信息分发给那些认为其有价值的人，而不去干扰那些认为其无价值的人**。这一构想，正是**推荐系统的萌芽**。
+
+此后，推荐系统的研究逐步深入，并展现出越来越高的商业价值。**2001年**，**亚马逊**首次将推荐系统引入电商平台，带来了销售额的大幅提升。**2006年**，**网飞**举办“**Netflix Prize**”竞赛，吸引了大批研究人员投身该领域，也推动了**矩阵分解**等重要方法在推荐算法中的快速发展。**2007年**，图灵奖得主 **Geoffrey Hinton** 与合作者 **Ruslan Salakhutdinov**、**Andriy Mnih** 共同提出用**受限玻尔兹曼机**解决推荐问题的方法，开启了**深度学习时代**推荐算法研究与应用的新篇章。
+
+此后，推荐系统研究蓬勃发展，其价值也在越来越多的场景中得到验证。
+#### 三种形式
+推荐算法有几种形式:
+1. 基于内容: 先收集用户的兴趣并建模,再推荐相关内容给用户
+2. 协同过滤: 由于内容推荐有很大的局限性,准确率较低,为了解决这些问题，1992年，美国施乐公司的 Goldberg 等人创新性地提出了**协同过滤思想**，即一位用户可能与部分其他用户（也称为“邻居”）具有相似的兴趣，**因此他（她）很可能会喜欢这些邻居感兴趣的物品**。协同过滤可以认为是推荐算法领域最重要的概念之一，从出现至今一直影响着推荐算法的研究与应用。
+   1. 相关的主流算法有最近邻算法(对相似度做加权平均)和矩阵降维/分解(高维的用户向量彼此交集很少,但降维之后可以让数据密集起来)
+3. 深度学习: 最早的应用在于07年,但直到ImageNet比赛之后,深度学习才开始真正应用在推荐算法上
+
+#### 基本原理
+![架构图](PixPin_2026-10-06_14-20-23.webp)
+
+
+个性化推荐固然很重要,但是我觉得这种比较玄乎看心情的东西,98%和99%的差别基本没有吧,所以也没必要专门去频繁换算法,除非有了大杀器出现,才值得更换一次,这也就意味着相关的岗位肯定比较少,但都是比较核心的.
+
+**推荐、搜索与广告**被很多人称作互联网技术的三驾马车，是互联网平台中最受重视的三种技术，也是互联网平台盈利的关键。从应用本身来看，三者之间存在着较大的差异，但是三种应用在技术上有许多共同之处，如表 1-1 所示。
+
+**表 1-1 推荐、搜索与广告的比较**
+
+| 比较项目     | 推荐                   | 搜索         | 广告         |
+| ------------ | ---------------------- | ------------ | ------------ |
+| 用户交互方式 | 用户主动请求与被动接受 | 用户主动请求 | 用户被动接受 |
+| 个性化程度   | 强                     | 弱           | 中等         |
+| 用户接受度   | 强                     | 强           | 弱           |
+
+三者在如今越来越相似,普遍使用“召回 ＋ 排序”这一经典架构作为算法引擎.
+### 基本算法
+
+
+## The Architecture of Open Source Applications(待补充)
+
+### 引言
+>建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
+
+## 深入剖析Nginx
+- 出版于2013年，作者：高群凯。
+
+
+## Vision Language Models
+- 出版于2026年，出版商：O'Reilly，作者：Merve Noyan。
+
+### 导论
+
+#### Brief Introduction to Computer Vision
+## Coding Video,A Practical Guide to HEVC and Beyond(待补充)
+- 出版于2024年，作者：Iain E. Richardson。
+
+### 介绍
+>一秒标准的未压缩SD(576p)视频，每秒25帧，大约占用15.5 MB存储空间。这意味着，通过网络或广播频道实时传输这段视频，即每秒发送一秒可播放的视频内容，需要124 Mbit/s的带宽。而一秒未压缩的UHD/4K视频、每秒50帧捕捉，则大约占用620 MB存储空间，实时传输将需要高达5 Gbit/s的传输带宽。
+
+- 由此可知,我们在电子产品中存储的视频都是压缩形式的,只在播放时进行实时的解码.
+
+![说明图](PixPin_2026-08-09_10-23-28.webp)
+
+尽管我们拥有的存储容量和网络带宽比以往任何时候都要多，但存储和传输视频的需求仍在不断超出可用容量。到2023年，约三分之二的消费级电视机已达到4K分辨率或更高。将高性能视频编解码器集成到智能手机和电视等消费设备中，以及对高分辨率视频的期望，使得在存储或传输前压缩或编码视频，并在显示前解码视频成为常态
+
+
+
+## Elasticsearch in Action, Second Edition(待补充)
+- 出版于2023年（第2版），出版商：Manning，作者：Madhusudhan Konda。
+- [为什么不用Solr](https://learnku.com/articles/43880)
+
+### 概述
+传统的数据库仅能返回普通的查询结果,而若是要实现智能提示和多样化搜索,就需要搜索引擎这些经过了优化处理的数据库来解决了.
+
+Es的底层引擎为使用Java编写的Lucene,再在外面套了一层符合Rest规范的API,然后还有一个配套的前端管理程序Kibana.
+
+![示意图](PixPin_2026-07-29_10-55-57.webp)
+
+![创建过程](PixPin_2026-07-29_11-01-18.webp)
+
+![查询过程](PixPin_2026-07-29_11-06-37.webp)
+
+到这里我们也看明白了,Es的使用方法就是通过Restful API来传输Json文档而已,这种方法非常高效,而且掩盖了背后的复杂优化过程.
+
+- 不过,也只有搜索引擎才能这么干,毕竟搜索请求都是幂等的,所以不会受到并发的困扰.而对于普通的数据库来说,只好老老实实地通过底层驱动连接了,如果有人能够想到更美妙的解决方法,诺奖不说,图灵奖是绝对有的.
+
+>Elasticsearch has an algorithm called **Okapi Best Match 25** (BM25), which is an **enhanced** term frequency/inverse document frequency (**TF/IDF**) similarity algorithm that calculates the relevancy scores for the results and sorts them in that order when presenting them to the client.
+
+而在执行搜索时,我们也可以手动给关键字分配对应的权重,来返回自己想要的搜索结果,而在我们平常的搜索时,这一过程都是自动进行的.
+
+### 架构
+Elasticsearch按节点和数据类型对数据进行分类。每个节点都有一个专用文件夹，其中包含若干存储相关数据的桶。Elasticsearch会根据每种数据类型创建一组桶（在Elasticsearch术语中称为索引）
+
+分片是 Apache Lucene 的物理实例，是幕后将数据存入和取出存储的关键载体。换言之，分片负责数据的物理存储与检索工作。从 7.x 版本起，默认情况下新创建的每个索引仅配备一个主分片和一个副本
+
+主分片负责存储文档，而副本分片（简称副本）顾名思义是主分片的副本。每个分片可以有多个副本，也可不设置副本，但这种方式不推荐用于生产环境——在实际生产环境中，通常会为每个分片创建多个副本。副本存储着数据副本，既能提升系统冗余度，又能帮助加速搜索查询。
+
+
+
+## Fundamentals of Data Engineering(待补充)
+- 出版于2022年，出版商：O'Reilly，作者：Joe Reis。
+
+### ch1
+这一章的数据工程历史介绍很有看头.
+
+>“Big data is like teenage sex: everyone talks about it, nobody really knows how to do it, everyone thinks everyone else is doing it, so everyone claims they are doing it.”
+
+>尽管许多数据科学家热衷于构建和调优机器学习模型，但现实是，据估计，他们70%到80%的时间都耗费在数据层次结构的底层三个部分——数据收集、数据清理、数据处理——而只有极少时间用于分析和机器学习。
+
+- 确实很对,大部分时间都是花在摆弄数据表格上了.
+
+![图示](PixPin_2026-08-09_14-08-51.webp)
+
+## Systems Performance,2nd edition(待补充)
+- 出版于2020年（第2版），作者：Brendan Gregg。
+
+### ch1: 介绍
+讲的特别好,很适合运维来看
+
+### ch2: 方法论
+#### 术语和模型
+
+
+## Kubernetes in Action, Second Edition(待补充)
+- 出版于2026年（第2版），出版商：Manning，作者：Marko Lukša。
+
+### 入门
+
+#### Introducing Kubernetes
+>Kubernetes 一词源自希腊语，意为“领航员”或“舵手”,最初由Google开发.
+
+Kubernetes 集群包含分为两个组的节点:
+1. control plane nodes: 控制整个集群
+
+![图示](PixPin_2026-07-09_17-26-06.webp)
+
+2. worker nodes: 实际工作的节点.
+
+![图示](PixPin_2026-07-09_17-27-13.webp)
+
+#### 容器介绍(过)
+每个容器都有着独立的文件系统和进程ID,如果是有Shell的Linux镜像的话,还可以使用bash命令.
+
+#### 容器管理
+Kubernetes部署的单位称为deployment对象,该对象对应了一个或者多个Pod,每个Pod由一个或者多个紧密相关的容器组成,他们共享相同的网络接口和命名空间:
+
+![示意图](PixPin_2026-07-14_17-59-51.webp)
+
+>每个 Pod 都有自己的 IP、主机名、进程、网络接口及其他资源。同
+一 Pod 内的容器会认为它们是计算机中唯一运行的程序，即使与其它
+Pod 位于同一节点，也不会感知到这些 Pod 中的进程。
+
+```shell
+$ kubectl get pods
+NAME                     READY   STATUS    RESTARTS   AGE
+kiada-9d785b578-p449x    0/1     Pending   0          1m     #1
+
+```
+
+##### 暴露应用程序
+我们使用create deployment命令创建一个deployment对象,但要使得这个对象暴露在主机端口,则需要使用expose deployment命令创建一个Service对象,从而可以被外界访问
+
+```bash
+kubectl expose deployment kiada --type=LoadBalancer --port 8080
+```
+
+##### 扩展容器
+
+```bash
+$ kubectl scale deployment kiada --replicas=3
+deployment.apps/kiada scaled
+```
+- `--replicas=3`参数会创建三个完全相同的容器,这就是我们所说的`横向扩展`
+
+```shell
+$ kubectl get deploy
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+kiada   3/3     3            3           18m
+
+```
+可以看到我们创建了三个Pod,每个Pod都包含了一个Kiada容器.
+
+当有多个通过`replicas`创建的相同Pod时,Pod之间便会自动进行负载均衡,每次由一个随机的Pod来处理到来的请求
+
+>严格来说，Deployment 对象的用途仅仅是创建特定数量的 Pod 对
+象。您可能会想，是否可以直接创建 Pod，而不通过 Deployment
+来代劳。当然可以这么做，但如果需要运行多个副本，您就必须手动
+逐个创建每个 Pod，并确保为其分配唯一的名称。此后，您还需要持
+续监控这些 Pod，一旦它们突然消失或所在节点发生故障，就得立即
+替换它们。这正是几乎从不直接创建 Pod、而是使用 Deployment
+的根本原因。
+
+
+## Hadoop: The Definitive Guide(4th)(待补充)
+- 出版于2015年（第4版），出版商：O'Reilly，作者：Tom White。
+
+### 基础
+
+#### 起源
+Hadoop这个名字并不是一个首字母缩略词；它是一个杜撰出来的名字。该项目的创建者Doug Cutting解释了这个名字的由来：
+
+>The name my kid gave a stuffed yellow elephant. Short, relatively easy to spell and pronounce, meaningless, and not used elsewhere
+
+Hadoop起源于Lucene的研发过程,结合了04年Google公开的MapReduce算法,并在08年成为Apache的顶级项目,在之后被主流企业广泛使用
+
+#### MapReduce
+
+##### 简单例子
+1. 首先我们有一个数据集,想要从中找出每一年的最大数
+
+```text
+(0,   0067011990999991950051507004...9999999N9+00001+99999999999...)
+(106, 0043011990999991950051512004...9999999N9+00221+99999999999...)
+(212, 0043011990999991950051518004...9999999N9-00111+99999999999...)
+(318, 0043012650999991949032412004...0500001N9+01111+99999999999...)
+(424, 0043012650999991949032418004...0500001N9+00781+99999999999...)
+```
+2. 设置一个Map函数,从中过滤后并提取出标准格式的信息:
+
+```text
+(1950, 0)
+(1950, 22)
+(1950, -11)
+(1949, 111)
+(1949, 78)
+```
+整理得到:
+
+```text
+(1949, [111, 78])
+(1950, [0, 22, -11])
+```
+3. 设置一个Reduce函数,遍历Map函数的结果得到最终值:
+
+```text
+(1949, 111)
+(1950, 22)
+```
+
+流程图如下:
+
+![示意图](PixPin_2026-09-11_11-28-10.webp)
+
+Map函数:
+
+```java
+import java.io.IOException;
+
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+
+public class MaxTemperatureMapper
+        extends Mapper<LongWritable, Text, Text, IntWritable> {
+
+    private static final int MISSING = 9999;
+
+    @Override
+    public void map(LongWritable key, Text value, Context context)
+            throws IOException, InterruptedException {
+
+        String line = value.toString();
+        String year = line.substring(15, 19);
+
+        int airTemperature;
+
+        if (line.charAt(87) == '+') { // parseInt doesn't like leading plus signs
+            airTemperature = Integer.parseInt(line.substring(88, 92));
+        } else {
+            airTemperature = Integer.parseInt(line.substring(87, 92));
+        }
+
+        String quality = line.substring(92, 93);
+
+        if (airTemperature != MISSING && quality.matches("[01459]")) {
+            context.write(new Text(year), new IntWritable(airTemperature));
+        }
+    }
+}
+```
+Reduce函数:
+
+```java
+import java.io.IOException;
+
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
+
+public class MaxTemperatureReducer
+        extends Reducer<Text, IntWritable, Text, IntWritable> {
+
+    @Override
+    public void reduce(Text key, Iterable<IntWritable> values, Context context)
+            throws IOException, InterruptedException {
+
+        int maxValue = Integer.MIN_VALUE;
+
+        for (IntWritable value : values) {
+            maxValue = Math.max(maxValue, value.get());
+        }
+
+        context.write(key, new IntWritable(maxValue));
+    }
+}
+```
+
+在实现了Map和Reduce方法后,调用方法如下:
+
+```java
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class MaxTemperature {
+
+    public static void main(String[] args) throws Exception {
+        if (args.length != 2) {
+            System.err.println("Usage: MaxTemperature <input path> <output path>");
+            System.exit(-1);
+        }
+
+        Job job = new Job();
+        job.setJarByClass(MaxTemperature.class);
+        job.setJobName("Max temperature");
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        job.setMapperClass(MaxTemperatureMapper.class);
+        job.setReducerClass(MaxTemperatureReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+```
+
+#### The Hadoop Distributed Filesystem(HDFS)
+
+
+
 ## Redis设计与实现
 - 出版于2014年，作者：黄健宏。
 - 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
@@ -395,329 +777,6 @@ Redis服务器是典型的一对多服务器程序：一个服务器可以与多
 4. 客户端接收服务器返回的命令回复 OK，并将这个回复打印给用户观看
 ### 多机数据库
 不用一次是不可能学会的,待我先实战一段时间再来
-
-## Docker Up & Running
-### ch1: 引言
-
-## Agentic Design Patterns
-- 出版于2025年，作者：Antonio Gullí。
-
-## 数据库系统内幕
-- 一直久闻大名,现在就来试试水
-### 存储引擎
-## 推荐系统：前沿与实践
-
-
-
-## Vision Language Models
-- 出版于2026年，出版商：O'Reilly，作者：Merve Noyan。
-
-### 导论
-
-#### Brief Introduction to Computer Vision
-## Coding Video,A Practical Guide to HEVC and Beyond(待补充)
-- 出版于2024年，作者：Iain E. Richardson。
-
-### 介绍
->一秒标准的未压缩SD(576p)视频，每秒25帧，大约占用15.5 MB存储空间。这意味着，通过网络或广播频道实时传输这段视频，即每秒发送一秒可播放的视频内容，需要124 Mbit/s的带宽。而一秒未压缩的UHD/4K视频、每秒50帧捕捉，则大约占用620 MB存储空间，实时传输将需要高达5 Gbit/s的传输带宽。
-
-- 由此可知,我们在电子产品中存储的视频都是压缩形式的,只在播放时进行实时的解码.
-
-![说明图](PixPin_2026-08-09_10-23-28.webp)
-
-尽管我们拥有的存储容量和网络带宽比以往任何时候都要多，但存储和传输视频的需求仍在不断超出可用容量。到2023年，约三分之二的消费级电视机已达到4K分辨率或更高。将高性能视频编解码器集成到智能手机和电视等消费设备中，以及对高分辨率视频的期望，使得在存储或传输前压缩或编码视频，并在显示前解码视频成为常态
-
-
-
-## Elasticsearch in Action, Second Edition(待补充)
-- 出版于2023年（第2版），出版商：Manning，作者：Madhusudhan Konda。
-- [为什么不用Solr](https://learnku.com/articles/43880)
-
-### 概述
-传统的数据库仅能返回普通的查询结果,而若是要实现智能提示和多样化搜索,就需要搜索引擎这些经过了优化处理的数据库来解决了.
-
-Es的底层引擎为使用Java编写的Lucene,再在外面套了一层符合Rest规范的API,然后还有一个配套的前端管理程序Kibana.
-
-![示意图](PixPin_2026-07-29_10-55-57.webp)
-
-![创建过程](PixPin_2026-07-29_11-01-18.webp)
-
-![查询过程](PixPin_2026-07-29_11-06-37.webp)
-
-到这里我们也看明白了,Es的使用方法就是通过Restful API来传输Json文档而已,这种方法非常高效,而且掩盖了背后的复杂优化过程.
-
-- 不过,也只有搜索引擎才能这么干,毕竟搜索请求都是幂等的,所以不会受到并发的困扰.而对于普通的数据库来说,只好老老实实地通过底层驱动连接了,如果有人能够想到更美妙的解决方法,诺奖不说,图灵奖是绝对有的.
-
->Elasticsearch has an algorithm called **Okapi Best Match 25** (BM25), which is an **enhanced** term frequency/inverse document frequency (**TF/IDF**) similarity algorithm that calculates the relevancy scores for the results and sorts them in that order when presenting them to the client.
-
-而在执行搜索时,我们也可以手动给关键字分配对应的权重,来返回自己想要的搜索结果,而在我们平常的搜索时,这一过程都是自动进行的.
-
-### 架构
-Elasticsearch按节点和数据类型对数据进行分类。每个节点都有一个专用文件夹，其中包含若干存储相关数据的桶。Elasticsearch会根据每种数据类型创建一组桶（在Elasticsearch术语中称为索引）
-
-分片是 Apache Lucene 的物理实例，是幕后将数据存入和取出存储的关键载体。换言之，分片负责数据的物理存储与检索工作。从 7.x 版本起，默认情况下新创建的每个索引仅配备一个主分片和一个副本
-
-主分片负责存储文档，而副本分片（简称副本）顾名思义是主分片的副本。每个分片可以有多个副本，也可不设置副本，但这种方式不推荐用于生产环境——在实际生产环境中，通常会为每个分片创建多个副本。副本存储着数据副本，既能提升系统冗余度，又能帮助加速搜索查询。
-
-
-
-## Fundamentals of Data Engineering(待补充)
-- 出版于2022年，出版商：O'Reilly，作者：Joe Reis。
-
-### ch1
-这一章的数据工程历史介绍很有看头.
-
->“Big data is like teenage sex: everyone talks about it, nobody really knows how to do it, everyone thinks everyone else is doing it, so everyone claims they are doing it.”
-
->尽管许多数据科学家热衷于构建和调优机器学习模型，但现实是，据估计，他们70%到80%的时间都耗费在数据层次结构的底层三个部分——数据收集、数据清理、数据处理——而只有极少时间用于分析和机器学习。
-
-- 确实很对,大部分时间都是花在摆弄数据表格上了.
-
-![图示](PixPin_2026-08-09_14-08-51.webp)
-
-## Systems Performance,2nd edition(待补充)
-- 出版于2020年（第2版），作者：Brendan Gregg。
-
-### ch1: 介绍
-讲的特别好,很适合运维来看
-
-### ch2: 方法论
-#### 术语和模型
-
-
-## Kubernetes in Action, Second Edition(待补充)
-- 出版于2026年（第2版），出版商：Manning，作者：Marko Lukša。
-
-### 入门
-
-#### Introducing Kubernetes
->Kubernetes 一词源自希腊语，意为“领航员”或“舵手”,最初由Google开发.
-
-Kubernetes 集群包含分为两个组的节点:
-1. control plane nodes: 控制整个集群
-
-![图示](PixPin_2026-07-09_17-26-06.webp)
-
-2. worker nodes: 实际工作的节点.
-
-![图示](PixPin_2026-07-09_17-27-13.webp)
-
-#### 容器介绍(过)
-每个容器都有着独立的文件系统和进程ID,如果是有Shell的Linux镜像的话,还可以使用bash命令.
-
-#### 容器管理
-Kubernetes部署的单位称为deployment对象,该对象对应了一个或者多个Pod,每个Pod由一个或者多个紧密相关的容器组成,他们共享相同的网络接口和命名空间:
-
-![示意图](PixPin_2026-07-14_17-59-51.webp)
-
->每个 Pod 都有自己的 IP、主机名、进程、网络接口及其他资源。同
-一 Pod 内的容器会认为它们是计算机中唯一运行的程序，即使与其它
-Pod 位于同一节点，也不会感知到这些 Pod 中的进程。
-
-```shell
-$ kubectl get pods
-NAME                     READY   STATUS    RESTARTS   AGE
-kiada-9d785b578-p449x    0/1     Pending   0          1m     #1
-
-```
-
-##### 暴露应用程序
-我们使用create deployment命令创建一个deployment对象,但要使得这个对象暴露在主机端口,则需要使用expose deployment命令创建一个Service对象,从而可以被外界访问
-
-```bash
-kubectl expose deployment kiada --type=LoadBalancer --port 8080
-```
-
-##### 扩展容器
-
-```bash
-$ kubectl scale deployment kiada --replicas=3
-deployment.apps/kiada scaled
-```
-- `--replicas=3`参数会创建三个完全相同的容器,这就是我们所说的`横向扩展`
-
-```shell
-$ kubectl get deploy
-NAME    READY   UP-TO-DATE   AVAILABLE   AGE
-kiada   3/3     3            3           18m
-
-```
-可以看到我们创建了三个Pod,每个Pod都包含了一个Kiada容器.
-
-当有多个通过`replicas`创建的相同Pod时,Pod之间便会自动进行负载均衡,每次由一个随机的Pod来处理到来的请求
-
->严格来说，Deployment 对象的用途仅仅是创建特定数量的 Pod 对
-象。您可能会想，是否可以直接创建 Pod，而不通过 Deployment
-来代劳。当然可以这么做，但如果需要运行多个副本，您就必须手动
-逐个创建每个 Pod，并确保为其分配唯一的名称。此后，您还需要持
-续监控这些 Pod，一旦它们突然消失或所在节点发生故障，就得立即
-替换它们。这正是几乎从不直接创建 Pod、而是使用 Deployment
-的根本原因。
-
-
-## Hadoop: The Definitive Guide(4th)(待补充)
-- 出版于2015年（第4版），出版商：O'Reilly，作者：Tom White。
-
-### 基础
-
-#### 起源
-Hadoop这个名字并不是一个首字母缩略词；它是一个杜撰出来的名字。该项目的创建者Doug Cutting解释了这个名字的由来：
-
->The name my kid gave a stuffed yellow elephant. Short, relatively easy to spell and pronounce, meaningless, and not used elsewhere
-
-Hadoop起源于Lucene的研发过程,结合了04年Google公开的MapReduce算法,并在08年成为Apache的顶级项目,在之后被主流企业广泛使用
-
-#### MapReduce
-
-##### 简单例子
-1. 首先我们有一个数据集,想要从中找出每一年的最大数
-
-```text
-(0,   0067011990999991950051507004...9999999N9+00001+99999999999...)
-(106, 0043011990999991950051512004...9999999N9+00221+99999999999...)
-(212, 0043011990999991950051518004...9999999N9-00111+99999999999...)
-(318, 0043012650999991949032412004...0500001N9+01111+99999999999...)
-(424, 0043012650999991949032418004...0500001N9+00781+99999999999...)
-```
-2. 设置一个Map函数,从中过滤后并提取出标准格式的信息:
-
-```text
-(1950, 0)
-(1950, 22)
-(1950, -11)
-(1949, 111)
-(1949, 78)
-```
-整理得到:
-
-```text
-(1949, [111, 78])
-(1950, [0, 22, -11])
-```
-3. 设置一个Reduce函数,遍历Map函数的结果得到最终值:
-
-```text
-(1949, 111)
-(1950, 22)
-```
-
-流程图如下:
-
-![示意图](PixPin_2026-09-11_11-28-10.webp)
-
-Map函数:
-
-```java
-import java.io.IOException;
-
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
-
-public class MaxTemperatureMapper
-        extends Mapper<LongWritable, Text, Text, IntWritable> {
-
-    private static final int MISSING = 9999;
-
-    @Override
-    public void map(LongWritable key, Text value, Context context)
-            throws IOException, InterruptedException {
-
-        String line = value.toString();
-        String year = line.substring(15, 19);
-
-        int airTemperature;
-
-        if (line.charAt(87) == '+') { // parseInt doesn't like leading plus signs
-            airTemperature = Integer.parseInt(line.substring(88, 92));
-        } else {
-            airTemperature = Integer.parseInt(line.substring(87, 92));
-        }
-
-        String quality = line.substring(92, 93);
-
-        if (airTemperature != MISSING && quality.matches("[01459]")) {
-            context.write(new Text(year), new IntWritable(airTemperature));
-        }
-    }
-}
-```
-Reduce函数:
-
-```java
-import java.io.IOException;
-
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
-
-public class MaxTemperatureReducer
-        extends Reducer<Text, IntWritable, Text, IntWritable> {
-
-    @Override
-    public void reduce(Text key, Iterable<IntWritable> values, Context context)
-            throws IOException, InterruptedException {
-
-        int maxValue = Integer.MIN_VALUE;
-
-        for (IntWritable value : values) {
-            maxValue = Math.max(maxValue, value.get());
-        }
-
-        context.write(key, new IntWritable(maxValue));
-    }
-}
-```
-
-在实现了Map和Reduce方法后,调用方法如下:
-
-```java
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-
-public class MaxTemperature {
-
-    public static void main(String[] args) throws Exception {
-        if (args.length != 2) {
-            System.err.println("Usage: MaxTemperature <input path> <output path>");
-            System.exit(-1);
-        }
-
-        Job job = new Job();
-        job.setJarByClass(MaxTemperature.class);
-        job.setJobName("Max temperature");
-
-        FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
-
-        job.setMapperClass(MaxTemperatureMapper.class);
-        job.setReducerClass(MaxTemperatureReducer.class);
-
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(IntWritable.class);
-
-        System.exit(job.waitForCompletion(true) ? 0 : 1);
-    }
-}
-```
-
-#### The Hadoop Distributed Filesystem(HDFS)
-
-
-## The Architecture of Open Source Applications(待补充)
-
-### 引言
->建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
-
-## 深入剖析Nginx
-- 出版于2013年，作者：高群凯。
-- 这种深入剖析的书都能让人不得不佩服作者的毅力,枯燥的源码是很难看得下去的.
-
 # 基础
 ## Learning Go
 
