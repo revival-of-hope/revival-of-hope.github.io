@@ -43,7 +43,7 @@ math: true
 ## 数据库系统内幕
 - 一直久闻大名,现在就来试试水
 ### 存储引擎
-
+![架构图](PixPin_2026-10-06_15-46-05.webp)
 ## 推荐系统：前沿与实践
 比我想的要好很多,以前看的那几本相关书简直是垃圾
 ### 概述和历史
@@ -87,6 +87,189 @@ math: true
 ## 深入剖析Nginx
 - 出版于2013年，作者：高群凯。
 
+## gRPC: Up and Running
+- 出版于2020年，出版商：O'Reilly，作者：Kasun Indrasiri。
+
+### 介绍
+- 江山代有才人出,各领风骚一两年
+
+>在构建现代云原生应用和微服务的同步请求-响应式通信时，最常用且传统的方法是将其构建为RESTful服务，即将应用或服务建模为可通过HTTP协议上的网络调用访问和更改状态的资源集合。然而，对于大多数用例而言，RESTful服务在构建进程间通信时往往较为笨重、效率低下且易出错。通常需要一种高度可扩展、松散耦合且比RESTful服务更高效的进程间通信技术。这正是gRPC——一种用于构建分布式应用和微服务的现代进程间通信方式——发挥作用的地方
+
+gRPC（“g”在每个gRPC版本中代表不同的含义）是一种进程间通信技术，它使您能够像进行本地函数调用一样轻松地连接、调用、操作和调试分布式异构应用程序。
+
+![本书示例](PixPin_2026-08-06_13-41-46.webp)
+
+作为有线传输协议，gRPC使用HTTP/2，这是一种高性能的二进制消息协议，支持双向消息传递。
+
+RPC是构建客户端-服务应用程序的一种流行的进程间通信技术。通过RPC，客户端可以像调用本地方法一样远程调用某个函数或方法。早期有几种流行的RPC实现，如公共对象请求代理架构（CORBA）和Java远程方法调用（RMI），它们用于构建和连接服务或应用程序。然而，这类传统RPC实现大多极其复杂，因为它们构建在像TCP这样的通信协议之上，这阻碍了互操作性，并且基于臃肿的规范。
+
+由于传统RPC实现（如CORBA）的局限性，Simple Object Access Protocol（SOAP）被设计并由微软、IBM等大型企业大力推广。SOAP是 service-oriented architecture（SOA）中的标准通信技术，用于在服务（在SOA上下文中通常称为Web服务）之间交换基于XML的结构化数据，并通过任何底层通信协议（如HTTP，最常用）进行通信。
+
+SOAP曾是一种相当流行的技术，但消息格式的复杂性以及围绕SOAP构建的规范复杂性，阻碍了分布式应用开发的敏捷性。因此，在现代分布式应用开发的背景下，SOAP web服务被视为一种遗留技术。相较于使用SOAP，当前大多数现有的分布式应用正采用REST架构风格进行开发。
+
+REST的事实标准实现是HTTP，而在HTTP中，你可以将RESTful Web应用建模为一系列资源，这些资源通过唯一标识符（URL）进行访问。状态变更操作以HTTP动词（如GET、POST、PUT、DELETE、PATCH等）的形式应用于这些资源之上。资源的状态以文本格式（如JSON、XML、HTML、YAML等）表示。
+
+使用REST架构风格配合HTTP和JSON构建应用程序已成为构建微服务的事实标准方法。然而，随着微服务数量及其网络交互的激增，RESTful服务已无法满足预期的现代需求。RESTful服务存在几个关键限制，阻碍了其作为基于微服务的现代应用程序的消息传递协议的能力。
+
+本质上，RESTful服务建立在基于文本的传输协议（如HTTP 1.x）之上，并利用可读的文本格式（如JSON）。在服务到服务的通信中，使用JSON这类文本格式效率并不高，因为通信双方无需采用这种面向人类的可读文本格式。
+
+作为一种架构风格，REST 包含许多“良好实践”，遵循这些实践才能构建出真正的 RESTful 服务。然而，这些实践并未作为实现协议（如HTTP）的强制部分，使得在实现阶段难以强制执行。因此，在实践中，大多数自称为 RESTful 的服务并未 properly 遵循 REST 风格的基础。由此，所谓的 RESTful 服务大多仅仅是通过网络暴露的 HTTP 服务。因此，开发团队不得不花费大量时间维护 RESTful 服务的一致性和纯粹性。
+
+Google一直使用一个名为Stubby的通用RPC框架，来连接数千个运行在多个数据中心、采用不同技术构建的微服务。其核心RPC层旨在处理每秒数百亿次请求的互联网规模。Stubby拥有众多优秀特性，但它并未被标准化为通用框架，因为它与Google的内部基础设施耦合过紧。2015年，谷歌发布了gRPC作为开源RPC框架；它是一种标准化、通用且跨平台的RPC基础设施。gRPC旨在向广大社区提供与Stubby相同的可扩展性、性能和功能。
+
+gRPC并非使用JSON或XML这类文本格式，而是采用基于协议缓冲区的二进制协议来与gRPC服务和客户端进行通信。此外，gRPC在HTTP/2之上实现了协议缓冲区，这使得它在进程间通信中更加高效。
+
+随着采用gRPC，Netflix在开发者生产力方面获得了巨大提升。例如，对于每个客户端，数百行自定义代码被替换为proto中仅需两到三行的配置。创建一个原本可能需要两到三周的客户端，如今使用gRPC只需几分钟即可完成。平台的整体稳定性也大为改善，因为大多数常规功能不再需要手写代码，并且有一种全面且安全的方式来定义服务接口.
+
+```ts
+// 指定Protobuf版本语法（Proto3）
+syntax = "proto3";
+
+// 从其他包导入消息类型
+import "google/protobuf/wrappers.proto";
+
+// 声明包名，用于避免消息类型命名冲突，并决定生成的代码命名空间
+package ecommerce;
+
+// 定义RPC服务接口
+service ProductInfo {
+    // 添加商品：接收Product消息，返回ProductID消息
+    rpc addProduct(Product) returns (ProductID);
+    // 获取商品：接收ProductID消息，返回Product消息
+    rpc getProduct(ProductID) returns (Product);
+}
+
+// 定义商品实体结构体
+message Product {
+    string id = 1;          // 商品唯一标识符（字段编号 1）
+    string name = 2;        // 商品名称（字段编号 2）
+    string description = 3; // 商品描述（字段编号 3）
+}
+
+// 定义商品ID结构体
+message ProductID {
+    string value = 1;       // 商品ID值（字段编号 1）
+}
+```
+可以看到,protobuf的格式相当清晰,比起OpenAPI规范的可读性要高了许多,不再需要强调路由,方法这些让人心累的无关参数.
+
+### 原理
+gRPC的通信过程很简单,以客户端调用getProduct函数为例:
+1. 客户端进程调用生成存根中的 `getProduct` 函数。
+2. 客户端存根会创建一个携带编码后消息的 HTTP POST 请求。在 gRPC 中，所有请求都是 HTTP POST 请求，其 `content-type` 以 `application/grpc` 为前缀。所调用的远程函数（`/ProductInfo/getProduct`）作为单独的 HTTP 头发送。
+3. HTTP 请求消息通过网络发送到服务器机器。
+4. 当消息到达服务器时，服务器会检查消息头以确定需要调用哪个服务功能，并将消息交给服务存根处理。
+5. 服务存根将消息字节解析为特定于语言的数据结构。
+6. 然后，服务使用解析后的消息，对 `getProduct` 函数进行本地调用。
+7. 服务函数的返回被编码后发送回客户端。响应消息遵循我们在客户端观察到的相同流程（响应→编码→线上的 HTTP 响应）；消息被解包，其值返回给等待的客户端进程。
+
+这些步骤与大多数RPC系统（如CORBA、Java RMI等）非常相似。这里gRPC的主要区别在于它对消息的编码方式--Protocol Buffers,这是一种语言无关的机制.
+
+事实上来讲,gRPC确实没什么革命的地方,只不过把以前要共同维护的OpenAPI文档换成了proto文档而已,但它简化了HTTP方法,路径依赖等比较边角料的参数,从而让程序员能够只专注于简单的函数调用即可.
+
+### 总结
+可以看的出来目前gRPC还不是那么的成熟,不然这本书的实战部分就不会讲的这么云山雾罩了.
+## Kafka: The Definitive Guide,2nd edition
+- 出版于2021年（第2版），出版商：O'Reilly，作者：Gwen Shapira。
+
+### 介绍
+- Kafka由Linkedin在09年研发出来,并在11年捐献给Apache基金会,所以又叫Apache Kafka.
+
+>I thought that since Kafka was a system optimized for writing,
+using a writer’s name would make sense.
+
+I had taken a lot of lit classes in college and liked Franz Kafka.
+
+Plus the name sounded cool for an open source project.
+
+Kafka中的数据单位称为消息(messages)。如果你有数据库背景，可以将此视为类似行或记录的概念。对Kafka而言，消息本质上就是一个字节数组，因此其中包含的数据对Kafka没有特定格式或含义。消息可以附带一个可选的元数据片段，称为键,可以辅助消息写入kafka中.
+
+- Kafka传输的消息格式一般为紧凑的Apache Avro而不是可读性强的Json
+- Kafka中的消息按照topic进行分类(类似于文件系统中的文件夹),每个topic可以有多个partition(分区),消息以追加形式写入分区中,按照顺序从头到尾读取.
+- 不同服务器可以存储一个分区的多个副本,从而保障数据安全.
+- stream表示消息传输时的数据流.
+
+Kafka clients是Kafka server的使用者,有两种基本类型: producers and consumers.
+- 单个Kafka server被称为Broker(代理),它从生产者处接受消息并存储,并响应消费者的服务请求.
+- 多个Broker组成一个cluster(代理集群),Broker中自动选举一个Controller作为管理员.
+
+消息保留了一定时间(例如7天)或者分区达到特定的容量大小就会自动进行删除,这是Kafka的独特之处,简化了其他消息队列系统中复杂的数据库管理方式.
+
+### 补充: docker启动kafka
+由于这本书出版于2021年,当时kafka版本为2.8.0,底层用的还是ZooKeeper,而现在Kafka更新到了4.3.1版本,底层全面换成了KRaft,所以书中的安装指南基本没有任何作用了.
+
+- [原因](https://spoud-io.medium.com/embracing-the-future-of-kafka-why-its-time-to-migrate-from-zookeeper-to-kraft-f1a5225ac48a)
+
+要想跨平台使用Kafka,显然只能让Docker来干活儿了,自然,我是不知道怎么写kafka的compose文档的,看一下
+[官方](https://hub.docker.com/r/apache/kafka)推荐的单节点写法:
+
+```yml
+services:
+  broker:
+    image: apache/kafka:latest
+    container_name: broker
+    ports:
+      - 9092:9092
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://localhost:9092,CONTROLLER://localhost:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+```
+考虑到我们只是测试使用,所以就不需要绑定到数据卷上了,kafka,启动!
+
+```bash
+docker compose up -d 
+```
+启动成功后,首先运行以下命令创建topic:
+
+```bash
+docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --create --topic test-topic --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
+```
+在该终端启动producer:
+
+```bash
+docker exec -it kafka /opt/kafka/bin/kafka-console-producer.sh --topic test-topic --bootstrap-server localhost:9092
+```
+
+另开一个终端启动consumer:
+
+```bash
+docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --topic test-topic --from-beginning --bootstrap-server localhost:9092
+```
+
+在producer这边随意发送消息,都可以在consumer那边接收到并输出:
+
+![效果图](PixPin_2026-07-27_10-52-43.webp)
+
+效果很不错!
+
+- 上述命令中的第一行完全相同,因为都要用到kafka随安装自带的CLI工具.
+
+### 生产者
+首先配置`bootstrap.servers`等参数来初始化Producer,接着构建一个ProducerRecord对象,该对象对应所有kafka能发送的信息(纯文本,Json字符串,key-value对,数据表),最终由producer发送给kafka的client.
+
+### 消费者
+>消费者数量超过topic中的分区数量是毫无意义的——部分消费者将处于空闲状态
+
+![示意图](PixPin_2026-07-29_10-10-08.webp)
+
+创建消费者的过程与创建生产者没有太大的区别,同样需要先配置servers等属性,并分配特定的消费者组id,再通过订阅(subscribe)方法来接受特定的topic下的消息.
+
+### 总结
+了解到这里就基本足够了,后面就是一些琐碎的配置环节了.
+
+## Learning Domain-Driven Design
+- 出版于2021年，出版商：O'Reilly，作者：Vlad Khononov。
+- 基本都是泛泛而谈的空话,没看头.
 
 ## Vision Language Models
 - 出版于2026年，出版商：O'Reilly，作者：Merve Noyan。
@@ -140,19 +323,7 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 
 
 
-## Fundamentals of Data Engineering(待补充)
-- 出版于2022年，出版商：O'Reilly，作者：Joe Reis。
 
-### ch1
-这一章的数据工程历史介绍很有看头.
-
->“Big data is like teenage sex: everyone talks about it, nobody really knows how to do it, everyone thinks everyone else is doing it, so everyone claims they are doing it.”
-
->尽管许多数据科学家热衷于构建和调优机器学习模型，但现实是，据估计，他们70%到80%的时间都耗费在数据层次结构的底层三个部分——数据收集、数据清理、数据处理——而只有极少时间用于分析和机器学习。
-
-- 确实很对,大部分时间都是花在摆弄数据表格上了.
-
-![图示](PixPin_2026-08-09_14-08-51.webp)
 
 ## Systems Performance,2nd edition(待补充)
 - 出版于2020年（第2版），作者：Brendan Gregg。
@@ -387,6 +558,10 @@ public class MaxTemperature {
 
 #### The Hadoop Distributed Filesystem(HDFS)
 
+## RabbitMQ in Depth
+- 出版于2017年，出版商：Manning，作者：Gavin M. Roy。
+
+该说是太老了还是怎么呢,讲的一点都不清晰,看了两章都没看明白RabbitMQ的基本原理
 
 
 ## Redis设计与实现
@@ -16951,190 +17126,7 @@ Chris Riccomini,O'Reilly 对他的介绍是：拥有 15年以上软件工程经�
 ### 总结
 基本都是概念,没多少实战,还教我用AI写测试,跟我原来想的差距有点大.
 
-## gRPC: Up and Running
-- 出版于2020年，出版商：O'Reilly，作者：Kasun Indrasiri。
 
-### 介绍
-- 江山代有才人出,各领风骚一两年
-
->在构建现代云原生应用和微服务的同步请求-响应式通信时，最常用且传统的方法是将其构建为RESTful服务，即将应用或服务建模为可通过HTTP协议上的网络调用访问和更改状态的资源集合。然而，对于大多数用例而言，RESTful服务在构建进程间通信时往往较为笨重、效率低下且易出错。通常需要一种高度可扩展、松散耦合且比RESTful服务更高效的进程间通信技术。这正是gRPC——一种用于构建分布式应用和微服务的现代进程间通信方式——发挥作用的地方
-
-gRPC（“g”在每个gRPC版本中代表不同的含义）是一种进程间通信技术，它使您能够像进行本地函数调用一样轻松地连接、调用、操作和调试分布式异构应用程序。
-
-![本书示例](PixPin_2026-08-06_13-41-46.webp)
-
-作为有线传输协议，gRPC使用HTTP/2，这是一种高性能的二进制消息协议，支持双向消息传递。
-
-RPC是构建客户端-服务应用程序的一种流行的进程间通信技术。通过RPC，客户端可以像调用本地方法一样远程调用某个函数或方法。早期有几种流行的RPC实现，如公共对象请求代理架构（CORBA）和Java远程方法调用（RMI），它们用于构建和连接服务或应用程序。然而，这类传统RPC实现大多极其复杂，因为它们构建在像TCP这样的通信协议之上，这阻碍了互操作性，并且基于臃肿的规范。
-
-由于传统RPC实现（如CORBA）的局限性，Simple Object Access Protocol（SOAP）被设计并由微软、IBM等大型企业大力推广。SOAP是 service-oriented architecture（SOA）中的标准通信技术，用于在服务（在SOA上下文中通常称为Web服务）之间交换基于XML的结构化数据，并通过任何底层通信协议（如HTTP，最常用）进行通信。
-
-SOAP曾是一种相当流行的技术，但消息格式的复杂性以及围绕SOAP构建的规范复杂性，阻碍了分布式应用开发的敏捷性。因此，在现代分布式应用开发的背景下，SOAP web服务被视为一种遗留技术。相较于使用SOAP，当前大多数现有的分布式应用正采用REST架构风格进行开发。
-
-REST的事实标准实现是HTTP，而在HTTP中，你可以将RESTful Web应用建模为一系列资源，这些资源通过唯一标识符（URL）进行访问。状态变更操作以HTTP动词（如GET、POST、PUT、DELETE、PATCH等）的形式应用于这些资源之上。资源的状态以文本格式（如JSON、XML、HTML、YAML等）表示。
-
-使用REST架构风格配合HTTP和JSON构建应用程序已成为构建微服务的事实标准方法。然而，随着微服务数量及其网络交互的激增，RESTful服务已无法满足预期的现代需求。RESTful服务存在几个关键限制，阻碍了其作为基于微服务的现代应用程序的消息传递协议的能力。
-
-本质上，RESTful服务建立在基于文本的传输协议（如HTTP 1.x）之上，并利用可读的文本格式（如JSON）。在服务到服务的通信中，使用JSON这类文本格式效率并不高，因为通信双方无需采用这种面向人类的可读文本格式。
-
-作为一种架构风格，REST 包含许多“良好实践”，遵循这些实践才能构建出真正的 RESTful 服务。然而，这些实践并未作为实现协议（如HTTP）的强制部分，使得在实现阶段难以强制执行。因此，在实践中，大多数自称为 RESTful 的服务并未 properly 遵循 REST 风格的基础。由此，所谓的 RESTful 服务大多仅仅是通过网络暴露的 HTTP 服务。因此，开发团队不得不花费大量时间维护 RESTful 服务的一致性和纯粹性。
-
-Google一直使用一个名为Stubby的通用RPC框架，来连接数千个运行在多个数据中心、采用不同技术构建的微服务。其核心RPC层旨在处理每秒数百亿次请求的互联网规模。Stubby拥有众多优秀特性，但它并未被标准化为通用框架，因为它与Google的内部基础设施耦合过紧。2015年，谷歌发布了gRPC作为开源RPC框架；它是一种标准化、通用且跨平台的RPC基础设施。gRPC旨在向广大社区提供与Stubby相同的可扩展性、性能和功能。
-
-gRPC并非使用JSON或XML这类文本格式，而是采用基于协议缓冲区的二进制协议来与gRPC服务和客户端进行通信。此外，gRPC在HTTP/2之上实现了协议缓冲区，这使得它在进程间通信中更加高效。
-
-随着采用gRPC，Netflix在开发者生产力方面获得了巨大提升。例如，对于每个客户端，数百行自定义代码被替换为proto中仅需两到三行的配置。创建一个原本可能需要两到三周的客户端，如今使用gRPC只需几分钟即可完成。平台的整体稳定性也大为改善，因为大多数常规功能不再需要手写代码，并且有一种全面且安全的方式来定义服务接口.
-
-```ts
-// 指定Protobuf版本语法（Proto3）
-syntax = "proto3";
-
-// 从其他包导入消息类型
-import "google/protobuf/wrappers.proto";
-
-// 声明包名，用于避免消息类型命名冲突，并决定生成的代码命名空间
-package ecommerce;
-
-// 定义RPC服务接口
-service ProductInfo {
-    // 添加商品：接收Product消息，返回ProductID消息
-    rpc addProduct(Product) returns (ProductID);
-    // 获取商品：接收ProductID消息，返回Product消息
-    rpc getProduct(ProductID) returns (Product);
-}
-
-// 定义商品实体结构体
-message Product {
-    string id = 1;          // 商品唯一标识符（字段编号 1）
-    string name = 2;        // 商品名称（字段编号 2）
-    string description = 3; // 商品描述（字段编号 3）
-}
-
-// 定义商品ID结构体
-message ProductID {
-    string value = 1;       // 商品ID值（字段编号 1）
-}
-```
-可以看到,protobuf的格式相当清晰,比起OpenAPI规范的可读性要高了许多,不再需要强调路由,方法这些让人心累的无关参数.
-
-### 原理
-gRPC的通信过程很简单,以客户端调用getProduct函数为例:
-1. 客户端进程调用生成存根中的 `getProduct` 函数。
-2. 客户端存根会创建一个携带编码后消息的 HTTP POST 请求。在 gRPC 中，所有请求都是 HTTP POST 请求，其 `content-type` 以 `application/grpc` 为前缀。所调用的远程函数（`/ProductInfo/getProduct`）作为单独的 HTTP 头发送。
-3. HTTP 请求消息通过网络发送到服务器机器。
-4. 当消息到达服务器时，服务器会检查消息头以确定需要调用哪个服务功能，并将消息交给服务存根处理。
-5. 服务存根将消息字节解析为特定于语言的数据结构。
-6. 然后，服务使用解析后的消息，对 `getProduct` 函数进行本地调用。
-7. 服务函数的返回被编码后发送回客户端。响应消息遵循我们在客户端观察到的相同流程（响应→编码→线上的 HTTP 响应）；消息被解包，其值返回给等待的客户端进程。
-
-这些步骤与大多数RPC系统（如CORBA、Java RMI等）非常相似。这里gRPC的主要区别在于它对消息的编码方式--Protocol Buffers,这是一种语言无关的机制.
-
-事实上来讲,gRPC确实没什么革命的地方,只不过把以前要共同维护的OpenAPI文档换成了proto文档而已,但它简化了HTTP方法,路径依赖等比较边角料的参数,从而让程序员能够只专注于简单的函数调用即可.
-
-### 总结
-可以看的出来目前gRPC还不是那么的成熟,不然这本书的实战部分就不会讲的这么云山雾罩了.
-
-## Kafka: The Definitive Guide,2nd edition
-- 出版于2021年（第2版），出版商：O'Reilly，作者：Gwen Shapira。
-
-### 介绍
-- Kafka由Linkedin在09年研发出来,并在11年捐献给Apache基金会,所以又叫Apache Kafka.
-
->I thought that since Kafka was a system optimized for writing,
-using a writer’s name would make sense.
-
-I had taken a lot of lit classes in college and liked Franz Kafka.
-
-Plus the name sounded cool for an open source project.
-
-Kafka中的数据单位称为消息(messages)。如果你有数据库背景，可以将此视为类似行或记录的概念。对Kafka而言，消息本质上就是一个字节数组，因此其中包含的数据对Kafka没有特定格式或含义。消息可以附带一个可选的元数据片段，称为键,可以辅助消息写入kafka中.
-
-- Kafka传输的消息格式一般为紧凑的Apache Avro而不是可读性强的Json
-- Kafka中的消息按照topic进行分类(类似于文件系统中的文件夹),每个topic可以有多个partition(分区),消息以追加形式写入分区中,按照顺序从头到尾读取.
-- 不同服务器可以存储一个分区的多个副本,从而保障数据安全.
-- stream表示消息传输时的数据流.
-
-Kafka clients是Kafka server的使用者,有两种基本类型: producers and consumers.
-- 单个Kafka server被称为Broker(代理),它从生产者处接受消息并存储,并响应消费者的服务请求.
-- 多个Broker组成一个cluster(代理集群),Broker中自动选举一个Controller作为管理员.
-
-消息保留了一定时间(例如7天)或者分区达到特定的容量大小就会自动进行删除,这是Kafka的独特之处,简化了其他消息队列系统中复杂的数据库管理方式.
-
-### 补充: docker启动kafka
-由于这本书出版于2021年,当时kafka版本为2.8.0,底层用的还是ZooKeeper,而现在Kafka更新到了4.3.1版本,底层全面换成了KRaft,所以书中的安装指南基本没有任何作用了.
-
-- [原因](https://spoud-io.medium.com/embracing-the-future-of-kafka-why-its-time-to-migrate-from-zookeeper-to-kraft-f1a5225ac48a)
-
-要想跨平台使用Kafka,显然只能让Docker来干活儿了,自然,我是不知道怎么写kafka的compose文档的,看一下
-[官方](https://hub.docker.com/r/apache/kafka)推荐的单节点写法:
-
-```yml
-services:
-  broker:
-    image: apache/kafka:latest
-    container_name: broker
-    ports:
-      - 9092:9092
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://localhost:9092,CONTROLLER://localhost:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_NUM_PARTITIONS: 3
-```
-考虑到我们只是测试使用,所以就不需要绑定到数据卷上了,kafka,启动!
-
-```bash
-docker compose up -d 
-```
-启动成功后,首先运行以下命令创建topic:
-
-```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --create --topic test-topic --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
-```
-在该终端启动producer:
-
-```bash
-docker exec -it kafka /opt/kafka/bin/kafka-console-producer.sh --topic test-topic --bootstrap-server localhost:9092
-```
-
-另开一个终端启动consumer:
-
-```bash
-docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --topic test-topic --from-beginning --bootstrap-server localhost:9092
-```
-
-在producer这边随意发送消息,都可以在consumer那边接收到并输出:
-
-![效果图](PixPin_2026-07-27_10-52-43.webp)
-
-效果很不错!
-
-- 上述命令中的第一行完全相同,因为都要用到kafka随安装自带的CLI工具.
-
-### 生产者
-首先配置`bootstrap.servers`等参数来初始化Producer,接着构建一个ProducerRecord对象,该对象对应所有kafka能发送的信息(纯文本,Json字符串,key-value对,数据表),最终由producer发送给kafka的client.
-
-### 消费者
->消费者数量超过topic中的分区数量是毫无意义的——部分消费者将处于空闲状态
-
-![示意图](PixPin_2026-07-29_10-10-08.webp)
-
-创建消费者的过程与创建生产者没有太大的区别,同样需要先配置servers等属性,并分配特定的消费者组id,再通过订阅(subscribe)方法来接受特定的topic下的消息.
-
-### 总结
-了解到这里就基本足够了,后面就是一些琐碎的配置环节了.
-
-## Learning Domain-Driven Design
-- 出版于2021年，出版商：O'Reilly，作者：Vlad Khononov。
-- 基本都是泛泛而谈的空话,没看头.
 
 ## Mastering API Architecture
 - 出版于2022年，出版商：O'Reilly，作者：James Gough。
@@ -17152,10 +17144,6 @@ Rest基于HTTP1.1规范,而gRPC基于HTTP2.0,二者之间的一个关键区别�
 ### 总结
 非常搞笑,标题叫掌握API架构,但只有前两章稍微有一点关系,后面都是运维相关的知识,很扯淡了.
 
-## RabbitMQ in Depth
-- 出版于2017年，出版商：Manning，作者：Gavin M. Roy。
-
-该说是太老了还是怎么呢,讲的一点都不清晰,看了两章都没看明白RabbitMQ的基本原理
 
 ## Security Chaos Engineering
 - 出版于2020年，出版商：O'Reilly，作者：Aaron Rinehart。
@@ -17368,6 +17356,8 @@ API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也
 
 ### 总结
 没能和实战相互结合,也没能具体深入讨论API与应用其他部分的结合,因此就是在建空中楼阁,完全不推荐.
+## 领域驱动设计精简版
+
 # 推荐阅读书籍
 看了那么多书,自然能找到几本写的不错的.这里只放了一些核心的书籍,至于那些写的一般的书尽管有一定的阅读价值,但想了想还是不放上来,虽然说"人要从错误中学习",但能少走弯路就别走吧.
 ## 基础
