@@ -167,7 +167,7 @@ image: 134718880_p0-さっさと片付けるわよ.webp
 
 # Agent搭建
 ## Agent框架
-### 框架历史-AI
+### 设计思想历史-AI
 | 时间                   | 代表框架 / 事件                               | 当时最核心的思想                                                   | 主要解决什么问题                                        | 历史位置                                                                                    |
 | ---------------------- | --------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | **2022 上半年—下半年** | **ReAct**                                     | `Reason → Action → Observation → Reason`                           | 让 LLM 不只生成答案，还能调用外部工具并根据结果继续决策 | **现代 Agent Loop 的理论基础**                                                              |
@@ -187,6 +187,20 @@ image: 134718880_p0-さっさと片付けるわよ.webp
 | **2025–2026**          | LangGraph、Agents SDK、Google ADK、AutoGen 等 | Durable execution、checkpoint、sandbox、tracing、human-in-the-loop | Agent 长时间运行、失败恢复、权限、安全、可观测性        | Agent 开始从“框架”向 **Runtime / Infrastructure** 演变                                      |
 | **2026 至今**          | 新一代 Agent Runtime / Harness                | `Model + Tools + State + Sandbox + Persistence + Runtime`          | 让 Agent 真正承担分钟级、小时级乃至更长的任务           | 当前重点已经越来越接近**后端、工作流引擎和分布式系统**                                      |
 
+### 主流Agent框架-AI
+| 框架                          | 定位                      | 模型绑定                  | 强项                                                     | 我给的定位 |
+| ----------------------------- | ------------------------- | ------------------------- | -------------------------------------------------------- | ---------- |
+| **OpenAI Agents SDK**         | 轻量 Agent SDK            | OpenAI 最佳，也能接第三方 | Agent loop、tools、handoff、guardrails、tracing、sandbox | ⭐⭐⭐⭐⭐      |
+| **Pydantic AI**               | Python 通用 Agent SDK     | 很低                      | 类型安全、多模型、工具、Graph、eval、durable execution   | ⭐⭐⭐⭐⭐      |
+| **LangGraph**                 | Agent workflow/runtime    | 很低                      | 状态机、复杂流程、持久化、HITL、长任务                   | ⭐⭐⭐⭐⭐      |
+| **Google ADK 2.0**            | 企业级 Agent 开发套件     | Gemini/Google 最佳        | multi-agent、graph、A2A、GCP、context                    | ⭐⭐⭐⭐½      |
+| **Microsoft Agent Framework** | 企业 Agent + workflow     | 很低                      | Azure/.NET/Python、状态、工作流、企业集成                | ⭐⭐⭐⭐½      |
+| **Claude Agent SDK**          | Claude 原生 Agent harness | Claude                    | coding/file/shell、长任务、Claude 原生能力               | ⭐⭐⭐⭐½      |
+| **Mastra**                    | TypeScript Agent 框架     | 很低                      | TS、workflow、eval、memory、前后端整合                   | ⭐⭐⭐⭐½      |
+| **Vercel AI SDK v7**          | Web/TS AI SDK             | 很低                      | Next.js、streaming、Agent UI、ToolLoopAgent              | ⭐⭐⭐⭐½      |
+| **CrewAI**                    | 高层 Multi-Agent 框架     | 较低                      | Role/Crew/Task 抽象、快速多 Agent                        | ⭐⭐⭐⭐       |
+| **LlamaIndex**                | 数据/RAG Agent            | 低                        | RAG、知识库、数据 Agent                                  | ⭐⭐⭐⭐       |
+| **Haystack**                  | RAG/搜索/Agent Pipeline   | 低                        | 企业搜索、RAG pipeline                                   | ⭐⭐⭐½       |
 
 # Agent应用
 ## Ollama

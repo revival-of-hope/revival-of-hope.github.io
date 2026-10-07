@@ -7,6 +7,47 @@ image: 45243652_p0-楽園の素敵な巫女.webp
 >[!TIP]
 >曾经我在给每个编程语言都写了几万字的笔记,后来发现基本全是废话,没有什么可读性,远不如专业技术书籍来得有用,真遇到不会的了,也不如查AI来的快,所以,我现在只会放自己的心得了.
 ## 共性与杂谈
+### Markup Language的历史
+时间线:
+| 时间           | 名称                         | 类型                | 主要用途               | 历史地位 / 今天状态                  |
+| -------------- | ---------------------------- | ------------------- | ---------------------- | ------------------------------------ |
+| **1964**       | **RUNOFF**                   | 过程式标记/文本排版 | 文档排版               | 最早的重要计算机文本标记系统之一     |
+| **1969**       | **GML**                      | 描述性标记          | IBM 文档               | SGML 的直接祖先                      |
+| **1969 起**    | **roff / troff**             | 过程式排版语言      | Unix 文档、man page    | Unix 文档体系的基础，仍有遗产        |
+| **1978**       | **TeX**                      | 排版语言/宏语言     | 数学、科技出版         | 至今仍极重要                         |
+| **1970s末**    | **Scribe**                   | 语义化文档标记      | 学术和技术文档         | 对 Texinfo、LaTeX 等理念影响很大     |
+| **1984–1985**  | **LaTeX**                    | 高层排版标记系统    | 科研论文、图书         | 至今科研领域主流                     |
+| **1980s中期**  | **Texinfo**                  | 语义标记            | GNU 手册               | GNU 官方文档体系                     |
+| **1986**       | **SGML**                     | 元标记语言          | 大型结构化文档         | HTML、XML 的重要祖先                 |
+| **1987**       | **RTF**                      | 富文本交换格式      | Word 等办公软件        | 曾极主流，现重要性下降               |
+| **1990–1991**  | **HTML**                     | 超文本标记语言      | Web 页面               | 当今最重要的标记语言之一             |
+| **1991**       | **DocBook**                  | SGML/XML 文档语言   | 技术书籍、软件文档     | 技术出版经典标准                     |
+| **1992**       | **Setext**                   | 轻量级标记          | 邮件、电子出版         | Markdown 等思想的先驱之一            |
+| **1995**       | **Wiki markup / WikiText**   | 轻量级标记          | Wiki                   | 开创“普通人直接编辑网页”模式         |
+| **1998**       | **XML**                      | 元标记语言          | 数据和文档结构         | 企业系统、配置、协议、文档中仍很重要 |
+| **1998**       | **MathML**                   | XML 应用            | 数学公式               | Web 数学标准                         |
+| **1998**       | **BBCode**                   | 轻量级标记          | 论坛                   | 2000 年代论坛时代极常见              |
+| **1999 前后**  | **WML**                      | XML/SGML 系标记     | 早期手机 WAP 网页      | 智能手机时代后基本退出               |
+| **2000**       | **XHTML**                    | XML 化 HTML         | Web                    | 曾被认为是 HTML 的未来，后来路线失败 |
+| **2001**       | **reStructuredText**         | 轻量级标记          | Python 文档            | Python/Sphinx 生态仍重要             |
+| **2001**       | **SVG**                      | XML 图形标记        | 矢量图形               | 至今 Web 核心格式                    |
+| **2002**       | **Textile**                  | 轻量级标记          | Web、博客              | Markdown 前后时期的重要方案          |
+| **2002**       | **AsciiDoc**                 | 轻量级标记          | 技术文档、图书         | 今天仍很活跃                         |
+| **2001–2002**  | **MediaWiki WikiText**       | Wiki 标记           | Wikipedia              | 世界上影响最大的 Wiki 标记之一       |
+| **2003**       | **Org mode / Org syntax**    | 轻量标记 + 知识管理 | Emacs 笔记、任务、出版 | Emacs 生态核心                       |
+| **2004**       | **Markdown**                 | 轻量级标记          | Web、README、文档      | 当今最普及轻量标记语言               |
+| **2005**       | **DITA**                     | XML 文档架构        | 企业技术文档           | 大型企业内容管理重要标准             |
+| **2007**       | **Wiki Creole**              | Wiki 标记标准       | Wiki 互操作            | 试图统一各家 Wiki 语法               |
+| **2008–2010s** | **GitHub Flavored Markdown** | Markdown 方言       | GitHub                 | 程序员事实上的常用 Markdown          |
+| **2014**       | **CommonMark**               | Markdown 标准化     | 通用 Markdown          | 解决 Markdown 方言不一致问题         |
+| **2014 前后**  | **R Markdown**               | Markdown 扩展       | 数据分析、科研报告     | R / 数据科学领域广泛使用             |
+| **2018 前后**  | **MDX**                      | Markdown + JSX      | React 文档、内容网站   | 前端生态重要混合格式                 |
+| **2020 前后**  | **MyST Markdown**            | Markdown 扩展       | 科研、Sphinx、Jupyter  | 科学计算文档领域增长明显             |
+| **2022–2023**  | **Typst**                    | 标记式排版语言      | 科研论文、排版         | 新一代 LaTeX 竞争者                  |
+
+最后一个Typst我一开始是很看好的,现在的热度也确实起来了,希望能够早日取代Latex,简直不是人写的.不过话有说回来我又用不到.
+
+
 ### 各门语言中导入机制的处理(待补充)
 一开始以为导入不就是将文件插入过来合并到一起嘛,后来发现除了C/Cpp之外,其他语言的做法都不是这样
 #### 总表
@@ -166,6 +207,98 @@ async def send_notification(email: str, background_tasks: BackgroundTasks):
 
 
 ### 异步与多线程(9/27)
+### 装饰器探析(10/6)
+#### 装饰器的历史
+时间线:
+
+| 时间            | 事件                                                    |
+| --------------- | ------------------------------------------------------- |
+| Python 2.2      | 已存在 `classmethod()`、`staticmethod()` 等函数转换机制 |
+| 2002            | Python 社区开始持续讨论专门的 decorator 语法            |
+| 2003-06         | **PEP 318** 正式提出                                    |
+| 2002–2004       | `python-dev` 围绕语法进行了大量讨论                     |
+| 2004 EuroPython | Guido 综合各种方案后决定使用 `@decorator`               |
+| Python 2.4a2    | `@decorator` 首次进入 Python                            |
+| **2004-11-30**  | Python 2.4 正式发布，函数装饰器成为正式语言特性         |
+| 2007            | PEP 3129 提出 class decorator                           |
+| Python 3.0      | 类装饰器正式加入                                        |
+
+当时甚至还有与如今的rust非常相似的提案:
+```py
+[decorator]
+def foo():
+    ...
+```
+只能说还好没这么写,不然可读性确实要差上不少,至于rust为什么不写成`@`?反正可读性本来就够差了...
+
+
+
+装饰器的本质就是函数嵌套,从而避免了用户自己再去调用库函数来包装函数的麻烦,可以说极大地简化了开发流程.
+
+比较早版本的装饰器只允许装饰函数,因为class已经有`metaclass`这个参数来配置了,但用起来显然没有装饰器简单,所以Collin Winter 在 2007 年提出 PEP 3129,并在python3.0中将装饰器引入到类中,可以说是极其重要的改进.
+
+
+
+
+
+让我们再回顾一下装饰器诞生的关键提案[PEP318](https://peps.python.org/pep-0318):
+
+>从 2002 年 2 月到 2004 年 7 月，python-dev 邮件列表上的讨论断断续续地持续着。数百条帖子涌现，人们提出了许多可能的语法变体。Guido 将一份提案列表带到了2004 年的 EuroPython 大会上，并在会上进行了讨论。之后，他决定采用Java 风格的 @decorator 语法，并在 2.4a2 版本中首次出现
+#### 基本格式
+```py
+@dec2
+@dec1
+def func(arg1, arg2, ...):
+    pass
+```
+等价于:
+```py
+def func(arg1, arg2, ...):
+    pass
+func = dec2(dec1(func))
+```
+#### 类中的装饰器
+1. `@dataclass`: 数据类,意思是把这个类用来存放数据
+
+```py
+from dataclasses import dataclass
+
+@dataclass
+class InventoryItem:
+    """Class for keeping track of an item in inventory."""
+    name: str
+    unit_price: float
+    quantity_on_hand: int = 0
+
+    def total_cost(self) -> float:
+        return self.unit_price * self.quantity_on_hand
+```
+编译时会给这个类自动加上初始化方法和几个不太常用的边角料方法如`repr`和`eq`:
+```py
+def __init__(self, name: str, unit_price: float, quantity_on_hand: int = 0):
+    self.name = name
+    self.unit_price = unit_price
+    self.quantity_on_hand = quantity_on_hand
+```
+如果写成这样:
+```py
+@dataclass(frozen=True)
+class TokenUsage:
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+```
+就表示在初始化后不能再修改:
+```py
+usage = TokenUsage(100, 50, 150)
+
+usage.input_tokens = 200
+# dataclasses.FrozenInstanceError
+```
+2. `@staticmethod`: 静态方法,用法与Cpp中的静态方法基本一样,不需要传入self,可以通过实例和类名直接调用
+#### 函数装饰器
+### Strawberry库学习
+### Cpython wsgiref学习(10/7)
 
 ## Golang
 ## Java

@@ -9513,6 +9513,7 @@ else:
     print(final.output_text)
 ```
 
+**终端输出**
 ```bash
 模型自主调用了搜索工具。
 工具： web_search
@@ -9739,10 +9740,490 @@ else:
 
 现在的问题就是,如何把我们的ddgs接入agents里面了.
 #### 重构agents文件夹
-是时候引入一点设计模式的思想了,我们之前的类封装简直是在瞎写,完全没有一点美感.
+是时候引入一点设计模式了,我们之前的类封装简直是在瞎写,完全没有一点美感.
 
+先看看原来的两个文件:
+
+**client.py**
+```py
+from functools import lru_cache
+from typing import Literal
+
+from app.models import Message, MessageRole
+from app.core.config import settings
+
+from openai import Stream, OpenAI
+from openai.types.responses import (
+    EasyInputMessageParam,
+    ResponseInputParam,
+    ResponseStreamEvent,
+)
+
+
+class Agent:
+
+    @lru_cache
+    def _get_client(self) -> OpenAI:
+        return self._create_client(
+            api_key=settings.DEEPSEEK_API_KEY,
+            url=settings.MODEL_URL,
+        )
+
+    def stream_agent(
+        self,
+        *,
+        history: list[Message],
+        model: str = settings.MODEL_NAME,
+        system_prompt: str = settings.DEFAULT_SYSTEM_PROMPT,
+        enable_reasoning: bool = True,
+    ) -> Stream[ResponseStreamEvent]:
+        # 构造消息列表
+        message_list = self._build_input(history=history)
+
+        # 打开通信流
+        stream = self._create_stream(
+            client=self._get_client(),
+            model=model,
+            instructions=system_prompt,
+            input=message_list,
+            enable_reasoning=enable_reasoning,
+        )
+        return stream
+
+    @staticmethod
+    def _build_input(
+        *,
+        history: list[Message],
+    ) -> ResponseInputParam:
+        response_input: ResponseInputParam = []
+        for message in history:
+            role: Literal["user", "assistant"] = (
+                "user" if message.role is MessageRole.USER else "assistant"
+            )
+            response_input.append(
+                EasyInputMessageParam(
+                    role=role,
+                    content=message.content,
+                )
+            )
+        return response_input
+
+    @staticmethod
+    def _create_client(*, api_key: str, url: str) -> OpenAI:
+        return OpenAI(api_key=api_key, base_url=url)
+
+    @staticmethod
+    def _create_stream(
+        *,
+        client: OpenAI,
+        model: str,
+        instructions: str,
+        input: ResponseInputParam,
+        enable_reasoning: bool = True,
+    ) -> Stream[ResponseStreamEvent]:
+        return client.responses.create(
+            model=model,
+            instructions=instructions,
+            input=input,
+            stream=True,
+            reasoning=(
+                {"effort": "high", "summary": "auto"}
+                if enable_reasoning
+                else {"effort": "none"}
+            ),
+        )
+```
+
+**chat.py**
+```py
+from collections.abc import Iterator
+
+from sqlmodel import Session
+from openai import Stream
+from openai.types.responses import Response, ResponseStreamEvent
+from app import crud
+from app.models import ChatRequest, Conversation, MessageRole
+
+
+class ConversationNotFoundError(Exception):
+    """Raised when a conversation is absent or belongs to another user."""
+
+
+class ChatBot:
+    TITLE_LENGTH = 10
+    DEFAULT_TITLE = "新对话"
+
+    @staticmethod
+    def _build_conversation_title(content: str) -> str:
+
+        normalized_text = " ".join(content.split())
+        if not normalized_text:
+            return ChatBot.DEFAULT_TITLE
+
+        return normalized_text[: ChatBot.TITLE_LENGTH]
+
+    def prepare_chat(
+        self,
+        *,
+        session: Session,
+        user_id: int,
+        request: ChatRequest,
+    ) -> Conversation:
+        if request.conversation_id is None:
+            conversation = crud.create_conversation(
+                session=session,
+                user_id=user_id,
+                title=self._build_conversation_title(request.content),
+            )
+        else:
+            conversation = crud.get_conversation_for_user(
+                session=session,
+                conversation_id=request.conversation_id,
+                user_id=user_id,
+            )
+            if conversation is None:
+                raise ConversationNotFoundError
+        crud.save_message(
+            session=session,
+            conversation=conversation,
+            role=MessageRole.USER,
+            content=request.content,
+        )
+        return conversation
+
+    def stream_and_save(
+        self,
+        *,
+        session: Session,
+        conversation_id: int,
+        chunks: Stream[ResponseStreamEvent],
+    ) -> Iterator[str]:
+        collected_chunks: list[str] = []
+        reasoning_chunks: list[str] = []
+        reasoning_started = False
+        answer_started = False
+        final_response: Response | None = None
+        for event in chunks:
+            if event.type == "response.output_text.delta":
+                if not answer_started:
+                    if reasoning_started:
+                        yield "\n\n回答：\n"
+                    answer_started = True
+                collected_chunks.append(event.delta)
+                yield event.delta
+            elif event.type == "response.reasoning_text.delta":
+                if not reasoning_started:
+                    yield "思考：\n"
+                    reasoning_started = True
+                reasoning_chunks.append(event.delta)
+                yield event.delta
+            elif event.type == "response.completed":
+                final_response = event.response
+            elif event.type == "response.incomplete":
+                final_response = event.response
+            elif event.type == "error":
+                raise RuntimeError(event.message)
+            elif event.type == "response.failed":
+                error = event.response.error
+                raise RuntimeError(error.message if error else "Response failed")
+
+        full_content = "".join(collected_chunks)
+        if not full_content or not final_response or not final_response.usage:
+            return
+        usage = final_response.usage
+        conversation = session.get(Conversation, conversation_id)
+        if conversation is None:
+            return
+        crud.save_message(
+            session=session,
+            conversation=conversation,
+            role=MessageRole.ASSISTANT,
+            content=full_content,
+            reasoning="".join(reasoning_chunks) or None,
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            total_tokens=usage.total_tokens,
+        )
+```
+
+职责上可以说是相当的混乱,毫不客气的说,就是一堆垃圾,不具备可维护性.
+
+为了让代码更好看一点,我们可以用到Repository Pattern,基本思想就是用业务操作封装数据库访问,避免代码中的数据库操作与上游操作混在一起.
+
+
+首先是删掉这个毫无意义的`ConversationNotFoundError` 封装,目前只用普通的Exception就够了.
 
 
 #### 正式接入ddgs服务
+## ch18: 接入RAG和Vector Database
+## ch19: Agent框架测评与引入
+### 背景
+可以发现,当服务越堆越多时,我们这个项目的可维护性就越来越低,唯一的解决方法就是引入框架,将大量重复工作封装在框架背后,只关注高层的逻辑设计,如此一来,不但开发起来更加简单,也能让代码的性能更高.
 
-## ch18: Agent框架测评
+先看一下目前的主流框架:
+| 框架                          | 定位                      | 模型绑定                  | 强项                                                     | 我给的定位 |
+| ----------------------------- | ------------------------- | ------------------------- | -------------------------------------------------------- | ---------- |
+| **OpenAI Agents SDK**         | 轻量 Agent SDK            | OpenAI 最佳，也能接第三方 | Agent loop、tools、handoff、guardrails、tracing、sandbox | ⭐⭐⭐⭐⭐      |
+| **Pydantic AI**               | Python 通用 Agent SDK     | 很低                      | 类型安全、多模型、工具、Graph、eval、durable execution   | ⭐⭐⭐⭐⭐      |
+| **LangGraph**                 | Agent workflow/runtime    | 很低                      | 状态机、复杂流程、持久化、HITL、长任务                   | ⭐⭐⭐⭐⭐      |
+| **Google ADK 2.0**            | 企业级 Agent 开发套件     | Gemini/Google 最佳        | multi-agent、graph、A2A、GCP、context                    | ⭐⭐⭐⭐½      |
+| **Microsoft Agent Framework** | 企业 Agent + workflow     | 很低                      | Azure/.NET/Python、状态、工作流、企业集成                | ⭐⭐⭐⭐½      |
+| **Claude Agent SDK**          | Claude 原生 Agent harness | Claude                    | coding/file/shell、长任务、Claude 原生能力               | ⭐⭐⭐⭐½      |
+| **Mastra**                    | TypeScript Agent 框架     | 很低                      | TS、workflow、eval、memory、前后端整合                   | ⭐⭐⭐⭐½      |
+| **Vercel AI SDK v7**          | Web/TS AI SDK             | 很低                      | Next.js、streaming、Agent UI、ToolLoopAgent              | ⭐⭐⭐⭐½      |
+| **CrewAI**                    | 高层 Multi-Agent 框架     | 较低                      | Role/Crew/Task 抽象、快速多 Agent                        | ⭐⭐⭐⭐       |
+| **LlamaIndex**                | 数据/RAG Agent            | 低                        | RAG、知识库、数据 Agent                                  | ⭐⭐⭐⭐       |
+
+
+我们这里就拿前三名来做个测评,看看哪个最适合Agent构建.
+
+### [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/)
+
+#### 初体验
+导入:
+```bash
+uv add openai-agents
+```
+
+
+基本代码:
+```py
+from openai import AsyncOpenAI
+from agents import (
+    Agent,
+    Runner,
+    ModelSettings,
+    OpenAIChatCompletionsModel,
+)
+
+# 使用 OpenAI 兼容客户端连接 DeepSeek
+client = AsyncOpenAI(
+    api_key="sk",
+    base_url="https://api.deepseek.com",
+)
+
+agent = Agent(
+    name="Assistant",
+    instructions="You are a helpful assistant",
+    model=OpenAIChatCompletionsModel(
+        model="deepseek-flash",
+        openai_client=client,
+    ),
+    # 普通文本生成，关闭深度思考
+    model_settings=ModelSettings(
+        extra_body={"thinking": {"type": "disabled"}},
+    ),
+)
+
+result = Runner.run_sync(
+    agent,
+    "Write a haiku about recursion in programming.",
+)
+
+print(result.final_output)
+```
+
+工具调用:
+```py
+import os
+
+from openai import AsyncOpenAI
+from agents import (
+    Agent,
+    Runner,
+    OpenAIChatCompletionsModel,
+    set_tracing_disabled,
+)
+from agents.decorators import tool
+from dotenv import load_dotenv
+
+load_dotenv("./.env")
+API_KEY = os.getenv("API_KEY")
+
+set_tracing_disabled(True)
+
+
+@tool
+def history_fun_fact() -> str:
+    """Return a short history fact."""
+    return "Sharks are older than trees."
+
+
+# 使用 OpenAI 兼容客户端连接 DeepSeek
+client = AsyncOpenAI(
+    api_key=API_KEY,
+    base_url="https://api.deepseek.com",
+)
+
+agent = Agent(
+    name="Assistant",
+    instructions="You are a helpful assistant",
+    model=OpenAIChatCompletionsModel(
+        model="deepseek-flash",
+        openai_client=client,
+    ),
+    tools=[
+        history_fun_fact,
+    ],
+)
+
+result = Runner.run_sync(
+    agent,
+    "Tell me something surprising about ancient life on Earth.",
+)
+
+print(result.final_output)
+```
+
+光是这样肯定是远不如普通的responses API调用的,所以我们需要继续深入研究.
+#### Sandbox Agent
+##### 概念
+现代智能体在能够操作文件系统中的真实文件时效果最佳。沙箱智能体可以利用专用工具和 shell 命令搜索和操作大型文档集、编辑文件、生成制品以及运行命令。沙箱为模型提供一个持久化工作区，智能体可以使用它代您完成工作
+
+以下是从图片中提取的文字，并进行了排版美化：
+
+**SandboxAgent 仍然是 Agent。** 它保留常规的智能体接口，例如 `instructions`、`prompt`、`tools`、`handoffs`、`mcp_servers`、`model_settings`、`output_type`、安全防护措施和钩子，并且仍通过常规的 `Runner` API 运行。变化之处在于执行边界：
+
+*   **`SandboxAgent` 定义智能体本身：** 常规的智能体配置，以及 `default_manifest`、`base_instructions`、`run_as` 等沙箱专用默认值，还有文件系统工具、shell 访问、技能、记忆或压缩等能力。
+*   **`Manifest` 声明新沙箱工作区所需的初始内容和布局**，包括文件、仓库、挂载和环境。
+*   **沙箱会话是运行命令和更改文件的实时执行环境。** 会话提供的隔离程度取决于其后端和配置。
+*   **`SandboxRunConfig` 决定运行如何获取该沙箱会话**，例如直接注入会话、从序列化的沙箱会话状态重新连接，或通过沙箱客户端创建新的沙箱会话。
+*   **保存的沙箱状态和快照让后续运行能够重新连接到先前的工作**，或使用保存的内容初始化新的沙箱会话。
+
+
+
+
+
+#### Runner
+你可以通过 `Runner` 类运行智能体,有 3 种选择：
+
+1. **`Runner.run()`**：异步运行并返回 `RunResult`。
+2. **`Runner.run_sync()`**：同步方法，底层直接运行 `.run()`。
+3. **`Runner.run_streamed()`**：异步运行并返回 `RunResultStreaming`。它以流式传输模式调用 LLM，并在收到事件时将其流式传输给你。
+
+调用 `Runner` 方法中的任意一个时，需要传入起始智能体和输入。输入可以是：
+
+*   一个字符串（视为用户消息）；
+*   OpenAI Responses API 格式的输入项列表；或者
+*   恢复暂停的运行或因 `cancel(mode="after_turn")` 而停止的运行时使用的 `RunState`。状态还可以携带为下次恢复后的模型调用暂存的输入。
+
+随后，Runner 会运行以下循环：
+
+1.  使用当前输入调用当前智能体的 LLM。
+2.  LLM 生成输出。
+    *   a. 如果 Runner 将 LLM 输出归类为最终输出，循环结束并返回结果。
+    *   b. 如果 LLM 请求任务转移，则更新当前智能体和输入，并重新运行循环。
+    *   c. 如果 LLM 生成工具调用，则运行这些工具调用、追加结果，然后重新运行循环。
+3.  如果超过传入的 `max_turns`，则引发 `MaxTurnsExceeded` 异常。传入 `max_turns=None` 可禁用此轮次限制。
+
+
+说真的,这个封装很简单,基本的Responses API也能做的差不多,还要你来搞啊.
+
+
+#### MCP接入
+```py
+import asyncio
+
+from agents import Agent, HostedMCPTool, Runner
+
+async def main() -> None:
+    agent = Agent(
+        name="Assistant",
+        instructions="Use the DeepWiki hosted MCP server to inspect openai/openai-agents-python.",
+        tools=[
+            HostedMCPTool(
+                tool_config={
+                    "type": "mcp",
+                    "server_label": "deepwiki",
+                    "server_url": "https://mcp.deepwiki.com/mcp",
+                    "require_approval": "never",
+                }
+            )
+        ],
+    )
+
+    result = await Runner.run(
+        agent,
+        "Which language is the repository openai/openai-agents-python written in?",
+    )
+    print(result.final_output)
+
+asyncio.run(main())
+```
+
+#### 边角料知识
+1. 查看tokens耗费:
+```py
+result = await Runner.run(agent, "What's the weather in Tokyo?")
+usage = result.context_wrapper.usage
+
+print("Requests:", usage.requests)
+print("Input tokens:", usage.input_tokens)
+print("Output tokens:", usage.output_tokens)
+print("Total tokens:", usage.total_tokens)
+```
+
+2. 流式传输
+```py
+import asyncio
+from openai.types.responses import ResponseTextDeltaEvent
+from agents import Agent, Runner
+
+async def main():
+    agent = Agent(
+        name="Joker",
+        instructions="You are a helpful assistant.",
+    )
+
+    result = Runner.run_streamed(agent, input="Please tell me 5 jokes.")
+    async for event in result.stream_events():
+        if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
+            print(event.data.delta, end="", flush=True)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+#### 总结
+满足了一个Agents框架的一些基本需求,但最重要的Agents编排的支持很弱,所以顶多用来做一些简单的智能体,要是告诉我你CodeX也是用这个框架做的话那就是自欺欺人了.
+
+只能说是差强人意,不推荐使用
+### [Pydantic AI](https://pydantic.dev/docs/ai/overview/)
+#### 背景
+Pydantic大家都很熟悉了,而在Agent时代,我们都需要强调LLM的标准化输出,Pydantic官方立马就意识到这不就是自己最擅长的领域吗.
+
+因此他们在24年10月就构建并开源了Pydantic AI,并在25年9月正式发布了V1版本,而今年的6月份发布了V2版本,逐渐稳定下来.
+#### 初体验
+导入:
+```bash
+uv add pydantic-ai pydantic-ai-harness
+```
+
+使用:
+```py
+from dotenv import load_dotenv
+
+from pydantic_ai import Agent
+from pydantic_ai.capabilities import LocalWorkspace, WebSearch
+from pydantic_ai_harness import Advisor, Coder
+
+load_dotenv()
+
+agent = Agent(
+    "deepseek:deepseek-v4-flash",
+    capabilities=[
+        LocalWorkspace("."),
+        Coder(),
+        WebSearch(),
+        Advisor("deepseek:deepseek-v4-pro"),
+    ],
+)
+
+agent.to_cli_sync()
+```
+哎呀妈呀,这一下子就高端起来了,直接做了个Coding Agent出来,用的代码比OpenAI Agents少个几十倍好不好,还原生支持Deepseek,我简直被感动哭了,终于不用加Adapter了.
+
+不过一个问题就是Coder不支持直接在Windows下运行,要么用WSL,要么用虚拟机,才能看到效果.
+
+

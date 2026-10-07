@@ -7,9 +7,30 @@ tags:
     - 调研
 ---
 最近十年的新潮技术层出不穷,但总不能看到一个就发一次文章,所以就单独列一个笔记来记录了.主要收集是那些日常开发都不太可能听过的工具和平台
+## Agent相关
+### Inspect AI
+#### 介绍
+一个用于评测大语言模型和 AI Agent 的开源框架，由英国 AI Security Institute（AISI） 和 Meridian Labs 开发
+
+测评代码:
+```bash
+pip install openai
+export OPENAI_API_KEY=your-openai-api-key
+inspect eval simpleqa.py --model openai/gpt-4o
+```
+测评Deepseek:
+```bash
+pip install inspect-ai openai
+
+export DEEPSEEK_API_KEY=你的key
+
+inspect eval arc.py --model deepseek/deepseek-flash
+```
+
+当然,最值得推敲的地方就是测评自己写的Agent了,而且可测评的指标很多,是一个相当不错的Agent测试框架.
 
 
-## 基座工具
+## 架构相关
 ### Temporal
 #### 背景
 大约 2000 年代中期，Amazon 正在从大型单体系统逐渐走向大量分布式服务。
@@ -75,3 +96,6 @@ operations:
 ```
 
 ### Apache APISIX
+
+
+## 构建和库相关
