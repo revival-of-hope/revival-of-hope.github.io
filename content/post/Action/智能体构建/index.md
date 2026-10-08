@@ -9031,7 +9031,126 @@ INFO:__main__:Initial data created
 >
 >但当项目大到几百个文件或者说需要多人开发时,那就必须要加测试了,因为人的脑容量终究是有限的,你不可能一个人记得住那么多东西,同样,你不能指望别人能记住所有东西.
 
-有个很现实的问题,没写过测试的人如何知道怎么写测试?唯一的方法就是去阅读经典项目了.不过好在python的第三方库太多了,我们有一些不用自己写测试的邪修方法
+有个很现实的问题,没写过测试的人如何知道怎么写测试?唯一的方法就是去阅读经典项目了.不过好在python的第三方库太多了,我们有一些不用自己写测试的邪修方法,不过主要都聚焦在API设计上,毕竟业务代码的测试只能自己写,框架也不知道你希望产生什么结果嘛.
+### Redocly静态检查
+用法非常简单,用npx执行即可:
+```bash
+npx @redocly/cli lint http://localhost:3000/api/openapi.json
+```
+| 规则集             | 严格程度 | 特点                                          |
+| ------------------ | -------- | --------------------------------------------- |
+| minimal            | 低       | 主要检查基本问题，容忍较多不规范设计          |
+| spec               | 规范级   | 重点检查是否符合 OpenAPI 规范                 |
+| recommended        | 中高     | 同时检查规范与 API 设计最佳实践               |
+| recommended-strict | 高       | 与 recommended 规则相同，但所有警告都变成错误 |
+
+还可以设置更严格的规则,将所有Warning提升为Error:
+```bash
+npx @redocly/cli lint http://localhost:3000/api/openapi.json --extends=recommended-strict
+```
+
+自然,这个工具远不止静态检查的功能,可以用score命令给API打分,也可以用build-docs命令将json变成html API文档,还可以用stats统计自己的API状况,是一个相当优秀的API测试库.
+
+锐评如下:
+```bash
+npx @redocly/cli score http://localhost:3000/api/openapi.json
+Document: http://localhost:3000/api/openapi.json score:
+
+  Scores
+
+  Agent Readiness:  42.6/100
+
+  Subscores
+
+  Parameter Simplicity     [██████████████████░░] 91%
+  Schema Simplicity        [██░░░░░░░░░░░░░░░░░░] 10%
+  Documentation Quality    [░░░░░░░░░░░░░░░░░░░░] 0%
+  Constraint Clarity       [████░░░░░░░░░░░░░░░░] 19%
+  Example Coverage         [░░░░░░░░░░░░░░░░░░░░] 0%
+  Error Clarity            [████████████████████] 100%
+  Dependency Clarity       [███████████████░░░░░] 74%
+  Identifier Clarity       [████████████████████] 100%
+  Polymorphism Clarity     [██░░░░░░░░░░░░░░░░░░] 11%
+  Discoverability          [████████████████████] 99%
+
+  Raw Metrics Summary
+
+  Total operations: 9
+  Parameters/operation:      avg    0.9  median    0.0  min     0  max     3
+  Schema depth:              avg    4.3  median    5.0  min     1  max     5
+  Polymorphism/operation:    avg    2.4  median    2.0  min     0  max     6
+  Properties/operation:      avg    7.3  median    6.0  min     4  max    12
+  Operations with request examples: 0/9 (0%)
+  Operations with response examples: 0/9 (0%)
+  Operations with description: 0/9 (0%)
+
+  Top 9 Hotspot Operations
+
+  GET /api/conversations (ApiConversationsGet)
+    Agent Readiness: 31.7
+    - Deep schema nesting (depth 5)
+    - Polymorphism (anyOf) without discriminator (2 anyOf)
+    - Missing response examples
+    - Missing operation description
+    - No parameter descriptions
+
+  DELETE /api/users/{user_id} (ApiUsersByuserDelete)
+    Agent Readiness: 32.7
+    - Deep schema nesting (depth 5)
+    - Polymorphism (anyOf) without discriminator (2 anyOf)
+    - Missing response examples
+    - Missing operation description
+    - No parameter descriptions
+
+  GET /api/messages (ApiMessagesGet)
+    Agent Readiness: 34.7
+    - Deep schema nesting (depth 5)
+    - Polymorphism (anyOf) without discriminator (4 anyOf)
+    - Missing response examples
+    - Missing operation description
+    - No parameter descriptions
+
+  GET /api/users (ApiUsersGet)
+    Agent Readiness: 36.3
+    - Deep schema nesting (depth 5)
+    - Polymorphism (anyOf) without discriminator (2 anyOf)
+    - Missing response examples
+    - Missing operation description
+    - No parameter descriptions
+
+  POST /api/messages (ApiMessagesPost)
+    Agent Readiness: 33.7
+    - Deep schema nesting (depth 5)
+    - Polymorphism (anyOf) without discriminator (2 anyOf)
+    - Missing request and response examples
+    - Missing operation description
+
+  POST /api/users/register (ApiUsersRegisterPost)
+    Agent Readiness: 38.9
+    - Deep schema nesting (depth 5)
+    - Polymorphism (anyOf) without discriminator (2 anyOf)
+    - Missing request and response examples
+    - Missing operation description
+
+  POST /api/access-token (ApiAccessPost)
+    Agent Readiness: 39.7
+    - Deep schema nesting (depth 5)
+    - Polymorphism (anyOf) without discriminator (6 anyOf)
+    - Missing request and response examples
+    - Missing operation description
+
+  GET /api/users/me (ApiUsersMeGet)
+    Agent Readiness: 37.3
+    - Polymorphism (anyOf) without discriminator (2 anyOf)
+    - Missing response examples
+    - Missing operation description
+
+  GET /api/users/usage (ApiUsersUsageGet)
+    Agent Readiness: 50.7
+    - Missing response examples
+    - Missing operation description
+
+```
 ### Schemathesis自动化测试
 >Schemathesis automatically generates property-based tests from your OpenAPI or GraphQL schema, chains operations into realistic workflows, and exercises the edge cases that break your API.
 
@@ -9378,7 +9497,7 @@ print(page["content"])
 #### 准备阶段
 换用Responses API后,让用户在前端手动勾选联网搜索就不对了,应该直接大手一挥说,我们这个Agent天生就有联网搜索,智能判断用户需求,不用用户自己勾选.
 
-而我们的底气就在于,Responses API是真的能够自己判断是否要联网搜索的,我们在后端连循环都不用写了,直接在API端就处理完毕了,先弄个demo看看效果:
+而我们的底气就在于,如今的LLM是真的能够自己判断是否要联网搜索的,我们在后端连循环都不用写了,直接在API端就处理完毕了,先弄个demo看看效果:
 
 **线性流程**
 ```py
@@ -9951,9 +10070,6 @@ class ChatBot:
 为了让代码更好看一点,我们可以用到Repository Pattern,基本思想就是用业务操作封装数据库访问,避免代码中的数据库操作与上游操作混在一起.
 
 
-首先是删掉这个毫无意义的`ConversationNotFoundError` 封装,目前只用普通的Exception就够了.
-
-
 #### 正式接入ddgs服务
 ## ch18: 接入RAG和Vector Database
 ## ch19: Agent框架测评与引入
@@ -10225,5 +10341,204 @@ agent.to_cli_sync()
 哎呀妈呀,这一下子就高端起来了,直接做了个Coding Agent出来,用的代码比OpenAI Agents少个几十倍好不好,还原生支持Deepseek,我简直被感动哭了,终于不用加Adapter了.
 
 不过一个问题就是Coder不支持直接在Windows下运行,要么用WSL,要么用虚拟机,才能看到效果.
+
+
+#### 核心概念
+
+There are five ways to run an agent:
+
+1. **`agent.run()`** — an async function which returns a `RunResult` containing a completed response.
+
+2. **`agent.run_sync()`** — a plain, synchronous function which returns a `RunResult` containing a completed response (internally, this just calls `loop.run_until_complete(self.run())`).
+
+3. **`agent.run_stream()`** — an async context manager which returns a `StreamedRunResult`, which contains methods to stream text and structured output as an async iterable.
+   
+   > `agent.run_stream_sync()` is a synchronous variation that returns a `StreamedRunResultSync` with synchronous versions of the same methods.
+
+4. **`agent.run_stream_events()`** — an async context manager which yields an async iterator over `AgentStreamEvent`s ending with an `AgentRunResultEvent` containing the final run result.
+
+5. **`agent.iter()`** — a context manager which returns an `AgentRun`, an async iterable over the nodes of the agent's underlying `Graph`.
+
+```py
+import asyncio
+from collections.abc import AsyncIterable
+from datetime import date
+
+from pydantic_ai import (
+    Agent,
+    AgentStreamEvent,
+    FinalResultEvent,
+    FunctionToolCallEvent,
+    FunctionToolResultEvent,
+    PartDeltaEvent,
+    PartStartEvent,
+    RunContext,
+    TextPartDelta,
+    ThinkingPartDelta,
+    ToolCallPartDelta,
+)
+
+weather_agent = Agent(
+    'openai:gpt-5.2',
+    instructions='Providing a weather forecast at the locations the user provides.',
+)
+
+
+@weather_agent.tool
+async def weather_forecast(
+    ctx: RunContext,
+    location: str,
+    forecast_date: date,
+) -> str:
+    return f'The forecast in {location} on {forecast_date} is 24°C and sunny.'
+
+
+output_messages: list[str] = []
+
+async def handle_event(event: AgentStreamEvent):
+    if isinstance(event, PartStartEvent):
+        output_messages.append(f'[Request] Starting part {event.index}: {event.part!r}')
+    elif isinstance(event, PartDeltaEvent):
+        if isinstance(event.delta, TextPartDelta):
+            output_messages.append(f'[Request] Part {event.index} text delta: {event.delta.content_delta!r}')
+        elif isinstance(event.delta, ThinkingPartDelta):
+            output_messages.append(f'[Request] Part {event.index} thinking delta: {event.delta.content_delta!r}')
+        elif isinstance(event.delta, ToolCallPartDelta):
+            output_messages.append(f'[Request] Part {event.index} args delta: {event.delta.args_delta}')
+    elif isinstance(event, FunctionToolCallEvent):
+        output_messages.append(
+            f'[Tools] The LLM calls tool={event.part.tool_name!r} with args={event.part.args} (tool_call_id={event.part.tool_call_id!r})'
+        )
+    elif isinstance(event, FunctionToolResultEvent):
+        output_messages.append(f'[Tools] Tool call {event.tool_call_id!r} returned => {event.part.content}')
+    elif isinstance(event, FinalResultEvent):
+        output_messages.append(f'[Result] The model starting producing a final result (tool_name={event.tool_name})')
+
+
+async def event_stream_handler(
+    ctx: RunContext,
+    event_stream: AsyncIterable[AgentStreamEvent],
+):
+    async for event in event_stream:
+        await handle_event(event)
+
+async def main():
+    user_prompt = 'What will the weather be like in Paris on Tuesday?'
+
+    async with weather_agent.run_stream(user_prompt, event_stream_handler=event_stream_handler) as run:
+        async for output in run.stream_text():
+            output_messages.append(f'[Output] {output}')
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
+
+    print(output_messages)
+    
+```
+
+### [Langchain/LangGraph/DeepAgents](https://docs.langchain.com/oss/python/langgraph/overview)
+
+#### 辨析
+*   **选择 Deep Agents**：如果你需要一个“开箱即用”（batteries-included）的智能体，具备自动上下文压缩、虚拟文件系统和子智能体生成等特性。Deep Agents 构建于 LangChain 智能体之上，你也可以直接使用 LangChain 智能体。
+
+*   **选择 LangChain** (`create_agent`)：如果你需要一个高度可定制的框架（harness），以便轻松针对你的用例和数据进行量身定制。
+
+*   **选择 LangGraph**（我们的底层编排框架）：如果你有高级需求，需要将确定性工作流和智能体工作流结合起来。
+
+*   **选择 LangSmith**：用于追踪、调试和评估使用上述任何框架构建的智能体。请遵循追踪快速入门进行设置。我们建议你同时设置 LangSmith Engine，它可以监控你的追踪记录、检测问题并提出修复建议。
+
+#### Lanchain使用
+##### 初体验
+安装:
+```bash
+uv add langchain "langchain-deepseek"
+```
+
+代码:
+```py
+from dotenv import load_dotenv
+from langchain.agents import create_agent
+
+load_dotenv()
+
+
+def get_weather(city: str) -> str:
+    """Get weather for a given city."""
+    return f"It's always sunny in {city}!"
+
+
+agent = create_agent(
+    model="deepseek:deepseek-v4-pro",
+    tools=[get_weather],
+    system_prompt="You are a helpful assistant",
+)
+
+result = agent.invoke(
+    {"messages": [{"role": "user", "content": "What's the weather in San Francisco?"}]}
+)
+print(result["messages"][-1].content_blocks)
+```
+##### 流式输出
+```py
+from langchain.messages import AIMessage, HumanMessage
+
+
+stream = agent.stream_events(
+    {"messages": [{"role": "user", "content": "Search for AI news and summarize the findings"}]},
+    version="v3",
+)
+for snapshot in stream.values:
+    # Each snapshot contains the full state at that point
+    latest_message = snapshot["messages"][-1]
+    if latest_message.content:
+        if isinstance(latest_message, HumanMessage):
+            print(f"User: {latest_message.content}")
+        elif isinstance(latest_message, AIMessage):
+            print(f"Agent: {latest_message.content}")
+    elif latest_message.tool_calls:
+        print(f"Calling tools: {[tc['name'] for tc in latest_message.tool_calls]}")
+```
+
+##### 子智能体
+```py
+from deepagents.backends import StateBackend
+from deepagents.middleware import FilesystemMiddleware
+from deepagents.middleware.subagents import SubAgentMiddleware
+from langchain.agents import create_agent
+from langchain.agents.middleware import TodoListMiddleware
+from langchain.tools import tool
+
+
+@tool
+def search(query: str) -> str:
+    """Search for a query and return a short summary."""
+    return f"Search results for: {query}"
+
+
+backend = StateBackend()
+
+agent = create_agent(
+    model="google_genai:gemini-3.6-flash",
+    tools=[search],
+    middleware=[
+        FilesystemMiddleware(backend=backend),
+        TodoListMiddleware(),
+        SubAgentMiddleware(
+            backend=backend,
+            subagents=[
+                {
+                    "name": "researcher",
+                    "description": "Searches and returns a structured summary.",
+                    "system_prompt": "Use the search tool to research the question and summarize key points.",
+                    "tools": [search],
+                    "model": "anthropic:claude-sonnet-4-6",
+                    "middleware": [],
+                }
+            ],
+        ),
+    ],
+)
+```
 
 

@@ -36,7 +36,50 @@ math: true
 
 一般来说，你应该始终尝试对 Dockerfile 进行排序，以便构建过程中最稳定和最耗时的部分首先执行，而你的代码则尽可能在过程的最后添加。
 ### ch5: 容器
+容器的定义:
+>A container is a self-contained execution environment that **shares the kernel of the host system** and is (optionally) isolated from other containers in the system.
 
+对于绑定挂载，您可以使用 -v 参数来缩短命令。使用 -v 参数时，您会注意到源文件/目录和目标文件/目录之间用冒号 (:) 分隔。另需注意的是，卷默认以读写模式挂载。您可以通过在 --mount 参数末尾添加,readonly，或在 -v 参数末尾添加 :ro，轻松地将 docker 文件或目录挂载为只读模式:
+```bash
+docker container run --rm -ti \
+-v /mnt/session_data:/data:ro \
+ubuntu:latest /bin/bash
+```
+
+#### windows image
+在Docker Desktop中可以在Windows镜像和Linux镜像之间切换:
+
+![图片](PixPin_2026-10-08_09-00-52.webp)
+
+Docker Desktop 在 Windows 系统上支持两种容器运行模式：
+
+- Linux Containers（Linux 容器）：运行基于 Linux 内核的容器，例如 Ubuntu、Alpine、Redis、MySQL、Nginx。
+- Windows Containers（Windows 容器）：运行基于 Windows 内核的容器，例如 Windows Server Core、Nano Server，以及依赖 Windows 环境的 .NET Framework 应用。
+
+二者最本质的区别是：容器依赖的操作系统内核不同，而不仅仅是镜像里的文件不同。
+
+
+| 对比维度             | Linux 容器                        | Windows 容器                       |
+| -------------------- | --------------------------------- | ---------------------------------- |
+| 内核                 | Linux Kernel                      | Windows NT Kernel                  |
+| Windows 上的运行方式 | 主要通过 WSL 2 虚拟化环境         | Windows 容器功能，通常采用进程隔离 |
+| 常见基础镜像         | Ubuntu、Debian、Alpine            | Nano Server、Server Core           |
+| 镜像大小             | 通常较小                          | 通常较大                           |
+| 资源消耗             | 一般较低                          | 一般较高                           |
+| 启动速度             | 通常较快                          | 相对较慢                           |
+| 常见开发语言         | Python、Go、Java、Node.js、C++    | C#、.NET Framework、PowerShell     |
+| 常见应用             | FastAPI、Redis、PostgreSQL、Nginx | 传统 ASP.NET、IIS、Windows 服务    |
+| 主要部署环境         | Linux 云服务器、Kubernetes        | Windows Server                     |
+| 推荐场景             | 绝大多数现代后端开发              | 依赖 Windows 的特定业务系统        |
+
+```dockerfile
+# escape=`
+FROM mcr.microsoft.com/powershell
+SHELL ["pwsh", "-command"]
+RUN Add-Content C:\helloworld.ps1 `'Write-Host "Hello World from Windows"'
+
+CMD ["pwsh", "C:\\helloworld.ps1"]
+```
 
 ## Agentic Design Patterns
 - 出版于2025年，作者：Antonio Gullí。
@@ -52,69 +95,300 @@ math: true
 自然,自己手搓是根本无从下手的,还是得用langchain或者langgraph等框架
 
 ![架构](PixPin_2026-10-07_13-55-19.webp)
-## Head First Design Patterns, 2nd Edition
+### ch3: 并行
+>LangChain、LangGraph 和 Google ADK 等框架提供了并行执行机制
 
+有如下两个案例:
+
+1. 一个Agent正在调查一家公司。为尽快形成全面判断，他会同步开展多项工作：一边搜索相关新闻报道，一边提取股票数据，查看社交媒体上的相关提及与舆情动态，同时查询企业数据库中的背景信息。通过这种并行处理方式，他能够比按顺序逐项检索更高效地整合信息，更快获得对公司的整体认识。
+2. 一个Agent正在分析客户反馈。面对一批反馈数据，他会同时进行情感分析、提取关键词、对反馈内容进行分类，并识别其中需要优先处理的紧急问题。借助这种并行分析方式，客服人员可以在更短时间内从多个维度把握客户意见，从而快速形成更全面、更有针对性的分析结果。
+
+```py
+import os
+import asyncio
+from typing import Optional
+
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import Runnable, RunnableParallel, RunnablePassthrough
+
+# --- Configuration ---
+# Ensure your API key environment variable is set (e.g., OPENAI_API_KEY)
+try:
+    llm: Optional[ChatOpenAI] = ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0.7
+    )
+except Exception as e:
+    print(f"Error initializing language model: {e}")
+    llm = None
+
+
+# --- Define Independent Chains ---
+# These three chains represent distinct tasks that can be executed in parallel.
+
+summarize_chain: Runnable = (
+    ChatPromptTemplate.from_messages([
+        ("system", "Summarize the following topic concisely:"),
+        ("user", "{topic}")
+    ])
+    | llm
+    | StrOutputParser()
+)
+
+questions_chain: Runnable = (
+    ChatPromptTemplate.from_messages([
+        ("system", "Generate three interesting questions about the following topic:"),
+        ("user", "{topic}")
+    ])
+    | llm
+    | StrOutputParser()
+)
+
+terms_chain: Runnable = (
+    ChatPromptTemplate.from_messages([
+        ("system", "Identify 5-10 key terms from the following topic, separated by commas:"),
+        ("user", "{topic}")
+    ])
+    | llm
+    | StrOutputParser()
+)
+
+
+# --- Build the Parallel + Synthesis Chain ---
+
+# 1. Define the block of tasks to run in parallel. The results of these,
+#    along with the original topic, will be fed into the next step.
+map_chain = RunnableParallel(
+    {
+        "summary": summarize_chain,
+        "questions": questions_chain,
+        "key_terms": terms_chain,
+        "topic": RunnablePassthrough(),  # Pass the original topic through
+    }
+)
+
+# 2. Define the final synthesis prompt which will combine the parallel results.
+synthesis_prompt = ChatPromptTemplate.from_messages([
+    ("system", """Based on the following information:
+Summary: {summary}
+Related Questions: {questions}
+Key Terms: {key_terms}
+Synthesize a comprehensive answer."""),
+    ("user", "Original topic: {topic}")
+])
+
+# 3. Construct the full chain by piping the parallel results directly
+#    into the synthesis prompt, followed by the LLM and output parser.
+full_parallel_chain = map_chain | synthesis_prompt | llm | StrOutputParser()
+
+
+# --- Run the Chain ---
+
+async def run_parallel_example(topic: str) -> None:
+    """
+    Asynchronously invokes the parallel processing chain with a specific topic
+    and prints the synthesized result.
+
+    Args:
+        topic: The input topic to be processed by the LangChain chains.
+    """
+    if not llm:
+        print("LLM not initialized. Cannot run example.")
+        return
+
+    print(f"\n--- Running Parallel LangChain Example for Topic: '{topic}' ---")
+
+    try:
+        # The input to `ainvoke` is the single 'topic' string,
+        # then passed to each runnable in the `map_chain`.
+        response = await full_parallel_chain.ainvoke(topic)
+
+        print("\n--- Final Response ---")
+        print(response)
+
+    except Exception as e:
+        print(f"\nAn error occurred during chain execution: {e}")
+
+
+if __name__ == "__main__":
+    test_topic = "The history of space exploration"
+
+    # In Python 3.7+, asyncio.run is the standard way to run an async function.
+    asyncio.run(run_parallel_example(test_topic))
+```
+
+上述编排方式的缺点是相当明显的: 僵化,每换一个需求就要重新写一次代码,如果能够结合ch2中的路由方法,由Agent决定何时并行,调用哪些Agent,具体工作是什么,那么才是真的有用.
+
+![架构](PixPin_2026-10-08_09-27-24.webp)
+### ch4: Reflection
+## Mastering API Architecture
+- 出版于2022年，出版商：O'Reilly，作者：James Gough。
+
+### 前言
+>One of the hardest things to track during the life of a project is the motivation behind certain decisions. A new person coming on to a project may be perplexed, baffled, delighted, or infuriated by some past decision.
+
+因此,我们需要通过ADR（Architecture Decision Record，架构决策记录）来保存架构设计时的各种考量
+
+![ADR示例](PixPin_2026-10-08_10-04-19.webp)
+### API Gateways
+>正如您将在本章所学，API网关并非唯一能提供这些需求的技术。例如，您可以使用简单的代理或负载均衡器实现。但我们认为，API网关是最常用的解决方案，尤其是在企业环境下，随着服务消费者和提供者数量的增加，它往往是可扩展性最强、最易于维护且最安全的选择。
+
+- 说真的,没人受得了写`nginx.conf`文件的
+
+**反向代理、负载均衡器与API网关对比**
+
+| 特征<br>Feature                       | 反向代理<br>Reverse proxy | 负载均衡器<br>Load balancer | API 网关<br>API gateway |
+| :------------------------------------ | :-----------------------: | :-------------------------: | :---------------------: |
+| 单后端<br>Single Backend              |             *             |              *              |            *            |
+| TLS/SSL<br>TLS/SSL                    |             *             |              *              |            *            |
+| 多种后端<br>Multiple Backends         |                           |              *              |            *            |
+| 服务发现<br>Service Discovery         |                           |              *              |            *            |
+| API 组合<br>API Composition           |                           |                             |            *            |
+| 授权<br>Authorization                 |                           |                             |            *            |
+| 重试逻辑<br>Retry Logic               |                           |                             |            *            |
+| 速率限制<br>Rate Limiting             |                           |                             |            *            |
+| 日志记录与跟踪<br>Logging and Tracing |                           |                             |            *            |
+| 熔断<br>Circuit Breaking              |                           |                             |            *            |
+
+API网关是一种管理工具，位于系统的边缘，介于前端与一组后端服务之间，作为特定API群的单一入口点.
+
+它由两个高层核心组件实现：控制平面和数据平面。这两个组件通常可以打包部署，也可独立部署。控制平面供运维人员与网关交互，定义路由、策略及所需遥测；数据平面则承载控制平面指定的所有工作，包括网络数据包路由、策略执行及遥测数据输出。
+
+在网络层面，API网关通常充当反向代理，用于接收来自消费者的所有API请求，调用并整合满足这些请求所需的各种应用层后端服务,并返回处理结果.
+
+API 网关提供了用户认证、请求速率限制和超时/重试等横向需求功能，并能通过提供指标、日志和追踪数据来支持系统内的可观测性实施
+
+### Service Mesh
+## Head First Design Patterns, 2nd Edition
+### ch1: 简介
+![鸭子设计图](PixPin_2026-10-08_14-59-03.webp)
+
+使用继承（Inheritance）实现鸭子行为时存在的问题如下:
+
+![表格](PixPin_2026-10-08_14-59-44.webp)
+
+一个简单的方法是拆分接口:
+![拆分图](PixPin_2026-10-08_15-01-04.webp)
+#### 原则1
+所以我们知道使用继承并不理想，因为鸭子的行为在子类之间不断变化，而并非所有子类都适合拥有相同的行为。Flyable 和 Quackable 接口起初听起来很有前景——只有真正会飞的鸭子才会是 Flyable 等等——但 Java 接口通常没有实现代码，因此无法重用代码。无论哪种情况，每当需要修改某个行为时，通常都不得不去查找并修改所有定义了该行为的子类，这很可能还会引入新的 bug！
+
+![设计原则](PixPin_2026-10-08_15-03-55.webp)
+
+如果你的代码中某些部分会随着每个新需求而改变，那么你就知道你需要将这种行为提取出来，并与所有不变的部分分离
+
+**这个概念虽然简单，却是几乎所有设计模式的基础。所有模式都提供了一种方法，允许系统中的某些部分独立于其他所有部分而变化**
+#### 原则2
+![设计原则2](PixPin_2026-10-08_15-06-11.webp)
+
+我们将fly这个行为单独作为接口,并由实类继承,而非特定的Duck子类继承:
+
+![继承图](PixPin_2026-10-08_15-08-03.webp)
+
+如此一来,我们的接口实现就与某个具体的子类无关了,从而避免代码被特定的对象绑定.
+
+**Programming to an implementation would be:**
+
+![样例](PixPin_2026-10-08_15-10-20.webp)
+
+**programming to an interface/supertype would be:**
+
+![样例](PixPin_2026-10-08_15-11-05.webp)
+
+一个更好的方法是将实例封装起来,只在使用时传入:
+
+![样例](PixPin_2026-10-08_15-13-51.webp)
+
+## Architecture Patterns with Python
 ## 数据库系统内幕
 - 一直久闻大名,现在就来试试水
 ### 存储引擎
 ![架构图](PixPin_2026-10-06_15-46-05.webp)
-## 推荐系统：前沿与实践
-比我想的要好很多,以前看的那几本相关书简直是垃圾
-### 概述和历史
-1987年，**麻省理工学院与密歇根州立大学**的研究人员提出了一个颇具前瞻性的构想：设计一种新型的信息共享系统，**只将相关信息分发给那些认为其有价值的人，而不去干扰那些认为其无价值的人**。这一构想，正是**推荐系统的萌芽**。
-
-此后，推荐系统的研究逐步深入，并展现出越来越高的商业价值。**2001年**，**亚马逊**首次将推荐系统引入电商平台，带来了销售额的大幅提升。**2006年**，**网飞**举办“**Netflix Prize**”竞赛，吸引了大批研究人员投身该领域，也推动了**矩阵分解**等重要方法在推荐算法中的快速发展。**2007年**，图灵奖得主 **Geoffrey Hinton** 与合作者 **Ruslan Salakhutdinov**、**Andriy Mnih** 共同提出用**受限玻尔兹曼机**解决推荐问题的方法，开启了**深度学习时代**推荐算法研究与应用的新篇章。
-
-此后，推荐系统研究蓬勃发展，其价值也在越来越多的场景中得到验证。
-#### 三种形式
-推荐算法有几种形式:
-1. 基于内容: 先收集用户的兴趣并建模,再推荐相关内容给用户
-2. 协同过滤: 由于内容推荐有很大的局限性,准确率较低,为了解决这些问题，1992年，美国施乐公司的 Goldberg 等人创新性地提出了**协同过滤思想**，即一位用户可能与部分其他用户（也称为“邻居”）具有相似的兴趣，**因此他（她）很可能会喜欢这些邻居感兴趣的物品**。协同过滤可以认为是推荐算法领域最重要的概念之一，从出现至今一直影响着推荐算法的研究与应用。
-   1. 相关的主流算法有最近邻算法(对相似度做加权平均)和矩阵降维/分解(高维的用户向量彼此交集很少,但降维之后可以让数据密集起来)
-3. 深度学习: 最早的应用在于07年,但直到ImageNet比赛之后,深度学习才开始真正应用在推荐算法上
-
-#### 基本原理
-![架构图](PixPin_2026-10-06_14-20-23.webp)
 
 
-个性化推荐固然很重要,但是我觉得这种比较玄乎看心情的东西,98%和99%的差别基本没有吧,所以也没必要专门去频繁换算法,除非有了大杀器出现,才值得更换一次,这也就意味着相关的岗位肯定比较少,但都是比较核心的.
 
-**推荐、搜索与广告**被很多人称作互联网技术的三驾马车，是互联网平台中最受重视的三种技术，也是互联网平台盈利的关键。从应用本身来看，三者之间存在着较大的差异，但是三种应用在技术上有许多共同之处，如表 1-1 所示。
+## Kubernetes in Action, Second Edition(待补充)
+- 出版于2026年（第2版），出版商：Manning，作者：Marko Lukša。
 
-**表 1-1 推荐、搜索与广告的比较**
+### 入门
 
-| 比较项目     | 推荐                   | 搜索         | 广告         |
-| ------------ | ---------------------- | ------------ | ------------ |
-| 用户交互方式 | 用户主动请求与被动接受 | 用户主动请求 | 用户被动接受 |
-| 个性化程度   | 强                     | 弱           | 中等         |
-| 用户接受度   | 强                     | 强           | 弱           |
+#### Introducing Kubernetes
+>Kubernetes 一词源自希腊语，意为“领航员”或“舵手”,最初由Google开发.
 
-三者在如今越来越相似,普遍使用“召回 ＋ 排序”这一经典架构作为算法引擎.
-### 基本算法
+Kubernetes 集群包含分为两个组的节点:
+1. control plane nodes: 控制整个集群
 
+![图示](PixPin_2026-07-09_17-26-06.webp)
 
-## The Architecture of Open Source Applications(待补充)
+2. worker nodes: 实际工作的节点.
 
-### 引言
->建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
+![图示](PixPin_2026-07-09_17-27-13.webp)
 
-## 深入剖析Nginx
-- 出版于2013年，作者：高群凯。
+#### 容器介绍(过)
+每个容器都有着独立的文件系统和进程ID,如果是有Shell的Linux镜像的话,还可以使用bash命令.
+
+#### 容器管理
+Kubernetes部署的单位称为deployment对象,该对象对应了一个或者多个Pod,每个Pod由一个或者多个紧密相关的容器组成,他们共享相同的网络接口和命名空间:
+
+![示意图](PixPin_2026-07-14_17-59-51.webp)
+
+>每个 Pod 都有自己的 IP、主机名、进程、网络接口及其他资源。同
+一 Pod 内的容器会认为它们是计算机中唯一运行的程序，即使与其它
+Pod 位于同一节点，也不会感知到这些 Pod 中的进程。
+
+```shell
+$ kubectl get pods
+NAME                     READY   STATUS    RESTARTS   AGE
+kiada-9d785b578-p449x    0/1     Pending   0          1m     #1
+
+```
+
+##### 暴露应用程序
+我们使用create deployment命令创建一个deployment对象,但要使得这个对象暴露在主机端口,则需要使用expose deployment命令创建一个Service对象,从而可以被外界访问
+
+```bash
+kubectl expose deployment kiada --type=LoadBalancer --port 8080
+```
+
+##### 扩展容器
+
+```bash
+$ kubectl scale deployment kiada --replicas=3
+deployment.apps/kiada scaled
+```
+- `--replicas=3`参数会创建三个完全相同的容器,这就是我们所说的`横向扩展`
+
+```shell
+$ kubectl get deploy
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+kiada   3/3     3            3           18m
+
+```
+可以看到我们创建了三个Pod,每个Pod都包含了一个Kiada容器.
+
+当有多个通过`replicas`创建的相同Pod时,Pod之间便会自动进行负载均衡,每次由一个随机的Pod来处理到来的请求
+
+>严格来说，Deployment 对象的用途仅仅是创建特定数量的 Pod 对
+象。您可能会想，是否可以直接创建 Pod，而不通过 Deployment
+来代劳。当然可以这么做，但如果需要运行多个副本，您就必须手动
+逐个创建每个 Pod，并确保为其分配唯一的名称。此后，您还需要持
+续监控这些 Pod，一旦它们突然消失或所在节点发生故障，就得立即
+替换它们。这正是几乎从不直接创建 Pod、而是使用 Deployment
+的根本原因。
 
 ## gRPC: Up and Running
 - 出版于2020年，出版商：O'Reilly，作者：Kasun Indrasiri。
 
 ### 介绍
-- 江山代有才人出,各领风骚一两年
 
 >在构建现代云原生应用和微服务的同步请求-响应式通信时，最常用且传统的方法是将其构建为RESTful服务，即将应用或服务建模为可通过HTTP协议上的网络调用访问和更改状态的资源集合。然而，对于大多数用例而言，RESTful服务在构建进程间通信时往往较为笨重、效率低下且易出错。通常需要一种高度可扩展、松散耦合且比RESTful服务更高效的进程间通信技术。这正是gRPC——一种用于构建分布式应用和微服务的现代进程间通信方式——发挥作用的地方
 
 gRPC（“g”在每个gRPC版本中代表不同的含义）是一种进程间通信技术，它使您能够像进行本地函数调用一样轻松地连接、调用、操作和调试分布式异构应用程序。
 
-![本书示例](PixPin_2026-08-06_13-41-46.webp)
 
 作为有线传输协议，gRPC使用HTTP/2，这是一种高性能的二进制消息协议，支持双向消息传递。
-
+#### 背景
 RPC是构建客户端-服务应用程序的一种流行的进程间通信技术。通过RPC，客户端可以像调用本地方法一样远程调用某个函数或方法。早期有几种流行的RPC实现，如公共对象请求代理架构（CORBA）和Java远程方法调用（RMI），它们用于构建和连接服务或应用程序。然而，这类传统RPC实现大多极其复杂，因为它们构建在像TCP这样的通信协议之上，这阻碍了互操作性，并且基于臃肿的规范。
 
 由于传统RPC实现（如CORBA）的局限性，Simple Object Access Protocol（SOAP）被设计并由微软、IBM等大型企业大力推广。SOAP是 service-oriented architecture（SOA）中的标准通信技术，用于在服务（在SOA上下文中通常称为Web服务）之间交换基于XML的结构化数据，并通过任何底层通信协议（如HTTP，最常用）进行通信。
@@ -133,7 +407,6 @@ Google一直使用一个名为Stubby的通用RPC框架，来连接数千个运�
 
 gRPC并非使用JSON或XML这类文本格式，而是采用基于协议缓冲区的二进制协议来与gRPC服务和客户端进行通信。此外，gRPC在HTTP/2之上实现了协议缓冲区，这使得它在进程间通信中更加高效。
 
-随着采用gRPC，Netflix在开发者生产力方面获得了巨大提升。例如，对于每个客户端，数百行自定义代码被替换为proto中仅需两到三行的配置。创建一个原本可能需要两到三周的客户端，如今使用gRPC只需几分钟即可完成。平台的整体稳定性也大为改善，因为大多数常规功能不再需要手写代码，并且有一种全面且安全的方式来定义服务接口.
 
 ```ts
 // 指定Protobuf版本语法（Proto3）
@@ -183,6 +456,14 @@ gRPC的通信过程很简单,以客户端调用getProduct函数为例:
 
 ### 总结
 可以看的出来目前gRPC还不是那么的成熟,不然这本书的实战部分就不会讲的这么云山雾罩了.
+
+
+## 深入剖析Nginx
+- 出版于2013年，作者：高群凯。
+
+## Learning Domain-Driven Design
+- 出版于2021年，出版商：O'Reilly，作者：Vlad Khononov。
+
 ## Kafka: The Definitive Guide,2nd edition
 - 出版于2021年（第2版），出版商：O'Reilly，作者：Gwen Shapira。
 
@@ -281,9 +562,6 @@ docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --topic test-topi
 ### 总结
 了解到这里就基本足够了,后面就是一些琐碎的配置环节了.
 
-## Learning Domain-Driven Design
-- 出版于2021年，出版商：O'Reilly，作者：Vlad Khononov。
-- 基本都是泛泛而谈的空话,没看头.
 
 ## Vision Language Models
 - 出版于2026年，出版商：O'Reilly，作者：Merve Noyan。
@@ -338,7 +616,10 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 
 
 
+## The Architecture of Open Source Applications(待补充)
 
+### 引言
+>建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
 ## Systems Performance,2nd edition(待补充)
 - 出版于2020年（第2版），作者：Brendan Gregg。
 
@@ -348,75 +629,6 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 ### ch2: 方法论
 #### 术语和模型
 
-
-## Kubernetes in Action, Second Edition(待补充)
-- 出版于2026年（第2版），出版商：Manning，作者：Marko Lukša。
-
-### 入门
-
-#### Introducing Kubernetes
->Kubernetes 一词源自希腊语，意为“领航员”或“舵手”,最初由Google开发.
-
-Kubernetes 集群包含分为两个组的节点:
-1. control plane nodes: 控制整个集群
-
-![图示](PixPin_2026-07-09_17-26-06.webp)
-
-2. worker nodes: 实际工作的节点.
-
-![图示](PixPin_2026-07-09_17-27-13.webp)
-
-#### 容器介绍(过)
-每个容器都有着独立的文件系统和进程ID,如果是有Shell的Linux镜像的话,还可以使用bash命令.
-
-#### 容器管理
-Kubernetes部署的单位称为deployment对象,该对象对应了一个或者多个Pod,每个Pod由一个或者多个紧密相关的容器组成,他们共享相同的网络接口和命名空间:
-
-![示意图](PixPin_2026-07-14_17-59-51.webp)
-
->每个 Pod 都有自己的 IP、主机名、进程、网络接口及其他资源。同
-一 Pod 内的容器会认为它们是计算机中唯一运行的程序，即使与其它
-Pod 位于同一节点，也不会感知到这些 Pod 中的进程。
-
-```shell
-$ kubectl get pods
-NAME                     READY   STATUS    RESTARTS   AGE
-kiada-9d785b578-p449x    0/1     Pending   0          1m     #1
-
-```
-
-##### 暴露应用程序
-我们使用create deployment命令创建一个deployment对象,但要使得这个对象暴露在主机端口,则需要使用expose deployment命令创建一个Service对象,从而可以被外界访问
-
-```bash
-kubectl expose deployment kiada --type=LoadBalancer --port 8080
-```
-
-##### 扩展容器
-
-```bash
-$ kubectl scale deployment kiada --replicas=3
-deployment.apps/kiada scaled
-```
-- `--replicas=3`参数会创建三个完全相同的容器,这就是我们所说的`横向扩展`
-
-```shell
-$ kubectl get deploy
-NAME    READY   UP-TO-DATE   AVAILABLE   AGE
-kiada   3/3     3            3           18m
-
-```
-可以看到我们创建了三个Pod,每个Pod都包含了一个Kiada容器.
-
-当有多个通过`replicas`创建的相同Pod时,Pod之间便会自动进行负载均衡,每次由一个随机的Pod来处理到来的请求
-
->严格来说，Deployment 对象的用途仅仅是创建特定数量的 Pod 对
-象。您可能会想，是否可以直接创建 Pod，而不通过 Deployment
-来代劳。当然可以这么做，但如果需要运行多个副本，您就必须手动
-逐个创建每个 Pod，并确保为其分配唯一的名称。此后，您还需要持
-续监控这些 Pod，一旦它们突然消失或所在节点发生故障，就得立即
-替换它们。这正是几乎从不直接创建 Pod、而是使用 Deployment
-的根本原因。
 
 
 ## Hadoop: The Definitive Guide(4th)(待补充)
@@ -967,6 +1179,44 @@ Redis服务器是典型的一对多服务器程序：一个服务器可以与多
 ### 多机数据库
 不用一次是不可能学会的,待我先实战一段时间再来
 # 基础
+## 推荐系统：前沿与实践
+比我想的要好很多,以前看的那几本相关书简直是垃圾
+### 概述和历史
+1987年，**麻省理工学院与密歇根州立大学**的研究人员提出了一个颇具前瞻性的构想：设计一种新型的信息共享系统，**只将相关信息分发给那些认为其有价值的人，而不去干扰那些认为其无价值的人**。这一构想，正是**推荐系统的萌芽**。
+
+此后，推荐系统的研究逐步深入，并展现出越来越高的商业价值。**2001年**，**亚马逊**首次将推荐系统引入电商平台，带来了销售额的大幅提升。**2006年**，**网飞**举办“**Netflix Prize**”竞赛，吸引了大批研究人员投身该领域，也推动了**矩阵分解**等重要方法在推荐算法中的快速发展。**2007年**，图灵奖得主 **Geoffrey Hinton** 与合作者 **Ruslan Salakhutdinov**、**Andriy Mnih** 共同提出用**受限玻尔兹曼机**解决推荐问题的方法，开启了**深度学习时代**推荐算法研究与应用的新篇章。
+
+此后，推荐系统研究蓬勃发展，其价值也在越来越多的场景中得到验证。
+#### 三种形式
+推荐算法有几种形式:
+1. 基于内容: 先收集用户的兴趣并建模,再推荐相关内容给用户
+2. 协同过滤: 由于内容推荐有很大的局限性,准确率较低,为了解决这些问题，1992年，美国施乐公司的 Goldberg 等人创新性地提出了**协同过滤思想**，即一位用户可能与部分其他用户（也称为“邻居”）具有相似的兴趣，**因此他（她）很可能会喜欢这些邻居感兴趣的物品**。协同过滤可以认为是推荐算法领域最重要的概念之一，从出现至今一直影响着推荐算法的研究与应用。
+   1. 相关的主流算法有最近邻算法(对相似度做加权平均)和矩阵降维/分解(高维的用户向量彼此交集很少,但降维之后可以让数据密集起来)
+3. 深度学习: 最早的应用在于07年,但直到ImageNet比赛之后,深度学习才开始真正应用在推荐算法上
+
+#### 基本原理
+![架构图](PixPin_2026-10-06_14-20-23.webp)
+
+
+个性化推荐固然很重要,但是我觉得这种比较玄乎看心情的东西,98%和99%的差别基本没有吧,所以也没必要专门去频繁换算法,除非有了大杀器出现,才值得更换一次,这也就意味着相关的岗位肯定比较少,但都是比较核心的.
+
+**推荐、搜索与广告**被很多人称作互联网技术的三驾马车，是互联网平台中最受重视的三种技术，也是互联网平台盈利的关键。从应用本身来看，三者之间存在着较大的差异，但是三种应用在技术上有许多共同之处，如表 1-1 所示。
+
+**表 1-1 推荐、搜索与广告的比较**
+
+| 比较项目     | 推荐                   | 搜索         | 广告         |
+| ------------ | ---------------------- | ------------ | ------------ |
+| 用户交互方式 | 用户主动请求与被动接受 | 用户主动请求 | 用户被动接受 |
+| 个性化程度   | 强                     | 弱           | 中等         |
+| 用户接受度   | 强                     | 强           | 弱           |
+
+三者在如今越来越相似,普遍使用“召回 ＋ 排序”这一经典架构作为算法引擎.
+### 基本算法
+![原理图](PixPin_2026-10-08_10-47-27.webp)
+
+看到这个我就知道自己完全不是这块料呢.
+### 总结
+明明知道这书写的不错,但就是看不进去公式啊.
 ## Learning Go
 
 ### ch1: 搭建环境
@@ -17141,22 +17391,6 @@ Chris Riccomini,O'Reilly 对他的介绍是：拥有 15年以上软件工程经�
 基本都是概念,没多少实战,还教我用AI写测试,跟我原来想的差距有点大.
 
 
-
-## Mastering API Architecture
-- 出版于2022年，出版商：O'Reilly，作者：James Gough。
-
-### 前言
->One of the hardest things to track during the life of a project is the motivation behind certain decisions. A new person coming on to a project may be perplexed, baffled, delighted, or infuriated by some past decision.
-
-因此,我们需要通过ADR（Architecture Decision Record，架构决策记录）来保存架构设计时的各种考量
-
-### Designing, Building, and Testing APIs
-
-#### gRPC与Rest
-Rest基于HTTP1.1规范,而gRPC基于HTTP2.0,二者之间的一个关键区别在于状态,Rest是无状态的,而RPC的底层是持续连接,有状态的
-
-### 总结
-非常搞笑,标题叫掌握API架构,但只有前两章稍微有一点关系,后面都是运维相关的知识,很扯淡了.
 
 
 ## Security Chaos Engineering

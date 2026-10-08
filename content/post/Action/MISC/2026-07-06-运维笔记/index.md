@@ -153,7 +153,106 @@ docker exec -it linux-lab bash
 ```
 ### GitHub Actions
 推荐阅读: GitHub Actions in action
-# 构建工具
+# 跨平台构建工具
+## 总表
+| 时间            | 技术                           | 原本熟悉的技术 → 目标平台                    | 核心实现方式                                                                 | 历史意义 / 今天怎么看                                                                                                                                          |
+| --------------- | ------------------------------ | -------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1995**        | **Qt**                         | C++ → Windows/Linux/macOS，后来移动端        | 自己提供跨平台 GUI 抽象层                                                    | 很早的“一套 API 多平台”代表，更像传统跨平台 GUI 框架                                                                                                           |
+| **2008**        | **PhoneGap** → Apache Cordova  | HTML/CSS/JS → iOS/Android                    | **WebView + JS↔Native Bridge**                                               | 现代 Hybrid App 路线的重要起点。PhoneGap 2008 年由 Nitobi 开始，2011 年进入 Apache 后成为 Cordova。([Apache Cordova][1])                                       |
+| **约 2009**     | **Appcelerator Titanium**      | JavaScript/Web 开发者 → Native Mobile        | JS API 映射到原生能力/控件                                                   | 很早就尝试“用 JS 写原生移动应用”，思想上是 React Native/NativeScript 的前辈。([GitHub][2])                                                                     |
+| **2011**        | **NW.js / node-webkit**        | HTML/CSS/JS + Node.js → Desktop              | **Chromium + Node.js**                                                       | Web 技术进入桌面应用的重要先驱，Electron 出现前已经走通这条路；项目始于 2011。([Google Groups][3])                                                             |
+| **2011 / 2014** | **Xamarin / Xamarin.Forms**    | C#/.NET → iOS/Android                        | .NET + 原生平台绑定；Forms 再抽象 UI                                         | 把微软/.NET 开发者带到移动端的重要路线；后来被 .NET MAUI 接替，Xamarin 已于 2024 年结束微软支持。([微软学习][4])                                               |
+| **2013**        | **Electron（原 Atom Shell）**  | HTML/CSS/JS + Node → Windows/macOS/Linux     | 每个应用携带 **Chromium + Node.js**                                          | Web→桌面的标志性方案。首个 Electron 仓库 commit 是 2013-03-13，2015 年 Atom Shell 正式更名为 Electron。([Electron][5])                                         |
+| **2013**        | **Ionic**                      | Web/Angular，后来 React/Vue → Mobile/PWA     | Web UI + Cordova/Capacitor                                                   | 把 Hybrid App 开发做成完整 UI 框架。2013 年出现，今天主要与 Capacitor 配套。([Ionic][6])                                                                       |
+| **2014–2015**   | **NativeScript**               | JavaScript/TypeScript/CSS → iOS/Android      | JS Runtime → **真正的原生 UI/API**，不用 WebView 渲染 UI                     | 与 React Native 属于相似时代，但技术实现不同。2014 年 preview，2015 年 1.0。([Telerik.com][7])                                                                 |
+| **2015**        | **React Native**               | **React/JavaScript → iOS/Android Native UI** | React reconciler + Native Components                                         | 非常关键的一次转变：不是把网页塞进 WebView，而是把 React 编程模型迁移到原生 UI。iOS 于 2015 年 3 月开源，Android 同年 9 月发布。([Facebook][8])                |
+| **2015 → 2018** | **Flutter**                    | Dart → iOS/Android，后来 Web/Desktop         | **自己绘制 UI**，而不是大量依赖系统原生控件                                  | 开辟另一条路线：不是 WebView，也不是 React Native 那种 native-widget 映射，而是跨平台自绘。1.0 于 2018-12-04 发布。([Google开发者博客][9])                     |
+| **2017**        | **Kotlin Multiplatform (KMP)** | Kotlin/JVM → Android/iOS/Web/Desktop 等      | **共享业务逻辑**，平台代码可分别实现；后来配合 Compose Multiplatform 共享 UI | 与 RN/Flutter 最大区别是最初并不强迫 UI 也共享。2017 年作为 Kotlin 1.2 experimental multiplatform feature 出现，2023 年 KMP Stable。([The JetBrains Blog][10]) |
+| **2018**        | **Capacitor**                  | Web/React/Vue/Angular → iOS/Android/Web      | WebView + 现代 Native Plugin API                                             | Ionic 团队针对 Cordova 时代问题设计的新一代 native runtime；2018 年公布 Alpha。([Ionic][11])                                                                   |
+| **2019 → 2022** | **Tauri**                      | HTML/CSS/JS/React/Vue 等 → Desktop           | **系统 WebView + Rust Core**                                                 | 可以看作对 Electron 思路的一次“瘦身”：不捆绑完整 Chromium，而使用 OS WebView。项目从约 2019 年起发展，1.0 于 2022 年 6 月发布。([Tauri][12])                   |
+| **2022**        | **.NET MAUI**                  | C#/XAML/.NET → Android/iOS/macOS/Windows     | .NET + 平台原生 UI abstraction                                               | Xamarin.Forms 的正式继任者，2022 年 5 月 GA。([Microsoft for Developers][13])                                                                                  |
+| **2024**        | **Tauri 2.0**                  | Web 技术 → **Desktop + iOS + Android**       | System WebView + Rust，移动端插件可接 Swift/Kotlin                           | Tauri 不再只是 Electron 的桌面替代品，而真正进入桌面+移动跨平台领域。2.0 于 2024-10-02 stable。([Tauri][14])                                                   |
+
+[1]: https://cordova.apache.org/announcements/2020/08/14/goodbye-phonegap.html?utm_source=chatgpt.com "Goodbye PhoneGap - Apache Cordova"
+
+[2]: https://github.com/Jasig/titanium_mobile?utm_source=chatgpt.com "GitHub - Jasig/titanium_mobile: Appcelerator Titanium Mobile · GitHub"
+
+[3]: https://groups.google.com/g/nwjs-general/c/LIrC7zHtQdo?utm_source=chatgpt.com "Statement on the history of node-webkit project"
+
+[4]: https://learn.microsoft.com/dotnet/maui/migration/?WT.mc_id=dotnet-35129-website&view=net-maui-8.0&utm_source=chatgpt.com "Upgrade from Xamarin to .NET - .NET MAUI | Microsoft Learn"
+
+[5]: https://www.electronjs.org/blog/10-years-of-electron?utm_source=chatgpt.com "10 years of Electron 🎉 | Electron"
+
+[6]: https://ionic.io/blog/announcing-ionic?utm_source=chatgpt.com "Announcing The Ionic Framework - Ionic Blog"
+
+[7]: https://www.telerik.com/blogs/announcing-nativescript---cross-platform-framework-for-building-native-mobile-applications?utm_source=chatgpt.com "Announcing NativeScript - cross-platform framework for build"
+
+[8]: https://about.fb.com/news/2015/03/f8-day-two-2015/?utm_source=chatgpt.com "F8 2015: Updates on Connectivity Lab, Facebook AI Research and Oculus"
+
+[9]: https://developers.googleblog.com/en/flutter-10-googles-portable-ui-toolkit/?utm_source=chatgpt.com "Flutter 1.0: Google’s Portable UI Toolkit - Google Developers Blog"
+
+[10]: https://blog.jetbrains.com/kotlin/2017/09/kotlin-1-2-beta-is-out/?utm_source=chatgpt.com "Kotlin 1.2 Beta Is Out - The JetBrains Blog"
+
+[11]: https://ionic.io/blog/announcing-capacitor-1-0-0-alpha?utm_source=chatgpt.com "Announcing Capacitor 1.0.0 Alpha - Ionic Blog"
+
+[12]: https://v3.tauri.app/blog/tauri-20/ "Tauri 2.0 Stable Release | Tauri"
+
+[13]: https://devblogs.microsoft.com/dotnet/introducing-dotnet-maui-one-codebase-many-platforms/?utm_source=chatgpt.com "Introducing .NET MAUI - One Codebase, Many Platforms - .NET Blog"
+
+[14]: https://v3.tauri.app/blog/tauri-20/?utm_source=chatgpt.com "Tauri 2.0 Stable Release | Tauri"
+
+
+
+
+```mermaid
+flowchart TD
+    A[跨平台应用开发]
+
+    subgraph WEB[Web 技术路线]
+        direction TB
+
+        subgraph MOBILE[Web → Mobile]
+            direction TB
+            M1[PhoneGap]
+            M2[Cordova]
+            M3[Ionic]
+            M4[Capacitor]
+
+            M1 --> M2 --> M3 --> M4
+        end
+
+        subgraph DESKTOP[Web → Desktop]
+            direction TB
+            E1[NW.js]
+            E2[Electron]
+            E3[Tauri]
+            E4[iOS / Android 支持<br/>Tauri 2.0]
+
+            E1 --> E2 --> E3 --> E4
+        end
+    end
+
+    subgraph NATIVE[Native UI 路线]
+        direction TB
+
+        N1[Xamarin]
+        N2[NativeScript]
+        N3[React Native]
+        N4[.NET MAUI]
+
+        N1 --> N4
+    end
+
+    subgraph DRAW[自绘 UI 路线]
+        direction TB
+
+        F1[Flutter]
+    end
+
+    A --> WEB
+    A --> NATIVE
+    A --> DRAW
+```
 ## 桌面端
 ### Electron
 #### 介绍
@@ -212,6 +311,7 @@ app.on('window-all-closed', function () {
 总的来说,目前要学习Electron,就需要忍受陈旧的文档和全新的界面操作函数,市面上关于Electron的新书也是聊胜于无,而且不能够复用面向网站的前端写法,后端只能用api调用来实现,开发体验给个2星.
 
 ## 手机端
+### Capacitor
 
 
 ## 多端
