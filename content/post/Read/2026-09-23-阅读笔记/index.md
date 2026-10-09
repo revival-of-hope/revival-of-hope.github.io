@@ -80,6 +80,7 @@ RUN Add-Content C:\helloworld.ps1 `'Write-Host "Hello World from Windows"'
 
 CMD ["pwsh", "C:\\helloworld.ps1"]
 ```
+### ch8: Docker Compose
 
 ## Agentic Design Patterns
 - 出版于2025年，作者：Antonio Gullí。
@@ -223,44 +224,56 @@ if __name__ == "__main__":
 
 ![架构](PixPin_2026-10-08_09-27-24.webp)
 ### ch4: Reflection
-## Mastering API Architecture
-- 出版于2022年，出版商：O'Reilly，作者：James Gough。
+>反思模式是指智能体评估自身的工作、输出或内部状态，并利用评估结果来改进自身表现或优化响应。这是一种自我纠正或自我改进的方式，使智能体能够根据反馈、内部评价或与预期标准的比较，迭代地优化输出或调整方法
 
-### 前言
->One of the hardest things to track during the life of a project is the motivation behind certain decisions. A new person coming on to a project may be perplexed, baffled, delighted, or infuriated by some past decision.
+虽然单个代理可以进行自我反思，但使用两个专门的代理（或使用不同的系统提示进行两次独立的LLM调用）通常能产生更稳健、更客观的结果
 
-因此,我们需要通过ADR（Architecture Decision Record，架构决策记录）来保存架构设计时的各种考量
+**This is also often called the "Generator-Critic" or "Producer-Reviewer" model.**
+```py
+from google.adk.agents import SequentialAgent, LlmAgent
 
-![ADR示例](PixPin_2026-10-08_10-04-19.webp)
-### API Gateways
->正如您将在本章所学，API网关并非唯一能提供这些需求的技术。例如，您可以使用简单的代理或负载均衡器实现。但我们认为，API网关是最常用的解决方案，尤其是在企业环境下，随着服务消费者和提供者数量的增加，它往往是可扩展性最强、最易于维护且最安全的选择。
+# The first agent generates the initial draft.
+generator = LlmAgent(
+    name="DraftWriter",
+    description="Generates initial draft content on a given subject.",
+    instruction="Write a short, informative paragraph about the user's subject.",
+    output_key="draft_text"  # The output is saved to this state key.
+)
 
-- 说真的,没人受得了写`nginx.conf`文件的
+# The second agent critiques the draft from the first agent.
+reviewer = LlmAgent(
+    name="FactChecker",
+    description="Reviews a given text for factual accuracy and provides a structured critique.",
+    instruction="""
+You are a meticulous fact-checker.
+1. Read the text provided in the state key 'draft_text'.
+2. Carefully verify the factual accuracy of all claims.
+3. Your final output must be a dictionary containing two keys:
+   - "status": A string, either "ACCURATE" or "INACCURATE".
+   - "reasoning": A string providing a clear explanation for
+     your status, citing specific issues if any are found.
+""",
+    output_key="review_output"  # The structured dictionary is saved here.
+)
 
-**反向代理、负载均衡器与API网关对比**
+# The SequentialAgent ensures the generator runs before the reviewer.
+review_pipeline = SequentialAgent(
+    name="WriteAndReview_Pipeline",
+    sub_agents=[generator, reviewer]
+)
 
-| 特征<br>Feature                       | 反向代理<br>Reverse proxy | 负载均衡器<br>Load balancer | API 网关<br>API gateway |
-| :------------------------------------ | :-----------------------: | :-------------------------: | :---------------------: |
-| 单后端<br>Single Backend              |             *             |              *              |            *            |
-| TLS/SSL<br>TLS/SSL                    |             *             |              *              |            *            |
-| 多种后端<br>Multiple Backends         |                           |              *              |            *            |
-| 服务发现<br>Service Discovery         |                           |              *              |            *            |
-| API 组合<br>API Composition           |                           |                             |            *            |
-| 授权<br>Authorization                 |                           |                             |            *            |
-| 重试逻辑<br>Retry Logic               |                           |                             |            *            |
-| 速率限制<br>Rate Limiting             |                           |                             |            *            |
-| 日志记录与跟踪<br>Logging and Tracing |                           |                             |            *            |
-| 熔断<br>Circuit Breaking              |                           |                             |            *            |
+# Execution Flow:
+# 1. generator runs -> saves its paragraph to state['draft_text'].
+# 2. reviewer runs -> reads state['draft_text'] and saves its
+#    dictionary output to state['review_output'].
+```
 
-API网关是一种管理工具，位于系统的边缘，介于前端与一组后端服务之间，作为特定API群的单一入口点.
+这种模式同样有问题,你不可能说每遇到一个新问题都整一个`你是一名专业的XXX...`吧,所以只能在单个Agent内部使用,自己核查自己,而且不需要额外的指令,除非用更高级的API来做Critic,但又话说回来,为什么不让更高级的API来干活呢.
 
-它由两个高层核心组件实现：控制平面和数据平面。这两个组件通常可以打包部署，也可独立部署。控制平面供运维人员与网关交互，定义路由、策略及所需遥测；数据平面则承载控制平面指定的所有工作，包括网络数据包路由、策略执行及遥测数据输出。
+![架构](PixPin_2026-10-09_08-40-48.webp)
+### ch5: tool use
 
-在网络层面，API网关通常充当反向代理，用于接收来自消费者的所有API请求，调用并整合满足这些请求所需的各种应用层后端服务,并返回处理结果.
 
-API 网关提供了用户认证、请求速率限制和超时/重试等横向需求功能，并能通过提供指标、日志和追踪数据来支持系统内的可观测性实施
-
-### Service Mesh
 ## Head First Design Patterns, 2nd Edition
 ### ch1: 简介
 ![鸭子设计图](PixPin_2026-10-08_14-59-03.webp)
@@ -454,8 +467,6 @@ gRPC的通信过程很简单,以客户端调用getProduct函数为例:
 
 事实上来讲,gRPC确实没什么革命的地方,只不过把以前要共同维护的OpenAPI文档换成了proto文档而已,但它简化了HTTP方法,路径依赖等比较边角料的参数,从而让程序员能够只专注于简单的函数调用即可.
 
-### 总结
-可以看的出来目前gRPC还不是那么的成熟,不然这本书的实战部分就不会讲的这么云山雾罩了.
 
 
 ## 深入剖析Nginx
@@ -17604,6 +17615,45 @@ API设计确实非常重要,否则不但是开发起来麻烦,用户的体验也
 
 ### 总结
 没能和实战相互结合,也没能具体深入讨论API与应用其他部分的结合,因此就是在建空中楼阁,完全不推荐.
+## Mastering API Architecture(待补充)
+- 出版于2022年，出版商：O'Reilly，作者：James Gough。
+
+### 前言
+>One of the hardest things to track during the life of a project is the motivation behind certain decisions. A new person coming on to a project may be perplexed, baffled, delighted, or infuriated by some past decision.
+
+因此,我们需要通过ADR（Architecture Decision Record，架构决策记录）来保存架构设计时的各种考量
+
+![ADR示例](PixPin_2026-10-08_10-04-19.webp)
+### API Gateways
+>正如您将在本章所学，API网关并非唯一能提供这些需求的技术。例如，您可以使用简单的代理或负载均衡器实现。但我们认为，API网关是最常用的解决方案，尤其是在企业环境下，随着服务消费者和提供者数量的增加，它往往是可扩展性最强、最易于维护且最安全的选择。
+
+- 说真的,没人受得了写`nginx.conf`文件的
+
+**反向代理、负载均衡器与API网关对比**
+
+| 特征<br>Feature                       | 反向代理<br>Reverse proxy | 负载均衡器<br>Load balancer | API 网关<br>API gateway |
+| :------------------------------------ | :-----------------------: | :-------------------------: | :---------------------: |
+| 单后端<br>Single Backend              |             *             |              *              |            *            |
+| TLS/SSL<br>TLS/SSL                    |             *             |              *              |            *            |
+| 多种后端<br>Multiple Backends         |                           |              *              |            *            |
+| 服务发现<br>Service Discovery         |                           |              *              |            *            |
+| API 组合<br>API Composition           |                           |                             |            *            |
+| 授权<br>Authorization                 |                           |                             |            *            |
+| 重试逻辑<br>Retry Logic               |                           |                             |            *            |
+| 速率限制<br>Rate Limiting             |                           |                             |            *            |
+| 日志记录与跟踪<br>Logging and Tracing |                           |                             |            *            |
+| 熔断<br>Circuit Breaking              |                           |                             |            *            |
+
+API网关是一种管理工具，位于系统的边缘，介于前端与一组后端服务之间，作为特定API群的单一入口点.
+
+它由两个高层核心组件实现：控制平面和数据平面。这两个组件通常可以打包部署，也可独立部署。控制平面供运维人员与网关交互，定义路由、策略及所需遥测；数据平面则承载控制平面指定的所有工作，包括网络数据包路由、策略执行及遥测数据输出。
+
+在网络层面，API网关通常充当反向代理，用于接收来自消费者的所有API请求，调用并整合满足这些请求所需的各种应用层后端服务,并返回处理结果.
+
+API 网关提供了用户认证、请求速率限制和超时/重试等横向需求功能，并能通过提供指标、日志和追踪数据来支持系统内的可观测性实施
+
+### Service Mesh
+
 ## 领域驱动设计精简版
 ### 介绍
 >我们可以以汽车制造来做类比。参与汽车制造的工人会专门负责汽车的某个部件，但这样做的后果是工人们通常对整体的汽车制造流程缺乏了解。他们可能将汽车视为一大堆需要固定在一起的零件的集合体，但一辆汽车的意义远不只于此。一辆好车起源于一个好的创意，开始于认真制定的规格说明，然后再交付给设计。经历若干道设计工序，花费上几个月甚至几年时间去设计、修改、精化，直至达到完美、能够完全反映出最初的愿景。设计的过程也不全然是在纸上进行的。设计工作的很大一部分包括了建造汽车的模型（doing models of the car），并且在特定条件下对它进行测试，以验证该模型是否能工作。设计会根据测试的结果做出修改。汽车最终被交付到生产线上，在那里，所有的部件已经就绪，然后被组装到一起。

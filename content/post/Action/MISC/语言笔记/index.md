@@ -84,7 +84,7 @@ import sys
 ```
 
 ## Python
-### 搭建GPU环境
+### 搭建GPU环境(26/1)
 先在nvidia官网下载cuda13.0,然后根据这个toml运行uv sync即可:
 ```toml
 [project]
@@ -204,9 +204,337 @@ async def send_notification(email: str, background_tasks: BackgroundTasks):
     return {"message": "Notification sent in the background"}
 ```
 很明显,这个类只适合一些基础场景,稍微复杂一点的话就要用消息队列来搞了.
+### PEP介绍
+- [PEP1](https://peps.python.org/pep-0001/)
+
+PEP的全称为Python Enhancement Proposal,于2000年的PEP1正式提出,用于收集Python社区中的决策记录,提案和总结.PEP的类型有三种:
+1. Standards Track PEP: 介绍Python的新特性
+2. Informational PEP: 用于描述Python相关的设计提案,或者用于通知和指导.**users and implementers are free to ignore Informational PEPs or follow their advice.**
+3. Process PEP: 类似于第一种PEP,但更多的注重于开发流程
+
+PEP的编号并不是按照时间线来的,而是按照PEP的功能决定编号范围:
+
+| 编号范围  | 分配逻辑                                                    | 例子                      |
+| --------- | ----------------------------------------------------------- | ------------------------- |
+| 0—99      | 主要保留给元 PEP，即管理其他 PEP 或规定开发流程、规范的提案 | PEP 1、PEP 8              |
+| 100—999   | 常规提案编号，涵盖语言特性、开发流程等                      | PEP 255、PEP 342、PEP 492 |
+| 3000—3099 | 专门为 Python 3000（Python 3）规划的元 PEP 编号段           | PEP 3000                  |
+| 3100—3999 | 最初为 Python 3000 的功能提案规划的编号段                   | PEP 3156                  |
+
+如果你不是核心开发者,就必须要找到一个Sponsor(通常是核心开发者)来帮你正式提交该PEP,并由PEP委员会来审核该PEP,并经过广泛的讨论后才可以正式作为某个PEP存在,并由委员会分配PEP编号,一经确认则不会重新编号,通常来讲,编号是在给定的编号范围内逐渐递增的.
+
+>PEP 编辑不会无故拒绝发布 PEP。拒绝发布 PEP 的理由包括：工作重复、技术上不合理、未能提供充分的动机或解决向后兼容性问题，或者不符合 Python 的理念。在审批阶段可以咨询指导委员会，指导委员会对草案是否符合 PEP 的要求拥有最终决定权
+#### 重要PEP
+- AI总结的,毕竟我不可能去一个个翻吧...
+
+以下整理了 Python 发展史上具有代表性的 49 份 PEP，按照语言设计、迭代与异步、类型系统、后端生态、解释器优化以及社区治理六个方向分类。
+
+对于语言功能，年份以首次正式发布的 Python 版本为主；对于治理和生态规范，则以提案创建或正式形成的时间为主。
+
+1\. Python 语言设计与基础语法
+
+| 年份 / 版本 | PEP（官方原文）                                                                        | 主要内容与历史意义                                                           |
+| ----------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 2000 · 2.0  | [PEP 202](https://peps.python.org/pep-0202/) — List Comprehensions                     | 列表推导式：引入 `[x for x in items]`，简化集合数据处理。                    |
+| 2001 · 2.2  | [PEP 234](https://peps.python.org/pep-0234/) — Iterators                               | 迭代器协议：奠定现代 `iter()`、`next()` 和 `for` 迭代机制的基础。            |
+| 2001 · 2.2  | [PEP 255](https://peps.python.org/pep-0255/) — Simple Generators                       | 生成器：引入 `yield`，允许函数暂停、返回值并恢复运行。                       |
+| 2004 · 2.4  | [PEP 318](https://peps.python.org/pep-0318/) — Decorators                              | 装饰器：引入 `@decorator`，成为 FastAPI 路由等 API 的语法基础。              |
+| 2006 · 2.5  | [PEP 343](https://peps.python.org/pep-0343/) — The with Statement                      | 上下文管理器：引入 `with`，统一资源获取和释放操作。                          |
+| 2008 · 3.0  | [PEP 3107](https://peps.python.org/pep-3107/) — Function Annotations                   | 函数注解：建立参数及返回值注解的语言基础。                                   |
+| 2012 · 3.3  | [PEP 380](https://peps.python.org/pep-0380/) — Syntax for Delegating to a Subgenerator | 生成器委托：引入 `yield from`，简化嵌套生成器。                              |
+| 2016 · 3.6  | [PEP 498](https://peps.python.org/pep-0498/) — Literal String Interpolation            | f-string：引入 `f"{value}"` 字符串插值。                                     |
+| 2018 · 3.7  | [PEP 557](https://peps.python.org/pep-0557/) — Data Classes                            | 数据类：引入 `@dataclass`，自动生成初始化、比较等方法。                      |
+| 2019 · 3.8  | [PEP 572](https://peps.python.org/pep-0572/) — Assignment Expressions                  | 海象运算符：支持在表达式中使用 `:=` 赋值。                                   |
+| 2021 · 3.10 | [PEP 634](https://peps.python.org/pep-0634/) — Structural Pattern Matching             | 结构化模式匹配：引入 `match` / `case`，匹配复杂数据结构。                    |
+| 2022 · 3.11 | [PEP 654](https://peps.python.org/pep-0654/) — Exception Groups and except\*           | 异常组：引入 `ExceptionGroup` 和 `except*`，支持处理并发任务产生的多个异常。 |
+| 2023 · 3.12 | [PEP 701](https://peps.python.org/pep-0701/) — Syntactic Formalization of f-strings    | f-string 语法改革：规范语法并解除部分表达式限制。                            |
+| 2025 · 3.14 | [PEP 750](https://peps.python.org/pep-0750/) — Template Strings                        | 模板字符串：引入 `t"..."`，为自定义、安全的字符串处理提供结构化模板。        |
+
+2\. 生成器、协程和异步编程
+
+这一组与 `asyncio`、`yield`、`async/await` 关系最直接。
+
+| 年份 / 版本 | PEP（官方原文）                                                                       | 核心贡献                                                                                        |
+| ----------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 2006 · 2.5  | [PEP 342](https://peps.python.org/pep-0342/) — Coroutines via Enhanced Generators     | 增强生成器：引入 `send()`、`throw()`、`close()`，让生成器能够承担协程功能。                     |
+| 2014 · 3.4  | [PEP 3156](https://peps.python.org/pep-3156/) — Asynchronous IO Support Rebooted      | asyncio：建立统一异步 I/O 框架，提供事件循环及协程调度基础。                                    |
+| 2015 · 3.5  | [PEP 492](https://peps.python.org/pep-0492/) — Coroutines with async and await syntax | async/await：将原生协程作为独立语言概念，引入 `async def`、`await`、`async with`、`async for`。 |
+| 2016 · 3.6  | [PEP 525](https://peps.python.org/pep-0525/) — Asynchronous Generators                | 异步生成器：支持在 `async def` 中使用 `yield`。                                                 |
+| 2016 · 3.6  | [PEP 530](https://peps.python.org/pep-0530/) — Asynchronous Comprehensions            | 异步推导式：支持 `[x async for x in items]`。                                                   |
+| 2018 · 3.7  | [PEP 567](https://peps.python.org/pep-0567/) — Context Variables                      | contextvars：为并发异步任务提供正确隔离的上下文变量。                                           |
+
+这几份 PEP 之间存在清晰的技术演进关系：
+```mermaid
+
+flowchart TD
+    A["PEP 255 · yield<br/>2001 · 生成器"]
+    B["PEP 342 · 增强生成器<br/>2005 · 生成器与协程"]
+    C["PEP 380 · yield from<br/>2009 · 生成器委托"]
+    D["PEP 3156<br/>asyncio 框架"]
+    E["PEP 492<br/>async / await"]
+    F["PEP 525 / 530 / 567<br/>异步生成器、异步推导式、任务上下文"]
+
+    A --> B
+    B --> C
+    C --> D
+    C --> E
+    D --> F
+    E --> F
+
+    style A fill:#E3F2FD,stroke:#64B5F6,color:#1565C0
+    style B fill:#E3F2FD,stroke:#64B5F6,color:#1565C0
+    style C fill:#E3F2FD,stroke:#64B5F6,color:#1565C0
+    style D fill:#E8F5E9,stroke:#81C784,color:#2E7D32
+    style E fill:#E8F5E9,stroke:#81C784,color:#2E7D32
+    style F fill:#F3E5F5,stroke:#BA68C8,color:#7B1FA2
+```
+
+3\. Python 类型系统与现代面向对象编程
+
+| 年份 / 版本 | PEP（官方原文）                                                                              | 核心贡献                                                               |
+| ----------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 2015 · 3.5  | [PEP 484](https://peps.python.org/pep-0484/) — Type Hints                                    | 类型提示：建立 Python 静态类型系统的基础，引入标准化的 `typing` 约定。 |
+| 2016 · 3.6  | [PEP 526](https://peps.python.org/pep-0526/) — Syntax for Variable Annotations               | 变量类型注解：引入 `name: str` 等语法。                                |
+| 2019 · 3.8  | [PEP 544](https://peps.python.org/pep-0544/) — Protocols: Structural subtyping               | Protocol：引入基于结构的静态子类型机制，支持静态鸭子类型。             |
+| 2020 · 3.9  | [PEP 585](https://peps.python.org/pep-0585/) — Type Hinting Generics In Standard Collections | 内置泛型：允许使用 `list[str]`、`dict[str, int]`。                     |
+| 2021 · 3.10 | [PEP 604](https://peps.python.org/pep-0604/) — Union Types                                   | 联合类型新语法：允许使用 `str \\| None`。                              |
+| 2023 · 3.12 | [PEP 695](https://peps.python.org/pep-0695/) — Type Parameter Syntax                         | 泛型语法改革：支持 `class Box[T]`、`def func[T](...)`。                |
+| 2025 · 3.14 | [PEP 649](https://peps.python.org/pep-0649/) — Deferred Evaluation of Annotations            | 延迟求值注解：改善前向引用、循环依赖及运行时读取注解的问题。           |
+
+这组提案尤其值得 Python 后端开发者关注。例如，FastAPI 和 Pydantic 广泛使用类型注解，而 `Protocol` 则可以帮助我们在设计仓储接口、领域服务接口时减少对具体实现类的依赖。
+
+需要区分：类型注解并不等同于 Python 自动执行运行时类型检查。PEP 484 的主要目标是支持静态分析；Pydantic 的运行时校验是其自身实现的行为。
+
+4\. Python Web、数据库与项目工程化
+
+| 年份 / 版本      | PEP（官方原文）                                                                             | 核心贡献                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 1999 · 早期规范  | [PEP 249](https://peps.python.org/pep-0249/) — Python DB API 2.0                            | 数据库接口规范：统一 Python 数据库驱动的连接、游标和异常等 API。         |
+| 2003 · 规范      | [PEP 333](https://peps.python.org/pep-0333/) — WSGI                                         | Web 服务器接口：定义 Web 服务器与 Python 应用之间的标准接口。            |
+| 2010 · 规范      | [PEP 3333](https://peps.python.org/pep-3333/) — WSGI 1.0.1                                  | 更新 WSGI 规范以适配 Python 3。                                          |
+| 2014 · 3.4       | [PEP 453](https://peps.python.org/pep-0453/) — Explicit bootstrapping of pip                | pip 安装机制：通过 `ensurepip` 为 Python 安装环境提供 pip 引导支持。     |
+| 2016—2017 · 规范 | [PEP 517](https://peps.python.org/pep-0517/) / [PEP 518](https://peps.python.org/pep-0518/) | 构建系统标准化：定义构建前后端接口，以及 `pyproject.toml` 构建依赖配置。 |
+| 2020 · 规范      | [PEP 621](https://peps.python.org/pep-0621/) — Storing project metadata in pyproject.toml   | 项目元数据：统一 `[project]` 中的包名、版本、依赖等配置。                |
+| 2021 · 规范      | [PEP 668](https://peps.python.org/pep-0668/) — Externally Managed Environments              | 包安装环境保护：避免 pip 随意破坏系统包管理器维护的 Python 环境。        |
+| 2023 · 规范      | [PEP 723](https://peps.python.org/pep-0723/) — Inline Script Metadata                       | 单文件脚本元数据：允许在 Python 脚本注释中声明运行环境和依赖。           |
+
+PEP 249 有一个特殊情况：官方文档的创建日期是 1999 年 4 月，早于 2000 年的 PEP 制度正式建立。这反映了其作为早期数据库 API 规范被纳入 PEP 文档体系的历史背景。
+
+另外，ASGI 并不是一个对应某份正式 PEP 的标准。它由 Python 异步 Web 生态发展形成，因此不要把 WSGI 的 PEP 333 与现代 ASGI 混为一谈。
+
+5\. CPython 解释器、GIL 与性能优化
+
+| 年份 / 版本 | PEP（官方原文）                                                                      | 核心贡献                                                                                                       |
+| ----------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| 2022 · 3.11 | [PEP 659](https://peps.python.org/pep-0659/) — Specializing Adaptive Interpreter     | 自适应专门化解释器：通过字节码专门化提高 CPython 执行性能。                                                    |
+| 2023 · 3.12 | [PEP 684](https://peps.python.org/pep-0684/) — A Per-Interpreter GIL                 | 解释器级 GIL：允许满足隔离条件的子解释器拥有独立 GIL。                                                         |
+| 2024 · 3.13 | [PEP 703](https://peps.python.org/pep-0703/) — Making the GIL Optional               | 可选无 GIL 构建：引入实验性的 Free-threaded Python 构建。                                                      |
+| 2025 · 3.14 | [PEP 779](https://peps.python.org/pep-0779/) — Free-threaded Python Support Criteria | 自由线程正式支持阶段：推动 Free-threaded Python 从实验性阶段走向正式支持，但仍属于可选构建，并未成为默认模式。 |
+
+这组提案体现了近年来 Python 的另一条重要演化方向：在保持动态语言开发体验的同时，改善解释器性能与多核并行能力。
+
+6\. Python 语言理念、版本演进与治理
+
+| 年份 | PEP（官方原文）                                                               | 核心意义                                                       |
+| ---- | ----------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 2000 | [PEP 1](https://peps.python.org/pep-0001/) — PEP Purpose and Guidelines       | PEP 制度本身：规定提案目的、分类、流程及审议机制。             |
+| 2000 | [PEP 0](https://peps.python.org/) — PEP Index                                 | 提案总索引：组织全部 PEP 的编号、类别和状态。                  |
+| 2001 | [PEP 8](https://peps.python.org/pep-0008/) — Style Guide for Python Code      | Python 代码风格：规定命名、缩进、代码布局等编程规范。          |
+| 2001 | [PEP 257](https://peps.python.org/pep-0257/) — Docstring Conventions          | 文档字符串规范：规定函数、类、模块的文档字符串写法。           |
+| 2004 | [PEP 20](https://peps.python.org/pep-0020/) — The Zen of Python               | Python 之禅：概括简单、显式、可读等语言设计理念。              |
+| 2006 | [PEP 3000](https://peps.python.org/pep-3000/) — Python 3000                   | Python 3 设计纲领：明确 Python 3.0 的重大改革原则。            |
+| 2009 | [PEP 387](https://peps.python.org/pep-0387/) — Backwards Compatibility Policy | 向后兼容政策：规定兼容性、弃用和破坏性变更的处理原则。         |
+| 2018 | [PEP 8016](https://peps.python.org/pep-8016/) — The Steering Council Model    | 治理改革方案：提出指导委员会制度，后来成为正式治理机制的基础。 |
+| 2018 | [PEP 13](https://peps.python.org/pep-0013/) — Python Language Governance      | 现行治理制度：确立核心开发者与 Steering Council 的权力和职责。 |
+| 2019 | [PEP 602](https://peps.python.org/pep-0602/) — Annual Release Cycle           | 年度发布周期：从 Python 3.9 起采用每年一次功能版本发布的节奏。 |
+### 生成器和迭代器
+#### 基本概念
+- **可迭代对象（Iterable）**：能够提供迭代器的对象，例如 `list`、`tuple`、`dict`。  
+- **迭代器（Iterator）**：能够通过 `next()` 逐个返回元素的对象。  
+- **生成器（Generator）**：一种特殊的迭代器，通常通过 `yield` 创建，可以自动保存和恢复执行状态。
+
+![包含关系](PixPin_2026-10-09_10-04-31.webp)
+
+例如,Python中的for循环就是通过Iter实现的:
+```py
+numbers = [10, 20, 30]
+
+for number in numbers:
+    print(number)
+```
+上述代码实际上是:
+```py
+numbers = [10, 20, 30]
+
+iterator = iter(numbers)
+
+while True:
+    try:
+        number = next(iterator)
+        print(number)
+    except StopIteration:
+        break
+```
+
+这总共涉及了三个关键概念:
+
+| 操作             | 作用                   |
+| ---------------- | ---------------------- |
+| `iter(obj)`      | 从可迭代对象获取迭代器 |
+| `next(iterator)` | 获取迭代器的下一个元素 |
+| `StopIteration`  | 告诉调用方迭代已经结束 |
+
+总的来说,典型的Iterator必须包含两个方法:
+```py
+def __iter__(self):
+    return self
+
+def __next__(self):
+    ...
+```
+而列表自己只支持iter,不支持next方法,这是因为它只是一个存储工具,不应该涉及遍历的状态管理,通过for循环的封装来遍历就足够了.因此dcit/tuple/str/range等对象通通只是Iter,而不是Iterator.
 
 
-### 异步与多线程(9/27)
+手写next和iter毕竟还是太麻烦了,所以Python引入了yield关键字,用于包装next和StopIteration,从而实现逐个迭代对象的功能.
+#### 历史提案
+1. PEP234: 引入了next迭代和Iterator
+2. PEP255: 在该提案发布时,想要动态取值只能通过回调函数实现,或者通过Iterator加上next迭代,但是如此一来每次调用时都要记住还剩多少个值没迭代.
+   1. 该提案从其他高级语言如Sather和Icon中借鉴了Generator的思想,从而让函数可以从上次中断的地方继续执行
+3. PEP288: 最终合并到PEP343/342中,由with关键字杀死了比赛
+4. PEP342: 引入了send方法,尽管我从来没见过也从没用过;支持yield作为右值,即放在等号右边,可以返回值.
+#### 从类型注释来看
+Typing库中有三个相关的类型注释,也非常重要:
+```py
+from typing import Iterable, Iterator, Generator
+
+
+# 1. Iterable：可迭代对象
+# 只需要实现 __iter__()，返回一个迭代器
+class NumberIterable(Iterable[int]):
+    def __init__(self, numbers: list[int]):
+        self.numbers = numbers
+
+    def __iter__(self) -> Iterator[int]:
+        return NumberIterator(self.numbers)
+
+
+# 2. Iterator：迭代器
+# 需要实现 __iter__() 和 __next__()
+# 自己记录迭代进度
+class NumberIterator(Iterator[int]):
+    def __init__(self, numbers: list[int]):
+        self.numbers = numbers
+        self.index = 0
+
+    def __iter__(self) -> Iterator[int]:
+        return self
+
+    def __next__(self) -> int:
+        if self.index >= len(self.numbers):
+            raise StopIteration
+
+        value = self.numbers[self.index]
+        self.index += 1
+        return value
+
+
+# 3. Generator：生成器
+# 使用 yield 自动实现迭代器协议
+def number_generator() -> Generator[int, None, None]:
+    print("生成器开始执行")
+
+    for number in [1, 2, 3]:
+        yield number
+
+
+# ===== 验证三者的区别 =====
+
+# Iterable：这里每次迭代都会创建新的迭代器
+iterable = NumberIterable([1, 2, 3])
+
+print(list(iterable))  # [1, 2, 3]
+print(list(iterable))  # [1, 2, 3]
+
+
+# Iterator：记录迭代状态，逐个消耗元素
+iterator = iter(iterable)
+
+print(next(iterator))  # 1
+print(list(iterator))  # [2, 3]
+print(list(iterator))  # []
+
+
+# Generator：调用函数不会立即执行函数体
+generator = number_generator()
+
+print("生成器已创建")
+print(next(generator))  # 开始执行，返回 1
+print(list(generator))  # [2, 3]
+print(list(generator))  # []
+```
+其中,Generator有三个参数,是因为它不仅可以产生值,还可以接受外部给的值并在结束时返回结果:
+```py
+Generator[YieldType, SendType, ReturnType]
+```
+
+示例代码:
+```py
+def example() -> Generator[int, str, bool]:
+    message = yield 100
+    print(message)
+    return True
+
+
+g = example()
+
+print(next(g))          # 100
+g.send("Hello")         # 打印 Hello，然后抛出 StopIteration
+```
+### 异步(10/10)
+
+#### asyncio
+>鉴于Python官方自己也知道自己的官方库文档不具备什么可读性,于是设立了一个[Howto](https://docs.python.org/zh-cn/3/howto/index.html)栏目,其中就有对asyncio的详细阐述,毕竟这可是python中举足轻重的库了,而里面的论述也还不错
+
+asyncio中的一切都是围绕事件循环展开的,事件循环包含一组等待运行的Task,有些Task是代码中主动添加的,有些是由asyncio自己添加的.
+
+事件循环会从Task队列中取出一个唤醒,一旦它暂停或者完成,就会将控制权返回给事件循环.此过程将无限地重复，事件循环也不停地循环下去。 如果没有待执行的作业，事件循环会足够智能地转入休息状态以避免浪费 CPU 周期，并在有更多工作需完成时恢复运行。
+
+而Task粗略来说就是一个Coroutine,而asyncio负责将Task和事件循环自动关联起来:
+```py
+import asyncio
+
+async def main():
+    # 执行各种稀奇古怪、天马行空的异步操作……
+    ...
+
+if __name__ == "__main__":
+    asyncio.run(main())
+    # 直到协程 main() 结束，程序才会到达下面的打印语句。
+    print("coroutine main() is done!")
+```
+
+
+
+#### PEP历史
+- 首先得先了解生成器和迭代器相关的PEP历史再来看这里
+
+1. PEP380: 提出新表达式`yield from <expr>`,expr是一个可迭代对象.即用于帮助一个生成器调用另一个生成器
+2. PEP3156: 引入asyncio包和事件循环,协程,Future与Task
+3. PEP492: 引入aysnc,await关键字,`async def`用于声明一个协程(即使内部没有await关键字),在被调用时会返回一个协程对象
+   1. await关键字用于获取协程的执行结果,它会暂停协程的执行,直到被等待的函数执行完毕并返回结果,才会重新激活原协程:
+
+```py
+async def read_data(db):
+    data = await db.fetch('SELECT ...')
+    ...
+```
+
+
+
+4. PEP525: 引入异步生成器,即在async def的函数中使用`yield`
+
+### 多线程(10/10)
+
 ### 装饰器探析(10/6)
 #### 装饰器的历史
 时间线:
@@ -297,8 +625,10 @@ usage.input_tokens = 200
 ```
 2. `@staticmethod`: 静态方法,用法与Cpp中的静态方法基本一样,不需要传入self,可以通过实例和类名直接调用
 #### 函数装饰器
-### Strawberry库学习
-### Cpython wsgiref学习(10/7)
+### Cpython wsgiref学习
+### GIL移除的尝试
+- [PEP703](https://peps.python.org/pep-0703/)
+
 
 ## Golang
 ## Java
