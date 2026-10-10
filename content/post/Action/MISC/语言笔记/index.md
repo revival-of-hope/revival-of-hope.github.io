@@ -514,6 +514,22 @@ if __name__ == "__main__":
 ```
 
 
+#### 协程原理
+至于协程与进程的关系,看下图即可:
+
+```mermaid
+
+flowchart TD
+    P["Python 进程"]
+    P --> T1["线程 1"]
+    P --> T2["线程 2"]
+    T1 --> EL["asyncio Event Loop"]
+    EL --> C1["协程 A"]
+    EL --> C2["协程 B"]
+    EL --> C3["协程 C"]
+    T2 --> B["普通同步任务"]
+    style EL fill:#DCEBFA,stroke:#4289CB,color:#174D82
+```
 
 #### PEP历史
 - 首先得先了解生成器和迭代器相关的PEP历史再来看这里
@@ -529,11 +545,84 @@ async def read_data(db):
     ...
 ```
 
-
-
 4. PEP525: 引入异步生成器,即在async def的函数中使用`yield`
 
-### 多线程(10/10)
+### 并发与多线程(10/10)
+#### 基本概念
+- Concurrency（并发）：多个任务在同一时间段内推进，不要求同一时刻执行。
+- Parallelism（并行）：多个任务在同一时刻真正执行，通常需要多个 CPU 核心。
+
+| 执行方式                                                   | Concurrency（并发） | Parallelism（并行）   |
+| :--------------------------------------------------------- | :------------------ | :-------------------- |
+| **asyncio**（单线程事件循环）                              | 是                  | 否                    |
+| **ThreadPoolExecutor**（传统 CPython，纯 Python CPU 任务） | 是                  | 通常否（受 GIL 限制） |
+| **ThreadPoolExecutor**（I/O 任务）                         | 是                  | I/O 操作可重叠        |
+| **ProcessPoolExecutor**（多核 CPU）                        | 是                  | 是                    |
+
+```mermaid
+
+flowchart TD
+    A["concurrent.futures.Executor<br/>抽象基类"]
+    A --> B["ThreadPoolExecutor<br/>线程池"]
+    A --> C["ProcessPoolExecutor<br/>进程池"]
+    A --> D["InterpreterPoolExecutor<br/>多解释器池 · Python 3.14+"]
+    B -.-> E["threading<br/>线程机制"]
+    C -.-> F["multiprocessing<br/>进程机制"]
+    D -.-> G["多个独立解释器"]
+    classDef root fill:#E3F2FD,stroke:#64B5F6,color:#174D82
+    classDef impl fill:#E8F5E9,stroke:#81C784,color:#256339
+    class A root
+    class B,C,D impl
+```
+
+#### PEP历史
+1. PEP371: 引入multiprocessing库,通过模仿threading库(在98年引入),实现了一种基于进程的线程编程方法,有效地绕过了GIL,实际上来说,就是多进程而已
+2. PEP3148: 引入顶级包concurrent,子包executor和future.
+   1. Executor是一个抽象类,提供异步执行的方法,并有两个子类ProcessPoolExecutor和ThreadPoolExecutor,支持map方法.
+   2. Future表示Executor类的执行结果
+   3. 本模块的设计很大程度上受到了 Java java.util.concurrent 包的影响
+### Python Web(10/10)
+#### 概貌
+| 类型           | 代表技术                                    | 核心职责                                 |
+| :------------- | :------------------------------------------ | :--------------------------------------- |
+| **接口规范**   | CGI、WSGI、ASGI                             | 规定服务器与应用程序如何通信             |
+| **应用服务器** | Gunicorn、uWSGI、Uvicorn、Daphne、Hypercorn | 接收 HTTP 连接，管理请求、应用调用及响应 |
+| **Web 框架**   | Django、Flask、Starlette、FastAPI           | 提供路由、请求处理、业务开发等能力       |
+
+1990-2014是CGI和WSGI的时代,而之后则是ASGI的时代:
+
+| 年份         | 技术 / 项目                                                             | 类型                   | 主要贡献与历史意义                                                                             |
+| ------------ | ----------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------- |
+| 1990年代初   | CGI（Common Gateway Interface）                                         | 接口规范               | 允许 Web 服务器调用外部程序动态生成 HTTP 响应，是早期 Python Web 开发的重要方式                |
+| 1990年代中期 | FastCGI                                                                 | 接口协议               | 通过持久化应用进程，减少传统 CGI 每次请求启动程序的开销                                        |
+| 2002         | [Twisted](https://twisted.org/)                                         | 异步网络框架 / 服务器  | 基于 Reactor 事件循环提供网络服务，早于 Python `asyncio` 十余年                                |
+| 2003         | [PEP 333 — WSGI](https://peps.python.org/pep-0333/)                     | 接口规范               | 提出统一的 Python Web Server Gateway Interface，解耦 Web 服务器与应用框架                      |
+| 2005         | [Django](https://www.djangoproject.com/)                                | Web 框架               | 推广完整的 Python Web 开发体系，后来支持 WSGI                                                  |
+| 2006         | [wsgiref](https://docs.python.org/3/library/wsgiref.html)               | 标准库 / 参考服务器    | 在 Python 2.5 中提供 WSGI 参考实现及测试工具                                                   |
+| 2007         | [mod_wsgi](https://modwsgi.readthedocs.io/)                             | Apache 模块            | 让 Apache HTTP Server 可以托管符合 WSGI 规范的 Python 应用                                     |
+| 2009         | [Tornado](https://www.tornadoweb.org/)                                  | 异步 Web 框架 / 服务器 | 面向大量并发连接和长轮询场景，提供自己的事件循环及 HTTP 服务器                                 |
+| 2009         | [uWSGI](https://uwsgi-docs.readthedocs.io/)                             | 应用服务器             | 提供进程管理、WSGI 应用托管和多协议支持                                                        |
+| 2009—2010    | [Gunicorn](https://gunicorn.org/)                                       | 应用服务器             | 基于 Pre-fork 多进程模型托管 Python 应用，2010 年正式公开发行                                  |
+| 2010         | [Flask](https://flask.palletsprojects.com/)                             | Web 框架               | 将轻量级 WSGI 应用开发推广为主流方式                                                           |
+| 2010         | [PEP 3333 — WSGI 1.0.1](https://peps.python.org/pep-3333/)              | 接口规范               | 更新 WSGI 对 Python 3 字符串和字节数据的处理规则                                               |
+| 2011         | [Waitress](https://docs.pylonsproject.org/projects/waitress/en/stable/) | WSGI 服务器            | 提供跨平台、纯 Python 的生产级 WSGI HTTP 服务器                                                |
+| 2014         | [PEP 3156 — asyncio](https://peps.python.org/pep-3156/)                 | 异步运行框架           | 为 Python 提供标准化事件循环、Future、Task 等异步机制                                          |
+| 2015         | [PEP 492 — async/await](https://peps.python.org/pep-0492/)              | 语言特性               | 原生支持协程，让异步服务器和异步框架的开发更加自然                                             |
+| 2015—2016    | ASGI 早期规范                                                           | 接口规范               | 从 Django Channels 生态中发展出来，支持异步交互和 WebSocket                                    |
+| 2015—2016    | [Daphne](https://github.com/django/daphne)                              | ASGI 服务器            | 第一批 ASGI 服务器实现，服务于 Django Channels                                                 |
+| 2016         | [uvloop](https://github.com/MagicStack/uvloop)                          | 事件循环实现           | 基于 libuv 实现高性能 asyncio 事件循环，可供服务器使用                                         |
+| 2017         | [ASGI 2.0](https://asgi.readthedocs.io/en/latest/specs/main.html)       | 接口规范               | 2017 年 11 月形成不依赖 Channel Layer 的新接口设计                                             |
+| 2017         | [Uvicorn](https://uvicorn.dev/)                                         | ASGI 服务器            | 提供轻量、高性能的异步 Python 应用服务器                                                       |
+| 2018         | [Hypercorn](https://hypercorn.readthedocs.io/)                          | ASGI / WSGI 服务器     | 从 Quart 的服务器代码独立出来，支持 HTTP/2、WebSocket 等                                       |
+| 2018         | [Starlette](https://starlette.dev/)                                     | ASGI Web 框架          | 提供轻量级异步请求处理、WebSocket、中间件与路由基础设施                                        |
+| 2018         | [FastAPI](https://fastapi.tiangolo.com/)                                | ASGI Web 框架          | 结合 Starlette、Pydantic、类型注解与 OpenAPI，推动现代异步 API 开发                            |
+| 2019         | [ASGI 3.0](https://asgi.readthedocs.io/en/latest/specs/main.html)       | 接口规范               | 采用单一异步可调用对象形式，即 `app(scope, receive, send)`                                     |
+| 2019         | Django 3.0                                                              | Web 框架升级           | 正式增加 ASGI 应用支持，但内部请求处理当时仍主要是同步的                                       |
+| 2020         | Django 3.1                                                              | Web 框架升级           | 增加异步视图支持，进一步向异步请求处理演进                                                     |
+| 2022         | [Granian](https://github.com/emmett-framework/granian)                  | Rust 实现的应用服务器  | 采用 Rust 的 Hyper、Tokio，支持 ASGI、WSGI 等接口                                              |
+| 2024         | [uvicorn-worker](https://github.com/Kludex/uvicorn-worker)              | Gunicorn Worker        | 将 Uvicorn 的 Gunicorn Worker 适配器独立成包                                                   |
+| 2026         | [Gunicorn 24 / 25](https://gunicorn.org/)                               | 服务器升级             | 24.0 引入原生 ASGI Worker，25.1 将其提升为稳定支持，不再必须借助 Uvicorn Worker 运行 ASGI 应用 |
+
 
 ### 装饰器探析(10/6)
 #### 装饰器的历史
@@ -601,7 +690,7 @@ class InventoryItem:
     def total_cost(self) -> float:
         return self.unit_price * self.quantity_on_hand
 ```
-编译时会给这个类自动加上初始化方法和几个不太常用的边角料方法如`repr`和`eq`:
+编译时会给这个类自动加上初始化方法和其他方法如`repr`和`eq`(从而可以直接用等号来比较两个数据类):
 ```py
 def __init__(self, name: str, unit_price: float, quantity_on_hand: int = 0):
     self.name = name
@@ -624,9 +713,11 @@ usage.input_tokens = 200
 # dataclasses.FrozenInstanceError
 ```
 2. `@staticmethod`: 静态方法,用法与Cpp中的静态方法基本一样,不需要传入self,可以通过实例和类名直接调用
+3. `@property`: 将方法转换成属性,即原来是通过`user.full_name()`调用,而现在可以通过`user.full_name`,在不需要给函数传入参数的时候还是很有用的
 #### 函数装饰器
+
 ### Cpython wsgiref学习
-### GIL移除的尝试
+### GIL历史
 - [PEP703](https://peps.python.org/pep-0703/)
 
 
@@ -672,6 +763,30 @@ Java由Sun公司于1995年发布,出于营销的目的,将Java分成了三个主
 >[!NOTE]
 >(26/8/25)突然发现我之前还是太蠢了,直接看现成项目才是学习Spring Boot的王道,扯什么IoC,依赖注入,一点用都没有,毕竟无论是什么语言,什么框架,一旦涉及了CRUD,就几乎没有什么太大的架构差别.
 ## Cpp
+### 刷题常用知识点
+#### 获取容器长度
+1. STL容器统一使用`.size()`,如vector,array,queue,map等
+2. string类型可以用`.size()`,也可以用`.length()`
+3. 普通数组用`std::size()`.
+
+所以无脑用`.size()`即可.
+
+#### vector解析
+vector初始化:
+```cpp
+vector<int> dp(n, 0);                   // 一维数组
+// 第一个参数指定元素个数,第二个参数指定所有元素的初始值,不写则默认为0
+
+vector<vector<int>> dp(n, vector<int>(m, 0)); // 二维数组
+// 第一个参数指定数组个数,第二个参数指定数组的内容
+```
+常用操作:
+- `push_back()`: 添加尾部元素
+- `empty()`: 判断是否为空
+- `resize(5,0)`: 调整长度为5,不够则填充0.
+
+#### 常用STL及对应情景
+
 ### struct/class全解(9/8)
 Cpp中struct和class的区别比我想的还要小很多,它们都有访问控制符,有构造和析构函数,支持`->`访问符,唯一的区别在于,struct的默认成员权限为public,而class的默认成员权限为private.
 

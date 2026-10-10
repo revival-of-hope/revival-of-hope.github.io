@@ -21,7 +21,7 @@ image: 67189487_p0-最凶最悪.webp
 
 所以,唯一能让自己有点参与感的方法就是去调用大公司恩赐下来的API,并通过自己的手段来优化API的使用,帮助更多的普通人以更简单的方式接触和认识AI.这也是我写这篇教程的部分初衷.
 
->不敢说我的教程写的有多好,但我保证我的技术栈是最前沿的,前端用的是最新版本的next.js 16,后端用的是fastapi+sqlmodel,使用uv管理python包,加上docker compose部署,翻遍GitHub仓库都很难找到一个差不多的项目吧.
+>(10/10)如今来看这篇文章的质量是很堪忧的,但我也不打算重写前面的部分了,作为ADR也是不错的嘛
 
 ### 大纲
 ```mermaid
@@ -9234,7 +9234,254 @@ if __name__ == "__main__":
 
 
 # 智能体进阶
-## ch17: 联网搜索引入和MCP使用
+## ch17: 引入设计模式
+### 前言
+是时候引入一点设计模式了,我们之前的类封装简直是在瞎写,完全没有一点美感.
+
+先看看原来agents文件夹中的两个文件:
+
+**client.py**
+```py
+from functools import lru_cache
+from typing import Literal
+
+from app.models import Message, MessageRole
+from app.core.config import settings
+
+from openai import Stream, OpenAI
+from openai.types.responses import (
+    EasyInputMessageParam,
+    ResponseInputParam,
+    ResponseStreamEvent,
+)
+
+
+class Agent:
+
+    @lru_cache
+    def _get_client(self) -> OpenAI:
+        return self._create_client(
+            api_key=settings.DEEPSEEK_API_KEY,
+            url=settings.MODEL_URL,
+        )
+
+    def stream_agent(
+        self,
+        *,
+        history: list[Message],
+        model: str = settings.MODEL_NAME,
+        system_prompt: str = settings.DEFAULT_SYSTEM_PROMPT,
+        enable_reasoning: bool = True,
+    ) -> Stream[ResponseStreamEvent]:
+        # 构造消息列表
+        message_list = self._build_input(history=history)
+
+        # 打开通信流
+        stream = self._create_stream(
+            client=self._get_client(),
+            model=model,
+            instructions=system_prompt,
+            input=message_list,
+            enable_reasoning=enable_reasoning,
+        )
+        return stream
+
+    @staticmethod
+    def _build_input(
+        *,
+        history: list[Message],
+    ) -> ResponseInputParam:
+        response_input: ResponseInputParam = []
+        for message in history:
+            role: Literal["user", "assistant"] = (
+                "user" if message.role is MessageRole.USER else "assistant"
+            )
+            response_input.append(
+                EasyInputMessageParam(
+                    role=role,
+                    content=message.content,
+                )
+            )
+        return response_input
+
+    @staticmethod
+    def _create_client(*, api_key: str, url: str) -> OpenAI:
+        return OpenAI(api_key=api_key, base_url=url)
+
+    @staticmethod
+    def _create_stream(
+        *,
+        client: OpenAI,
+        model: str,
+        instructions: str,
+        input: ResponseInputParam,
+        enable_reasoning: bool = True,
+    ) -> Stream[ResponseStreamEvent]:
+        return client.responses.create(
+            model=model,
+            instructions=instructions,
+            input=input,
+            stream=True,
+            reasoning=(
+                {"effort": "high", "summary": "auto"}
+                if enable_reasoning
+                else {"effort": "none"}
+            ),
+        )
+```
+
+**chat.py**
+```py
+from collections.abc import Iterator
+
+from sqlmodel import Session
+from openai import Stream
+from openai.types.responses import Response, ResponseStreamEvent
+from app import crud
+from app.models import ChatRequest, Conversation, MessageRole
+
+
+class ConversationNotFoundError(Exception):
+    """Raised when a conversation is absent or belongs to another user."""
+
+
+class ChatBot:
+    TITLE_LENGTH = 10
+    DEFAULT_TITLE = "新对话"
+
+    @staticmethod
+    def _build_conversation_title(content: str) -> str:
+
+        normalized_text = " ".join(content.split())
+        if not normalized_text:
+            return ChatBot.DEFAULT_TITLE
+
+        return normalized_text[: ChatBot.TITLE_LENGTH]
+
+    def prepare_chat(
+        self,
+        *,
+        session: Session,
+        user_id: int,
+        request: ChatRequest,
+    ) -> Conversation:
+        if request.conversation_id is None:
+            conversation = crud.create_conversation(
+                session=session,
+                user_id=user_id,
+                title=self._build_conversation_title(request.content),
+            )
+        else:
+            conversation = crud.get_conversation_for_user(
+                session=session,
+                conversation_id=request.conversation_id,
+                user_id=user_id,
+            )
+            if conversation is None:
+                raise ConversationNotFoundError
+        crud.save_message(
+            session=session,
+            conversation=conversation,
+            role=MessageRole.USER,
+            content=request.content,
+        )
+        return conversation
+
+    def stream_and_save(
+        self,
+        *,
+        session: Session,
+        conversation_id: int,
+        chunks: Stream[ResponseStreamEvent],
+    ) -> Iterator[str]:
+        collected_chunks: list[str] = []
+        reasoning_chunks: list[str] = []
+        reasoning_started = False
+        answer_started = False
+        final_response: Response | None = None
+        for event in chunks:
+            if event.type == "response.output_text.delta":
+                if not answer_started:
+                    if reasoning_started:
+                        yield "\n\n回答：\n"
+                    answer_started = True
+                collected_chunks.append(event.delta)
+                yield event.delta
+            elif event.type == "response.reasoning_text.delta":
+                if not reasoning_started:
+                    yield "思考：\n"
+                    reasoning_started = True
+                reasoning_chunks.append(event.delta)
+                yield event.delta
+            elif event.type == "response.completed":
+                final_response = event.response
+            elif event.type == "response.incomplete":
+                final_response = event.response
+            elif event.type == "error":
+                raise RuntimeError(event.message)
+            elif event.type == "response.failed":
+                error = event.response.error
+                raise RuntimeError(error.message if error else "Response failed")
+
+        full_content = "".join(collected_chunks)
+        if not full_content or not final_response or not final_response.usage:
+            return
+        usage = final_response.usage
+        conversation = session.get(Conversation, conversation_id)
+        if conversation is None:
+            return
+        crud.save_message(
+            session=session,
+            conversation=conversation,
+            role=MessageRole.ASSISTANT,
+            content=full_content,
+            reasoning="".join(reasoning_chunks) or None,
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            total_tokens=usage.total_tokens,
+        )
+```
+
+职责上可以说是相当的混乱,毫不客气的说,就是一堆垃圾,不具备可维护性,但我们先放着也可以.
+
+再看看业务代码:
+```py
+# 删除用户
+@router.delete("/{user_id}")
+def delete_user(current_user: Superuser, session: SessionDep, user_id: int) -> Response:
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user_id == current_user.user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Super users are not allowed to delete themselves",
+        )
+    try:
+        session.delete(user)
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+```
+此处暴露了底层的删除细节,我们需要将删除操作单独作为函数放入crud中,但如果这么处理,就又需要将HTTPException等依赖引入crud(否则无法判断user),那么就会让代码更加混乱.
+
+一个简单的想法是让路由部分根据crud部分的返回值来抛出异常,如返回1说明找不到用户,返回2说明删除失败.但更为精确的设计则是让crud部分返回异常,路由部分根据crud异常的名字来重新抛出HTTP异常.
+
+但问题接踵而至,curd作为业务代码,不应该接触数据持久化和回滚等底层逻辑,否则代码之间的界限就会相当模糊.一个好的想法是新建一个类,将回滚等操作都放入该类中,并由该类向路由部分抛出数据库操作异常.
+
+如此考量下来,代码之间的界限就相当清晰了,测试编写也变得简单了不少,路由部分就用我们之前的API自动测试即可;业务部分则测试边界情况,看是否会抛出相关的异常;crud层则可以引入sqlite等测试数据库,测试数据库的持久化行为是否正常.
+
+上述的架构被称为Layered Architecture,并结合了Repository Pattern.
+
+
+
+
+
+
+## ch18: 联网搜索引入和MCP使用
 ### 背景介绍
 目前,我们的Agent还不能叫做Agent,毕竟联网搜索都做不到呢.不过联网搜索并非有那么难实现,大致思想如下:
 1. 设置一个循环,让LLM能够自己识别是否需要搜索并决定搜索内容
@@ -9858,221 +10105,136 @@ else:
 要知道,如果不用LLM的话,最难的地方是提取是否需要调用搜索工具的语义啊,而现在我们直接就可以根据封装的API来调用工具了,可以说是相当简单了.
 
 现在的问题就是,如何把我们的ddgs接入agents里面了.
-#### 重构agents文件夹
-是时候引入一点设计模式了,我们之前的类封装简直是在瞎写,完全没有一点美感.
-
-先看看原来的两个文件:
-
-**client.py**
+### MCP Python SDK介绍
+#### 初体验
+导入:
+```bash
+uv add "mcp[cli]"
+```
+代码:
 ```py
-from functools import lru_cache
-from typing import Literal
+from mcp.server import MCPServer
 
-from app.models import Message, MessageRole
-from app.core.config import settings
-
-from openai import Stream, OpenAI
-from openai.types.responses import (
-    EasyInputMessageParam,
-    ResponseInputParam,
-    ResponseStreamEvent,
-)
+mcp = MCPServer("Demo")
 
 
-class Agent:
+@mcp.tool()
+def add(a: int, b: int) -> int:
+    """Add two numbers."""
+    return a + b
 
-    @lru_cache
-    def _get_client(self) -> OpenAI:
-        return self._create_client(
-            api_key=settings.DEEPSEEK_API_KEY,
-            url=settings.MODEL_URL,
-        )
 
-    def stream_agent(
-        self,
-        *,
-        history: list[Message],
-        model: str = settings.MODEL_NAME,
-        system_prompt: str = settings.DEFAULT_SYSTEM_PROMPT,
-        enable_reasoning: bool = True,
-    ) -> Stream[ResponseStreamEvent]:
-        # 构造消息列表
-        message_list = self._build_input(history=history)
-
-        # 打开通信流
-        stream = self._create_stream(
-            client=self._get_client(),
-            model=model,
-            instructions=system_prompt,
-            input=message_list,
-            enable_reasoning=enable_reasoning,
-        )
-        return stream
-
-    @staticmethod
-    def _build_input(
-        *,
-        history: list[Message],
-    ) -> ResponseInputParam:
-        response_input: ResponseInputParam = []
-        for message in history:
-            role: Literal["user", "assistant"] = (
-                "user" if message.role is MessageRole.USER else "assistant"
-            )
-            response_input.append(
-                EasyInputMessageParam(
-                    role=role,
-                    content=message.content,
-                )
-            )
-        return response_input
-
-    @staticmethod
-    def _create_client(*, api_key: str, url: str) -> OpenAI:
-        return OpenAI(api_key=api_key, base_url=url)
-
-    @staticmethod
-    def _create_stream(
-        *,
-        client: OpenAI,
-        model: str,
-        instructions: str,
-        input: ResponseInputParam,
-        enable_reasoning: bool = True,
-    ) -> Stream[ResponseStreamEvent]:
-        return client.responses.create(
-            model=model,
-            instructions=instructions,
-            input=input,
-            stream=True,
-            reasoning=(
-                {"effort": "high", "summary": "auto"}
-                if enable_reasoning
-                else {"effort": "none"}
-            ),
-        )
+@mcp.resource("greeting://{name}")
+def greeting(name: str) -> str:
+    """Greet someone by name."""
+    return f"Hello, {name}!"
 ```
 
-**chat.py**
+启动MCP服务器
+```bash
+uv run mcp dev .\mcp_test.py
+```
+- mcp dev用于开发,会启动Inspector
+- mcp run命令用于正式运行,不会启动Inspector
+
+唤起页面如下:
+![网页](PixPin_2026-10-10_13-39-35_1.webp)
+
+可以执行上面的两个工具并返回结果:
+![结果](PixPin_2026-10-10_13-40-37.webp)
+#### 基本内容
+MCP库支持三种类型的接口:
+| 原语 (Primitive)      | 控制方 (Controlled by)     | 定义 (What it is)              | 示例 (Example)       |
+| :-------------------- | :------------------------- | :----------------------------- | :------------------- |
+| **Tools**（工具）     | 模型 (The model)           | 模型调用以执行操作的函数       | API 调用、数据库写入 |
+| **Resources**（资源） | 应用程序 (The application) | 宿主加载到模型上下文中的数据   | 文件内容、API 响应   |
+| **Prompts**（提示词） | 用户 (The user)            | 用户按名称调用的可复用消息模板 | 斜杠命令、菜单项     |
+
+这三者一律通过装饰器声明:
 ```py
-from collections.abc import Iterator
+from mcp.server import MCPServer
 
-from sqlmodel import Session
-from openai import Stream
-from openai.types.responses import Response, ResponseStreamEvent
-from app import crud
-from app.models import ChatRequest, Conversation, MessageRole
+mcp = MCPServer("Demo")
 
 
-class ConversationNotFoundError(Exception):
-    """Raised when a conversation is absent or belongs to another user."""
+@mcp.tool()
+def add(a: int, b: int) -> int:
+    """Add two numbers."""
+    return a + b
 
 
-class ChatBot:
-    TITLE_LENGTH = 10
-    DEFAULT_TITLE = "新对话"
+@mcp.resource("greeting://{name}")
+def greeting(name: str) -> str:
+    """Greet someone by name."""
+    return f"Hello, {name}!"
 
-    @staticmethod
-    def _build_conversation_title(content: str) -> str:
 
-        normalized_text = " ".join(content.split())
-        if not normalized_text:
-            return ChatBot.DEFAULT_TITLE
-
-        return normalized_text[: ChatBot.TITLE_LENGTH]
-
-    def prepare_chat(
-        self,
-        *,
-        session: Session,
-        user_id: int,
-        request: ChatRequest,
-    ) -> Conversation:
-        if request.conversation_id is None:
-            conversation = crud.create_conversation(
-                session=session,
-                user_id=user_id,
-                title=self._build_conversation_title(request.content),
-            )
-        else:
-            conversation = crud.get_conversation_for_user(
-                session=session,
-                conversation_id=request.conversation_id,
-                user_id=user_id,
-            )
-            if conversation is None:
-                raise ConversationNotFoundError
-        crud.save_message(
-            session=session,
-            conversation=conversation,
-            role=MessageRole.USER,
-            content=request.content,
-        )
-        return conversation
-
-    def stream_and_save(
-        self,
-        *,
-        session: Session,
-        conversation_id: int,
-        chunks: Stream[ResponseStreamEvent],
-    ) -> Iterator[str]:
-        collected_chunks: list[str] = []
-        reasoning_chunks: list[str] = []
-        reasoning_started = False
-        answer_started = False
-        final_response: Response | None = None
-        for event in chunks:
-            if event.type == "response.output_text.delta":
-                if not answer_started:
-                    if reasoning_started:
-                        yield "\n\n回答：\n"
-                    answer_started = True
-                collected_chunks.append(event.delta)
-                yield event.delta
-            elif event.type == "response.reasoning_text.delta":
-                if not reasoning_started:
-                    yield "思考：\n"
-                    reasoning_started = True
-                reasoning_chunks.append(event.delta)
-                yield event.delta
-            elif event.type == "response.completed":
-                final_response = event.response
-            elif event.type == "response.incomplete":
-                final_response = event.response
-            elif event.type == "error":
-                raise RuntimeError(event.message)
-            elif event.type == "response.failed":
-                error = event.response.error
-                raise RuntimeError(error.message if error else "Response failed")
-
-        full_content = "".join(collected_chunks)
-        if not full_content or not final_response or not final_response.usage:
-            return
-        usage = final_response.usage
-        conversation = session.get(Conversation, conversation_id)
-        if conversation is None:
-            return
-        crud.save_message(
-            session=session,
-            conversation=conversation,
-            role=MessageRole.ASSISTANT,
-            content=full_content,
-            reasoning="".join(reasoning_chunks) or None,
-            input_tokens=usage.input_tokens,
-            output_tokens=usage.output_tokens,
-            total_tokens=usage.total_tokens,
-        )
+@mcp.prompt()
+def summarize(text: str) -> str:
+    """Summarize a piece of text in one sentence."""
+    return f"Summarize the following text in one sentence:\n\n{text}"
 ```
 
-职责上可以说是相当的混乱,毫不客气的说,就是一堆垃圾,不具备可维护性.
+调用方法也很简单:
+```py
+import asyncio
+from mcp import Client
 
-为了让代码更好看一点,我们可以用到Repository Pattern,基本思想就是用业务操作封装数据库访问,避免代码中的数据库操作与上游操作混在一起.
+
+async def main():
+    async with Client("http://127.0.0.1:8000/mcp") as client:
+        result = await client.call_tool(
+            "add",
+            {"a": 10, "b": 20},
+        )
+        print(result.structured_content)
 
 
-#### 正式接入ddgs服务
-## ch18: 接入RAG和Vector Database
-## ch19: Agent框架测评与引入
+asyncio.run(main())
+```
+#### Server部分
+### FastMCP介绍
+#### 初体验
+导入:
+```bash
+uv add fastmcp
+```
+
+Server代码:
+```py
+from fastmcp import FastMCP
+
+mcp = FastMCP("My MCP Server")
+
+@mcp.tool
+def greet(name: str) -> str:
+    return f"Hello, {name}!"
+
+if __name__ == "__main__":
+    mcp.run()
+```
+
+启动后使用Client:
+```py
+import asyncio
+from fastmcp import Client
+
+client = Client("http://localhost:8000/mcp")
+
+async def call_tool(name: str):
+    async with client:
+        result = await client.call_tool("greet", {"name": name})
+        print(result)
+
+asyncio.run(call_tool("Ford"))
+```
+
+光是这些的话可以看到这与MCP框架没有任何区别,那还是要深入才能看到差异
+#### 服务器部分
+
+
+## ch19: 接入RAG和Vector Database
+## ch20: Agent框架测评与引入
 ### 背景
 可以发现,当服务越堆越多时,我们这个项目的可维护性就越来越低,唯一的解决方法就是引入框架,将大量重复工作封装在框架背后,只关注高层的逻辑设计,如此一来,不但开发起来更加简单,也能让代码的性能更高.
 

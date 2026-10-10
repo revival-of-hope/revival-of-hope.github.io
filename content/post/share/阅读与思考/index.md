@@ -1049,6 +1049,9 @@ Manning 的正式产品页分别确认了这些出版时间。([Manning Publicat
 | 512K     | 全本《水浒传》或《西游记》         |
 | 1M       | 一本《现代汉语词典》（厚重工具书） |
 
+### 从零开始构建Go项目(10/9)
+- [来源](https://robinlg.com/blog/golang/project/1/)
+
 
 # 思考
 
