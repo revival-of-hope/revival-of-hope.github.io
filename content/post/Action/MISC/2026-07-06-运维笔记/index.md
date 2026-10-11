@@ -67,7 +67,91 @@ image: 57793944_p0-浴衣とお面.webp
 | **x86 32-bit**         | x86 / IA-32 / i386              | Intel、AMD                               |    ★☆☆☆☆ ↓ |            ★★☆☆☆ | 老 PC、遗留工业系统                   |
 | **ARM 32-bit**         | ARM / ARMv6 / ARMv7             | Arm 生态                                 |    ★★☆☆☆ ↓ |            ★★★☆☆ | 老树莓派、MCU、嵌入式设备             |
 
+## 主流Linux发行版
+| 发行版            | 所属家族           | 开发主体 / 背景           | 包管理体系   | 主要定位                 |
+| :---------------- | :----------------- | :------------------------ | :----------- | :----------------------- |
+| **Debian**        | Debian 系          | Debian 社区               | APT / dpkg   | 通用系统、服务器、稳定性 |
+| **Ubuntu**        | Debian 系          | Canonical + 社区          | APT / dpkg   | 桌面、开发、云服务器     |
+| **Linux Mint**    | Ubuntu / Debian 系 | Mint 团队                 | APT / dpkg   | 桌面、Windows 用户迁移   |
+| **Kali Linux**    | Debian 系          | OffSec                    | APT / dpkg   | 网络安全、渗透测试       |
+| **Fedora**        | Red Hat 系         | Fedora 社区、Red Hat 参与 | DNF / RPM    | 新技术、开发者桌面       |
+| **RHEL**          | Red Hat 系         | Red Hat                   | DNF / RPM    | 企业服务器、商业支持     |
+| **CentOS Stream** | Red Hat 系         | CentOS 社区、Red Hat      | DNF / RPM    | RHEL 上游开发、测试      |
+| **Rocky Linux**   | RHEL 兼容生态      | Rocky 社区                | DNF / RPM    | 企业服务器、RHEL 兼容    |
+| **AlmaLinux**     | RHEL 兼容生态      | AlmaLinux 基金会          | DNF / RPM    | 企业服务器、RHEL 兼容    |
+| **openSUSE**      | SUSE 系            | openSUSE 社区             | Zypper / RPM | 桌面、服务器             |
+| **SLES**          | SUSE 系            | SUSE                      | Zypper / RPM | 企业服务器、商业支持     |
+| **Arch Linux**    | Arch 系            | Arch 社区                 | Pacman       | 滚动更新、高度自定义     |
+| **Manjaro**       | Arch 系            | Manjaro 团队              | Pacman       | 更易上手的 Arch 衍生版   |
+| **Alpine Linux**  | 独立发行版         | Alpine 社区               | APK          | 轻量容器、最小化系统     |
+| **Gentoo**        | 独立发行版         | Gentoo 社区               | Portage      | 源码构建、高度定制       |
+| **NixOS**         | 独立发行版         | NixOS 社区                | Nix          | 声明式配置、可复现系统   |
 
+其中,最需要了解的就是各个派系的包管理工具了,毕竟`sudo apt update`很有可能是你进入新系统后运行的第一条命令:
+1. Debian系: apt高级命令和dpkg底层命令,`apt-get`则是一个脚本命令,对应的安装包后缀为`.deb`
+2. Red Hat系: dnf高级命令和早期的yum高级命令,对应的安装包后缀为`.rpm`
+3. Arch系: pacman
+4. Apline专用: apk
+
+### Debian系操作
+| 命令               | 实际作用             | 会更新已安装的软件吗？ |
+| :----------------- | :------------------- | :--------------------- |
+| `sudo apt update`  | 更新本地的软件包索引 | 不会                   |
+| `sudo apt upgrade` | 升级已安装的软件包   | 会                     |
+
+![时间线示例](PixPin_2026-10-11_10-49-51.webp)
+
+
+## 操作系统年表
+| 年份 | 操作系统 / 项目              | 所属体系           | 历史地位及特点                                                  |
+| :--- | :--------------------------- | :----------------- | :-------------------------------------------------------------- |
+| 1969 | Unix                         | Unix               | 贝尔实验室开发，现代操作系统的重要技术源头                      |
+| 1977 | BSD                          | Unix 衍生          | 加州大学伯克利分校发布早期 BSD，后来发展出多个 BSD 系统         |
+| 1981 | MS-DOS                       | DOS                | 微软面向 IBM PC 时代的重要命令行操作系统                        |
+| 1983 | GNU 项目                     | 类 Unix            | 自由软件操作系统项目启动，后来提供了大量 GNU/Linux 用户空间工具 |
+| 1984 | Macintosh System Software    | Classic Mac OS     | 苹果早期图形界面操作系统                                        |
+| 1985 | Windows 1.0                  | Windows            | 微软早期图形操作环境，运行于 MS-DOS 之上                        |
+| 1991 | Linux Kernel                 | Linux              | Linus Torvalds 发布 Linux 内核，现代 Linux 发行版的基础         |
+| 1992 | SLS                          | Linux              | 最早一批综合性 Linux 发行版之一                                 |
+| 1992 | Solaris                      | Unix               | Sun 推出的企业级 Unix 系统                                      |
+| 1993 | Slackware                    | Linux / 独立       | 历史最悠久且仍在维护的 Linux 发行版之一                         |
+| 1993 | Debian                       | Linux / Debian 系  | 社区主导的发行版，后来衍生 Ubuntu 等系统                        |
+| 1993 | FreeBSD                      | BSD                | 基于 BSD 技术传统发展的独立 Unix-like 操作系统                  |
+| 1993 | Windows NT                   | Windows NT         | 微软现代 Windows 内核体系的重要起点                             |
+| 1994 | Red Hat Linux                | Linux / Red Hat 系 | 早期重要的商业 Linux 发行版                                     |
+| 1994 | SUSE Linux                   | Linux / SUSE 系    | 欧洲重要的 Linux 发行版，后来发展出企业服务器产品               |
+| 1995 | Windows 95                   | Windows            | 推广开始菜单、任务栏等经典界面                                  |
+| 1996 | Linux Mint 的前身？          | —                  | 此时尚不存在 Linux Mint；该发行版实际于 2006 年推出             |
+| 1998 | Windows 98                   | Windows            | 面向个人电脑的 Windows 9x 系统                                  |
+| 2000 | Windows 2000                 | Windows NT         | 将 NT 技术进一步推广到专业桌面与服务器                          |
+| 2000 | SUSE Linux Enterprise Server | Linux / SUSE 系    | 企业级 Linux 服务器产品                                         |
+| 2001 | Mac OS X                     | Unix / Darwin      | 苹果转向基于 Darwin 的现代 macOS 技术体系                       |
+| 2001 | Windows XP                   | Windows NT         | 微软统一消费级与专业桌面 Windows 的重要版本                     |
+| 2002 | RHEL                         | Linux / Red Hat 系 | Red Hat Enterprise Linux，面向企业长期维护                      |
+| 2002 | Arch Linux                   | Linux / Arch 系    | 强调简洁、可定制和滚动更新                                      |
+| 2002 | Gentoo Linux                 | Linux / 独立       | 以源码构建和 Portage 包管理闻名                                 |
+| 2003 | Fedora Core                  | Linux / Red Hat 系 | 社区发行版，强调较新的技术                                      |
+| 2004 | Ubuntu                       | Linux / Debian 系  | Canonical 推出，强调易用性和规律发布                            |
+| 2004 | CentOS Linux                 | Linux / RHEL 兼容  | 曾广泛用于企业服务器                                            |
+| 2005 | openSUSE                     | Linux / SUSE 系    | 社区发行版，拥有独立的发布体系                                  |
+| 2005 | Alpine Linux                 | Linux / 独立       | 轻量发行版，后来广泛应用于容器环境                              |
+| 2006 | Linux Mint                   | Linux / Ubuntu 系  | 强调传统桌面体验和易用性                                        |
+| 2007 | iPhone OS（后称 iOS）        | Apple / Darwin     | 苹果移动操作系统                                                |
+| 2008 | Android                      | Linux 内核         | Google 主导的移动操作系统平台                                   |
+| 2013 | Kali Linux                   | Linux / Debian 系  | 面向安全测试和渗透测试                                          |
+| 2015 | Windows 10                   | Windows NT         | 微软重要的现代桌面操作系统版本                                  |
+| 2019 | CentOS Stream                | Linux / Red Hat 系 | 参与 RHEL 后续版本开发的上游发行版                              |
+
+
+| 技术路线       | 发展脉络                                                                                |
+| :------------- | :-------------------------------------------------------------------------------------- |
+| **Unix**       | Unix（1969）→ BSD（1977）→ FreeBSD（1993）                                              |
+| **GNU/Linux**  | GNU 项目（1983）+ Linux 内核（1991）→ 各类 GNU/Linux 发行版                             |
+| **Debian 系**  | Debian（1993）→ Ubuntu（2004）→ Linux Mint（2006）                                      |
+| **Red Hat 系** | Red Hat Linux（1994）→ RHEL（2002）、Fedora（2003）→ CentOS Stream（2019）              |
+| **SUSE 系**    | SUSE Linux（1994）→ SLES（2000）→ openSUSE 项目（2005）                                 |
+| **Windows**    | MS-DOS（1981）→ Windows 1.0（1985）→ Windows NT（1993）→ Windows 2000 / XP → Windows 10 |
+| **Apple**      | Classic Mac OS（1984）→ Mac OS X（2001）→ iPhone OS（2007）                             |
 
 ## Linux命令
 ### 学习资料
@@ -98,7 +182,7 @@ docker exec -it linux-lab bash
 ## Docker 
 - 推荐阅读: [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice)
 
-# 部署工具
+# 部署
 ## git
 推荐阅读: Pro git
 ## GitHub 
@@ -153,6 +237,22 @@ docker exec -it linux-lab bash
 ```
 ### GitHub Actions
 推荐阅读: GitHub Actions in action
+## 实践
+### 个人项目部署
+对于个人项目来说,Docker Compose+Dokploy简直不能太好用,基本的流程如下:
+
+1. 找一个服务器厂商和域名厂商,其中任何一个选了国内的就要备案.
+2. 目前Dokploy只支持Ubuntu24及Debian12以下版本,建议用Ubuntu24一键速通即可
+3. `ssh root@服务器IP`后安装Dokploy:
+
+```bash
+curl -sSL https://dokploy.com/install.sh | sh
+```
+>如果你像我一样总要反复销毁服务器实例的话,当IP重复导致SSH报错时,用`ssh-keygen -R 报错IP`即可
+
+4. 安装Dokploy后,注册你的Git仓库,导入仓库后Build即可,注入环境变量.由于Dokploy会自动配置Traefik,所以需要将无端口的完整域名导引到你的Nignx或者其他反向代理上,这需要在Domain页中配置.
+
+
 # 跨平台构建工具
 ## 总表
 | 时间            | 技术                           | 原本熟悉的技术 → 目标平台                    | 核心实现方式                                                                 | 历史意义 / 今天怎么看                                                                                                                                          |

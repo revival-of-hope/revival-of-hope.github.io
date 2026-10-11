@@ -81,6 +81,217 @@ RUN Add-Content C:\helloworld.ps1 `'Write-Host "Hello World from Windows"'
 CMD ["pwsh", "C:\\helloworld.ps1"]
 ```
 ### ch10: Containers at Scale
+#### minikube
+>Minikube 是一个适用于单实例的完整 Kubernetes 发行版。它管理您计算机上的一个容器或虚拟机，提供一个可运行的 Kubernetes 环境，并允许您使用与生产系统完全相同的所有工具。从功能上看，它有点像 Docker Compose：可以让您在本地搭建完整的技术栈。不过，它比 Compose 更进一步，因为它拥有生产环境的全部 API。因此，如果您在生产环境中运行 Kubernetes，您就可以在桌面上拥有一个功能与生产环境非常接近（即使规模可能有所不同）的环境。
+
+安装:
+```bash
+winget install -e --id Kubernetes.minikube
+```
+启动:
+```bash
+minikube start --driver=docker --cpus=2 --memory=4096
+```
+可以用`minikube status`来检查kube状态.
+
+尽管minikube自带了kubectl,但还是推荐单独安装:
+```bash
+winget install -e --id Kubernetes.kubectl
+```
+
+使用`minikube dashboard`访问控制面板:
+![图片](PixPin_2026-10-11_08-46-10.webp)
+
+#### Pod
+>The term pod came about because the Docker mascot is Moby, the whale, and a group of whales is called a **pod**.
+
+在 Kubernetes 术语中，Pod 指的是一个或多个共享相同 cgroups 和命名空间的容器。您还可以使用 cgroups 和命名空间将同一个 Pod 内的各个容器彼此隔离。Pod 的目的是封装所有需要一起部署以创建一个功能单元的进程或应用程序，然后由调度器进行管理。Pod 中的所有容器都可以通过 localhost 相互通信，从而无需相互发现。那么，为什么不直接部署一个包含所有应用程序的大型容器呢？Pod 相对于大型容器的优势在于，您仍然可以单独限制每个应用程序的资源，并利用庞大的公共 Linux 容器库来构建您的应用程序。
+#### Deployment
+```bash
+kubectl create deployment hello-minikube --image=kennethreitz/httpbin:latest --port=80
+```
+
+运行`kubectl get all`:
+![效果](PixPin_2026-10-11_08-50-40.webp)
+
+为了让我们的deployment能够作为service被外界发现,我们需要暴露它的端口:
+```bash
+kubectl expose deployment hello-minikube --type=NodePort
+```
+
+查看services:
+```bash
+kubectl get services
+
+NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+hello-minikube   NodePort    10.109.219.87   <none>        80:31479/TCP   12s
+kubernetes       ClusterIP   10.96.0.1       <none>        443/TCP        12m
+```
+
+查看services的url:
+```bash
+minikube service hello-minikube --url
+http://127.0.0.1:63676
+```
+
+可以发现二者的url是完全不同的,这是因为集群内部的网络我们不能直接访问,要通过kubernetes的映射处理,每次映射到随机端口.
+
+不过更快的方法则是直接运行`minikube service hello-minikube`,这会自动打开映射的URL.
+
+运行完后删除service和deployment:
+```bash
+kubectl delete service hello-minikube
+kubectl delete deployment hello-minikube
+```
+
+#### yml部署
+Kubernetes 与 Docker Compose 非常相似，它允许我们使用一个或多个YAML 文件来定义堆栈，这些文件将所有我们需要关注的定义集中在一个地方:
+```yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: lazyraster
+  labels:
+    app: lazyraster
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+  selector:
+    app: lazyraster
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cache-data-claim
+  labels:
+    app: lazyraster
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+# 创建Pod
+metadata:
+  name: lazyraster
+  labels:
+    app: lazyraster
+spec:
+  selector:
+    matchLabels:
+      app: lazyraster
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: lazyraster
+    spec:
+      containers:
+      - image: relistan/lazyraster:demo
+        name: lazyraster
+        env:
+        - name: RASTER_RING_TYPE
+          value: memberlist
+        - name: RASTER_BASE_DIR
+          value: /data
+        ports:
+        - containerPort: 8000
+          name: lazyraster
+        volumeMounts:
+        - name: cache-data
+          mountPath: /data
+      volumes:
+      - name: cache-data
+        persistentVolumeClaim:
+          claimName: cache-data-claim
+```
+apiVersion字段是强制的,而不是像compose的`version`字段一样可以随便填版本号:
+| API 版本               | 常见资源                           |
+| :--------------------- | :--------------------------------- |
+| `v1`                   | Pod、Service、ConfigMap、Secret    |
+| `apps/v1`              | Deployment、StatefulSet、DaemonSet |
+| `batch/v1`             | Job、CronJob                       |
+| `networking.k8s.io/v1` | Ingress、NetworkPolicy             |
+
+metadata用于定义某个资源的名称,标签.
+
+
+先部署一下看看:
+```bash
+kubectl apply -f ./lazyraster-service.yaml
+```
+```bash
+ kubectl get all
+NAME                             READY   STATUS              RESTARTS   AGE
+pod/lazyraster-6559cf588-44hrn   0/1     ContainerCreating   0          15s
+
+NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+service/kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP          42m
+service/lazyraster   NodePort    10.106.222.214   <none>        8000:32242/TCP   15s
+
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/lazyraster   0/1     1            0           15s
+
+NAME                                   DESIRED   CURRENT   READY   AGE
+replicaset.apps/lazyraster-6559cf588   1         1         0       15s
+```
+>ReplicaSet 是 Kubernetes 的一个组件，负责确保我们的应用程序始终运行正确数量的实例，并且这些实例都处于健康状态。通常情况下，我们无需担心 ReplicaSet 内部的运行情况，因为我们创建的部署会自动管理它。如有需要，您可以自行管理 ReplicaSet，但大多数情况下您既不需要也不想这样做。
+
+而persistent volume claim需要单独查询:
+```bash
+kubectl get pvc
+```
+如果要扩展Deployment的话,需要使用scale命令:
+```bash
+kubectl scale --replicas=2 deploy/lazyraster
+```
+效果如下:
+```bash
+kubectl get all
+NAME                             READY   STATUS    RESTARTS   AGE
+pod/lazyraster-6559cf588-44hrn   1/1     Running   0          9m10s
+pod/lazyraster-6559cf588-t6bwh   1/1     Running   0          35s
+
+NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+service/kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP          51m
+service/lazyraster   NodePort    10.106.222.214   <none>        8000:32242/TCP   9m10s
+
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/lazyraster   2/2     2            2           9m10s
+
+NAME                                   DESIRED   CURRENT   READY   AGE
+replicaset.apps/lazyraster-6559cf588   2         2         2       9m10s
+```
+
+事实上,这几个写法的作用完全一样:
+```bash
+kubectl scale --replicas=2 deployment.apps/lazyraster
+
+kubectl scale --replicas=2 deployments/lazyraster
+
+kubectl scale --replicas=2 deployment/lazyraster
+
+kubectl scale --replicas=2 deploy/lazyraster
+```
+
+
+从上面可以看到,一个Deployment可以启动多个Pod,deshboard界面如下:
+![图片](PixPin_2026-10-11_09-40-28.webp)
+
+很明显,一个个删除还是太累了,好在kubectl支持根据部署的yaml来一键删除.
+
+用完后删除minikube即可:
+```bash
+minikube delete
+```
+#### Docker Desktop安装
 
 ## Agentic Design Patterns
 - 出版于2025年，作者：Antonio Gullí。
@@ -96,6 +307,8 @@ CMD ["pwsh", "C:\\helloworld.ps1"]
 自然,自己手搓是根本无从下手的,还是得用langchain或者langgraph等框架
 
 ![架构](PixPin_2026-10-07_13-55-19.webp)
+
+其实目前的LLM平台都是路由机制的,根据当前任务的要求调用某个子智能体实现,处理完毕后返回结果供Supervisor处理,因此还是线性的,无法做到parallelization
 ### ch3: 并行
 >LangChain、LangGraph 和 Google ADK 等框架提供了并行执行机制
 
@@ -281,6 +494,30 @@ review_pipeline = SequentialAgent(
 简单来说就是让LLM先生成规划,再实际做事,这是非常合理也很有用的一招.
 
 ### ch7: 多智能体合作
+![示例](PixPin_2026-10-11_09-57-38.webp)
+
+![六种情形](PixPin_2026-10-11_10-02-25.webp)
+
+监督者模式肯定是有用的,但是层级Agent是很难处理的,除非你能实现动态负载和扩展,并且保证消息传递中的误差比较小,否则即便只给每个底层Agent一个很简单的要求,实现的效果也是差强人意的.
+
+![架构](PixPin_2026-10-11_10-04-00.webp)
+### ch8: Memory Management
+>本章将深入探讨内存管理，重点关注智能体的即时（短期）记忆和持久（长期）记忆需求
+
+![架构](PixPin_2026-10-11_10-10-53.webp)
+
+其实就是上下文窗口和RAG嘛
+### ch9: 学习和适应
+道理很简单,只要还是调API,就不可能真正学习好不好...
+
+![架构](PixPin_2026-10-11_10-13-28.webp)
+### ch10: MCP
+![架构](PixPin_2026-10-11_10-14-58.webp)
+### ch11: Goal Setting and Monitoring 
+![架构](PixPin_2026-10-11_10-16-33.webp)
+
+其实就是Planning+Reflection(先制定目标,然后迭代检查是否达成当前目标),不过GPT6已经开始使用这个模式了,效果还是很不错的.
+### ch12: 异常处理
 
 ## Architecture Patterns with Python
 ### 前言
@@ -307,11 +544,7 @@ review_pipeline = SequentialAgent(
 
 ### ch2: Repository Pattern
 
-## 数据库系统内幕
-- 一直久闻大名,现在就来试试水
-### Part I介绍
-![架构图](PixPin_2026-10-06_15-46-05.webp)
-### Ch3: 文件格式
+
 
 
 ## Kubernetes in Action, Second Edition(待补充)
@@ -700,158 +933,6 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 
 
 
-## Hadoop: The Definitive Guide(4th)(待补充)
-- 出版于2015年（第4版），出版商：O'Reilly，作者：Tom White。
-
-### 基础
-
-#### 起源
-Hadoop这个名字并不是一个首字母缩略词；它是一个杜撰出来的名字。该项目的创建者Doug Cutting解释了这个名字的由来：
-
->The name my kid gave a stuffed yellow elephant. Short, relatively easy to spell and pronounce, meaningless, and not used elsewhere
-
-Hadoop起源于Lucene的研发过程,结合了04年Google公开的MapReduce算法,并在08年成为Apache的顶级项目,在之后被主流企业广泛使用
-
-#### MapReduce
-
-##### 简单例子
-1. 首先我们有一个数据集,想要从中找出每一年的最大数
-
-```text
-(0,   0067011990999991950051507004...9999999N9+00001+99999999999...)
-(106, 0043011990999991950051512004...9999999N9+00221+99999999999...)
-(212, 0043011990999991950051518004...9999999N9-00111+99999999999...)
-(318, 0043012650999991949032412004...0500001N9+01111+99999999999...)
-(424, 0043012650999991949032418004...0500001N9+00781+99999999999...)
-```
-2. 设置一个Map函数,从中过滤后并提取出标准格式的信息:
-
-```text
-(1950, 0)
-(1950, 22)
-(1950, -11)
-(1949, 111)
-(1949, 78)
-```
-整理得到:
-
-```text
-(1949, [111, 78])
-(1950, [0, 22, -11])
-```
-3. 设置一个Reduce函数,遍历Map函数的结果得到最终值:
-
-```text
-(1949, 111)
-(1950, 22)
-```
-
-流程图如下:
-
-![示意图](PixPin_2026-09-11_11-28-10.webp)
-
-Map函数:
-
-```java
-import java.io.IOException;
-
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
-
-public class MaxTemperatureMapper
-        extends Mapper<LongWritable, Text, Text, IntWritable> {
-
-    private static final int MISSING = 9999;
-
-    @Override
-    public void map(LongWritable key, Text value, Context context)
-            throws IOException, InterruptedException {
-
-        String line = value.toString();
-        String year = line.substring(15, 19);
-
-        int airTemperature;
-
-        if (line.charAt(87) == '+') { // parseInt doesn't like leading plus signs
-            airTemperature = Integer.parseInt(line.substring(88, 92));
-        } else {
-            airTemperature = Integer.parseInt(line.substring(87, 92));
-        }
-
-        String quality = line.substring(92, 93);
-
-        if (airTemperature != MISSING && quality.matches("[01459]")) {
-            context.write(new Text(year), new IntWritable(airTemperature));
-        }
-    }
-}
-```
-Reduce函数:
-
-```java
-import java.io.IOException;
-
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
-
-public class MaxTemperatureReducer
-        extends Reducer<Text, IntWritable, Text, IntWritable> {
-
-    @Override
-    public void reduce(Text key, Iterable<IntWritable> values, Context context)
-            throws IOException, InterruptedException {
-
-        int maxValue = Integer.MIN_VALUE;
-
-        for (IntWritable value : values) {
-            maxValue = Math.max(maxValue, value.get());
-        }
-
-        context.write(key, new IntWritable(maxValue));
-    }
-}
-```
-
-在实现了Map和Reduce方法后,调用方法如下:
-
-```java
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-
-public class MaxTemperature {
-
-    public static void main(String[] args) throws Exception {
-        if (args.length != 2) {
-            System.err.println("Usage: MaxTemperature <input path> <output path>");
-            System.exit(-1);
-        }
-
-        Job job = new Job();
-        job.setJarByClass(MaxTemperature.class);
-        job.setJobName("Max temperature");
-
-        FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
-
-        job.setMapperClass(MaxTemperatureMapper.class);
-        job.setReducerClass(MaxTemperatureReducer.class);
-
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(IntWritable.class);
-
-        System.exit(job.waitForCompletion(true) ? 0 : 1);
-    }
-}
-```
-
-#### The Hadoop Distributed Filesystem(HDFS)
 
 ## RabbitMQ in Depth
 - 出版于2017年，出版商：Manning，作者：Gavin M. Roy。
@@ -869,7 +950,11 @@ public class MaxTemperature {
 | **卷 3** | Patterns for Resource Management              | 资源管理模式               | 2004     | 资源获取、资源生命周期、资源共享与释放                        |
 | **卷 4** | A Pattern Language for Distributed Computing  | 分布式计算的模式语言       | 2007     | 分布式系统架构与多种设计模式的组合                            |
 | **卷 5** | On Patterns and Pattern Languages             | 模式与模式语言             | 2007     | 模式的理论基础、模式语言及模式之间的关系                      |
-
+## 数据库系统内幕
+- 一直久闻大名,现在就来试试水
+### Part I介绍
+![架构图](PixPin_2026-10-06_15-46-05.webp)
+### Ch3: 文件格式
 ## Redis设计与实现
 - 出版于2014年，作者：黄健宏。
 - 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
@@ -1258,6 +1343,160 @@ Redis服务器是典型的一对多服务器程序：一个服务器可以与多
 ### 多机数据库
 不用一次是不可能学会的,待我先实战一段时间再来
 # 基础
+## Hadoop: The Definitive Guide(4th)
+- 出版于2015年（第4版），出版商：O'Reilly，作者：Tom White。
+
+### 基础
+
+#### 起源
+Hadoop这个名字并不是一个首字母缩略词；它是一个杜撰出来的名字。该项目的创建者Doug Cutting解释了这个名字的由来：
+
+>The name my kid gave a stuffed yellow elephant. Short, relatively easy to spell and pronounce, meaningless, and not used elsewhere
+
+Hadoop起源于Lucene的研发过程,结合了04年Google公开的MapReduce算法,并在08年成为Apache的顶级项目,在之后被主流企业广泛使用
+
+#### MapReduce
+
+##### 简单例子
+1. 首先我们有一个数据集,想要从中找出每一年的最大数
+
+```text
+(0,   0067011990999991950051507004...9999999N9+00001+99999999999...)
+(106, 0043011990999991950051512004...9999999N9+00221+99999999999...)
+(212, 0043011990999991950051518004...9999999N9-00111+99999999999...)
+(318, 0043012650999991949032412004...0500001N9+01111+99999999999...)
+(424, 0043012650999991949032418004...0500001N9+00781+99999999999...)
+```
+2. 设置一个Map函数,从中过滤后并提取出标准格式的信息:
+
+```text
+(1950, 0)
+(1950, 22)
+(1950, -11)
+(1949, 111)
+(1949, 78)
+```
+整理得到:
+
+```text
+(1949, [111, 78])
+(1950, [0, 22, -11])
+```
+3. 设置一个Reduce函数,遍历Map函数的结果得到最终值:
+
+```text
+(1949, 111)
+(1950, 22)
+```
+
+流程图如下:
+
+![示意图](PixPin_2026-09-11_11-28-10.webp)
+
+Map函数:
+
+```java
+import java.io.IOException;
+
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+
+public class MaxTemperatureMapper
+        extends Mapper<LongWritable, Text, Text, IntWritable> {
+
+    private static final int MISSING = 9999;
+
+    @Override
+    public void map(LongWritable key, Text value, Context context)
+            throws IOException, InterruptedException {
+
+        String line = value.toString();
+        String year = line.substring(15, 19);
+
+        int airTemperature;
+
+        if (line.charAt(87) == '+') { // parseInt doesn't like leading plus signs
+            airTemperature = Integer.parseInt(line.substring(88, 92));
+        } else {
+            airTemperature = Integer.parseInt(line.substring(87, 92));
+        }
+
+        String quality = line.substring(92, 93);
+
+        if (airTemperature != MISSING && quality.matches("[01459]")) {
+            context.write(new Text(year), new IntWritable(airTemperature));
+        }
+    }
+}
+```
+Reduce函数:
+
+```java
+import java.io.IOException;
+
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
+
+public class MaxTemperatureReducer
+        extends Reducer<Text, IntWritable, Text, IntWritable> {
+
+    @Override
+    public void reduce(Text key, Iterable<IntWritable> values, Context context)
+            throws IOException, InterruptedException {
+
+        int maxValue = Integer.MIN_VALUE;
+
+        for (IntWritable value : values) {
+            maxValue = Math.max(maxValue, value.get());
+        }
+
+        context.write(key, new IntWritable(maxValue));
+    }
+}
+```
+
+在实现了Map和Reduce方法后,调用方法如下:
+
+```java
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class MaxTemperature {
+
+    public static void main(String[] args) throws Exception {
+        if (args.length != 2) {
+            System.err.println("Usage: MaxTemperature <input path> <output path>");
+            System.exit(-1);
+        }
+
+        Job job = new Job();
+        job.setJarByClass(MaxTemperature.class);
+        job.setJobName("Max temperature");
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        job.setMapperClass(MaxTemperatureMapper.class);
+        job.setReducerClass(MaxTemperatureReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+```
+
+
+### 总结
+至少在可见的未来我没必要学吧...
 ## 推荐系统：前沿与实践
 比我想的要好很多,以前看的那几本相关书简直是垃圾
 ### 概述和历史

@@ -10253,7 +10253,7 @@ asyncio.run(call_tool("Ford"))
 | **LlamaIndex**                | 数据/RAG Agent            | 低                        | RAG、知识库、数据 Agent                                  | ⭐⭐⭐⭐       |
 
 
-我们这里就拿前三名来做个测评,看看哪个最适合Agent构建.
+我们这里就拿其中几个有代表性的来做个测评,看看各自的适用情景.
 
 ### [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/)
 
