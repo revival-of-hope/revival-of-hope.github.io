@@ -630,7 +630,7 @@ kiada   3/3     3            3           18m
 ## gRPC: Up and Running
 - 出版于2020年，出版商：O'Reilly，作者：Kasun Indrasiri。
 
-### 介绍
+### ch1: 介绍
 
 >在构建现代云原生应用和微服务的同步请求-响应式通信时，最常用且传统的方法是将其构建为RESTful服务，即将应用或服务建模为可通过HTTP协议上的网络调用访问和更改状态的资源集合。然而，对于大多数用例而言，RESTful服务在构建进程间通信时往往较为笨重、效率低下且易出错。通常需要一种高度可扩展、松散耦合且比RESTful服务更高效的进程间通信技术。这正是gRPC——一种用于构建分布式应用和微服务的现代进程间通信方式——发挥作用的地方
 
@@ -689,8 +689,35 @@ message ProductID {
 }
 ```
 可以看到,protobuf的格式相当清晰,比起OpenAPI规范的可读性要高了许多,不再需要强调路由,方法这些让人心累的无关参数.
+### ch3: gRPC Communication Patterns
+总共有四种gRPC模式:
+| 通信模式       | 英文名称                    | 客户端发送       | 服务端返回       | 典型应用场景                          |
+| :------------- | :-------------------------- | :--------------- | :--------------- | :------------------------------------ |
+| 一元 RPC       | Unary RPC                   | 单个请求         | 单个响应         | 用户登录、查询用户信息、普通 API 调用 |
+| 服务端流式 RPC | Server Streaming RPC        | 单个请求         | 多个响应（流式） | AI 文本流式输出、实时日志推送         |
+| 客户端流式 RPC | Client Streaming RPC        | 多个请求（流式） | 单个响应         | 文件分块上传、批量数据采集            |
+| 双向流式 RPC   | Bidirectional Streaming RPC | 多个请求（流式） | 多个响应（流式） | 实时聊天、双向语音通信、实时协作      |
 
-### 原理
+
+protobuf中用`stream`关键字来标记是否流式输出:
+```ts
+service ExampleService {
+    // 1. 一元 RPC
+    rpc Unary(Request) returns (Response);
+
+    // 2. 服务端流式
+    rpc ServerStream(Request) returns (stream Response);
+
+    // 3. 客户端流式
+    rpc ClientStream(stream Request) returns (Response);
+
+    // 4. 双向流式
+    rpc BidiStream(stream Request) returns (stream Response);
+}
+```
+
+![架构图](PixPin_2026-10-11_22-38-49.webp)
+### ch4: gRPC原理
 gRPC的通信过程很简单,以客户端调用getProduct函数为例:
 1. 客户端进程调用生成存根中的 `getProduct` 函数。
 2. 客户端存根会创建一个携带编码后消息的 HTTP POST 请求。在 gRPC 中，所有请求都是 HTTP POST 请求，其 `content-type` 以 `application/grpc` 为前缀。所调用的远程函数（`/ProductInfo/getProduct`）作为单独的 HTTP 头发送。
@@ -700,9 +727,8 @@ gRPC的通信过程很简单,以客户端调用getProduct函数为例:
 6. 然后，服务使用解析后的消息，对 `getProduct` 函数进行本地调用。
 7. 服务函数的返回被编码后发送回客户端。响应消息遵循我们在客户端观察到的相同流程（响应→编码→线上的 HTTP 响应）；消息被解包，其值返回给等待的客户端进程。
 
-这些步骤与大多数RPC系统（如CORBA、Java RMI等）非常相似。这里gRPC的主要区别在于它对消息的编码方式--Protocol Buffers,这是一种语言无关的机制.
 
-事实上来讲,gRPC确实没什么革命的地方,只不过把以前要共同维护的OpenAPI文档换成了proto文档而已,但它简化了HTTP方法,路径依赖等比较边角料的参数,从而让程序员能够只专注于简单的函数调用即可.
+.
 
 
 
