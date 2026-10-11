@@ -1052,7 +1052,9 @@ Manning 的正式产品页分别确认了这些出版时间。([Manning Publicat
 ### 从零开始构建Go项目(10/9)
 - [来源](https://robinlg.com/blog/golang/project/1/)
 
-
+### Agent好文(10/11)
+1. [ai-infra-vs-traditional-infra](https://wu-yikun.github.io/post/AI-Infra/ai-infra-vs-traditional-infra/)
+   1. 相当优秀的好文
 # 思考
 
 - 26/7/29: 忘了是在哪看到的了,最令人的厌烦的无非是装作老成的年轻人对同辈或者后辈发表的不知天高地厚的见解,这句话确实说的不错,曾经我也喜欢这么干,这里面的每个标题我都单独发了一篇博客文章出来,现在看来,确实是浅薄的可怕.不过,总还是得写点什么,这毕竟是几年以后能用来嘲笑自己的唯一根据
