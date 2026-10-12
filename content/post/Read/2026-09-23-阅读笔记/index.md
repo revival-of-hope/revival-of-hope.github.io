@@ -7,295 +7,6 @@ math: true
 ---
 
 # 阅读中
-
-
-## Docker Up & Running,3rd edtion
-### ch1: 引言
->Docker 最初是由 dotCloud 公司的创始人兼首席执行官 Solomon Hykes 于 2013 年 3 月 15 日在加利福尼亚州圣克拉拉举行的 Python 开发者大会上，以五分钟的闪电演讲向世界推出的——事先没有任何预告，也没有大张旗鼓的宣传。在这次发布时，除了 dotCloud 之外，只有大约 40 人有机会体验 Docker。
-
-最初，许多不熟悉 Docker 的人将其视为某种虚拟化平台，但实际上，它是第一个广泛应用的工具，它基于一种名为容器化的新兴技术。Docker 和 Linux 容器对众多行业领域产生了重大影响，其中包括 Vagrant、KVM、OpenStack、Mesos、Capistrano、Ansible、Chef、Puppet 等工具和技术。
-
-在部署过程中，旧应用程序的整个运行环境都会被抛弃。应用程序环境中的任何东西都不会比应用程序本身存在更长时间，这是一个看似简单却意义深远的理念。这意味着应用程序不太可能意外地依赖于先前版本遗留的工件。这意味着从本地文件系统中获取的短暂调试更改不太可能在后续版本中继续存在。
-### ch2: 概览
-服务提供商和商业供应商尤其不愿构建可能受制于与其利益重叠的公司意志的平台。因此，Docker 公司在那段时间面临着一些公开的挑战。为了赢得公众好感并支持其产品在市场上的更广泛应用，Docker 公司于 2015 年 6 月决定赞助开放容器倡议（OCI）。该倡议的首个完整规范于 2017 年 7 月发布，其很大程度上基于 Docker 镜像格式的版本 2。现在，容器镜像和容器运行时都可以申请 OCI 认证。
-
-最主要的运行时就是containerd了,他是现代版本的 Docker 和 Kubernetes 中的默认高级运行时,底层运行时则可以是runc和crun等.
-
-![Docker架构](PixPin_2026-10-06_12-25-29.webp)
-
-服务器负责构建和管理容器,而客户端负责向服务器发出指令.
-
-每个 Docker 主机通常运行一个 Docker 服务器，该服务器可以管理任意数量的容器。然后，您可以使用命令行工具（docker）与服务器通信，既可以从服务器本身通信，也可以在安全措施到位的情况下从远程客户端通信
-
-尽管 Docker 在生产环境编排领域的光芒很大程度上被 Google 的 Kubernetes 所掩盖，但值得注意的是，在 2022 年初发布 1.24 版本之前，Kubernetes 也高度依赖 Docker。不过，Docker 的编排工具仍然非常实用，尤其是 Compose，对于本地开发来说非常方便。
-
-首先，Docker 的架构主要面向无状态应用，或者将状态外部化到数据库或缓存等数据存储中的应用。这类应用最容易容器化。Docker 为这类应用强制执行了一些优秀的开发原则，但这也就意味着，**像把数据库引擎放在 Docker 容器里这样的操作有点像逆流而上**。这并不是说你不能这样做，甚至也不是说你不应该这样做；只是这并非 Docker 最常见的用例。
-
-### ch4: 镜像
-镜像构建的一个特殊之处在于,尽管构建时会尽可能地利用缓存,但是每一层构建之间是完全不相关的,也就是说如果要清除build时的缓存,就必须将构建和清除放在同一行,如`RUN dnf install -y httpd && \ dnf clean all`
-
-一般来说，你应该始终尝试对 Dockerfile 进行排序，以便构建过程中最稳定和最耗时的部分首先执行，而你的代码则尽可能在过程的最后添加。
-### ch5: 容器
-容器的定义:
->A container is a self-contained execution environment that **shares the kernel of the host system** and is (optionally) isolated from other containers in the system.
-
-对于绑定挂载，您可以使用 -v 参数来缩短命令。使用 -v 参数时，您会注意到源文件/目录和目标文件/目录之间用冒号 (:) 分隔。另需注意的是，卷默认以读写模式挂载。您可以通过在 --mount 参数末尾添加,readonly，或在 -v 参数末尾添加 :ro，轻松地将 docker 文件或目录挂载为只读模式:
-```bash
-docker container run --rm -ti \
--v /mnt/session_data:/data:ro \
-ubuntu:latest /bin/bash
-```
-
-#### windows image
-在Docker Desktop中可以在Windows镜像和Linux镜像之间切换:
-
-![图片](PixPin_2026-10-08_09-00-52.webp)
-
-Docker Desktop 在 Windows 系统上支持两种容器运行模式：
-
-- Linux Containers（Linux 容器）：运行基于 Linux 内核的容器，例如 Ubuntu、Alpine、Redis、MySQL、Nginx。
-- Windows Containers（Windows 容器）：运行基于 Windows 内核的容器，例如 Windows Server Core、Nano Server，以及依赖 Windows 环境的 .NET Framework 应用。
-
-二者最本质的区别是：容器依赖的操作系统内核不同，而不仅仅是镜像里的文件不同。
-
-
-| 对比维度             | Linux 容器                        | Windows 容器                       |
-| -------------------- | --------------------------------- | ---------------------------------- |
-| 内核                 | Linux Kernel                      | Windows NT Kernel                  |
-| Windows 上的运行方式 | 主要通过 WSL 2 虚拟化环境         | Windows 容器功能，通常采用进程隔离 |
-| 常见基础镜像         | Ubuntu、Debian、Alpine            | Nano Server、Server Core           |
-| 镜像大小             | 通常较小                          | 通常较大                           |
-| 资源消耗             | 一般较低                          | 一般较高                           |
-| 启动速度             | 通常较快                          | 相对较慢                           |
-| 常见开发语言         | Python、Go、Java、Node.js、C++    | C#、.NET Framework、PowerShell     |
-| 常见应用             | FastAPI、Redis、PostgreSQL、Nginx | 传统 ASP.NET、IIS、Windows 服务    |
-| 主要部署环境         | Linux 云服务器、Kubernetes        | Windows Server                     |
-| 推荐场景             | 绝大多数现代后端开发              | 依赖 Windows 的特定业务系统        |
-
-```dockerfile
-# escape=`
-FROM mcr.microsoft.com/powershell
-SHELL ["pwsh", "-command"]
-RUN Add-Content C:\helloworld.ps1 `'Write-Host "Hello World from Windows"'
-
-CMD ["pwsh", "C:\\helloworld.ps1"]
-```
-### ch10: Containers at Scale
-#### minikube
->Minikube 是一个适用于单实例的完整 Kubernetes 发行版。它管理您计算机上的一个容器或虚拟机，提供一个可运行的 Kubernetes 环境，并允许您使用与生产系统完全相同的所有工具。从功能上看，它有点像 Docker Compose：可以让您在本地搭建完整的技术栈。不过，它比 Compose 更进一步，因为它拥有生产环境的全部 API。因此，如果您在生产环境中运行 Kubernetes，您就可以在桌面上拥有一个功能与生产环境非常接近（即使规模可能有所不同）的环境。
-
-安装:
-```bash
-winget install -e --id Kubernetes.minikube
-```
-启动:
-```bash
-minikube start --driver=docker --cpus=2 --memory=4096
-```
-可以用`minikube status`来检查kube状态.
-
-尽管minikube自带了kubectl,但还是推荐单独安装:
-```bash
-winget install -e --id Kubernetes.kubectl
-```
-
-使用`minikube dashboard`访问控制面板:
-![图片](PixPin_2026-10-11_08-46-10.webp)
-
-#### Pod
->The term pod came about because the Docker mascot is Moby, the whale, and a group of whales is called a **pod**.
-
-在 Kubernetes 术语中，Pod 指的是一个或多个共享相同 cgroups 和命名空间的容器。您还可以使用 cgroups 和命名空间将同一个 Pod 内的各个容器彼此隔离。Pod 的目的是封装所有需要一起部署以创建一个功能单元的进程或应用程序，然后由调度器进行管理。Pod 中的所有容器都可以通过 localhost 相互通信，从而无需相互发现。那么，为什么不直接部署一个包含所有应用程序的大型容器呢？Pod 相对于大型容器的优势在于，您仍然可以单独限制每个应用程序的资源，并利用庞大的公共 Linux 容器库来构建您的应用程序。
-#### Deployment
-```bash
-kubectl create deployment hello-minikube --image=kennethreitz/httpbin:latest --port=80
-```
-
-运行`kubectl get all`:
-![效果](PixPin_2026-10-11_08-50-40.webp)
-
-为了让我们的deployment能够作为service被外界发现,我们需要暴露它的端口:
-```bash
-kubectl expose deployment hello-minikube --type=NodePort
-```
-
-查看services:
-```bash
-kubectl get services
-
-NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
-hello-minikube   NodePort    10.109.219.87   <none>        80:31479/TCP   12s
-kubernetes       ClusterIP   10.96.0.1       <none>        443/TCP        12m
-```
-
-查看services的url:
-```bash
-minikube service hello-minikube --url
-http://127.0.0.1:63676
-```
-
-可以发现二者的url是完全不同的,这是因为集群内部的网络我们不能直接访问,要通过kubernetes的映射处理,每次映射到随机端口.
-
-不过更快的方法则是直接运行`minikube service hello-minikube`,这会自动打开映射的URL.
-
-运行完后删除service和deployment:
-```bash
-kubectl delete service hello-minikube
-kubectl delete deployment hello-minikube
-```
-
-#### yml部署
-Kubernetes 与 Docker Compose 非常相似，它允许我们使用一个或多个YAML 文件来定义堆栈，这些文件将所有我们需要关注的定义集中在一个地方:
-```yml
-apiVersion: v1
-kind: Service
-metadata:
-  name: lazyraster
-  labels:
-    app: lazyraster
-spec:
-  type: NodePort
-  ports:
-    - port: 8000
-      targetPort: 8000
-      protocol: TCP
-  selector:
-    app: lazyraster
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: cache-data-claim
-  labels:
-    app: lazyraster
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 100Mi
----
-apiVersion: apps/v1
-kind: Deployment
-# 创建Pod
-metadata:
-  name: lazyraster
-  labels:
-    app: lazyraster
-spec:
-  selector:
-    matchLabels:
-      app: lazyraster
-  strategy:
-    type: RollingUpdate
-  template:
-    metadata:
-      labels:
-        app: lazyraster
-    spec:
-      containers:
-      - image: relistan/lazyraster:demo
-        name: lazyraster
-        env:
-        - name: RASTER_RING_TYPE
-          value: memberlist
-        - name: RASTER_BASE_DIR
-          value: /data
-        ports:
-        - containerPort: 8000
-          name: lazyraster
-        volumeMounts:
-        - name: cache-data
-          mountPath: /data
-      volumes:
-      - name: cache-data
-        persistentVolumeClaim:
-          claimName: cache-data-claim
-```
-apiVersion字段是强制的,而不是像compose的`version`字段一样可以随便填版本号:
-| API 版本               | 常见资源                           |
-| :--------------------- | :--------------------------------- |
-| `v1`                   | Pod、Service、ConfigMap、Secret    |
-| `apps/v1`              | Deployment、StatefulSet、DaemonSet |
-| `batch/v1`             | Job、CronJob                       |
-| `networking.k8s.io/v1` | Ingress、NetworkPolicy             |
-
-metadata用于定义某个资源的名称,标签.
-
-
-先部署一下看看:
-```bash
-kubectl apply -f ./lazyraster-service.yaml
-```
-```bash
- kubectl get all
-NAME                             READY   STATUS              RESTARTS   AGE
-pod/lazyraster-6559cf588-44hrn   0/1     ContainerCreating   0          15s
-
-NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
-service/kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP          42m
-service/lazyraster   NodePort    10.106.222.214   <none>        8000:32242/TCP   15s
-
-NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/lazyraster   0/1     1            0           15s
-
-NAME                                   DESIRED   CURRENT   READY   AGE
-replicaset.apps/lazyraster-6559cf588   1         1         0       15s
-```
->ReplicaSet 是 Kubernetes 的一个组件，负责确保我们的应用程序始终运行正确数量的实例，并且这些实例都处于健康状态。通常情况下，我们无需担心 ReplicaSet 内部的运行情况，因为我们创建的部署会自动管理它。如有需要，您可以自行管理 ReplicaSet，但大多数情况下您既不需要也不想这样做。
-
-而persistent volume claim需要单独查询:
-```bash
-kubectl get pvc
-```
-如果要扩展Deployment的话,需要使用scale命令:
-```bash
-kubectl scale --replicas=2 deploy/lazyraster
-```
-效果如下:
-```bash
-kubectl get all
-NAME                             READY   STATUS    RESTARTS   AGE
-pod/lazyraster-6559cf588-44hrn   1/1     Running   0          9m10s
-pod/lazyraster-6559cf588-t6bwh   1/1     Running   0          35s
-
-NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
-service/kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP          51m
-service/lazyraster   NodePort    10.106.222.214   <none>        8000:32242/TCP   9m10s
-
-NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/lazyraster   2/2     2            2           9m10s
-
-NAME                                   DESIRED   CURRENT   READY   AGE
-replicaset.apps/lazyraster-6559cf588   2         2         2       9m10s
-```
-
-事实上,这几个写法的作用完全一样:
-```bash
-kubectl scale --replicas=2 deployment.apps/lazyraster
-
-kubectl scale --replicas=2 deployments/lazyraster
-
-kubectl scale --replicas=2 deployment/lazyraster
-
-kubectl scale --replicas=2 deploy/lazyraster
-```
-
-
-从上面可以看到,一个Deployment可以启动多个Pod,deshboard界面如下:
-![图片](PixPin_2026-10-11_09-40-28.webp)
-
-很明显,一个个删除还是太累了,好在kubectl支持根据部署的yaml来一键删除.
-
-用完后删除minikube即可:
-```bash
-minikube delete
-```
-### ch11: 高级知识
-#### Namespaces
-Docker会给
-
-
 ## Agentic Design Patterns
 - 出版于2025年，作者：Antonio Gullí。
 ### ch1: Prompt Chaining
@@ -521,6 +232,34 @@ review_pipeline = SequentialAgent(
 
 其实就是Planning+Reflection(先制定目标,然后迭代检查是否达成当前目标),不过GPT6已经开始使用这个模式了,效果还是很不错的.
 ### ch12: 异常处理
+![三步走](PixPin_2026-10-12_12-37-59.webp)
+
+1. 错误检测: 如特定的 API 错误（例如 404（未找到）或 500（内部服务器错误）代码）;无效或格式错误的工具输出
+2. 错误处理: 如日志记录,重试参数,采用替代策略.
+3. 恢复: 撤销数据库更改,状态回滚等
+
+![架构](PixPin_2026-10-12_12-39-36.webp)
+
+这个实际上是Agent的必备模式,如果工具调用失败或者用户参数有误,不能清晰返回异常信息的话很容易就流式用户,或者难以调试.
+
+### ch13: Human-in-the-Loop(HITL)
+简单来说就是引入人类输入和监管,但道理很简单,如果都要人类来操作了,那我引入AI干嘛.
+
+![架构](PixPin_2026-10-12_12-46-30.webp)
+### ch14: RAG
+![架构](PixPin_2026-10-12_12-47-38.webp)
+### ch15: Inter-Agent Communication(A2A)
+![与MCP的对比](PixPin_2026-10-12_12-53-55.webp)
+
+其实如果你觉得另一个AI很牛,那不就换到这个AI就行了,要什么沟通,这就是单纯的零和博弈.而简单的任务交给杂碎AI就行了,双方的地位是不可能对等的,因此用MCP就足够解决了.
+
+![架构](PixPin_2026-10-12_12-57-40.webp)
+### ch16: Resource-Aware Optimization
+简单来说就是自己换API,其实还是路由的问题,先判断一次任务强度/种类,然后逐级切换即可.
+
+![架构](PixPin_2026-10-12_13-02-24.webp)
+
+### ch17: Reasoning
 
 ## Architecture Patterns with Python
 ### 前言
@@ -2688,6 +2427,308 @@ if got != want {
 
 
 
+## Docker Up & Running,3rd edtion
+### ch1: 引言
+>Docker 最初是由 dotCloud 公司的创始人兼首席执行官 Solomon Hykes 于 2013 年 3 月 15 日在加利福尼亚州圣克拉拉举行的 Python 开发者大会上，以五分钟的闪电演讲向世界推出的——事先没有任何预告，也没有大张旗鼓的宣传。在这次发布时，除了 dotCloud 之外，只有大约 40 人有机会体验 Docker。
+
+最初，许多不熟悉 Docker 的人将其视为某种虚拟化平台，但实际上，它是第一个广泛应用的工具，它基于一种名为容器化的新兴技术。Docker 和 Linux 容器对众多行业领域产生了重大影响，其中包括 Vagrant、KVM、OpenStack、Mesos、Capistrano、Ansible、Chef、Puppet 等工具和技术。
+
+在部署过程中，旧应用程序的整个运行环境都会被抛弃。应用程序环境中的任何东西都不会比应用程序本身存在更长时间，这是一个看似简单却意义深远的理念。这意味着应用程序不太可能意外地依赖于先前版本遗留的工件。这意味着从本地文件系统中获取的短暂调试更改不太可能在后续版本中继续存在。
+### ch2: 概览
+服务提供商和商业供应商尤其不愿构建可能受制于与其利益重叠的公司意志的平台。因此，Docker 公司在那段时间面临着一些公开的挑战。为了赢得公众好感并支持其产品在市场上的更广泛应用，Docker 公司于 2015 年 6 月决定赞助开放容器倡议（OCI）。该倡议的首个完整规范于 2017 年 7 月发布，其很大程度上基于 Docker 镜像格式的版本 2。现在，容器镜像和容器运行时都可以申请 OCI 认证。
+
+最主要的运行时就是containerd了,他是现代版本的 Docker 和 Kubernetes 中的默认高级运行时,底层运行时则可以是runc和crun等.
+
+![Docker架构](PixPin_2026-10-06_12-25-29.webp)
+
+服务器负责构建和管理容器,而客户端负责向服务器发出指令.
+
+每个 Docker 主机通常运行一个 Docker 服务器，该服务器可以管理任意数量的容器。然后，您可以使用命令行工具（docker）与服务器通信，既可以从服务器本身通信，也可以在安全措施到位的情况下从远程客户端通信
+
+尽管 Docker 在生产环境编排领域的光芒很大程度上被 Google 的 Kubernetes 所掩盖，但值得注意的是，在 2022 年初发布 1.24 版本之前，Kubernetes 也高度依赖 Docker。不过，Docker 的编排工具仍然非常实用，尤其是 Compose，对于本地开发来说非常方便。
+
+首先，Docker 的架构主要面向无状态应用，或者将状态外部化到数据库或缓存等数据存储中的应用。这类应用最容易容器化。Docker 为这类应用强制执行了一些优秀的开发原则，但这也就意味着，**像把数据库引擎放在 Docker 容器里这样的操作有点像逆流而上**。这并不是说你不能这样做，甚至也不是说你不应该这样做；只是这并非 Docker 最常见的用例。
+
+### ch4: 镜像
+镜像构建的一个特殊之处在于,尽管构建时会尽可能地利用缓存,但是每一层构建之间是完全不相关的,也就是说如果要清除build时的缓存,就必须将构建和清除放在同一行,如`RUN dnf install -y httpd && \ dnf clean all`
+
+一般来说，你应该始终尝试对 Dockerfile 进行排序，以便构建过程中最稳定和最耗时的部分首先执行，而你的代码则尽可能在过程的最后添加。
+### ch5: 容器
+容器的定义:
+>A container is a self-contained execution environment that **shares the kernel of the host system** and is (optionally) isolated from other containers in the system.
+
+对于绑定挂载，您可以使用 -v 参数来缩短命令。使用 -v 参数时，您会注意到源文件/目录和目标文件/目录之间用冒号 (:) 分隔。另需注意的是，卷默认以读写模式挂载。您可以通过在 --mount 参数末尾添加,readonly，或在 -v 参数末尾添加 :ro，轻松地将 docker 文件或目录挂载为只读模式:
+```bash
+docker container run --rm -ti \
+-v /mnt/session_data:/data:ro \
+ubuntu:latest /bin/bash
+```
+
+#### windows image
+在Docker Desktop中可以在Windows镜像和Linux镜像之间切换:
+
+![图片](PixPin_2026-10-08_09-00-52.webp)
+
+Docker Desktop 在 Windows 系统上支持两种容器运行模式：
+
+- Linux Containers（Linux 容器）：运行基于 Linux 内核的容器，例如 Ubuntu、Alpine、Redis、MySQL、Nginx。
+- Windows Containers（Windows 容器）：运行基于 Windows 内核的容器，例如 Windows Server Core、Nano Server，以及依赖 Windows 环境的 .NET Framework 应用。
+
+二者最本质的区别是：容器依赖的操作系统内核不同，而不仅仅是镜像里的文件不同。
+
+
+| 对比维度             | Linux 容器                        | Windows 容器                       |
+| -------------------- | --------------------------------- | ---------------------------------- |
+| 内核                 | Linux Kernel                      | Windows NT Kernel                  |
+| Windows 上的运行方式 | 主要通过 WSL 2 虚拟化环境         | Windows 容器功能，通常采用进程隔离 |
+| 常见基础镜像         | Ubuntu、Debian、Alpine            | Nano Server、Server Core           |
+| 镜像大小             | 通常较小                          | 通常较大                           |
+| 资源消耗             | 一般较低                          | 一般较高                           |
+| 启动速度             | 通常较快                          | 相对较慢                           |
+| 常见开发语言         | Python、Go、Java、Node.js、C++    | C#、.NET Framework、PowerShell     |
+| 常见应用             | FastAPI、Redis、PostgreSQL、Nginx | 传统 ASP.NET、IIS、Windows 服务    |
+| 主要部署环境         | Linux 云服务器、Kubernetes        | Windows Server                     |
+| 推荐场景             | 绝大多数现代后端开发              | 依赖 Windows 的特定业务系统        |
+
+```dockerfile
+# escape=`
+FROM mcr.microsoft.com/powershell
+SHELL ["pwsh", "-command"]
+RUN Add-Content C:\helloworld.ps1 `'Write-Host "Hello World from Windows"'
+
+CMD ["pwsh", "C:\\helloworld.ps1"]
+```
+### ch10: Containers at Scale
+#### minikube
+>Minikube 是一个适用于单实例的完整 Kubernetes 发行版。它管理您计算机上的一个容器或虚拟机，提供一个可运行的 Kubernetes 环境，并允许您使用与生产系统完全相同的所有工具。从功能上看，它有点像 Docker Compose：可以让您在本地搭建完整的技术栈。不过，它比 Compose 更进一步，因为它拥有生产环境的全部 API。因此，如果您在生产环境中运行 Kubernetes，您就可以在桌面上拥有一个功能与生产环境非常接近（即使规模可能有所不同）的环境。
+
+安装:
+```bash
+winget install -e --id Kubernetes.minikube
+```
+启动:
+```bash
+minikube start --driver=docker --cpus=2 --memory=4096
+```
+可以用`minikube status`来检查kube状态.
+
+尽管minikube自带了kubectl,但还是推荐单独安装:
+```bash
+winget install -e --id Kubernetes.kubectl
+```
+
+使用`minikube dashboard`访问控制面板:
+![图片](PixPin_2026-10-11_08-46-10.webp)
+
+#### Pod
+>The term pod came about because the Docker mascot is Moby, the whale, and a group of whales is called a **pod**.
+
+在 Kubernetes 术语中，Pod 指的是一个或多个共享相同 cgroups 和命名空间的容器。您还可以使用 cgroups 和命名空间将同一个 Pod 内的各个容器彼此隔离。Pod 的目的是封装所有需要一起部署以创建一个功能单元的进程或应用程序，然后由调度器进行管理。Pod 中的所有容器都可以通过 localhost 相互通信，从而无需相互发现。那么，为什么不直接部署一个包含所有应用程序的大型容器呢？Pod 相对于大型容器的优势在于，您仍然可以单独限制每个应用程序的资源，并利用庞大的公共 Linux 容器库来构建您的应用程序。
+#### Deployment
+```bash
+kubectl create deployment hello-minikube --image=kennethreitz/httpbin:latest --port=80
+```
+
+运行`kubectl get all`:
+![效果](PixPin_2026-10-11_08-50-40.webp)
+
+为了让我们的deployment能够作为service被外界发现,我们需要暴露它的端口:
+```bash
+kubectl expose deployment hello-minikube --type=NodePort
+```
+
+查看services:
+```bash
+kubectl get services
+
+NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+hello-minikube   NodePort    10.109.219.87   <none>        80:31479/TCP   12s
+kubernetes       ClusterIP   10.96.0.1       <none>        443/TCP        12m
+```
+
+查看services的url:
+```bash
+minikube service hello-minikube --url
+http://127.0.0.1:63676
+```
+
+可以发现二者的url是完全不同的,这是因为集群内部的网络我们不能直接访问,要通过kubernetes的映射处理,每次映射到随机端口.
+
+不过更快的方法则是直接运行`minikube service hello-minikube`,这会自动打开映射的URL.
+
+运行完后删除service和deployment:
+```bash
+kubectl delete service hello-minikube
+kubectl delete deployment hello-minikube
+```
+
+#### yml部署
+Kubernetes 与 Docker Compose 非常相似，它允许我们使用一个或多个YAML 文件来定义堆栈，这些文件将所有我们需要关注的定义集中在一个地方:
+```yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: lazyraster
+  labels:
+    app: lazyraster
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+  selector:
+    app: lazyraster
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cache-data-claim
+  labels:
+    app: lazyraster
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+# 创建Pod
+metadata:
+  name: lazyraster
+  labels:
+    app: lazyraster
+spec:
+  selector:
+    matchLabels:
+      app: lazyraster
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: lazyraster
+    spec:
+      containers:
+      - image: relistan/lazyraster:demo
+        name: lazyraster
+        env:
+        - name: RASTER_RING_TYPE
+          value: memberlist
+        - name: RASTER_BASE_DIR
+          value: /data
+        ports:
+        - containerPort: 8000
+          name: lazyraster
+        volumeMounts:
+        - name: cache-data
+          mountPath: /data
+      volumes:
+      - name: cache-data
+        persistentVolumeClaim:
+          claimName: cache-data-claim
+```
+apiVersion字段是强制的,而不是像compose的`version`字段一样可以随便填版本号:
+| API 版本               | 常见资源                           |
+| :--------------------- | :--------------------------------- |
+| `v1`                   | Pod、Service、ConfigMap、Secret    |
+| `apps/v1`              | Deployment、StatefulSet、DaemonSet |
+| `batch/v1`             | Job、CronJob                       |
+| `networking.k8s.io/v1` | Ingress、NetworkPolicy             |
+
+metadata用于定义某个资源的名称,标签.
+
+
+先部署一下看看:
+```bash
+kubectl apply -f ./lazyraster-service.yaml
+```
+```bash
+ kubectl get all
+NAME                             READY   STATUS              RESTARTS   AGE
+pod/lazyraster-6559cf588-44hrn   0/1     ContainerCreating   0          15s
+
+NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+service/kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP          42m
+service/lazyraster   NodePort    10.106.222.214   <none>        8000:32242/TCP   15s
+
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/lazyraster   0/1     1            0           15s
+
+NAME                                   DESIRED   CURRENT   READY   AGE
+replicaset.apps/lazyraster-6559cf588   1         1         0       15s
+```
+>ReplicaSet 是 Kubernetes 的一个组件，负责确保我们的应用程序始终运行正确数量的实例，并且这些实例都处于健康状态。通常情况下，我们无需担心 ReplicaSet 内部的运行情况，因为我们创建的部署会自动管理它。如有需要，您可以自行管理 ReplicaSet，但大多数情况下您既不需要也不想这样做。
+
+而persistent volume claim需要单独查询:
+```bash
+kubectl get pvc
+```
+如果要扩展Deployment的话,需要使用scale命令:
+```bash
+kubectl scale --replicas=2 deploy/lazyraster
+```
+效果如下:
+```bash
+kubectl get all
+NAME                             READY   STATUS    RESTARTS   AGE
+pod/lazyraster-6559cf588-44hrn   1/1     Running   0          9m10s
+pod/lazyraster-6559cf588-t6bwh   1/1     Running   0          35s
+
+NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+service/kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP          51m
+service/lazyraster   NodePort    10.106.222.214   <none>        8000:32242/TCP   9m10s
+
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/lazyraster   2/2     2            2           9m10s
+
+NAME                                   DESIRED   CURRENT   READY   AGE
+replicaset.apps/lazyraster-6559cf588   2         2         2       9m10s
+```
+
+事实上,这几个写法的作用完全一样:
+```bash
+kubectl scale --replicas=2 deployment.apps/lazyraster
+
+kubectl scale --replicas=2 deployments/lazyraster
+
+kubectl scale --replicas=2 deployment/lazyraster
+
+kubectl scale --replicas=2 deploy/lazyraster
+```
+
+
+从上面可以看到,一个Deployment可以启动多个Pod,deshboard界面如下:
+![图片](PixPin_2026-10-11_09-40-28.webp)
+
+很明显,一个个删除还是太累了,好在kubectl支持根据部署的yaml来一键删除.
+
+用完后删除minikube即可:
+```bash
+minikube delete
+```
+### ch11: 高级知识
+![docker结构](PixPin_2026-10-12_12-05-54.webp)
+
+dockerd即为docker daemon,containerd则是Container Daemon,daemon一词表示后台进程.
+
+docker运行的完整流程如下:
+```mermaid
+flowchart TD
+    A["用户执行 docker run"] --> B["Docker CLI"]
+    B -->|"REST API"| C["dockerd"]
+    C -->|"gRPC"| D["containerd"]
+    D -->|"ttrpc"| E["containerd-shim"]
+    E -->|"调用"| F["runc"]
+    F -->|"系统调用"| G["Linux Kernel"]
+    G -->|"创建并启动"| H["Container 容器进程"]
+```
+
+这一章对命名空间和网络的探析不够清晰,所以我还得去接着找资料.
+### 总结
+其实讲的还不错,但刚入门不适合读,只适合用过一段时间后有疑问的时候来读.
 
 ## Architecting ASP.NET Core Applications&&# Mastering ASP.NET Core 10
 
