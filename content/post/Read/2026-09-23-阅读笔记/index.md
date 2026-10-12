@@ -291,7 +291,10 @@ kubectl scale --replicas=2 deploy/lazyraster
 ```bash
 minikube delete
 ```
-#### Docker Desktop安装
+### ch11: 高级知识
+#### Namespaces
+Docker会给
+
 
 ## Agentic Design Patterns
 - 出版于2025年，作者：Antonio Gullí。
