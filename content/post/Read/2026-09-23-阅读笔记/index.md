@@ -7,368 +7,6 @@ math: true
 ---
 
 # 阅读中
-## Agentic Design Patterns
-- 出版于2025年，作者：Antonio Gullí。
-### ch1: Prompt Chaining
-简单来说就是将复杂问题拆分成链式的递进式子任务,从而显著提高可靠性.
-
-从我的亲身经历来看是很有用的,让Agent分阶段构建的效果远超过一次构建的成果.
-
-![结构](PixPin_2026-10-06_13-49-10.webp)
-### ch2: 路由
-路由机制将条件逻辑引入到智能体的操作框架中，使其执行路径从固定不变转变为动态评估特定标准，并从一系列可能的后续动作中进行选择。这使得系统行为更加灵活，并能更好地感知上下文
-
-自然,自己手搓是根本无从下手的,还是得用langchain或者langgraph等框架
-
-![架构](PixPin_2026-10-07_13-55-19.webp)
-
-其实目前的LLM平台都是路由机制的,根据当前任务的要求调用某个子智能体实现,处理完毕后返回结果供Supervisor处理,因此还是线性的,无法做到parallelization
-### ch3: 并行
->LangChain、LangGraph 和 Google ADK 等框架提供了并行执行机制
-
-有如下两个案例:
-
-1. 一个Agent正在调查一家公司。为尽快形成全面判断，他会同步开展多项工作：一边搜索相关新闻报道，一边提取股票数据，查看社交媒体上的相关提及与舆情动态，同时查询企业数据库中的背景信息。通过这种并行处理方式，他能够比按顺序逐项检索更高效地整合信息，更快获得对公司的整体认识。
-2. 一个Agent正在分析客户反馈。面对一批反馈数据，他会同时进行情感分析、提取关键词、对反馈内容进行分类，并识别其中需要优先处理的紧急问题。借助这种并行分析方式，客服人员可以在更短时间内从多个维度把握客户意见，从而快速形成更全面、更有针对性的分析结果。
-
-```py
-import os
-import asyncio
-from typing import Optional
-
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import Runnable, RunnableParallel, RunnablePassthrough
-
-# --- Configuration ---
-# Ensure your API key environment variable is set (e.g., OPENAI_API_KEY)
-try:
-    llm: Optional[ChatOpenAI] = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0.7
-    )
-except Exception as e:
-    print(f"Error initializing language model: {e}")
-    llm = None
-
-
-# --- Define Independent Chains ---
-# These three chains represent distinct tasks that can be executed in parallel.
-
-summarize_chain: Runnable = (
-    ChatPromptTemplate.from_messages([
-        ("system", "Summarize the following topic concisely:"),
-        ("user", "{topic}")
-    ])
-    | llm
-    | StrOutputParser()
-)
-
-questions_chain: Runnable = (
-    ChatPromptTemplate.from_messages([
-        ("system", "Generate three interesting questions about the following topic:"),
-        ("user", "{topic}")
-    ])
-    | llm
-    | StrOutputParser()
-)
-
-terms_chain: Runnable = (
-    ChatPromptTemplate.from_messages([
-        ("system", "Identify 5-10 key terms from the following topic, separated by commas:"),
-        ("user", "{topic}")
-    ])
-    | llm
-    | StrOutputParser()
-)
-
-
-# --- Build the Parallel + Synthesis Chain ---
-
-# 1. Define the block of tasks to run in parallel. The results of these,
-#    along with the original topic, will be fed into the next step.
-map_chain = RunnableParallel(
-    {
-        "summary": summarize_chain,
-        "questions": questions_chain,
-        "key_terms": terms_chain,
-        "topic": RunnablePassthrough(),  # Pass the original topic through
-    }
-)
-
-# 2. Define the final synthesis prompt which will combine the parallel results.
-synthesis_prompt = ChatPromptTemplate.from_messages([
-    ("system", """Based on the following information:
-Summary: {summary}
-Related Questions: {questions}
-Key Terms: {key_terms}
-Synthesize a comprehensive answer."""),
-    ("user", "Original topic: {topic}")
-])
-
-# 3. Construct the full chain by piping the parallel results directly
-#    into the synthesis prompt, followed by the LLM and output parser.
-full_parallel_chain = map_chain | synthesis_prompt | llm | StrOutputParser()
-
-
-# --- Run the Chain ---
-
-async def run_parallel_example(topic: str) -> None:
-    """
-    Asynchronously invokes the parallel processing chain with a specific topic
-    and prints the synthesized result.
-
-    Args:
-        topic: The input topic to be processed by the LangChain chains.
-    """
-    if not llm:
-        print("LLM not initialized. Cannot run example.")
-        return
-
-    print(f"\n--- Running Parallel LangChain Example for Topic: '{topic}' ---")
-
-    try:
-        # The input to `ainvoke` is the single 'topic' string,
-        # then passed to each runnable in the `map_chain`.
-        response = await full_parallel_chain.ainvoke(topic)
-
-        print("\n--- Final Response ---")
-        print(response)
-
-    except Exception as e:
-        print(f"\nAn error occurred during chain execution: {e}")
-
-
-if __name__ == "__main__":
-    test_topic = "The history of space exploration"
-
-    # In Python 3.7+, asyncio.run is the standard way to run an async function.
-    asyncio.run(run_parallel_example(test_topic))
-```
-
-上述编排方式的缺点是相当明显的: 僵化,每换一个需求就要重新写一次代码,如果能够结合ch2中的路由方法,由Agent决定何时并行,调用哪些Agent,具体工作是什么,那么才是真的有用.
-
-![架构](PixPin_2026-10-08_09-27-24.webp)
-### ch4: Reflection
->反思模式是指智能体评估自身的工作、输出或内部状态，并利用评估结果来改进自身表现或优化响应。这是一种自我纠正或自我改进的方式，使智能体能够根据反馈、内部评价或与预期标准的比较，迭代地优化输出或调整方法
-
-虽然单个代理可以进行自我反思，但使用两个专门的代理（或使用不同的系统提示进行两次独立的LLM调用）通常能产生更稳健、更客观的结果
-
-**This is also often called the "Generator-Critic" or "Producer-Reviewer" model.**
-```py
-from google.adk.agents import SequentialAgent, LlmAgent
-
-# The first agent generates the initial draft.
-generator = LlmAgent(
-    name="DraftWriter",
-    description="Generates initial draft content on a given subject.",
-    instruction="Write a short, informative paragraph about the user's subject.",
-    output_key="draft_text"  # The output is saved to this state key.
-)
-
-# The second agent critiques the draft from the first agent.
-reviewer = LlmAgent(
-    name="FactChecker",
-    description="Reviews a given text for factual accuracy and provides a structured critique.",
-    instruction="""
-You are a meticulous fact-checker.
-1. Read the text provided in the state key 'draft_text'.
-2. Carefully verify the factual accuracy of all claims.
-3. Your final output must be a dictionary containing two keys:
-   - "status": A string, either "ACCURATE" or "INACCURATE".
-   - "reasoning": A string providing a clear explanation for
-     your status, citing specific issues if any are found.
-""",
-    output_key="review_output"  # The structured dictionary is saved here.
-)
-
-# The SequentialAgent ensures the generator runs before the reviewer.
-review_pipeline = SequentialAgent(
-    name="WriteAndReview_Pipeline",
-    sub_agents=[generator, reviewer]
-)
-
-# Execution Flow:
-# 1. generator runs -> saves its paragraph to state['draft_text'].
-# 2. reviewer runs -> reads state['draft_text'] and saves its
-#    dictionary output to state['review_output'].
-```
-
-这种模式同样有问题,你不可能说每遇到一个新问题都整一个`你是一名专业的XXX...`吧,所以只能在单个Agent内部使用,自己核查自己,而且不需要额外的指令,除非用更高级的API来做Critic,但又话说回来,为什么不让更高级的API来干活呢.
-
-![架构](PixPin_2026-10-09_08-40-48.webp)
-### ch5: tool use
-![架构](PixPin_2026-10-10_09-55-46.webp)
-
-使用工具是LLM进化为Agent的必经之路
-### ch6: Planning
-![架构](PixPin_2026-10-10_09-57-48.webp)
-
-简单来说就是让LLM先生成规划,再实际做事,这是非常合理也很有用的一招.
-
-### ch7: 多智能体合作
-![示例](PixPin_2026-10-11_09-57-38.webp)
-
-![六种情形](PixPin_2026-10-11_10-02-25.webp)
-
-监督者模式肯定是有用的,但是层级Agent是很难处理的,除非你能实现动态负载和扩展,并且保证消息传递中的误差比较小,否则即便只给每个底层Agent一个很简单的要求,实现的效果也是差强人意的.
-
-![架构](PixPin_2026-10-11_10-04-00.webp)
-### ch8: Memory Management
->本章将深入探讨内存管理，重点关注智能体的即时（短期）记忆和持久（长期）记忆需求
-
-![架构](PixPin_2026-10-11_10-10-53.webp)
-
-其实就是上下文窗口和RAG嘛
-### ch9: 学习和适应
-道理很简单,只要还是调API,就不可能真正学习好不好...
-
-![架构](PixPin_2026-10-11_10-13-28.webp)
-### ch10: MCP
-![架构](PixPin_2026-10-11_10-14-58.webp)
-### ch11: Goal Setting and Monitoring 
-![架构](PixPin_2026-10-11_10-16-33.webp)
-
-其实就是Planning+Reflection(先制定目标,然后迭代检查是否达成当前目标),不过GPT6已经开始使用这个模式了,效果还是很不错的.
-### ch12: 异常处理
-![三步走](PixPin_2026-10-12_12-37-59.webp)
-
-1. 错误检测: 如特定的 API 错误（例如 404（未找到）或 500（内部服务器错误）代码）;无效或格式错误的工具输出
-2. 错误处理: 如日志记录,重试参数,采用替代策略.
-3. 恢复: 撤销数据库更改,状态回滚等
-
-![架构](PixPin_2026-10-12_12-39-36.webp)
-
-这个实际上是Agent的必备模式,如果工具调用失败或者用户参数有误,不能清晰返回异常信息的话很容易就流式用户,或者难以调试.
-
-### ch13: Human-in-the-Loop(HITL)
-简单来说就是引入人类输入和监管,但道理很简单,如果都要人类来操作了,那我引入AI干嘛.
-
-![架构](PixPin_2026-10-12_12-46-30.webp)
-### ch14: RAG
-![架构](PixPin_2026-10-12_12-47-38.webp)
-### ch15: Inter-Agent Communication(A2A)
-![与MCP的对比](PixPin_2026-10-12_12-53-55.webp)
-
-其实如果你觉得另一个AI很牛,那不就换到这个AI就行了,要什么沟通,这就是单纯的零和博弈.而简单的任务交给杂碎AI就行了,双方的地位是不可能对等的,因此用MCP就足够解决了.
-
-![架构](PixPin_2026-10-12_12-57-40.webp)
-### ch16: Resource-Aware Optimization
-简单来说就是自己换API,其实还是路由的问题,先判断一次任务强度/种类,然后逐级切换即可.
-
-![架构](PixPin_2026-10-12_13-02-24.webp)
-
-### ch17: Reasoning
-
-## Architecture Patterns with Python
-### 前言
-按照知名度,我们有三种常用的开发架构:
-**1. 测试驱动开发（TDD）的效能优化**
-> 测试驱动开发（TDD）能辅助我们编写正确的代码，并支持我们在无回归风险的前提下重构或新增功能。然而，要充分发挥测试的效用并非易事：
-> *   如何确保测试运行速度足够快？
-> *   如何通过快速、无依赖的单元测试获得尽可能高的代码覆盖率和反馈？
-> *   如何将运行较慢且不稳定的端到端测试数量降至最低？
-
-**2. 领域驱动设计（DDD）的模型解耦**
-> 领域驱动设计（DDD）要求我们将精力聚焦于构建优质的业务领域模型。但关键在于，我们该如何确保模型免受基础设施问题的干扰，从而避免其变得难以修改？
-
-**3. Event-Driven Architecture**
-> 通过消息集成的松耦合（微）服务（有时称为响应式微服务）是管理跨应用或业务领域复杂性的成熟方案。然而，如何让这些服务与 Python 世界现有的工具（如 Flask、Django、Celery 等）无缝兼容，往往并非显而易见。
-
-
-### Part one前言
->我们发现，很多开发人员在被要求设计新系统时，会立即着手构建数据库模式，而将对象模型视为次要考虑因素。这正是问题开始出现的地方。正确的做法是，先考虑行为，并以此来驱动存储需求。**毕竟，我们的客户并不关心数据模型，他们关心的是系统能做什么**；否则，他们直接使用电子表格就好了。
-### ch1: Domain Modeling
->The **domain** is a fancy way of saying **the problem you’re trying to solve**.
-
-简而言之，领域驱动设计（DDD）认为软件最重要的功能是提供一个有用的问题模型。如果我们能正确地构建这个模型，我们的软件就能创造价值，并催生新的事物。
-
-### ch2: Repository Pattern
-
-
-
-
-## Kubernetes in Action, Second Edition(待补充)
-- 出版于2026年（第2版），出版商：Manning，作者：Marko Lukša。
-
-### 入门
-
-#### Introducing Kubernetes
->Kubernetes 一词源自希腊语，意为“领航员”或“舵手”,最初由Google开发.
-
-Kubernetes集群包含两组nodes:
-1. control plane nodes: 控制整个集群
-
-![图示](PixPin_2026-07-09_17-26-06.webp)
-
-2. worker nodes: 实际工作的节点.
-
-![图示](PixPin_2026-07-09_17-27-13.webp)
-
-1. 你将应用清单提交至 Kubernetes API。API 服务器随后将清单中定义的对象写入 etcd。
-
-2. 控制器察觉到这些新建对象，随之创建若干新对象——每个应用实例对应一个。
-
-3. 调度器为每个实例分配一个节点。
-
-4. Kubelet 察觉到有实例被调度至其所在节点，便通过容器运行时启动该应用实例。
-
-5. kube-proxy 检测到应用实例已准备好接收客户端连接，随即为它们配置负载均衡器。
-
-6. Kubelet 与控制器持续监控系统状态，确保应用程序保持运行。
-#### 容器介绍
-每个容器都有着独立的文件系统和进程ID,如果是有Shell的Linux镜像的话,还可以使用bash命令.
-
-#### 容器管理
-Kubernetes部署的单位称为deployment对象,该对象对应了一个或者多个Pod,每个Pod由一个或者多个紧密相关的容器组成,他们共享相同的网络接口和命名空间:
-
-![示意图](PixPin_2026-07-14_17-59-51.webp)
-
->每个 Pod 都有自己的 IP、主机名、进程、网络接口及其他资源。同
-一 Pod 内的容器会认为它们是计算机中唯一运行的程序，即使与其它
-Pod 位于同一节点，也不会感知到这些 Pod 中的进程。
-
-```shell
-$ kubectl get pods
-NAME                     READY   STATUS    RESTARTS   AGE
-kiada-9d785b578-p449x    0/1     Pending   0          1m     #1
-
-```
-
-##### 暴露应用程序
-我们使用create deployment命令创建一个deployment对象,但要使得这个对象暴露在主机端口,则需要使用expose deployment命令创建一个Service对象,从而可以被外界访问
-
-```bash
-kubectl expose deployment kiada --type=LoadBalancer --port 8080
-```
-
-##### 扩展容器
-
-```bash
-$ kubectl scale deployment kiada --replicas=3
-deployment.apps/kiada scaled
-```
-- `--replicas=3`参数会创建三个完全相同的容器,这就是我们所说的`横向扩展`
-
-```shell
-$ kubectl get deploy
-NAME    READY   UP-TO-DATE   AVAILABLE   AGE
-kiada   3/3     3            3           18m
-
-```
-可以看到我们创建了三个Pod,每个Pod都包含了一个Kiada容器.
-
-当有多个通过`replicas`创建的相同Pod时,Pod之间便会自动进行负载均衡,每次由一个随机的Pod来处理到来的请求
-
->严格来说，Deployment 对象的用途仅仅是创建特定数量的 Pod 对
-象。您可能会想，是否可以直接创建 Pod，而不通过 Deployment
-来代劳。当然可以这么做，但如果需要运行多个副本，您就必须手动
-逐个创建每个 Pod，并确保为其分配唯一的名称。此后，您还需要持
-续监控这些 Pod，一旦它们突然消失或所在节点发生故障，就得立即
-替换它们。这正是几乎从不直接创建 Pod、而是使用 Deployment
-的根本原因。
-
 ## gRPC: Up and Running
 - 出版于2020年，出版商：O'Reilly，作者：Kasun Indrasiri。
 
@@ -533,6 +171,269 @@ gRPC的通信过程很简单,以客户端调用getProduct函数为例:
 
 ## Learning Domain-Driven Design
 - 出版于2021年，出版商：O'Reilly，作者：Vlad Khononov。
+
+
+## Architecture Patterns with Python
+### 前言
+按照知名度,我们有三种常用的开发架构:
+**1. 测试驱动开发（TDD）的效能优化**
+> 测试驱动开发（TDD）能辅助我们编写正确的代码，并支持我们在无回归风险的前提下重构或新增功能。然而，要充分发挥测试的效用并非易事：
+> *   如何确保测试运行速度足够快？
+> *   如何通过快速、无依赖的单元测试获得尽可能高的代码覆盖率和反馈？
+> *   如何将运行较慢且不稳定的端到端测试数量降至最低？
+
+**2. 领域驱动设计（DDD）的模型解耦**
+> 领域驱动设计（DDD）要求我们将精力聚焦于构建优质的业务领域模型。但关键在于，我们该如何确保模型免受基础设施问题的干扰，从而避免其变得难以修改？
+
+**3. Event-Driven Architecture**
+> 通过消息集成的松耦合（微）服务（有时称为响应式微服务）是管理跨应用或业务领域复杂性的成熟方案。然而，如何让这些服务与 Python 世界现有的工具（如 Flask、Django、Celery 等）无缝兼容，往往并非显而易见。
+
+
+### Part one前言
+>我们发现，很多开发人员在被要求设计新系统时，会立即着手构建数据库模式，而将对象模型视为次要考虑因素。这正是问题开始出现的地方。正确的做法是，先考虑行为，并以此来驱动存储需求。**毕竟，我们的客户并不关心数据模型，他们关心的是系统能做什么**；否则，他们直接使用电子表格就好了。
+### ch1: Domain Modeling
+>The **domain** is a fancy way of saying **the problem you’re trying to solve**.
+
+简而言之，领域驱动设计（DDD）认为软件最重要的功能是提供一个有用的问题模型。如果我们能正确地构建这个模型，我们的软件就能创造价值，并催生新的事物。
+
+### ch2: Repository Pattern
+#### 原理图
+Before:
+```mermaid
+flowchart LR
+    A["Domain"] --> B[("DB")]
+
+    style A fill:#b8e3f9,stroke:#00a8b5
+    style B fill:#b8e3f9,stroke:#00a8b5
+```
+After:
+```mermaid
+flowchart LR
+    D["Domain"] -->|"依赖接口"| AR
+
+    subgraph REPOS["Repositories"]
+        direction LR
+        AR["Abstract Repository"]
+        SR["SQLAlchemy Repository"]
+        AR -->|"由其实现"| SR
+    end
+
+    SR --> DB[("DB")]
+
+    style D fill:#b8e3f9,stroke:#00a8b5
+    style AR fill:#f2dfa0,stroke:#f59e71
+    style SR fill:#f2dfa0,stroke:#f59e71
+    style DB fill:#b8e3f9,stroke:#00a8b5
+    style REPOS fill:#ffffff,stroke:#64748b,stroke-dasharray:5 5
+```
+#### SQLAlchmy中的DIP(依赖倒置原则)
+声明式映射:
+```py
+from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy.orm import declarative_base, relationship
+
+Base = declarative_base()
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id = Column(Integer, primary_key=True)
+
+
+class OrderLine(Base):
+    __tablename__ = "order_lines"
+
+    id = Column(Integer, primary_key=True)
+    sku = Column(String(250))
+    qty = Column(Integer)
+    order_id = Column(Integer, ForeignKey("orders.id"))
+
+    order = relationship("Order")
+```
+OrderLine 本来代表一个领域实体（订单明细），但是现在它：
+
+- 必须继承 SQLAlchemy 的 `Base`。
+- 必须使用 `Column` 定义属性。
+- 必须知道 `Integer`、`String` 等数据库类型。
+- 必须使用 `ForeignKey` 和 `relationship` 描述 ORM 映射关系。
+
+
+DIP写法:
+```py
+from sqlalchemy import Column, ForeignKey, Integer, String, Table
+from sqlalchemy.orm import registry, relationship
+
+import model
+
+mapper_registry = registry()
+metadata = mapper_registry.metadata
+
+orders = Table(
+    "orders",
+    metadata,
+    Column("id", Integer, primary_key=True),
+)
+
+order_lines = Table(
+    "order_lines",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("sku", String(255)),
+    Column("qty", Integer, nullable=False),
+    Column("order_id", Integer, ForeignKey("orders.id")),
+)
+
+
+def start_mappers():
+    mapper_registry.map_imperatively(model.Order, orders)
+
+    mapper_registry.map_imperatively(
+        model.OrderLine,
+        order_lines,
+        properties={
+            "order": relationship(model.Order)
+        },
+    )
+```
+可以注意到这里,我们用一个外部model文件中的Order类映射到了内部的orders中,从而避免了直接依赖于SQLAlchemy.
+
+#### Introducing the Repository Pattern
+The Repository pattern is an abstraction over persistent storage.它通过假装所有数据都存储在内存中，来隐藏数据访问的繁琐细节
+
+模拟仓库:
+```py
+class SqlAlchemyRepository(AbstractRepository):
+    def __init__(self, session):
+        self.session = session
+
+    def add(self, batch):
+        self.session.add(batch)
+
+    def get(self, reference):
+        return (
+            self.session.query(model.Batch)
+            .filter_by(reference=reference)
+            .one()
+        )
+
+    def list(self):
+        return self.session.query(model.Batch).all()
+```
+使用仓库:
+```py
+@flask.route.gubbins
+def allocate_endpoint():
+    batches = SqlAlchemyRepository.list()
+
+    lines = [
+        OrderLine(l['orderid'], l['sku'], l['qty'])
+        for l in request.params...
+    ]
+
+    allocate(lines, batches)
+    session.commit()
+    return 201
+```
+
+其实就是对SQLAlchemy的session访问做了一层封装,所以的数据库访问都是通过Repository来间接实现的.
+### ch3:  Coupling and Abstractions
+
+
+## Kubernetes in Action, Second Edition(待补充)
+- 出版于2026年（第2版），出版商：Manning，作者：Marko Lukša。
+
+### 入门
+
+#### ch1: Introducing Kubernetes
+>Kubernetes 一词源自希腊语，意为“领航员”或“舵手”,最初由Google开发.
+
+Kubernetes集群包含两组nodes:
+1. control plane nodes: 控制整个集群
+
+![图示](PixPin_2026-07-09_17-26-06.webp)
+
+2. worker nodes: 实际工作的节点.
+
+![图示](PixPin_2026-07-09_17-27-13.webp)
+
+1. 你将应用清单提交至 Kubernetes API。API 服务器随后将清单中定义的对象写入 etcd。
+
+2. 控制器察觉到这些新建对象，随之创建若干新对象——每个应用实例对应一个。
+
+3. 调度器为每个实例分配一个节点。
+
+4. Kubelet 察觉到有实例被调度至其所在节点，便通过容器运行时启动该应用实例。
+
+5. kube-proxy 检测到应用实例已准备好接收客户端连接，随即为它们配置负载均衡器。
+
+6. Kubelet 与控制器持续监控系统状态，确保应用程序保持运行。
+#### ch2: 容器介绍
+每个容器都有着独立的文件系统和进程ID,如果是有Shell的Linux镜像的话,还可以使用bash命令.
+#### ch3: 部署kubernetes
+![关系图](PixPin_2026-10-12_14-42-11.webp)
+
+![创建流程](PixPin_2026-10-12_14-48-18.webp)
+每个Pod都有自己的IP地址,但这个地址仅在Cluster内部可见,通过expose命令即可将Pod部署为Service对外暴露
+
+>你不应该关心Pod被调度到哪里。这也是为什么默认的kubectl get pods命令不会显示列表中Pod所属的工作节点信息。在Kubernetes的世界里，这点并不那么重要。
+
+Kube-proxy会自动提供负载均衡,所以不用担心多个Pod的流量访问:
+
+![结构图](PixPin_2026-10-12_15-02-28.webp)
+
+#### ch4: Kubernetes API and Model
+
+#### 容器管理
+Kubernetes部署的单位称为deployment对象,该对象对应了一个或者多个Pod,每个Pod由一个或者多个紧密相关的容器组成,他们共享相同的网络接口和命名空间:
+
+![示意图](PixPin_2026-07-14_17-59-51.webp)
+
+>每个 Pod 都有自己的 IP、主机名、进程、网络接口及其他资源。同
+一 Pod 内的容器会认为它们是计算机中唯一运行的程序，即使与其它
+Pod 位于同一节点，也不会感知到这些 Pod 中的进程。
+
+```shell
+$ kubectl get pods
+NAME                     READY   STATUS    RESTARTS   AGE
+kiada-9d785b578-p449x    0/1     Pending   0          1m     #1
+
+```
+
+##### 暴露应用程序
+我们使用create deployment命令创建一个deployment对象,但要使得这个对象暴露在主机端口,则需要使用expose deployment命令创建一个Service对象,从而可以被外界访问
+
+```bash
+kubectl expose deployment kiada --type=LoadBalancer --port 8080
+```
+
+##### 扩展容器
+
+```bash
+$ kubectl scale deployment kiada --replicas=3
+deployment.apps/kiada scaled
+```
+- `--replicas=3`参数会创建三个完全相同的容器,这就是我们所说的`横向扩展`
+
+```shell
+$ kubectl get deploy
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+kiada   3/3     3            3           18m
+
+```
+可以看到我们创建了三个Pod,每个Pod都包含了一个Kiada容器.
+
+当有多个通过`replicas`创建的相同Pod时,Pod之间便会自动进行负载均衡,每次由一个随机的Pod来处理到来的请求
+
+>严格来说，Deployment 对象的用途仅仅是创建特定数量的 Pod 对
+象。您可能会想，是否可以直接创建 Pod，而不通过 Deployment
+来代劳。当然可以这么做，但如果需要运行多个副本，您就必须手动
+逐个创建每个 Pod，并确保为其分配唯一的名称。此后，您还需要持
+续监控这些 Pod，一旦它们突然消失或所在节点发生故障，就得立即
+替换它们。这正是几乎从不直接创建 Pod、而是使用 Deployment
+的根本原因。
+
+
 
 ## Kafka: The Definitive Guide,2nd edition
 - 出版于2021年（第2版），出版商：O'Reilly，作者：Gwen Shapira。
@@ -17629,7 +17530,280 @@ async def run_orchestrator_loop(
 
 ### 总结
 剩余内容就没必要看了
+## Agentic Design Patterns
+- 出版于2025年，作者：Antonio Gullí。
+### ch1: Prompt Chaining
+简单来说就是将复杂问题拆分成链式的递进式子任务,从而显著提高可靠性.
 
+从我的亲身经历来看是很有用的,让Agent分阶段构建的效果远超过一次构建的成果.
+
+![结构](PixPin_2026-10-06_13-49-10.webp)
+### ch2: 路由
+路由机制将条件逻辑引入到智能体的操作框架中，使其执行路径从固定不变转变为动态评估特定标准，并从一系列可能的后续动作中进行选择。这使得系统行为更加灵活，并能更好地感知上下文
+
+自然,自己手搓是根本无从下手的,还是得用langchain或者langgraph等框架
+
+![架构](PixPin_2026-10-07_13-55-19.webp)
+
+其实目前的LLM平台都是路由机制的,根据当前任务的要求调用某个子智能体实现,处理完毕后返回结果供Supervisor处理,因此还是线性的,无法做到parallelization
+### ch3: 并行
+>LangChain、LangGraph 和 Google ADK 等框架提供了并行执行机制
+
+有如下两个案例:
+
+1. 一个Agent正在调查一家公司。为尽快形成全面判断，他会同步开展多项工作：一边搜索相关新闻报道，一边提取股票数据，查看社交媒体上的相关提及与舆情动态，同时查询企业数据库中的背景信息。通过这种并行处理方式，他能够比按顺序逐项检索更高效地整合信息，更快获得对公司的整体认识。
+2. 一个Agent正在分析客户反馈。面对一批反馈数据，他会同时进行情感分析、提取关键词、对反馈内容进行分类，并识别其中需要优先处理的紧急问题。借助这种并行分析方式，客服人员可以在更短时间内从多个维度把握客户意见，从而快速形成更全面、更有针对性的分析结果。
+
+```py
+import os
+import asyncio
+from typing import Optional
+
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import Runnable, RunnableParallel, RunnablePassthrough
+
+# --- Configuration ---
+# Ensure your API key environment variable is set (e.g., OPENAI_API_KEY)
+try:
+    llm: Optional[ChatOpenAI] = ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0.7
+    )
+except Exception as e:
+    print(f"Error initializing language model: {e}")
+    llm = None
+
+
+# --- Define Independent Chains ---
+# These three chains represent distinct tasks that can be executed in parallel.
+
+summarize_chain: Runnable = (
+    ChatPromptTemplate.from_messages([
+        ("system", "Summarize the following topic concisely:"),
+        ("user", "{topic}")
+    ])
+    | llm
+    | StrOutputParser()
+)
+
+questions_chain: Runnable = (
+    ChatPromptTemplate.from_messages([
+        ("system", "Generate three interesting questions about the following topic:"),
+        ("user", "{topic}")
+    ])
+    | llm
+    | StrOutputParser()
+)
+
+terms_chain: Runnable = (
+    ChatPromptTemplate.from_messages([
+        ("system", "Identify 5-10 key terms from the following topic, separated by commas:"),
+        ("user", "{topic}")
+    ])
+    | llm
+    | StrOutputParser()
+)
+
+
+# --- Build the Parallel + Synthesis Chain ---
+
+# 1. Define the block of tasks to run in parallel. The results of these,
+#    along with the original topic, will be fed into the next step.
+map_chain = RunnableParallel(
+    {
+        "summary": summarize_chain,
+        "questions": questions_chain,
+        "key_terms": terms_chain,
+        "topic": RunnablePassthrough(),  # Pass the original topic through
+    }
+)
+
+# 2. Define the final synthesis prompt which will combine the parallel results.
+synthesis_prompt = ChatPromptTemplate.from_messages([
+    ("system", """Based on the following information:
+Summary: {summary}
+Related Questions: {questions}
+Key Terms: {key_terms}
+Synthesize a comprehensive answer."""),
+    ("user", "Original topic: {topic}")
+])
+
+# 3. Construct the full chain by piping the parallel results directly
+#    into the synthesis prompt, followed by the LLM and output parser.
+full_parallel_chain = map_chain | synthesis_prompt | llm | StrOutputParser()
+
+
+# --- Run the Chain ---
+
+async def run_parallel_example(topic: str) -> None:
+    """
+    Asynchronously invokes the parallel processing chain with a specific topic
+    and prints the synthesized result.
+
+    Args:
+        topic: The input topic to be processed by the LangChain chains.
+    """
+    if not llm:
+        print("LLM not initialized. Cannot run example.")
+        return
+
+    print(f"\n--- Running Parallel LangChain Example for Topic: '{topic}' ---")
+
+    try:
+        # The input to `ainvoke` is the single 'topic' string,
+        # then passed to each runnable in the `map_chain`.
+        response = await full_parallel_chain.ainvoke(topic)
+
+        print("\n--- Final Response ---")
+        print(response)
+
+    except Exception as e:
+        print(f"\nAn error occurred during chain execution: {e}")
+
+
+if __name__ == "__main__":
+    test_topic = "The history of space exploration"
+
+    # In Python 3.7+, asyncio.run is the standard way to run an async function.
+    asyncio.run(run_parallel_example(test_topic))
+```
+
+上述编排方式的缺点是相当明显的: 僵化,每换一个需求就要重新写一次代码,如果能够结合ch2中的路由方法,由Agent决定何时并行,调用哪些Agent,具体工作是什么,那么才是真的有用.
+
+![架构](PixPin_2026-10-08_09-27-24.webp)
+### ch4: Reflection
+>反思模式是指智能体评估自身的工作、输出或内部状态，并利用评估结果来改进自身表现或优化响应。这是一种自我纠正或自我改进的方式，使智能体能够根据反馈、内部评价或与预期标准的比较，迭代地优化输出或调整方法
+
+虽然单个代理可以进行自我反思，但使用两个专门的代理（或使用不同的系统提示进行两次独立的LLM调用）通常能产生更稳健、更客观的结果
+
+**This is also often called the "Generator-Critic" or "Producer-Reviewer" model.**
+```py
+from google.adk.agents import SequentialAgent, LlmAgent
+
+# The first agent generates the initial draft.
+generator = LlmAgent(
+    name="DraftWriter",
+    description="Generates initial draft content on a given subject.",
+    instruction="Write a short, informative paragraph about the user's subject.",
+    output_key="draft_text"  # The output is saved to this state key.
+)
+
+# The second agent critiques the draft from the first agent.
+reviewer = LlmAgent(
+    name="FactChecker",
+    description="Reviews a given text for factual accuracy and provides a structured critique.",
+    instruction="""
+You are a meticulous fact-checker.
+1. Read the text provided in the state key 'draft_text'.
+2. Carefully verify the factual accuracy of all claims.
+3. Your final output must be a dictionary containing two keys:
+   - "status": A string, either "ACCURATE" or "INACCURATE".
+   - "reasoning": A string providing a clear explanation for
+     your status, citing specific issues if any are found.
+""",
+    output_key="review_output"  # The structured dictionary is saved here.
+)
+
+# The SequentialAgent ensures the generator runs before the reviewer.
+review_pipeline = SequentialAgent(
+    name="WriteAndReview_Pipeline",
+    sub_agents=[generator, reviewer]
+)
+
+# Execution Flow:
+# 1. generator runs -> saves its paragraph to state['draft_text'].
+# 2. reviewer runs -> reads state['draft_text'] and saves its
+#    dictionary output to state['review_output'].
+```
+
+这种模式同样有问题,你不可能说每遇到一个新问题都整一个`你是一名专业的XXX...`吧,所以只能在单个Agent内部使用,自己核查自己,而且不需要额外的指令,除非用更高级的API来做Critic,但又话说回来,为什么不让更高级的API来干活呢.
+
+![架构](PixPin_2026-10-09_08-40-48.webp)
+### ch5: tool use
+![架构](PixPin_2026-10-10_09-55-46.webp)
+
+使用工具是LLM进化为Agent的必经之路
+### ch6: Planning
+![架构](PixPin_2026-10-10_09-57-48.webp)
+
+简单来说就是让LLM先生成规划,再实际做事,这是非常合理也很有用的一招.
+
+### ch7: 多智能体合作
+![示例](PixPin_2026-10-11_09-57-38.webp)
+
+![六种情形](PixPin_2026-10-11_10-02-25.webp)
+
+监督者模式肯定是有用的,但是层级Agent是很难处理的,除非你能实现动态负载和扩展,并且保证消息传递中的误差比较小,否则即便只给每个底层Agent一个很简单的要求,实现的效果也是差强人意的.
+
+![架构](PixPin_2026-10-11_10-04-00.webp)
+### ch8: Memory Management
+>本章将深入探讨内存管理，重点关注智能体的即时（短期）记忆和持久（长期）记忆需求
+
+![架构](PixPin_2026-10-11_10-10-53.webp)
+
+其实就是上下文窗口和RAG嘛
+### ch9: 学习和适应
+道理很简单,只要还是调API,就不可能真正学习好不好...
+
+![架构](PixPin_2026-10-11_10-13-28.webp)
+### ch10: MCP
+![架构](PixPin_2026-10-11_10-14-58.webp)
+### ch11: Goal Setting and Monitoring 
+![架构](PixPin_2026-10-11_10-16-33.webp)
+
+其实就是Planning+Reflection(先制定目标,然后迭代检查是否达成当前目标),不过GPT6已经开始使用这个模式了,效果还是很不错的.
+### ch12: 异常处理
+![三步走](PixPin_2026-10-12_12-37-59.webp)
+
+1. 错误检测: 如特定的 API 错误（例如 404（未找到）或 500（内部服务器错误）代码）;无效或格式错误的工具输出
+2. 错误处理: 如日志记录,重试参数,采用替代策略.
+3. 恢复: 撤销数据库更改,状态回滚等
+
+![架构](PixPin_2026-10-12_12-39-36.webp)
+
+这个实际上是Agent的必备模式,如果工具调用失败或者用户参数有误,不能清晰返回异常信息的话很容易就流式用户,或者难以调试.
+### ch13: Human-in-the-Loop(HITL)
+简单来说就是引入人类输入和监管,但道理很简单,如果都要人类来操作了,那我引入AI干嘛.
+
+![架构](PixPin_2026-10-12_12-46-30.webp)
+### ch14: RAG
+![架构](PixPin_2026-10-12_12-47-38.webp)
+### ch15: Inter-Agent Communication(A2A)
+![与MCP的对比](PixPin_2026-10-12_12-53-55.webp)
+
+其实如果你觉得另一个AI很牛,那不就换到这个AI就行了,要什么沟通,这就是单纯的零和博弈.而简单的任务交给杂碎AI就行了,双方的地位是不可能对等的,因此用MCP就足够解决了.
+
+![架构](PixPin_2026-10-12_12-57-40.webp)
+### ch16: Resource-Aware Optimization
+简单来说就是自己换API,其实还是路由的问题,先判断一次任务强度/种类,然后逐级切换即可.
+
+![架构](PixPin_2026-10-12_13-02-24.webp)
+### ch17: Reasoning
+有几个路子: CoT,ToT,ReAct.
+
+![架构](PixPin_2026-10-13_09-50-23.webp)
+### ch18: Guardrails
+实际上只能通过模型内部训练来避免,毕竟不能每次都加上一长串的系统提示词来告诉AI不要输出有害内容吧.
+
+![架构](PixPin_2026-10-13_10-02-56.webp)
+### ch19: 评估与监测
+这个自然是要引入Agent测试框架了,从而做到精准测评.
+
+![架构](PixPin_2026-10-13_10-04-22.webp)
+
+### ch20: Prioritization
+多任务时对任务排序,优先执行最重要的,其实还是路由问题
+
+![架构](PixPin_2026-10-13_10-05-27.webp)
+### ch21: Exploration
+![架构](PixPin_2026-10-13_10-07-15.webp)
+
+很复杂的设计,想必很难用.
+
+### 总结
+还是很不错的,把所有Agent的常见Pattern都讲了一遍.
 # 高级
 
 
