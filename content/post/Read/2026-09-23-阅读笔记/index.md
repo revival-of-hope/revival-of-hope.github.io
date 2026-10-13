@@ -99,8 +99,8 @@ service ExampleService {
 ![架构图](PixPin_2026-10-11_22-38-49.webp)
 ### ch4: gRPC原理
 gRPC的通信过程很简单,以客户端调用getProduct函数为例:
-1. 客户端进程调用生成存根中的 `getProduct` 函数。
-2. 客户端存根会创建一个携带编码后消息的 HTTP POST 请求。在 gRPC 中，所有请求都是 HTTP POST 请求，其 `content-type` 以 `application/grpc` 为前缀。所调用的远程函数（`/ProductInfo/getProduct`）作为单独的 HTTP 头发送。
+1. Client会生成一个stub,用于调用Server中的函数
+2. Client的stub负责创建一个携带编码后消息的 HTTP POST 请求。**在 gRPC 中，所有请求都是 HTTP POST 请求**，其 `content-type` 以 `application/grpc` 为前缀。所调用的远程函数（`/ProductInfo/getProduct`）作为单独的 HTTP 头发送。
 3. HTTP 请求消息通过网络发送到服务器机器。
 4. 当消息到达服务器时，服务器会检查消息头以确定需要调用哪个服务功能，并将消息交给服务存根处理。
 5. 服务存根将消息字节解析为特定于语言的数据结构。
