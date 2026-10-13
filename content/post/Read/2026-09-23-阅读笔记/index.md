@@ -7,110 +7,6 @@ math: true
 ---
 
 # 阅读中
-## gRPC: Up and Running
-- 出版于2020年，出版商：O'Reilly，作者：Kasun Indrasiri。
-
-### ch1: 介绍
-
->在构建现代云原生应用和微服务的同步请求-响应式通信时，最常用且传统的方法是将其构建为RESTful服务，即将应用或服务建模为可通过HTTP协议上的网络调用访问和更改状态的资源集合。然而，对于大多数用例而言，RESTful服务在构建进程间通信时往往较为笨重、效率低下且易出错。通常需要一种高度可扩展、松散耦合且比RESTful服务更高效的进程间通信技术。这正是gRPC——一种用于构建分布式应用和微服务的现代进程间通信方式——发挥作用的地方
-
-gRPC（“g”在每个gRPC版本中代表不同的含义）是一种进程间通信技术，它使您能够像进行本地函数调用一样轻松地连接、调用、操作和调试分布式异构应用程序。
-
-
-作为有线传输协议，gRPC使用HTTP/2，这是一种高性能的二进制消息协议，支持双向消息传递。
-#### 背景
-RPC是构建客户端-服务应用程序的一种流行的进程间通信技术。通过RPC，客户端可以像调用本地方法一样远程调用某个函数或方法。早期有几种流行的RPC实现，如公共对象请求代理架构（CORBA）和Java远程方法调用（RMI），它们用于构建和连接服务或应用程序。然而，这类传统RPC实现大多极其复杂，因为它们构建在像TCP这样的通信协议之上，这阻碍了互操作性，并且基于臃肿的规范。
-
-由于传统RPC实现（如CORBA）的局限性，Simple Object Access Protocol（SOAP）被设计并由微软、IBM等大型企业大力推广。SOAP是 service-oriented architecture（SOA）中的标准通信技术，用于在服务（在SOA上下文中通常称为Web服务）之间交换基于XML的结构化数据，并通过任何底层通信协议（如HTTP，最常用）进行通信。
-
-SOAP曾是一种相当流行的技术，但消息格式的复杂性以及围绕SOAP构建的规范复杂性，阻碍了分布式应用开发的敏捷性。因此，在现代分布式应用开发的背景下，SOAP web服务被视为一种遗留技术。相较于使用SOAP，当前大多数现有的分布式应用正采用REST架构风格进行开发。
-
-REST的事实标准实现是HTTP，而在HTTP中，你可以将RESTful Web应用建模为一系列资源，这些资源通过唯一标识符（URL）进行访问。状态变更操作以HTTP动词（如GET、POST、PUT、DELETE、PATCH等）的形式应用于这些资源之上。资源的状态以文本格式（如JSON、XML、HTML、YAML等）表示。
-
-使用REST架构风格配合HTTP和JSON构建应用程序已成为构建微服务的事实标准方法。然而，随着微服务数量及其网络交互的激增，RESTful服务已无法满足预期的现代需求。RESTful服务存在几个关键限制，阻碍了其作为基于微服务的现代应用程序的消息传递协议的能力。
-
-本质上，RESTful服务建立在基于文本的传输协议（如HTTP 1.x）之上，并利用可读的文本格式（如JSON）。在服务到服务的通信中，使用JSON这类文本格式效率并不高，因为通信双方无需采用这种面向人类的可读文本格式。
-
-作为一种架构风格，REST 包含许多“良好实践”，遵循这些实践才能构建出真正的 RESTful 服务。然而，这些实践并未作为实现协议（如HTTP）的强制部分，使得在实现阶段难以强制执行。因此，在实践中，大多数自称为 RESTful 的服务并未 properly 遵循 REST 风格的基础。由此，所谓的 RESTful 服务大多仅仅是通过网络暴露的 HTTP 服务。因此，开发团队不得不花费大量时间维护 RESTful 服务的一致性和纯粹性。
-
-Google一直使用一个名为Stubby的通用RPC框架，来连接数千个运行在多个数据中心、采用不同技术构建的微服务。其核心RPC层旨在处理每秒数百亿次请求的互联网规模。Stubby拥有众多优秀特性，但它并未被标准化为通用框架，因为它与Google的内部基础设施耦合过紧。2015年，谷歌发布了gRPC作为开源RPC框架；它是一种标准化、通用且跨平台的RPC基础设施。gRPC旨在向广大社区提供与Stubby相同的可扩展性、性能和功能。
-
-gRPC并非使用JSON或XML这类文本格式，而是采用基于协议缓冲区的二进制协议来与gRPC服务和客户端进行通信。此外，gRPC在HTTP/2之上实现了协议缓冲区，这使得它在进程间通信中更加高效。
-
-
-```ts
-// 指定Protobuf版本语法（Proto3）
-syntax = "proto3";
-
-// 从其他包导入消息类型
-import "google/protobuf/wrappers.proto";
-
-// 声明包名，用于避免消息类型命名冲突，并决定生成的代码命名空间
-package ecommerce;
-
-// 定义RPC服务接口
-service ProductInfo {
-    // 添加商品：接收Product消息，返回ProductID消息
-    rpc addProduct(Product) returns (ProductID);
-    // 获取商品：接收ProductID消息，返回Product消息
-    rpc getProduct(ProductID) returns (Product);
-}
-
-// 定义商品实体结构体
-message Product {
-    string id = 1;          // 商品唯一标识符（字段编号 1）
-    string name = 2;        // 商品名称（字段编号 2）
-    string description = 3; // 商品描述（字段编号 3）
-}
-
-// 定义商品ID结构体
-message ProductID {
-    string value = 1;       // 商品ID值（字段编号 1）
-}
-```
-可以看到,protobuf的格式相当清晰,比起OpenAPI规范的可读性要高了许多,不再需要强调路由,方法这些让人心累的无关参数.
-### ch3: gRPC Communication Patterns
-总共有四种gRPC模式:
-| 通信模式       | 英文名称                    | 客户端发送       | 服务端返回       | 典型应用场景                          |
-| :------------- | :-------------------------- | :--------------- | :--------------- | :------------------------------------ |
-| 一元 RPC       | Unary RPC                   | 单个请求         | 单个响应         | 用户登录、查询用户信息、普通 API 调用 |
-| 服务端流式 RPC | Server Streaming RPC        | 单个请求         | 多个响应（流式） | AI 文本流式输出、实时日志推送         |
-| 客户端流式 RPC | Client Streaming RPC        | 多个请求（流式） | 单个响应         | 文件分块上传、批量数据采集            |
-| 双向流式 RPC   | Bidirectional Streaming RPC | 多个请求（流式） | 多个响应（流式） | 实时聊天、双向语音通信、实时协作      |
-
-
-protobuf中用`stream`关键字来标记是否流式输出:
-```ts
-service ExampleService {
-    // 1. 一元 RPC
-    rpc Unary(Request) returns (Response);
-
-    // 2. 服务端流式
-    rpc ServerStream(Request) returns (stream Response);
-
-    // 3. 客户端流式
-    rpc ClientStream(stream Request) returns (Response);
-
-    // 4. 双向流式
-    rpc BidiStream(stream Request) returns (stream Response);
-}
-```
-
-![架构图](PixPin_2026-10-11_22-38-49.webp)
-### ch4: gRPC原理
-gRPC的通信过程很简单,以客户端调用getProduct函数为例:
-1. Client会生成一个stub,用于调用Server中的函数
-2. Client的stub负责创建一个携带编码后消息的 HTTP POST 请求。**在 gRPC 中，所有请求都是 HTTP POST 请求**，其 `content-type` 以 `application/grpc` 为前缀。所调用的远程函数（`/ProductInfo/getProduct`）作为单独的 HTTP 头发送。
-3. HTTP 请求消息通过网络发送到服务器机器。
-4. 当消息到达服务器时，服务器会检查消息头以确定需要调用哪个服务功能，并将消息交给服务存根处理。
-5. 服务存根将消息字节解析为特定于语言的数据结构。
-6. 然后，服务使用解析后的消息，对 `getProduct` 函数进行本地调用。
-7. 服务函数的返回被编码后发送回客户端。响应消息遵循我们在客户端观察到的相同流程（响应→编码→线上的 HTTP 响应）；消息被解包，其值返回给等待的客户端进程。
-
-
-.
-
-
 
 ## 深入剖析Nginx
 - 出版于2013年，作者：高群凯。
@@ -128,6 +24,7 @@ gRPC的通信过程很简单,以客户端调用getProduct函数为例:
 自然,Worker和Master内部都是通过无限循环实现持续不断处理客户端请求的,Master大部分时间都是Pending状态,直到接收到信号(如子进程退出,或者用户发送SIGKILL)才会开始处理.
 
 如果启动了缓存,那么Master还会创建两个进程,Cache Loader用于缓存与和Cache Manager用于清除缓存,
+
 ## Head First Design Patterns, 2nd Edition
 ### ch1: 策略模式(STRATEGY)
 ![鸭子设计图](PixPin_2026-10-08_14-59-03.webp)
@@ -1012,6 +909,389 @@ Redis服务器是典型的一对多服务器程序：一个服务器可以与多
 ### 多机数据库
 不用一次是不可能学会的,待我先实战一段时间再来
 # 基础
+## Hugo in Action(待补充)
+- 出版于2022年，出版商：Manning，作者：Atishay Jain。
+
+### 引言
+>2013 年 7 月，我将博客迁移到 Hugo，并向世界发布了我的第一个Go 项目。当时，我完全没有想到，这个最初只是为了个人博客而编写的项目，竟会彻底改变我的人生，乃至整个世界
+
+### 基础
+
+#### Jamstack
+**Jamstack** 一词由 Netlify 的联合创始人兼首席执行官 **Matt Biilmann** 于 2016 年提出,是一种架构思想,最初来自:
+
+```text
+J = JavaScript
+A = APIs
+M = Markup
+```
+
+**Jamstack** 摒弃了数据库，将所有内容存储在部署期间编译的文件中，然后通过**内容分发网络（CDN）**进行分发。**应用程序编程接口（API）** 提供动态的、基于服务器的内容，这些内容由第三方维护或由云服务提供商托管，网站所有者只需极少的日常参与。这样，开发人员就无需处理安全更新、**拒绝服务（DoS）**攻击以及持续监控以抵御黑客攻击等任务。
+
+Hugo 是目前最流行的 Jamstack 框架之一，拥有最快的构建速度。它让我们摆脱了设置、维护和日常维护的烦恼
+
+### 总结
+仔细一想,我目前根本用不到里面的任何知识好不好...
+
+## Prometheus: Up & Running(待补充)
+
+### 介绍
+- Prometheus是一个开源的、基于指标的监控系统.
+
+监控(monitor)可以定义如下:
+* **告警（Alerting）**：知道事情何时出错，通常是监控最重要的用途。监控系统应能够在出现异常时通知人工介入检查。
+* **调试（Debugging）**：当人工介入后，需要进一步调查问题，确定根本原因，并最终解决已经出现的故障。
+* **热门趋势（Trending）**：告警和调试通常发生在几分钟到几小时的时间尺度上。虽然趋势分析没有那么紧急，但了解系统如何被使用、如何随时间变化同样重要。趋势信息可以为设计决策、容量规划等工作提供依据。
+* **水管工程（Plumbing）**：监控系统本质上也是一套数据处理管道。在实践中，有时可以复用监控系统的部分能力去完成其他任务，而不必重新构建专门的解决方案。严格来说这不完全属于监控，但实际工程中很常见。
+
+![架构图](PixPin_2026-09-17_11-37-00.webp)
+
+### 入门
+
+#### 补充: 使用docker运行Prometheus
+新建一个文件夹,放三个文件:
+
+**prometheus.yml**
+
+```yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # 监控 Prometheus 自身
+  - job_name: "prometheus"
+
+    static_configs:
+      - targets:
+          - "localhost:9090"
+```
+**dockerfile**
+
+```dockerfile
+FROM prom/prometheus:latest
+
+COPY prometheus.yml /etc/prometheus/prometheus.yml
+
+EXPOSE 9090
+```
+
+**compose.yml**
+
+```yml
+services:
+  prometheus:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: prometheus
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      # 持久化 Prometheus 时序数据
+      - prometheus_data:/prometheus
+
+      # 开发时推荐挂载配置文件，
+      # 修改配置后不需要重新 build 镜像
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+```
+
+然后用`docker compose up -d`运行,成功打开页面:
+
+![网页](PixPin_2026-09-17_11-54-18.webp)
+
+#### 表达式浏览器(Expression Browser)
+
+![查询执行](PixPin_2026-09-19_18-50-22.webp)
+
+>我们的Prometheus大约使用了73 MB内存。你可能会好奇，为什么这个指标用字节而非兆字节或千兆字节来展示，那样可能更易读。答案是，可读性很大程度上取决于上下文，即使在不同环境中使用同一二进制，其数值也可能相差多个数量级：一个内部RPC可能只需微秒级完成，而轮询一个长期运行的进程则可能耗时数小时甚至数天。因此，Prometheus的惯例是采用基础单位，如字节和秒，并将美化显示的职责交给像Grafana这样的前端工具。
+
+![图标查看](PixPin_2026-09-19_18-52-47.webp)
+
+#### Alert(告警)
+运行目标:
+
+```yml
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+rule_files:
+  - rules.yml
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - localhost:9093
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090
+  - job_name: node
+    static_configs:
+      - targets:
+          - localhost:9100
+```
+要想设定报警规则,就要写一个`rules.yml`出来:
+
+```yml
+groups:
+  - name: example
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+```
+除此之外,我们还需要将alert发送到我们指定的alertmanager上,所以还需要编写一个`alertmanager.yml`:
+
+```yml
+global:
+  smtp_smarthost: 'localhost:25'
+  smtp_from: 'yourprometheus@example.org'
+route:
+  receiver: example-email
+  group_by: [alertname]
+receivers:
+  - name: example-email
+    email_configs:
+      - to: 'youraddress@example.org'
+```
+
+### Application Monitoring
+
+#### Instrumentation
+
+##### 简单程序
+
+```py
+import http.server
+from prometheus_client import start_http_server
+
+
+class MyHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Hello,World!")
+
+
+start_http_server(8000)
+server = http.server.HTTPServer(("localhost", 8001), MyHandler)
+server.serve_forever()
+```
+访问http://localhost:8000/会看到如下界面:
+
+![示意图](PixPin_2026-09-20_10-03-35.webp)
+
+再访问 http://localhost:8001/ 即可看到`Hello,World!"
+
+修改之前的Prometheus.yml:
+
+```yml
+global:
+  scrape_interval: 10s
+scrape_configs:
+  - job_name: example
+    static_configs:
+      - targets: ["host.docker.internal:8000"]
+
+```
+然后运行Prometheus来监听:
+
+![界面](PixPin_2026-09-20_10-14-30.webp)
+
+##### Counter
+
+```py
+
+import http.server
+from prometheus_client import start_http_server, Counter
+
+REQUESTS = Counter("hello_worlds_total", "Hello Worlds requested.")
+
+
+class MyHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        REQUESTS.inc()
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Hello,World!")
+
+
+start_http_server(8000)
+server = http.server.HTTPServer(("localhost", 8001), MyHandler)
+server.serve_forever()
+```
+Count用于统计程序的各种自定义指标
+### 总结
+暂时弃坑,毕竟目前根本用不到好吧
+## Rootkit和Bootkit：现代恶意软件逆向分析和下一代威胁(待补充)
+- 出版于2019年（英文原版），作者：Alex Matrosov。
+- Rootkit: 针对操作系统内核
+- Bootkit: 针对MBR等引导扇区
+
+### Rootkit
+
+#### TDL3
+为了在系统重新启动时幸存下来，TDL3通过在驱动程序的二进制文件中注入恶意代码来感染加载操作系统所必需的一个引导启动驱动程序.
+
+一旦选择了一个目标驱动程序，TDL3感染程序就会用一个恶意加载程序覆盖它的资源部分.rsrc的前几百个字节，从而修改驱动程序在内存中的映像。这个加载程序非常简单：它只是在启动时从硬盘上加载它需要的其余恶意软件代码。
+
+这种方式只能针对x32位系统起作用,因为x64位系统需要对内核代码进行完整性的检查,通过数字签名即可阻止TDL3的运行.
+
+![目标](PixPin_2026-07-30_12-23-56.webp)
+
+>TDL3是第一个将配置文件和有效负载存储在目标系统隐藏的加密存储区域的恶意软件系统，不依赖于操作系统提供的文件系统服务。
+
+#### Festi
+>本章专门讨论发现的最先进的垃圾邮件和分布式拒绝服务
+（DDoS）僵尸网络之一—Win32/Festi僵尸网络，我们将其简称为Festi。Festi拥有强大的垃圾邮件发送和DDoS功能，以及有趣的Rootkit功能，这使得它可以连接到文件系统和系统注册表而不被人发现。Festi还通过使用调试器和沙箱规避技术来对抗动态分析，以隐藏自己的存在。
+
+Festi的Dropper（植入程序）有一个相当简单的功能—在系统中安装一个内核模式驱动程序，该驱动程序实现了恶意软件的主要逻辑。内核模式组件注册为“系统启动”内核模式驱动程序，并随机生成名称，这意味着在初始化期间，恶意驱动程序将在系统启动时加载和执行。
+
+内核模式驱动程序有两个主要职责：从命令和控制（C&C）服务器请求配置信
+息，以及以插件的形式下载和执行恶意模块（见图2-2）。每个插件专用于特定的任
+务，例如对指定的网络资源执行DDoS攻击，或向C&C服务器提供的电子邮件列表发送
+垃圾邮件。
+
+有趣的是，插件并不存储在系统硬盘驱动器上，而是存储在易失性内存中，这意
+味着当受感染的计算机被关闭或重新启动时，插件就会从系统内存中消失。这使得恶
+意软件的取证分析变得非常困难，因为存储在硬盘上的唯一文件是主内核模式驱动程
+序，它既不包含有效负载，也不包含攻击目标的任何信息。
+
+### Bootkit
+可以看到,由于操作系统的安全性能不断提高,Rootkit已经式微,随之而来的是更加深入底层的Bootkit类型软件.
+
+![示意图](PixPin_2026-08-03_10-18-49.webp)
+
+#### ch5
+这一章很有看头,讲述了从BIOS启动操作系统的一般过程
+### 总结
+在可预见的几年内是不需要用到这本书的.
+
+## gRPC: Up and Running
+- 出版于2020年，出版商：O'Reilly，作者：Kasun Indrasiri。
+
+### ch1: 介绍
+
+>在构建现代云原生应用和微服务的同步请求-响应式通信时，最常用且传统的方法是将其构建为RESTful服务，即将应用或服务建模为可通过HTTP协议上的网络调用访问和更改状态的资源集合。然而，对于大多数用例而言，RESTful服务在构建进程间通信时往往较为笨重、效率低下且易出错。通常需要一种高度可扩展、松散耦合且比RESTful服务更高效的进程间通信技术。这正是gRPC——一种用于构建分布式应用和微服务的现代进程间通信方式——发挥作用的地方
+
+gRPC（“g”在每个gRPC版本中代表不同的含义）是一种进程间通信技术，它使您能够像进行本地函数调用一样轻松地连接、调用、操作和调试分布式异构应用程序。
+
+
+作为有线传输协议，gRPC使用HTTP/2，这是一种高性能的二进制消息协议，支持双向消息传递。
+#### 背景
+RPC是构建客户端-服务应用程序的一种流行的进程间通信技术。通过RPC，客户端可以像调用本地方法一样远程调用某个函数或方法。早期有几种流行的RPC实现，如公共对象请求代理架构（CORBA）和Java远程方法调用（RMI），它们用于构建和连接服务或应用程序。然而，这类传统RPC实现大多极其复杂，因为它们构建在像TCP这样的通信协议之上，这阻碍了互操作性，并且基于臃肿的规范。
+
+由于传统RPC实现（如CORBA）的局限性，Simple Object Access Protocol（SOAP）被设计并由微软、IBM等大型企业大力推广。SOAP是 service-oriented architecture（SOA）中的标准通信技术，用于在服务（在SOA上下文中通常称为Web服务）之间交换基于XML的结构化数据，并通过任何底层通信协议（如HTTP，最常用）进行通信。
+
+SOAP曾是一种相当流行的技术，但消息格式的复杂性以及围绕SOAP构建的规范复杂性，阻碍了分布式应用开发的敏捷性。因此，在现代分布式应用开发的背景下，SOAP web服务被视为一种遗留技术。相较于使用SOAP，当前大多数现有的分布式应用正采用REST架构风格进行开发。
+
+REST的事实标准实现是HTTP，而在HTTP中，你可以将RESTful Web应用建模为一系列资源，这些资源通过唯一标识符（URL）进行访问。状态变更操作以HTTP动词（如GET、POST、PUT、DELETE、PATCH等）的形式应用于这些资源之上。资源的状态以文本格式（如JSON、XML、HTML、YAML等）表示。
+
+使用REST架构风格配合HTTP和JSON构建应用程序已成为构建微服务的事实标准方法。然而，随着微服务数量及其网络交互的激增，RESTful服务已无法满足预期的现代需求。RESTful服务存在几个关键限制，阻碍了其作为基于微服务的现代应用程序的消息传递协议的能力。
+
+本质上，RESTful服务建立在基于文本的传输协议（如HTTP 1.x）之上，并利用可读的文本格式（如JSON）。在服务到服务的通信中，使用JSON这类文本格式效率并不高，因为通信双方无需采用这种面向人类的可读文本格式。
+
+作为一种架构风格，REST 包含许多“良好实践”，遵循这些实践才能构建出真正的 RESTful 服务。然而，这些实践并未作为实现协议（如HTTP）的强制部分，使得在实现阶段难以强制执行。因此，在实践中，大多数自称为 RESTful 的服务并未 properly 遵循 REST 风格的基础。由此，所谓的 RESTful 服务大多仅仅是通过网络暴露的 HTTP 服务。因此，开发团队不得不花费大量时间维护 RESTful 服务的一致性和纯粹性。
+
+Google一直使用一个名为Stubby的通用RPC框架，来连接数千个运行在多个数据中心、采用不同技术构建的微服务。其核心RPC层旨在处理每秒数百亿次请求的互联网规模。Stubby拥有众多优秀特性，但它并未被标准化为通用框架，因为它与Google的内部基础设施耦合过紧。2015年，谷歌发布了gRPC作为开源RPC框架；它是一种标准化、通用且跨平台的RPC基础设施。gRPC旨在向广大社区提供与Stubby相同的可扩展性、性能和功能。
+
+gRPC并非使用JSON或XML这类文本格式，而是采用基于协议缓冲区的二进制协议来与gRPC服务和客户端进行通信。此外，gRPC在HTTP/2之上实现了协议缓冲区，这使得它在进程间通信中更加高效。
+
+
+```ts
+// 指定Protobuf版本语法（Proto3）
+syntax = "proto3";
+
+// 从其他包导入消息类型
+import "google/protobuf/wrappers.proto";
+
+// 声明包名，用于避免消息类型命名冲突，并决定生成的代码命名空间
+package ecommerce;
+
+// 定义RPC服务接口
+service ProductInfo {
+    // 添加商品：接收Product消息，返回ProductID消息
+    rpc addProduct(Product) returns (ProductID);
+    // 获取商品：接收ProductID消息，返回Product消息
+    rpc getProduct(ProductID) returns (Product);
+}
+
+// 定义商品实体结构体
+message Product {
+    string id = 1;          // 商品唯一标识符（字段编号 1）
+    string name = 2;        // 商品名称（字段编号 2）
+    string description = 3; // 商品描述（字段编号 3）
+}
+
+// 定义商品ID结构体
+message ProductID {
+    string value = 1;       // 商品ID值（字段编号 1）
+}
+```
+可以看到,protobuf的格式相当清晰,比起OpenAPI规范的可读性要高了许多,不再需要强调路由,方法这些让人心累的无关参数.
+### ch3: gRPC Communication Patterns
+总共有四种gRPC模式:
+| 通信模式       | 英文名称                    | 客户端发送       | 服务端返回       | 典型应用场景                          |
+| :------------- | :-------------------------- | :--------------- | :--------------- | :------------------------------------ |
+| 一元 RPC       | Unary RPC                   | 单个请求         | 单个响应         | 用户登录、查询用户信息、普通 API 调用 |
+| 服务端流式 RPC | Server Streaming RPC        | 单个请求         | 多个响应（流式） | AI 文本流式输出、实时日志推送         |
+| 客户端流式 RPC | Client Streaming RPC        | 多个请求（流式） | 单个响应         | 文件分块上传、批量数据采集            |
+| 双向流式 RPC   | Bidirectional Streaming RPC | 多个请求（流式） | 多个响应（流式） | 实时聊天、双向语音通信、实时协作      |
+
+
+protobuf中用`stream`关键字来标记是否流式输出:
+```ts
+service ExampleService {
+    // 1. 一元 RPC
+    rpc Unary(Request) returns (Response);
+
+    // 2. 服务端流式
+    rpc ServerStream(Request) returns (stream Response);
+
+    // 3. 客户端流式
+    rpc ClientStream(stream Request) returns (Response);
+
+    // 4. 双向流式
+    rpc BidiStream(stream Request) returns (stream Response);
+}
+```
+
+![架构图](PixPin_2026-10-11_22-38-49.webp)
+### ch4: gRPC原理
+gRPC的通信过程很简单,以客户端调用getProduct函数为例:
+1. Client会生成一个stub,用于调用Server中的函数
+2. Client的stub负责创建一个携带编码后消息的 HTTP POST 请求。**在 gRPC 中，所有请求都是 HTTP POST 请求**，其 `content-type` 以 `application/grpc` 为前缀。所调用的远程函数（`/ProductInfo/getProduct`）作为单独的 HTTP header发送。
+3. HTTP 请求消息通过网络发送到Server。
+4. 当消息到达Server时，Server会检查消息头以确定需要调用哪个服务功能，并将消息交给Server的stub处理。
+5. stub将消息解析为特定于语言的数据结构。
+6. 然后，服务使用解析后的消息，对 `getProduct` 函数进行本地调用。
+7. 服务函数的返回被编码后发送回Client。响应消息遵循我们在客户端观察到的相同流程（响应→编码→线上的 HTTP 响应）；消息被解包，其值返回给等待的客户端进程。
+
+这些步骤与大多数RPC系统（如CORBA、Java RMI等）非常相似。这里gRPC的主要区别在于它对消息的编码方式.
+
+- 尽管原文有对编码进行分析,但对我们平常用grpc确实没有任何帮助,所以暂时不学
+
+![gRPC架构](PixPin_2026-10-13_10-37-22.webp)
+
+### ch5: gRPC高级
+鉴于还没开始用,所以先放着.
+
 ## Hadoop: The Definitive Guide(4th)
 - 出版于2015年（第4版），出版商：O'Reilly，作者：Tom White。
 
@@ -15016,279 +15296,6 @@ x86 处理器的机器指令大体上可由五大部分组成:
 ## On Java 8(待补充)
 - 出版于2017年（在线原版），作者：Bruce Eckel。
 - [中文翻译版链接](https://zyb0408.github.io/gitbooks/onjava8/)
-## Hugo in Action(待补充)
-- 出版于2022年，出版商：Manning，作者：Atishay Jain。
-
-### 引言
->2013 年 7 月，我将博客迁移到 Hugo，并向世界发布了我的第一个Go 项目。当时，我完全没有想到，这个最初只是为了个人博客而编写的项目，竟会彻底改变我的人生，乃至整个世界
-
-### 基础
-
-#### Jamstack
-**Jamstack** 一词由 Netlify 的联合创始人兼首席执行官 **Matt Biilmann** 于 2016 年提出,是一种架构思想,最初来自:
-
-```text
-J = JavaScript
-A = APIs
-M = Markup
-```
-
-**Jamstack** 摒弃了数据库，将所有内容存储在部署期间编译的文件中，然后通过**内容分发网络（CDN）**进行分发。**应用程序编程接口（API）** 提供动态的、基于服务器的内容，这些内容由第三方维护或由云服务提供商托管，网站所有者只需极少的日常参与。这样，开发人员就无需处理安全更新、**拒绝服务（DoS）**攻击以及持续监控以抵御黑客攻击等任务。
-
-Hugo 是目前最流行的 Jamstack 框架之一，拥有最快的构建速度。它让我们摆脱了设置、维护和日常维护的烦恼
-
-### 总结
-仔细一想,我目前根本用不到里面的任何知识好不好...
-
-## Prometheus: Up & Running(待补充)
-
-### 介绍
-- Prometheus是一个开源的、基于指标的监控系统.
-
-监控(monitor)可以定义如下:
-* **告警（Alerting）**：知道事情何时出错，通常是监控最重要的用途。监控系统应能够在出现异常时通知人工介入检查。
-* **调试（Debugging）**：当人工介入后，需要进一步调查问题，确定根本原因，并最终解决已经出现的故障。
-* **热门趋势（Trending）**：告警和调试通常发生在几分钟到几小时的时间尺度上。虽然趋势分析没有那么紧急，但了解系统如何被使用、如何随时间变化同样重要。趋势信息可以为设计决策、容量规划等工作提供依据。
-* **水管工程（Plumbing）**：监控系统本质上也是一套数据处理管道。在实践中，有时可以复用监控系统的部分能力去完成其他任务，而不必重新构建专门的解决方案。严格来说这不完全属于监控，但实际工程中很常见。
-
-![架构图](PixPin_2026-09-17_11-37-00.webp)
-
-### 入门
-
-#### 补充: 使用docker运行Prometheus
-新建一个文件夹,放三个文件:
-
-**prometheus.yml**
-
-```yml
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
-
-scrape_configs:
-  # 监控 Prometheus 自身
-  - job_name: "prometheus"
-
-    static_configs:
-      - targets:
-          - "localhost:9090"
-```
-**dockerfile**
-
-```dockerfile
-FROM prom/prometheus:latest
-
-COPY prometheus.yml /etc/prometheus/prometheus.yml
-
-EXPOSE 9090
-```
-
-**compose.yml**
-
-```yml
-services:
-  prometheus:
-    build:
-      context: .
-      dockerfile: Dockerfile
-
-    container_name: prometheus
-
-    ports:
-      - "9090:9090"
-
-    volumes:
-      # 持久化 Prometheus 时序数据
-      - prometheus_data:/prometheus
-
-      # 开发时推荐挂载配置文件，
-      # 修改配置后不需要重新 build 镜像
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=15d"
-      - "--web.enable-lifecycle"
-
-    restart: unless-stopped
-
-volumes:
-  prometheus_data:
-```
-
-然后用`docker compose up -d`运行,成功打开页面:
-
-![网页](PixPin_2026-09-17_11-54-18.webp)
-
-#### 表达式浏览器(Expression Browser)
-
-![查询执行](PixPin_2026-09-19_18-50-22.webp)
-
->我们的Prometheus大约使用了73 MB内存。你可能会好奇，为什么这个指标用字节而非兆字节或千兆字节来展示，那样可能更易读。答案是，可读性很大程度上取决于上下文，即使在不同环境中使用同一二进制，其数值也可能相差多个数量级：一个内部RPC可能只需微秒级完成，而轮询一个长期运行的进程则可能耗时数小时甚至数天。因此，Prometheus的惯例是采用基础单位，如字节和秒，并将美化显示的职责交给像Grafana这样的前端工具。
-
-![图标查看](PixPin_2026-09-19_18-52-47.webp)
-
-#### Alert(告警)
-运行目标:
-
-```yml
-global:
-  scrape_interval: 10s
-  evaluation_interval: 10s
-rule_files:
-  - rules.yml
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-            - localhost:9093
-scrape_configs:
-  - job_name: prometheus
-    static_configs:
-      - targets:
-          - localhost:9090
-  - job_name: node
-    static_configs:
-      - targets:
-          - localhost:9100
-```
-要想设定报警规则,就要写一个`rules.yml`出来:
-
-```yml
-groups:
-  - name: example
-    rules:
-      - alert: InstanceDown
-        expr: up == 0
-        for: 1m
-```
-除此之外,我们还需要将alert发送到我们指定的alertmanager上,所以还需要编写一个`alertmanager.yml`:
-
-```yml
-global:
-  smtp_smarthost: 'localhost:25'
-  smtp_from: 'yourprometheus@example.org'
-route:
-  receiver: example-email
-  group_by: [alertname]
-receivers:
-  - name: example-email
-    email_configs:
-      - to: 'youraddress@example.org'
-```
-
-### Application Monitoring
-
-#### Instrumentation
-
-##### 简单程序
-
-```py
-import http.server
-from prometheus_client import start_http_server
-
-
-class MyHandler(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Hello,World!")
-
-
-start_http_server(8000)
-server = http.server.HTTPServer(("localhost", 8001), MyHandler)
-server.serve_forever()
-```
-访问http://localhost:8000/会看到如下界面:
-
-![示意图](PixPin_2026-09-20_10-03-35.webp)
-
-再访问 http://localhost:8001/ 即可看到`Hello,World!"
-
-修改之前的Prometheus.yml:
-
-```yml
-global:
-  scrape_interval: 10s
-scrape_configs:
-  - job_name: example
-    static_configs:
-      - targets: ["host.docker.internal:8000"]
-
-```
-然后运行Prometheus来监听:
-
-![界面](PixPin_2026-09-20_10-14-30.webp)
-
-##### Counter
-
-```py
-
-import http.server
-from prometheus_client import start_http_server, Counter
-
-REQUESTS = Counter("hello_worlds_total", "Hello Worlds requested.")
-
-
-class MyHandler(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        REQUESTS.inc()
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Hello,World!")
-
-
-start_http_server(8000)
-server = http.server.HTTPServer(("localhost", 8001), MyHandler)
-server.serve_forever()
-```
-Count用于统计程序的各种自定义指标
-### 总结
-暂时弃坑,毕竟目前根本用不到好吧
-## Rootkit和Bootkit：现代恶意软件逆向分析和下一代威胁(待补充)
-- 出版于2019年（英文原版），作者：Alex Matrosov。
-- Rootkit: 针对操作系统内核
-- Bootkit: 针对MBR等引导扇区
-
-### Rootkit
-
-#### TDL3
-为了在系统重新启动时幸存下来，TDL3通过在驱动程序的二进制文件中注入恶意代码来感染加载操作系统所必需的一个引导启动驱动程序.
-
-一旦选择了一个目标驱动程序，TDL3感染程序就会用一个恶意加载程序覆盖它的资源部分.rsrc的前几百个字节，从而修改驱动程序在内存中的映像。这个加载程序非常简单：它只是在启动时从硬盘上加载它需要的其余恶意软件代码。
-
-这种方式只能针对x32位系统起作用,因为x64位系统需要对内核代码进行完整性的检查,通过数字签名即可阻止TDL3的运行.
-
-![目标](PixPin_2026-07-30_12-23-56.webp)
-
->TDL3是第一个将配置文件和有效负载存储在目标系统隐藏的加密存储区域的恶意软件系统，不依赖于操作系统提供的文件系统服务。
-
-#### Festi
->本章专门讨论发现的最先进的垃圾邮件和分布式拒绝服务
-（DDoS）僵尸网络之一—Win32/Festi僵尸网络，我们将其简称为Festi。Festi拥有强大的垃圾邮件发送和DDoS功能，以及有趣的Rootkit功能，这使得它可以连接到文件系统和系统注册表而不被人发现。Festi还通过使用调试器和沙箱规避技术来对抗动态分析，以隐藏自己的存在。
-
-Festi的Dropper（植入程序）有一个相当简单的功能—在系统中安装一个内核模式驱动程序，该驱动程序实现了恶意软件的主要逻辑。内核模式组件注册为“系统启动”内核模式驱动程序，并随机生成名称，这意味着在初始化期间，恶意驱动程序将在系统启动时加载和执行。
-
-内核模式驱动程序有两个主要职责：从命令和控制（C&C）服务器请求配置信
-息，以及以插件的形式下载和执行恶意模块（见图2-2）。每个插件专用于特定的任
-务，例如对指定的网络资源执行DDoS攻击，或向C&C服务器提供的电子邮件列表发送
-垃圾邮件。
-
-有趣的是，插件并不存储在系统硬盘驱动器上，而是存储在易失性内存中，这意
-味着当受感染的计算机被关闭或重新启动时，插件就会从系统内存中消失。这使得恶
-意软件的取证分析变得非常困难，因为存储在硬盘上的唯一文件是主内核模式驱动程
-序，它既不包含有效负载，也不包含攻击目标的任何信息。
-
-### Bootkit
-可以看到,由于操作系统的安全性能不断提高,Rootkit已经式微,随之而来的是更加深入底层的Bootkit类型软件.
-
-![示意图](PixPin_2026-08-03_10-18-49.webp)
-
-#### ch5
-这一章很有看头,讲述了从BIOS启动操作系统的一般过程
-### 总结
-在可预见的几年内是不需要用到这本书的.
 
 # Agent
 
