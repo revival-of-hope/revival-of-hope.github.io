@@ -276,7 +276,17 @@ Kube-proxy会自动提供负载均衡,所以不用担心多个Pod的流量访问
 ##### pod中运行多个容器
 
 ## Python网络编程攻略
+### ch1: socket编程
+```py
+import socket
 
+host_name = socket.gethostname()
+# 返回计算机的主机名
+print(host_name)
+
+print(socket.gethostbyname(host_name))
+# 将主机解析为IPv4地址
+```
 ## Head First Design Patterns, 2nd Edition
 ### ch1: 策略模式(STRATEGY)
 ![鸭子设计图](PixPin_2026-10-08_14-59-03.webp)
@@ -321,7 +331,29 @@ Kube-proxy会自动提供负载均衡,所以不用担心多个Pod的流量访问
 ## Learning Domain-Driven Design
 - 出版于2021年，出版商：O'Reilly，作者：Vlad Khononov。
 ### ch1: Analyzing Business Domains
+讲了一些关于Domain的基本知识
+### ch2: 发现领域知识
+和专业领域人员探讨,找到通用语言.
 
+假设我们正在开发一个广告活动管理系统。请考虑以下陈述：
+
+* 广告宣传活动可以展示不同的创意素材。
+* 只有当广告系列中至少有一个广告位处于激活状态时，该广告系列才能发布。
+* 销售佣金在交易获得批准后进行结算。
+
+另一方面，以下陈述严格来说是技术性的，因此不符合通用语言的概念：
+
+* 广告 iframe 会显示一个 HTML 文件。
+* 只有当活动广告位表中至少有一条关联记录时，该广告活动才能发布。
+* 销售佣金是根据交易记录和已批准销售表中的相关记录计算的。
+
+可以看到,专业领域人员是看不懂技术名词的,我们需要精确实行二者间的转换.
+
+这一点值得重申：**一个有用的模型并非现实世界的复制品**。相反，模型的目的是为了解决问题，它只需提供足以实现该目的的信息。或者，正如统计学家乔治·博克斯所说：
+
+> **“所有模型都是错误的，但有些是有用的。”**
+
+### ch3: 管理领域复杂性
 
 ## Kafka: The Definitive Guide,2nd edition
 - 出版于2021年（第2版），出版商：O'Reilly，作者：Gwen Shapira。

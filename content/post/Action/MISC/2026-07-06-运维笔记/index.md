@@ -53,6 +53,88 @@ image: 57793944_p0-浴衣とお面.webp
 |       2023 | [OpenTofu](https://opentofu.org/blog/opentofu-announces-fork-of-terraform/)                       | 开源基础设施即代码   | Terraform替代、云资源和SaaS资源管理    | 🔥 快速增长       |
 |       2023 | [OpenBao](https://openbao.org/blog/cipherboy-ossna-26-talk/)                                      | 开源密钥管理         |                                        |                  |
 # 容器,服务器与虚拟机
+## 常用知识
+### 主流服务器厂商和类型
+### IP地址分配
+## Linux命令
+### 常用命令
+| 序号 | 分类       | 命令     | 全名                            | 作用                         | 常见用法                         |
+| ---- | ---------- | -------- | ------------------------------- | ---------------------------- | -------------------------------- |
+| 1    | 文件与目录 | `pwd`    | Print Working Directory         | 查看当前工作目录             | `pwd`                            |
+| 2    | 文件与目录 | `ls`     | List                            | 列出目录内容                 | `ls -lah`                        |
+| 3    | 文件与目录 | `cd`     | Change Directory                | 切换工作目录                 | `cd /var/log`                    |
+| 4    | 文件与目录 | `mkdir`  | Make Directory                  | 创建目录                     | `mkdir -p a/b/c`                 |
+| 5    | 文件与目录 | `rmdir`  | Remove Directory                | 删除空目录                   | `rmdir test`                     |
+| 6    | 文件与目录 | `touch`  | \_                              | 创建空文件或更新时间戳       | `touch test.txt`                 |
+| 7    | 文件与目录 | `cp`     | Copy                            | 复制文件或目录               | `cp -r src/ backup/`             |
+| 8    | 文件与目录 | `mv`     | Move                            | 移动或重命名文件             | `mv old.txt new.txt`             |
+| 9    | 文件与目录 | `rm`     | Remove                          | 删除文件或目录               | `rm -r test/`                    |
+| 10   | 文件与目录 | `find`   | \_                              | 查找文件或目录               | `find . -name "*.log"`           |
+| 11   | 文件与目录 | `ln`     | Link                            | 创建硬链接或软链接           | `ln -s /data/app app`            |
+| 12   | 文件与目录 | `stat`   | Status                          | 查看文件元数据               | `stat test.txt`                  |
+| 13   | 文本处理   | `cat`    | Concatenate                     | 输出或拼接文件内容           | `cat config.yaml`                |
+| 14   | 文本处理   | `less`   | \_                              | 分页查看文件                 | `less app.log`                   |
+| 15   | 文本处理   | `head`   | \_                              | 查看文件前几行               | `head -n 20 app.log`             |
+| 16   | 文本处理   | `tail`   | \_                              | 查看文件末尾或实时日志       | `tail -f app.log`                |
+| 17   | 文本处理   | `grep`   | Global Regular Expression Print | 按模式搜索文本               | `grep -rn "ERROR" logs/`         |
+| 18   | 文本处理   | `sed`    | Stream Editor                   | 流式文本编辑                 | `sed -n '1,10p' file.txt`        |
+| 19   | 文本处理   | `awk`    | Aho, Weinberger, Kernighan      | 文本按列处理和统计           | `awk '{print $1}' file.txt`      |
+| 20   | 文本处理   | `sort`   | \_                              | 对文本行排序                 | `sort data.txt`                  |
+| 21   | 文本处理   | `uniq`   | Unique                          | 去除相邻重复行               | `sort data.txt \\| uniq -c`      |
+| 22   | 文本处理   | `wc`     | Word Count                      | 统计行数、单词数和字节数     | `wc -l app.log`                  |
+| 23   | 权限与用户 | `chmod`  | Change Mode                     | 修改文件权限                 | `chmod 755 script.sh`            |
+| 24   | 权限与用户 | `chown`  | Change Owner                    | 修改文件所有者               | `chown user:group file`          |
+| 25   | 权限与用户 | `sudo`   | Substitute User Do              | 以其他用户权限执行命令       | `sudo apt update`                |
+| 26   | 权限与用户 | `whoami` | Who Am I                        | 查看当前有效用户名           | `whoami`                         |
+| 27   | 权限与用户 | `id`     | Identity                        | 查看 UID、GID 和用户组       | `id username`                    |
+| 28   | 权限与用户 | `passwd` | Password                        | 修改用户密码                 | `passwd`                         |
+| 29   | 进程管理   | `ps`     | Process Status                  | 查看进程信息                 | `ps aux`                         |
+| 30   | 进程管理   | `top`    | \_                              | 实时查看进程资源占用         | `top`                            |
+| 31   | 进程管理   | `kill`   | \_                              | 向指定进程发送信号           | `kill -15 1234`                  |
+| 32   | 进程管理   | `pkill`  | Process Kill                    | 根据名称等条件向进程发送信号 | `pkill -f "python app.py"`       |
+| 33   | 进程管理   | `jobs`   | \_                              | 查看当前 Shell 的任务        | `jobs -l`                        |
+| 34   | 进程管理   | `nohup`  | No Hangup                       | 让程序忽略挂断信号           | `nohup python app.py &`          |
+| 35   | 系统与磁盘 | `df`     | Disk Free                       | 查看文件系统磁盘空间         | `df -h`                          |
+| 36   | 系统与磁盘 | `du`     | Disk Usage                      | 查看目录或文件占用空间       | `du -sh /var/log`                |
+| 37   | 系统与磁盘 | `free`   | \_                              | 查看系统内存情况             | `free -h`                        |
+| 38   | 系统与磁盘 | `uname`  | Unix Name                       | 查看内核及系统信息           | `uname -a`                       |
+| 39   | 系统与磁盘 | `uptime` | \_                              | 查看运行时长和系统负载       | `uptime`                         |
+| 40   | 网络管理   | `ip`     | Internet Protocol               | 查看和配置网络接口、路由     | `ip addr show`                   |
+| 41   | 网络管理   | `ping`   | \_                              | 测试网络连通性               | `ping -c 4 8.8.8.8`              |
+| 42   | 网络管理   | `curl`   | Client URL                      | 发起 HTTP 等网络请求         | `curl -I https://example.com`    |
+| 43   | 网络管理   | `ss`     | Socket Statistics               | 查看 Socket 和端口状态       | `ss -tulnp`                      |
+| 44   | 网络管理   | `ssh`    | Secure Shell                    | 远程登录服务器               | `ssh user@192.168.1.10`          |
+| 45   | 压缩与传输 | `tar`    | Tape Archive                    | 打包或解包归档文件           | `tar -czvf backup.tar.gz data/`  |
+| 46   | 压缩与传输 | `gzip`   | GNU Zip                         | 使用 gzip 压缩文件           | `gzip app.log`                   |
+| 47   | 压缩与传输 | `scp`    | Secure Copy                     | 基于 SSH 传输文件            | `scp file.txt user@server:/tmp/` |
+
+
+### 学习资料
+- [在线学习](https://cmdchallenge.com/#/move_file)
+### 学习方法
+这个年代还要开虚拟机就太low了,用docker运行不就行了.
+
+先写一个`compose.yml`:
+```yml
+services:
+  linux:
+    image: ubuntu:24.04
+    container_name: linux-lab
+    stdin_open: true
+    tty: true
+    command: bash
+```
+然后运行以下命令启动并运行bash:
+```bash
+docker compose up -d
+docker exec -it linux-lab bash
+```
+
+![示意图](PixPin_2026-09-17_12-02-10.webp)
+
+效果杠杠的好不好!
+
+
 ## 主流指令集架构汇总
 | 架构                   | 常见名称                        | 主要公司/组织                            | 当前热门度 | 软件生态接受程度 | 主要应用场景                          |
 | ---------------------- | ------------------------------- | ---------------------------------------- | ---------: | ---------------: | ------------------------------------- |
@@ -153,86 +235,6 @@ image: 57793944_p0-浴衣とお面.webp
 | **Windows**    | MS-DOS（1981）→ Windows 1.0（1985）→ Windows NT（1993）→ Windows 2000 / XP → Windows 10 |
 | **Apple**      | Classic Mac OS（1984）→ Mac OS X（2001）→ iPhone OS（2007）                             |
 
-## Linux命令
-### 常用命令
-| 序号 | 分类       | 命令     | 全名                            | 作用                         | 常见用法                         |
-| ---- | ---------- | -------- | ------------------------------- | ---------------------------- | -------------------------------- |
-| 1    | 文件与目录 | `pwd`    | Print Working Directory         | 查看当前工作目录             | `pwd`                            |
-| 2    | 文件与目录 | `ls`     | List                            | 列出目录内容                 | `ls -lah`                        |
-| 3    | 文件与目录 | `cd`     | Change Directory                | 切换工作目录                 | `cd /var/log`                    |
-| 4    | 文件与目录 | `mkdir`  | Make Directory                  | 创建目录                     | `mkdir -p a/b/c`                 |
-| 5    | 文件与目录 | `rmdir`  | Remove Directory                | 删除空目录                   | `rmdir test`                     |
-| 6    | 文件与目录 | `touch`  | \_                              | 创建空文件或更新时间戳       | `touch test.txt`                 |
-| 7    | 文件与目录 | `cp`     | Copy                            | 复制文件或目录               | `cp -r src/ backup/`             |
-| 8    | 文件与目录 | `mv`     | Move                            | 移动或重命名文件             | `mv old.txt new.txt`             |
-| 9    | 文件与目录 | `rm`     | Remove                          | 删除文件或目录               | `rm -r test/`                    |
-| 10   | 文件与目录 | `find`   | \_                              | 查找文件或目录               | `find . -name "*.log"`           |
-| 11   | 文件与目录 | `ln`     | Link                            | 创建硬链接或软链接           | `ln -s /data/app app`            |
-| 12   | 文件与目录 | `stat`   | Status                          | 查看文件元数据               | `stat test.txt`                  |
-| 13   | 文本处理   | `cat`    | Concatenate                     | 输出或拼接文件内容           | `cat config.yaml`                |
-| 14   | 文本处理   | `less`   | \_                              | 分页查看文件                 | `less app.log`                   |
-| 15   | 文本处理   | `head`   | \_                              | 查看文件前几行               | `head -n 20 app.log`             |
-| 16   | 文本处理   | `tail`   | \_                              | 查看文件末尾或实时日志       | `tail -f app.log`                |
-| 17   | 文本处理   | `grep`   | Global Regular Expression Print | 按模式搜索文本               | `grep -rn "ERROR" logs/`         |
-| 18   | 文本处理   | `sed`    | Stream Editor                   | 流式文本编辑                 | `sed -n '1,10p' file.txt`        |
-| 19   | 文本处理   | `awk`    | Aho, Weinberger, Kernighan      | 文本按列处理和统计           | `awk '{print $1}' file.txt`      |
-| 20   | 文本处理   | `sort`   | \_                              | 对文本行排序                 | `sort data.txt`                  |
-| 21   | 文本处理   | `uniq`   | Unique                          | 去除相邻重复行               | `sort data.txt \\| uniq -c`      |
-| 22   | 文本处理   | `wc`     | Word Count                      | 统计行数、单词数和字节数     | `wc -l app.log`                  |
-| 23   | 权限与用户 | `chmod`  | Change Mode                     | 修改文件权限                 | `chmod 755 script.sh`            |
-| 24   | 权限与用户 | `chown`  | Change Owner                    | 修改文件所有者               | `chown user:group file`          |
-| 25   | 权限与用户 | `sudo`   | Substitute User Do              | 以其他用户权限执行命令       | `sudo apt update`                |
-| 26   | 权限与用户 | `whoami` | Who Am I                        | 查看当前有效用户名           | `whoami`                         |
-| 27   | 权限与用户 | `id`     | Identity                        | 查看 UID、GID 和用户组       | `id username`                    |
-| 28   | 权限与用户 | `passwd` | Password                        | 修改用户密码                 | `passwd`                         |
-| 29   | 进程管理   | `ps`     | Process Status                  | 查看进程信息                 | `ps aux`                         |
-| 30   | 进程管理   | `top`    | \_                              | 实时查看进程资源占用         | `top`                            |
-| 31   | 进程管理   | `kill`   | \_                              | 向指定进程发送信号           | `kill -15 1234`                  |
-| 32   | 进程管理   | `pkill`  | Process Kill                    | 根据名称等条件向进程发送信号 | `pkill -f "python app.py"`       |
-| 33   | 进程管理   | `jobs`   | \_                              | 查看当前 Shell 的任务        | `jobs -l`                        |
-| 34   | 进程管理   | `nohup`  | No Hangup                       | 让程序忽略挂断信号           | `nohup python app.py &`          |
-| 35   | 系统与磁盘 | `df`     | Disk Free                       | 查看文件系统磁盘空间         | `df -h`                          |
-| 36   | 系统与磁盘 | `du`     | Disk Usage                      | 查看目录或文件占用空间       | `du -sh /var/log`                |
-| 37   | 系统与磁盘 | `free`   | \_                              | 查看系统内存情况             | `free -h`                        |
-| 38   | 系统与磁盘 | `uname`  | Unix Name                       | 查看内核及系统信息           | `uname -a`                       |
-| 39   | 系统与磁盘 | `uptime` | \_                              | 查看运行时长和系统负载       | `uptime`                         |
-| 40   | 网络管理   | `ip`     | Internet Protocol               | 查看和配置网络接口、路由     | `ip addr show`                   |
-| 41   | 网络管理   | `ping`   | \_                              | 测试网络连通性               | `ping -c 4 8.8.8.8`              |
-| 42   | 网络管理   | `curl`   | Client URL                      | 发起 HTTP 等网络请求         | `curl -I https://example.com`    |
-| 43   | 网络管理   | `ss`     | Socket Statistics               | 查看 Socket 和端口状态       | `ss -tulnp`                      |
-| 44   | 网络管理   | `ssh`    | Secure Shell                    | 远程登录服务器               | `ssh user@192.168.1.10`          |
-| 45   | 压缩与传输 | `tar`    | Tape Archive                    | 打包或解包归档文件           | `tar -czvf backup.tar.gz data/`  |
-| 46   | 压缩与传输 | `gzip`   | GNU Zip                         | 使用 gzip 压缩文件           | `gzip app.log`                   |
-| 47   | 压缩与传输 | `scp`    | Secure Copy                     | 基于 SSH 传输文件            | `scp file.txt user@server:/tmp/` |
-
-
-### 学习资料
-- [在线学习](https://cmdchallenge.com/#/move_file)
-### 学习方法
-这个年代还要开虚拟机就太low了,用docker运行不就行了.
-
-先写一个`compose.yml`:
-```yml
-services:
-  linux:
-    image: ubuntu:24.04
-    container_name: linux-lab
-    stdin_open: true
-    tty: true
-    command: bash
-```
-然后运行以下命令启动并运行bash:
-```bash
-docker compose up -d
-docker exec -it linux-lab bash
-```
-
-![示意图](PixPin_2026-09-17_12-02-10.webp)
-
-效果杠杠的好不好!
-
-## Docker 
-- 推荐阅读: [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice)
 
 # 部署
 ## git
@@ -524,5 +526,7 @@ React Native由Facebook于15年发布的多平台(除了Linux)打包框架.
 
 ### Flutter
 
-# 监控与日志
+# 可观测性
+
+
 
