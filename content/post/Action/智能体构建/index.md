@@ -9474,11 +9474,418 @@ def delete_user(current_user: Superuser, session: SessionDep, user_id: int) -> R
 
 如此考量下来,代码之间的界限就相当清晰了,测试编写也变得简单了不少,路由部分就用我们之前的API自动测试即可;业务部分则测试边界情况,看是否会抛出相关的异常;crud层则可以引入sqlite等测试数据库,测试数据库的持久化行为是否正常.
 
-上述的架构被称为Layered Architecture,并结合了Repository Pattern.
+上述的架构被称为Layered Architecture,并结合了Repository Pattern.接下来,我们就来实践一下,看看如何重构代码吧.
+
+### 重构顺序
+首先看看我们原来的耦合关系:
+
+```mermaid
+
+flowchart TB
+    R["路由层<br/>Routes / FastAPI"]
+    A["Agent<br/>智能体业务逻辑"]
+    C["CRUD<br/>数据库访问"]
+    M["Models<br/>数据模型"]
+
+    SQL["SQLModel<br/>ORM 框架"]
+    RESP["OpenAI Responses API"]
+    DS["DeepSeek API 格式"]
+
+    R -->|"直接调用"| A
+    R -->|"直接调用"| C
+    R -->|"直接依赖"| M
+
+    C -->|"操作模型"| M
+    C -->|"数据库操作"| SQL
+    M -->|"模型定义"| SQL
+
+    A -->|"绑定接口"| RESP
+    A -->|"绑定格式"| DS
+
+    classDef route fill:#E7F0FF,stroke:#5080C5,color:#214A80,stroke-width:2px
+    classDef core fill:#E6F4ED,stroke:#479976,color:#205B40,stroke-width:1.5px
+    classDef external fill:#FCE8E8,stroke:#C96868,color:#8A3030,stroke-width:1.5px
+
+    class R route
+    class A,C,M core
+    class SQL,RESP,DS external
+```
+
+遵循自下而上的重构原则,我们需要先对Models动手,改成用SQLModel注入模型,而非直接用SQLModel定义;接着是操作Agent,确保与特定的API解耦,接着修改CRUD,改为Repository实现,将SQLModel操作封装起来;路由层则改为直接访问数据库操作的Service,由Service访问Repository来实现数据库操作.
+
+### Models重构
+先看看源代码:
+```py
+from enum import Enum
+from sqlmodel import Relationship, SQLModel, Field, Text
+from datetime import UTC, datetime
 
 
+def get_datetime() -> datetime:
+    return datetime.now(UTC)
 
 
+# 用于判断消息类型,从而区分用户提问和AI回答
+class MessageRole(str, Enum):
+    USER = "user"
+    ASSISTANT = "assistant"
+
+
+# User
+class UserBase(SQLModel):
+    name: str = Field(
+        min_length=1,
+        max_length=30,
+        index=True,
+    )
+    is_active: bool = True
+    is_superuser: bool = False
+
+
+class User(UserBase, table=True):
+    user_id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str = Field(max_length=256)
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversations: list["Conversation"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+
+    usage: "UserUsage" = Relationship(back_populates="user", cascade_delete=True)
+
+
+class UserUsage(SQLModel, table=True):
+    user_id: int = Field(
+        foreign_key="user.user_id",
+        primary_key=True,
+        ondelete="CASCADE",
+    )
+
+    # 对话次数统计
+    messages_count: int = 0
+
+    # Token 统计
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+
+    user: User = Relationship(back_populates="usage")
+
+
+# Conversation
+class ConversationBase(SQLModel):
+    title: str | None = Field(default="新对话", min_length=1, max_length=120)
+
+
+class Conversation(ConversationBase, table=True):
+    conversation_id: int | None = Field(default=None, primary_key=True)
+
+    user_id: int = Field(foreign_key="user.user_id")
+    user: User | None = Relationship(back_populates="conversations")
+
+    messages: list["Message"] = Relationship(
+        back_populates="conversation",
+        cascade_delete=True,
+    )
+    created_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+    updated_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+
+
+# Message
+
+
+class MessageBase(SQLModel):
+    conversation_id: int | None = Field(
+        foreign_key="conversation.conversation_id",
+        ondelete="CASCADE",
+    )
+    role: MessageRole
+    # sa_type表示强制让引擎把content的类型改为Text,
+    # 从而可以支持存储AI输出的冗长文本
+    content: str = Field(sa_type=Text, nullable=False)
+    reasoning: str | None = Field(default=None, sa_type=Text)
+
+
+class Message(MessageBase, table=True):
+    message_id: int = Field(
+        default=None,
+        primary_key=True,
+    )
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversation: Conversation | None = Relationship(
+        back_populates="messages",
+    )
+```
+
+事实上,我们这里的设计并非是凭空变出来的,而是根据自己对用户需求的判断逐章扩展的,但就是无法用清晰的领域名词来表达.
+
+也就是说,这里的models实际上是领域模型的具象化,但我们在建模时自动忽略了领域模型.因此,我们需要还原领域模型,从而实现真正的抽象和解耦,这也是DDD的核心概念之一.
+
+首先在app父文件夹下新建一个domain文件夹,然后新建文件`models.py`:
+
+**domain/models.py**
+```py
+from dataclasses import dataclass, field
+from enum import Enum
+from tools import get_datetime, datetime
+
+
+class MessageRole(str, Enum):
+    USER = "user"
+    ASSISTANT = "assistant"
+
+
+@dataclass
+class User:
+    name: str
+    hashed_password: str
+    user_id: int | None = None
+    is_active: bool = True
+    is_superuser: bool = False
+    created_at: datetime = field(default_factory=get_datetime)
+
+
+@dataclass
+class UserUsage:
+    user_id: int
+    messages_count: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+
+
+@dataclass
+class Conversation:
+    user_id: int
+    conversation_id: int | None = None
+    title: str | None = "新对话"
+    created_at: datetime = field(default_factory=get_datetime)
+    updated_at: datetime = field(default_factory=get_datetime)
+
+
+@dataclass
+class Message:
+    conversation_id: int | None
+    role: MessageRole
+    content: str
+    message_id: int | None = None
+    reasoning: str | None = None
+    created_at: datetime = field(default_factory=get_datetime)
+```
+其实写起来和用SQLModel写的差别并不大,之后的话我们只需要写一个转换函数将原来tables里的模型注入即可,一个例子是这样的:
+```py
+def message_record(row: MessageRecord) -> Message:
+    return Message(
+        message_id=row.message_id,
+        conversation_id=row.conversation_id,
+        role=row.role,
+        content=row.content,
+        reasoning=row.reasoning,
+        created_at=row.created_at,
+    )
+```
+
+对于`get_datetime()`这个函数,我们直接把它丢到了新建的`tools.py`中,也方便日后加入工具函数.至于这个碍眼的MessageRole,以后再收拾它.
+
+然后原来的tables.py就要改名了,但是由于schemas.py也是依赖tables.py的,所以我们需要先修改`schemas.py`,使其与tables.py和SQLModel解耦,才能放心调用:
+
+```py
+from pydantic import BaseModel, Field
+from tools import datetime
+from app.domain.models import MessageRole
+
+
+# User
+class UserRegister(BaseModel):
+    # 写成1是为了偷懒~
+    name: str = Field(min_length=1, max_length=30)
+    password: str = Field(min_length=1, max_length=15)
+
+
+class UserCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=30)
+    is_active: bool = True
+    is_superuser: bool = False
+    password: str = Field(min_length=1, max_length=15)
+
+
+class UserUsagePublic(BaseModel):
+    """
+    单个用户统计
+    """
+
+    # 对话次数统计
+    messages_count: int = 0
+
+    # Token 统计
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+
+
+class UsagePublic(BaseModel):
+    """
+    总用户统计
+    """
+
+    messages_count: int = 0
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+
+
+class UserPublic(BaseModel):
+    name: str = Field(min_length=1, max_length=30)
+    is_active: bool = True
+    is_superuser: bool = False
+    user_id: int
+    created_at: datetime
+    usage: UserUsagePublic | None = None
+
+
+class UsersPublic(BaseModel):
+    data: list[UserPublic]
+    count: int
+
+
+# Message
+class MessagePublic(BaseModel):
+    conversation_id: int | None
+    role: MessageRole
+    content: str
+    reasoning: str | None = None
+
+    message_id: int
+    created_at: datetime
+
+
+# Conversation
+class ConversationPublic(BaseModel):
+    title: str | None = Field(
+        default="新对话",
+        min_length=1,
+        max_length=120,
+    )
+    conversation_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+# Request
+class ChatRequest(BaseModel):
+    conversation_id: int | None = Field(default=None, ge=1)
+    content: str = Field(min_length=1, max_length=20_000)
+    enable_reasoning: bool = True
+
+
+# Token
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenPayload(BaseModel):
+    sub: str
+```
+其实,丢掉UserBase等依赖后,代码反而变得更加清晰了.不过如此一来,原来的`tables.py`也就非常好改了:
+```py
+from enum import Enum
+from sqlmodel import Relationship, SQLModel, Field, Text
+from tools import datetime, get_datetime
+
+
+# 用于判断消息类型,从而区分用户提问和AI回答
+class MessageRole(str, Enum):
+    USER = "user"
+    ASSISTANT = "assistant"
+
+
+# User
+class UserRecord(SQLModel, table=True):
+    name: str = Field(
+        min_length=1,
+        max_length=30,
+        index=True,
+    )
+    is_active: bool = True
+    is_superuser: bool = False
+    user_id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str = Field(max_length=256)
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversations: list["Conversation"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+    )
+
+    usage: "UserUsageRecord" = Relationship(back_populates="user", cascade_delete=True)
+
+
+class UserUsageRecord(SQLModel, table=True):
+    user_id: int = Field(
+        foreign_key="user.user_id",
+        primary_key=True,
+        ondelete="CASCADE",
+    )
+
+    # 对话次数统计
+    messages_count: int = 0
+
+    # Token 统计
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+
+    user: UserRecord = Relationship(back_populates="usage")
+
+
+# Conversation
+class ConversationRecord(SQLModel, table=True):
+    title: str | None = Field(default="新对话", min_length=1, max_length=120)
+    conversation_id: int | None = Field(default=None, primary_key=True)
+
+    user_id: int = Field(foreign_key="user.user_id")
+    user: UserRecord | None = Relationship(back_populates="conversations")
+
+    messages: list["MessageRecord"] = Relationship(
+        back_populates="conversation",
+        cascade_delete=True,
+    )
+    created_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+    updated_at: datetime = Field(
+        default_factory=get_datetime,
+    )
+
+
+# Message
+class MessageRecord(SQLModel, table=True):
+    conversation_id: int | None = Field(
+        foreign_key="conversation.conversation_id",
+        ondelete="CASCADE",
+    )
+    role: MessageRole
+    # sa_type表示强制让引擎把content的类型改为Text,
+    # 从而可以支持存储AI输出的冗长文本
+    content: str = Field(sa_type=Text, nullable=False)
+    reasoning: str | None = Field(default=None, sa_type=Text)
+
+    message_id: int = Field(
+        default=None,
+        primary_key=True,
+    )
+    created_at: datetime = Field(default_factory=get_datetime)
+    conversation: ConversationRecord | None = Relationship(
+        back_populates="messages",
+    )
+```
+
+现在,就是需要加一个转换层,从而让我们操作Domain的时候就能自动用对应的Record进行持久化存储.
 
 
 ## ch18: 联网搜索引入和MCP使用

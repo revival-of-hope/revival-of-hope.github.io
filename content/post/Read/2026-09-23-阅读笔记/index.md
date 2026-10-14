@@ -275,18 +275,7 @@ Kube-proxy会自动提供负载均衡,所以不用担心多个Pod的流量访问
 
 ##### pod中运行多个容器
 
-## Python网络编程攻略
-### ch1: socket编程
-```py
-import socket
 
-host_name = socket.gethostname()
-# 返回计算机的主机名
-print(host_name)
-
-print(socket.gethostbyname(host_name))
-# 将主机解析为IPv4地址
-```
 ## Head First Design Patterns, 2nd Edition
 ### ch1: 策略模式(STRATEGY)
 ![鸭子设计图](PixPin_2026-10-08_14-59-03.webp)
@@ -932,6 +921,21 @@ Redis服务器是典型的一对多服务器程序：一个服务器可以与多
 ### 多机数据库
 不用一次是不可能学会的,待我先实战一段时间再来
 # 基础
+## Python网络编程攻略
+### ch1: socket编程
+```py
+import socket
+
+host_name = socket.gethostname()
+# 返回计算机的主机名
+print(host_name)
+
+print(socket.gethostbyname(host_name))
+# 将主机解析为IPv4地址
+```
+### 总结
+一看出版时间就不对劲了,书太老了,写的也很烂.
+
 ## Hugo in Action(待补充)
 - 出版于2022年，出版商：Manning，作者：Atishay Jain。
 

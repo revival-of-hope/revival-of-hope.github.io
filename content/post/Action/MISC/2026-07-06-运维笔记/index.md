@@ -5,7 +5,7 @@ description: 运维真的好累~
 image: 57793944_p0-浴衣とお面.webp
 ---
 运维的职责相当广泛,所以值得专门来进行学习,为了方便写文章,我把所有能跟运维扯上关系的技术都放进来了.
-# 运维工具年表
+# 运维工具总表
 |       年份 | 工具／项目                                                                        | 主要领域           | 适用范围                                    | 2026年活跃度     |
 | ---------: | --------------------------------------------------------------------------------- | ------------------ | ------------------------------------------- | ---------------- |
 |       1979 | [cron](https://man7.org/linux/man-pages/man8/cron.8.html)                         | 定时任务           | Unix/Linux 单机定时执行脚本和命令           | 🔥 基础设施级     |
@@ -55,7 +55,89 @@ image: 57793944_p0-浴衣とお面.webp
 # 容器,服务器与虚拟机
 ## 常用知识
 ### 主流服务器厂商和类型
-### IP地址分配
+厂商类型:
+| 厂商                               | 标准云服务器产品                                                                       | 轻量服务器产品                                             | 其他主要计算产品                               |
+| ---------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------- |
+| Amazon Web Services（AWS）         | [EC2](https://aws.amazon.com/ec2/)（Elastic Compute Cloud）                            | [Lightsail](https://aws.amazon.com/lightsail/)             | EC2 GPU、Bare Metal、Spot Instances            |
+| Microsoft Azure                    | [Azure Virtual Machines](https://azure.microsoft.com/en-us/products/virtual-machines)  | B系列等入门规格VM                                          | Spot VM、Dedicated Host、GPU VM                |
+| Google Cloud（GCP）                | [Compute Engine](https://cloud.google.com/products/compute)（GCE）                     | E2等入门规格VM                                             | GPU VM、Bare Metal Instances                   |
+| Alibaba Cloud（阿里云）            | [ECS](https://www.alibabacloud.com/product/ecs)（Elastic Compute Service）             | Simple Application Server（轻量应用服务器）                | 弹性裸金属、GPU实例                            |
+| Tencent Cloud（腾讯云）            | [CVM](https://cloud.tencent.com/product/cvm)（Cloud Virtual Machine）                  | [Lighthouse](https://cloud.tencent.com/product/lighthouse) | 裸金属云服务器、GPU云服务器                    |
+| Huawei Cloud（华为云）             | [ECS](https://www.huaweicloud.com/intl/en-us/product/ecs.html)（Elastic Cloud Server） | Flexus系列                                                 | BMS裸金属服务器、GPU云服务器                   |
+| 百度智能云                         | [BCC](https://cloud.baidu.com/product/bcc)（Baidu Cloud Compute）                      | 经济型等入门规格                                           | GPU云服务器、专用计算资源                      |
+| 火山引擎（字节跳动）               | [ECS](https://www.volcengine.com/product/ecs)（Elastic Compute Service）               | —                                                          | GPU实例、弹性裸金属                            |
+| Oracle Cloud Infrastructure（OCI） | [OCI Compute](https://www.oracle.com/cloud/compute/)                                   | Always Free适用的VM规格                                    | Bare Metal、GPU实例                            |
+| DigitalOcean                       | [Droplets](https://www.digitalocean.com/products/droplets)                             | Basic Droplets                                             | Dedicated CPU、GPU Droplets                    |
+| Vultr                              | [Cloud Compute](https://www.vultr.com/products/cloud-compute/)                         | Cloud Compute入门规格                                      | Optimized Cloud Compute、Cloud GPU、Bare Metal |
+| Akamai（原Linode）                 | [Linode Compute Instances](https://www.linode.com/products/compute/)                   | Shared CPU Linodes                                         | Dedicated CPU、High Memory、GPU                |
+| Hetzner                            | [Hetzner Cloud](https://www.hetzner.com/cloud/)                                        | Shared Resources                                           | Dedicated Resources、Dedicated Servers         |
+| OVHcloud                           | [Public Cloud Instances](https://www.ovhcloud.com/en/public-cloud/)                    | 入门规格实例                                               | Compute Optimized、Bare Metal                  |
+| IBM Cloud                          | [Virtual Servers for VPC](https://www.ibm.com/products/virtual-servers)                | 小规格Virtual Servers                                      | Bare Metal、Dedicated Host、GPU                |
+
+
+服务器类型:
+| 英文名称                 | 中文名称       | 主要特点                             | 典型用途             |
+| :----------------------- | :------------- | :----------------------------------- | :------------------- |
+| **Compute Instance**     | 计算实例       | 泛指云上的计算资源                   | 通用服务器           |
+| **Cloud Instance**       | 云实例         | 泛称，具体含义看厂商                 | 各类云服务           |
+| **VM Instance**          | 虚拟机实例     | 通过虚拟化技术提供操作系统环境       | Web、API、数据库     |
+| **VPS**                  | 虚拟专用服务器 | 通常配置和价格较简单                 | 个人网站、小项目     |
+| **Bare Metal Server**    | 裸金属服务器   | 直接使用物理服务器，不经普通虚拟机层 | 数据库、高性能计算   |
+| **Dedicated Host**       | 专用宿主机     | 独占物理宿主机，可在上面创建虚拟机   | 隔离、合规           |
+| **General Purpose**      | 通用型实例     | CPU 与内存比例均衡                   | 后端、微服务         |
+| **Compute Optimized**    | 计算优化型     | CPU 相对更强                         | 高计算负载、视频编码 |
+| **Memory Optimized**     | 内存优化型     | 配备更多内存                         | Redis、大型数据库    |
+| **Storage Optimized**    | 存储优化型     | 更强调磁盘吞吐与 IOPS                | 大数据、存储服务     |
+| **GPU Instance**         | GPU 实例       | 提供 GPU 加速计算                    | AI 训练、推理        |
+| **Burstable Instance**   | 突发性能实例   | 通常具有基准 CPU 性能与突发机制      | 低负载网站           |
+| **Spot Instance**        | 抢占式实例     | 使用可回收容量，通常更便宜           | 可中断任务、批处理   |
+| **Serverless Container** | 无服务器容器   | 无需自行管理底层服务器               | 弹性容器工作负载     |
+### IPv4地址分配
+| 网段              | 地址范围或示例                | 用途                           |
+| ----------------- | ----------------------------- | ------------------------------ |
+| `0.0.0.0/8`       | 0.0.0.0 — 0.255.255.255       | 本网络等特殊用途               |
+| `10.0.0.0/8`      | 10.0.0.0 — 10.255.255.255     | 私有地址                       |
+| `100.64.0.0/10`   | 100.64.0.0 — 100.127.255.255  | 运营商级 NAT 共享地址          |
+| `127.0.0.0/8`     | 127.0.0.1 等                  | 回环地址                       |
+| `169.254.0.0/16`  | 169.254.x.x                   | 链路本地地址                   |
+| `172.16.0.0/12`   | 172.16.0.0 — 172.31.255.255   | 私有地址                       |
+| `192.168.0.0/16`  | 192.168.0.0 — 192.168.255.255 | 私有地址                       |
+| `192.0.2.0/24`    | 192.0.2.x                     | 文档示例                       |
+| `198.18.0.0/15`   | 198.18.x.x、198.19.x.x        | 网络设备基准测试               |
+| `198.51.100.0/24` | 198.51.100.x                  | 文档示例                       |
+| `203.0.113.0/24`  | 203.0.113.x                   | 文档示例                       |
+| `224.0.0.0/4`     | 224.0.0.0 — 239.255.255.255   | 组播                           |
+| `240.0.0.0/4`     | 240.0.0.0 — 255.255.255.255   | 保留地址范围，包含有限广播地址 |
+
+IPv4的地址分配相当混乱,我们记住特殊的几个即可:
+| 网段             | 地址数量   | 常见用途                           |
+| ---------------- | ---------- | ---------------------------------- |
+| `10.0.0.0/8`     | 16,777,216 | 企业内网、云计算、Kubernetes       |
+| `172.16.0.0/12`  | 1,048,576  | 企业网络、容器网络                 |
+| `192.168.0.0/16` | 65,536     | 家庭路由器、局域网                 |
+| `127.0.0.0/8`    | 16,777,216 | 回环地址（本机通信，如 127.0.0.1） |
+
+### 主流域名厂商
+| 厂商                       | 国家/地区 | 域名注册产品或平台                                                      | 主要特点                                          |
+| -------------------------- | --------- | ----------------------------------------------------------------------- | ------------------------------------------------- |
+| GoDaddy                    | 美国      | [GoDaddy Domains](https://www.godaddy.com/domains)                      | 大型域名注册商，提供域名交易、邮箱、建站等        |
+| Namecheap                  | 美国      | [Namecheap Domains](https://www.namecheap.com/domains/)                 | 域名注册、隐私保护、DNS及API                      |
+| Cloudflare                 | 美国      | [Cloudflare Registrar](https://domains.cloudflare.com/)                 | 按批发成本价注册及续费，必须使用Cloudflare权威DNS |
+| Porkbun                    | 美国      | [Porkbun Domains](https://porkbun.com/)                                 | 价格透明，提供免费域名隐私保护及DNS               |
+| Dynadot                    | 美国      | [Dynadot Domains](https://www.dynadot.com/)                             | 域名批量管理、交易市场、API                       |
+| Spaceship                  | 美国      | [Spaceship Domains](https://www.spaceship.com/domains/)                 | 低价注册、域名管理、API                           |
+| NameSilo                   | 美国      | [NameSilo](https://www.namesilo.com/)                                   | 域名批量管理、隐私保护、API                       |
+| Squarespace                | 美国      | [Squarespace Domains](https://domains.squarespace.com/)                 | 已接收原Google Domains用户，集成建站服务          |
+| Gandi                      | 法国      | [Gandi Domains](https://www.gandi.net/en/domain)                        | 域名注册、企业域名管理                            |
+| IONOS                      | 德国      | [IONOS Domains](https://www.ionos.com/domains)                          | 域名、主机、邮箱及企业服务                        |
+| OVHcloud                   | 法国      | [OVHcloud Domains](https://www.ovhcloud.com/en/domains/)                | 域名、DNS、云服务器一体化                         |
+| Amazon Web Services（AWS） | 美国      | [Route 53 Domains](https://aws.amazon.com/route53/)                     | 与AWS DNS、云计算资源集成                         |
+| 阿里云（万网）             | 中国      | [阿里云万网](https://wanwang.aliyun.com/)                               | 域名注册、域名交易、DNS、备案                     |
+| 腾讯云                     | 中国      | [腾讯云域名注册](https://cloud.tencent.com/product/domain)              | 域名注册、DNSPod解析、备案                        |
+| 华为云                     | 中国      | [Huawei Cloud Domains](https://www.huaweicloud.com/product/domain.html) | 域名注册、实名认证、DNS、备案                     |
+| 西部数码                   | 中国      | [West.cn Domains](https://domain.west.cn/)                              | 域名注册、抢注、交易、备案                        |
+| 新网                       | 中国      | [Xinnet Domains](https://www.xinnet.com/)                               | 域名注册、企业邮箱、云主机、备案                  |
+
 ## Linux命令
 ### 常用命令
 | 序号 | 分类       | 命令     | 全名                            | 作用                         | 常见用法                         |
