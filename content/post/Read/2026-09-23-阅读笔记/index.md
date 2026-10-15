@@ -33,6 +33,21 @@ Nginx配置文件是由多个配置项组成的，每一个配置项都有一个
 某些字段如error_log可以多次出现:
 ![结构图](PixPin_2026-10-14_10-56-43.webp)
 ### ch6: 模块
+Nginx不会像Apache或Lighttpd那样在编译时生成so动态库，然后在程序执行时再进行动态加载，Nginx模块源文件会在生成Nginx时就直接被编译到其二进制执行文件中，所以，如果要选用不同的功能模块，必须对Nginx做重新配置和编译。
+### ch7: 事件管理
+各种操作系统平台下支持的各种I/O事件处理机制在Nginx内部都被进行了统一封装，这样不论Nginx被用在何种平台都能以最高效的方式运行,涉及的I/O多路复用接口如下:
+| 名称          | 特点                                                                                                                                                                                                                                                                                       |
+| :------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **select**    | 标准的 I/O 复用模型，几乎所有的类 UNIX 系统上都有提供，但性能相对较差。如果在当前系统平台上找不到更优的 I/O 事件处理机制，那么 Nginx 默认编译并使用 select 复用模型，我们也可以通过使用 `--with-select_module` 或 `--without-select_module` 配置选项来启用或禁用 select 复用模型模块的编译 |
+| **poll**      | 标准的 I/O 复用模型，理论上比 select 复用模型要优。同 select 复用模型类似，可以通过使用 `--with-poll_module` 或 `--without-poll_module` 配置选项来启用或禁用 poll 复用模型模块的编译                                                                                                       |
+| **epoll**     | 系统 Linux 2.6+ 上正式提供的性能更为优秀的 I/O 复用模型                                                                                                                                                                                                                                    |
+| **kqueue**    | 在系统 FreeBSD 4.1+，OpenBSD 2.9+，NetBSD 2.0 和 MacOS X 上特有的性能更优秀的 I/O 复用模型                                                                                                                                                                                                 |
+| **eventport** | 在系统 Solaris 10 上可用的高性能 I/O 复用模型                                                                                                                                                                                                                                              |
+| **/dev/poll** | 在系统 Solaris 7 11/99+，HP/UX 11.22+ (eventport)，IRIX 6.5.15+ 和 Tru64 UNIX 5.1A+ 上可用的高性能 I/O 复用模型                                                                                                                                                                            |
+
+![封装图](PixPin_2026-10-15_08-06-24.webp)
+### ch9: 请求处理与响应
+
 
 
 ## Architecture Patterns with Python
@@ -208,7 +223,231 @@ def allocate_endpoint():
 ![方法](PixPin_2026-10-14_11-08-40.webp)
 
 >当我们需要从根本上解决问题时，通常会先编写一个简单的实现，然后再进行重构，使其设计得更好。本书将始终采用这种方法，因为这正是我们在现实世界中编写代码的方式：从解决问题的最小部分入手，然后迭代地完善解决方案，使其更加完善和设计得更好。
-### ch4: 实战
+### ch4: 实战,引入服务层
+![架构](PixPin_2026-10-15_09-02-21.webp)
+### ch5: TDD in High Gear and Low Gear
+尽管用了TDD,但我觉得相当的牵强.
+### ch6: Unit of Work
+UoW用于将仓库和服务连接起来,使其完全解耦,如果不用uow,我们的API请求要除了Service之外,还要同时接触数据库层(启动会话,引入sessiondep依赖),仓库层(引入Domain模型).
+
+用了uow后,我们的架构如下:
+```mermaid
+
+flowchart TB
+    Flask["Flask"]
+
+    subgraph SL["Service Layer"]
+        direction LR
+
+        subgraph Services["Services"]
+            direction LR
+            S1[/" "/]
+            S2[/" "/]
+            S1 ~~~ S2
+        end
+
+        subgraph UOW["Unit of Work"]
+            direction LR
+            AbstractUoW["Abstract<br/>UoW"]
+            SQLAlchemyUoW["SQLAlchemy<br/>UoW"]
+        end
+    end
+
+    subgraph Persistence[" "]
+        direction LR
+
+        subgraph Domain["Domain"]
+            direction TB
+            EntityShape[/" "/]
+            AggregateShape[" "]
+            ValueShape([" "])
+            EntityShape --> AggregateShape
+            AggregateShape --> ValueShape
+        end
+
+        subgraph Repositories["Repositories"]
+            direction LR
+            AbstractRepo["Abstract<br/>Repo"]
+            SQLARepo["SQLA<br/>Repo"]
+        end
+    end
+
+    DB[("DB")]
+
+    Flask --> Services
+    Flask -- instantiates --> SQLAlchemyUoW
+
+    Services -- starts --> AbstractUoW
+    SQLAlchemyUoW -.-> AbstractUoW
+
+    AbstractUoW -- provides --> AbstractRepo
+    SQLAlchemyUoW -- "provides<br/>(using session)" --> SQLARepo
+
+    SQLARepo -.-> AbstractRepo
+    AbstractRepo --> Domain
+
+    SQLARepo --> DB
+    SQLAlchemyUoW -- "initiates<br/>DB session" --> DB
+
+    classDef blue fill:#B5E2F7,stroke:#00A5BA,stroke-width:2px,color:#222
+    classDef yellow fill:#F6DC94,stroke:#FFA36C,stroke-width:4px,color:#222
+    classDef empty fill:#B5E2F7,stroke:#00A5BA,stroke-width:2px,color:#222
+
+    class Flask,AbstractRepo,SQLARepo,DB blue
+    class AbstractUoW,SQLAlchemyUoW yellow
+    class S1,S2,EntityShape,AggregateShape,ValueShape empty
+
+    style SL fill:#FFFFFF,stroke:#00A5BA,stroke-width:2px,stroke-dasharray:5 5
+    style Services fill:#FFFFFF,stroke:#708999,stroke-width:2px,stroke-dasharray:5 5
+    style UOW fill:#FFFFFF,stroke:#FFA36C,stroke-width:4px,stroke-dasharray:9 7
+    style Domain fill:#FFFFFF,stroke:#708999,stroke-width:2px,stroke-dasharray:5 5
+    style Repositories fill:#FFFFFF,stroke:#708999,stroke-width:2px,stroke-dasharray:5 5
+    style Persistence fill:transparent,stroke:transparent
+
+    linkStyle 6,7,8,11 stroke:#FFA36C,stroke-width:2px
+```
+
+
+先实现一个抽象基类:
+```py
+import abc
+
+class AbstractUnitOfWork(abc.ABC):
+    batches: repository.AbstractRepository
+
+    def __exit__(self, *args):
+        self.rollback()
+
+    @abc.abstractmethod
+    def commit(self):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def rollback(self):
+        raise NotImplementedError
+```
+再来一个具体实现:
+```py
+DEFAULT_SESSION_FACTORY = sessionmaker(
+    bind=create_engine(
+        config.get_postgres_uri(),
+    )
+)
+
+
+class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
+    def __init__(self, session_factory=DEFAULT_SESSION_FACTORY):
+        self.session_factory = session_factory
+
+    def __enter__(self):
+        self.session: Session = self.session_factory()
+        self.batches = repository.SqlAlchemyRepository(self.session)
+        return super().__enter__()
+
+    def __exit__(self, *args):
+        super().__exit__(*args)
+        self.session.close()
+
+    def commit(self):
+        self.session.commit()
+
+    def rollback(self):
+        self.session.rollback()
+```
+
+写测试:
+```py
+class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
+    def __init__(self):
+        self.batches = FakeRepository([])
+        self.committed = False
+
+    def commit(self):
+        self.committed = True
+
+    def rollback(self):
+        pass
+
+
+def test_add_batch():
+    uow = FakeUnitOfWork()
+
+    services.add_batch(
+        "b1",
+        "CRUNCHY-ARMCHAIR",
+        100,
+        None,
+        uow,
+    )
+
+    assert uow.batches.get("b1") is not None
+    assert uow.committed
+
+
+def test_allocate_returns_allocation():
+    uow = FakeUnitOfWork()
+
+    services.add_batch(
+        "batch1",
+        "COMPLICATED-LAMP",
+        100,
+        None,
+        uow,
+    )
+
+    result = services.allocate(
+        "o1",
+        "COMPLICATED-LAMP",
+        10,
+        uow,
+    )
+
+    assert result == "batch1"
+    ...
+```
+
+一个很好的想法是,显式写明commit,默认使用rollback,如:
+```py
+with uow:
+  uow.batches.add(model.Batch(ref, sku, qty,
+  eta))
+  # uow.commit()
+```
+使用uow的另一个好处就是,我们现在可以轻松地将一系列操作包装为原子的:
+```py
+with uow:
+    batch = uow.batches.get(sku=line.sku)
+
+    if batch is None:
+        raise InvalidSku(f"Invalid sku {line.sku}")
+
+    batch.deallocate(line)
+    allocate(line)
+    uow.commit()
+```
+
+所以uow其实就是对数据库操作做了一层封装,并且通过抽象基类可以保证能随时替换数据库.
+
+### ch7: Aggregates
+
+## Docker Deep Dive
+### ch1-4: 介绍
+>尽管开发 Windows 容器投入了大量精力，但几乎所有容器都是Linux 容器。这是因为 Linux 容器体积更小、速度更快，而且 Linux 拥有更丰富的工具。
+
+由于容器共享运行所在主机的内核。这意味着容器化的Windows应用需要运行Windows内核的主机，而容器化的Linux应用则需要运行Linux内核的主机。但是，如前所述，您可以在安装了WSL 2后端的Windows系统上运行Linux容器
+#### OCI
+生态系统中的主要参与者齐聚一堂，成立了 OCI，这是一个厂商中立的轻量级委员会，负责管理容器标准:
+- The image-spec
+- The runtime-spec
+- The distribution-spec
+
+OCI规范对容器生态系统起到了同样的作用，此后容器生态系统蓬勃发展。Docker自OCI成立以来也发生了巨大变化，所有现代版本的Docker都实现了全部三项OCI规范。例如：
+
+- Docker 构建器 (BuildKit) 创建符合 OCI 标准的镜像
+- Docker 使用符合 OCI 标准的运行时来创建符合 OCI 标准的容器
+- Docker Hub 实现了 OCI 发行版规范，并且是一个符合 OCI 标准的镜像仓库。
+### ch5: Docker Engine
+
 
 
 ## Kubernetes in Action, Second Edition(待补充)
@@ -274,47 +513,108 @@ Kube-proxy会自动提供负载均衡,所以不用担心多个Pod的流量访问
 ![示意图](PixPin_2026-10-14_11-55-36.webp)
 
 ##### pod中运行多个容器
+```yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kiada-ssl
+spec:
+  containers:
+    - name: kiada
+      image: luksa/kiada:0.2
+      ports:
+        - name: http
+          containerPort: 8080
+
+    - name: envoy
+      image: luksa/kiada-ssl-proxy:0.1
+      ports:
+        - name: https
+          containerPort: 8443
+        - name: admin
+          containerPort: 9901
+```
+当一个Pod包含多个容器时，所有容器会并行启动。Kubernetes未提供指定容器间依赖关系的机制，因此无法确保某个容器在其他容器之前启动。但Kubernetes允许在主容器启动前，通过运行一系列容器来初始化Pod。
+```yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kiada-init
+spec:
+  initContainers:
+    - name: init-demo
+      image: luksa/init-demo:0.1
+
+    - name: network-check
+      image: luksa/network-connectivity-checker:0.1
+
+  containers:
+    - name: kiada
+      image: luksa/kiada:0.2
+      stdin: true
+      ports:
+        - name: http
+          containerPort: 8080
+
+    - name: envoy
+      image: luksa/kiada-ssl-proxy:0.1
+      ports:
+        - name: https
+          containerPort: 8443
+        - name: admin
+          containerPort: 9901
+```
+#### ch6: 管理Pod
+
+## 面向模式的软件架构
+### 介绍
+这书总共有5卷:
+
+| 卷数     | 英文书名                                      | 中文书名                   | 出版年份 | 主要内容                                                      |
+| :------- | :-------------------------------------------- | :------------------------- | :------- | :------------------------------------------------------------ |
+| **卷 1** | A System of Patterns                          | 模式系统                   | 1996     | 分层架构、MVC、Broker、Pipes and Filters 等架构模式           |
+| **卷 2** | Patterns for Concurrent and Networked Objects | 用于并发和网络化对象的模式 | 2000     | Reactor、Proactor、Acceptor-Connector、线程并发与网络通信模式 |
+| **卷 3** | Patterns for Resource Management              | 资源管理模式               | 2004     | 资源获取、资源生命周期、资源共享与释放                        |
+| **卷 4** | A Pattern Language for Distributed Computing  | 分布式计算的模式语言       | 2007     | 分布式系统架构与多种设计模式的组合                            |
+| **卷 5** | On Patterns and Pattern Languages             | 模式与模式语言             | 2007     | 模式的理论基础、模式语言及模式之间的关系                      |
+### volume 1
+### 模式
+每个模式都包含三部分:
+- 背景（Context）：问题出现的背景；
+- 问题（Problem）：该背景下反复出现的问题；
+- 解决方案（Solution）：经过实践检验的解决之道。
+
+模式类型有三种: 架构模式(如MVC,DDD),设计模式(如Observer模式),成例(针对特定编程语言的某种经验如引用计数),三者的关系是自顶向下,逐渐深入细节.
+
+模式的标准描述模板如下:
+*   **背景**
+    *   模式可能适用的情形。
+*   **问题**
+    *   模式解决的问题，包括涉及的作用力。
+*   **解决方案**
+    *   模式背后的基本解决原则。
+*   **结构**
+    *   详细说明模式的结构方面，包括每个参与组件的 CRC 卡 [BeCu89]（参见本书后面的“表示法”）以及一个 OMT 类图 [RBPEL91]。
+*   **动态**
+    *   通常是一些情景，描述了模式的运行阶段行为。
+    *   我们还使用对象消息序列图（参见本书后面的“表示法”）对情景做进一步说明。
+*   **实现**
+    *   模式实现指南。
+    *   这些指南只是建议，并非永恒的规则。你应根据需求调整实现：添加不同、额外或更详细的步骤，或调整步骤的顺序。我们使用 C++、Smalltalk、Java 或 pSather 示例代码来演示可能的实现，它们通常描述了示例问题的细节。
+*   **示例解答**
+    *   对“解决方案”、“结构”、“动态”和“实现”等部分未涉及，但对解决示例问题至关重要的各个方面进行讨论。
+*   **变种**
+    *   简要地描述当前模式的变种或具体化（specialization）。
+*   **已知应用**
+    *   模式在既有系统中的应用。
+*   **效果**
+    *   模式提供的优点及潜在的缺点。
+*   **参见**
+    *   列举其他一些模式，它们要么解决了类似问题，要么有助于改进当前模式。
+
+### ch2: 架构模式
 
 
-## Head First Design Patterns, 2nd Edition
-### ch1: 策略模式(STRATEGY)
-![鸭子设计图](PixPin_2026-10-08_14-59-03.webp)
-
-使用继承（Inheritance）实现鸭子行为时存在的问题如下:
-
-![表格](PixPin_2026-10-08_14-59-44.webp)
-
-一个简单的方法是拆分接口:
-![拆分图](PixPin_2026-10-08_15-01-04.webp)
-#### 原则1
-所以我们知道使用继承并不理想，因为鸭子的行为在子类之间不断变化，而并非所有子类都适合拥有相同的行为。Flyable 和 Quackable 接口起初听起来很有前景——只有真正会飞的鸭子才会是 Flyable 等等——但 Java 接口通常没有实现代码，因此无法重用代码。无论哪种情况，每当需要修改某个行为时，通常都不得不去查找并修改所有定义了该行为的子类，这很可能还会引入新的 bug！
-
-![设计原则](PixPin_2026-10-08_15-03-55.webp)
-
-如果你的代码中某些部分会随着每个新需求而改变，那么你就知道你需要将这种行为提取出来，并与所有不变的部分分离
-
-**这个概念虽然简单，却是几乎所有设计模式的基础。所有模式都提供了一种方法，允许系统中的某些部分独立于其他所有部分而变化**
-#### 原则2
-![设计原则2](PixPin_2026-10-08_15-06-11.webp)
-
-我们将fly这个行为单独作为接口,并由实类继承,而非特定的Duck子类继承:
-
-![继承图](PixPin_2026-10-08_15-08-03.webp)
-
-如此一来,我们的接口实现就与某个具体的子类无关了,从而避免代码被特定的对象绑定.
-
-**Programming to an implementation would be:**
-
-![样例](PixPin_2026-10-08_15-10-20.webp)
-
-**programming to an interface/supertype would be:**
-
-![样例](PixPin_2026-10-08_15-11-05.webp)
-
-一个更好的方法是将实例封装起来,只在使用时传入:
-
-![样例](PixPin_2026-10-08_15-13-51.webp)
-### ch2: 观察者模式(Observer Pattern)
 
 
 ## Learning Domain-Driven Design
@@ -342,7 +642,9 @@ Kube-proxy会自动提供负载均衡,所以不用担心多个Pod的流量访问
 
 > **“所有模型都是错误的，但有些是有用的。”**
 
-### ch3: 管理领域复杂性
+### ch3&&ch4: 管理领域复杂性
+为了确保项目成功，至关重要的是开发一种所有利益相关者（从软件工程师到领域专家）都能使用的通用语言进行沟通。这种语言应该反映领域专家对业务领域内部运作和基本原理的理解。但如果领域专家对某个技术名词的定义也要通过上下文才能精准判断时,我们就要引入Bounded Context
+### ch5: 实现简单业务逻辑
 
 ## Kafka: The Definitive Guide,2nd edition
 - 出版于2021年（第2版），出版商：O'Reilly，作者：Gwen Shapira。
@@ -512,27 +814,55 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 
 
 
-## RabbitMQ in Depth
-- 出版于2017年，出版商：Manning，作者：Gavin M. Roy。
 
-该说是太老了还是怎么呢,讲的一点都不清晰,看了两章都没看明白RabbitMQ的基本原理
+## Head First Design Patterns, 2nd Edition
+### ch1: 策略模式(STRATEGY)
+![鸭子设计图](PixPin_2026-10-08_14-59-03.webp)
 
-## 面向模式的软件架构
-### 介绍
-这书总共有5卷:
+使用继承（Inheritance）实现鸭子行为时存在的问题如下:
 
-| 卷数     | 英文书名                                      | 中文书名                   | 出版年份 | 主要内容                                                      |
-| :------- | :-------------------------------------------- | :------------------------- | :------- | :------------------------------------------------------------ |
-| **卷 1** | A System of Patterns                          | 模式系统                   | 1996     | 分层架构、MVC、Broker、Pipes and Filters 等架构模式           |
-| **卷 2** | Patterns for Concurrent and Networked Objects | 用于并发和网络化对象的模式 | 2000     | Reactor、Proactor、Acceptor-Connector、线程并发与网络通信模式 |
-| **卷 3** | Patterns for Resource Management              | 资源管理模式               | 2004     | 资源获取、资源生命周期、资源共享与释放                        |
-| **卷 4** | A Pattern Language for Distributed Computing  | 分布式计算的模式语言       | 2007     | 分布式系统架构与多种设计模式的组合                            |
-| **卷 5** | On Patterns and Pattern Languages             | 模式与模式语言             | 2007     | 模式的理论基础、模式语言及模式之间的关系                      |
+![表格](PixPin_2026-10-08_14-59-44.webp)
+
+一个简单的方法是拆分接口:
+![拆分图](PixPin_2026-10-08_15-01-04.webp)
+#### 原则1
+所以我们知道使用继承并不理想，因为鸭子的行为在子类之间不断变化，而并非所有子类都适合拥有相同的行为。Flyable 和 Quackable 接口起初听起来很有前景——只有真正会飞的鸭子才会是 Flyable 等等——但 Java 接口通常没有实现代码，因此无法重用代码。无论哪种情况，每当需要修改某个行为时，通常都不得不去查找并修改所有定义了该行为的子类，这很可能还会引入新的 bug！
+
+![设计原则](PixPin_2026-10-08_15-03-55.webp)
+
+如果你的代码中某些部分会随着每个新需求而改变，那么你就知道你需要将这种行为提取出来，并与所有不变的部分分离
+
+**这个概念虽然简单，却是几乎所有设计模式的基础。所有模式都提供了一种方法，允许系统中的某些部分独立于其他所有部分而变化**
+#### 原则2
+![设计原则2](PixPin_2026-10-08_15-06-11.webp)
+
+我们将fly这个行为单独作为接口,并由实类继承,而非特定的Duck子类继承:
+
+![继承图](PixPin_2026-10-08_15-08-03.webp)
+
+如此一来,我们的接口实现就与某个具体的子类无关了,从而避免代码被特定的对象绑定.
+
+**Programming to an implementation would be:**
+
+![样例](PixPin_2026-10-08_15-10-20.webp)
+
+**programming to an interface/supertype would be:**
+
+![样例](PixPin_2026-10-08_15-11-05.webp)
+
+一个更好的方法是将实例封装起来,只在使用时传入:
+
+![样例](PixPin_2026-10-08_15-13-51.webp)
+### ch2: 观察者模式(Observer Pattern)
+
 ## 数据库系统内幕
 - 一直久闻大名,现在就来试试水
 ### Part I介绍
 ![架构图](PixPin_2026-10-06_15-46-05.webp)
 ### Ch3: 文件格式
+
+
+# 基础
 ## Redis设计与实现
 - 出版于2014年，作者：黄健宏。
 - 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
@@ -920,7 +1250,7 @@ Redis服务器是典型的一对多服务器程序：一个服务器可以与多
 4. 客户端接收服务器返回的命令回复 OK，并将这个回复打印给用户观看
 ### 多机数据库
 不用一次是不可能学会的,待我先实战一段时间再来
-# 基础
+
 ## Python网络编程攻略
 ### ch1: socket编程
 ```py
