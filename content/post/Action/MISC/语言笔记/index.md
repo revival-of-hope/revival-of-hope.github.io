@@ -772,7 +772,7 @@ Java由Sun公司于1995年发布,出于营销的目的,将Java分成了三个主
 所以无脑用`.size()`即可.
 
 #### vector解析
-vector初始化:
+vector初始化,与数组不同,可以用变量:
 ```cpp
 vector<int> dp(n, 0);                   // 一维数组
 // 第一个参数指定元素个数,第二个参数指定所有元素的初始值,不写则默认为0
@@ -786,6 +786,101 @@ vector<vector<int>> dp(n, vector<int>(m, 0)); // 二维数组
 - `resize(5,0)`: 调整长度为5,不够则填充0.
 
 #### 常用STL及对应情景
+总表:
+| 容器             | 底层实现（通常）           | 特点                          | 典型场景           | 初始化写法                      |
+| ---------------- | -------------------------- | ----------------------------- | ------------------ | ------------------------------- |
+| `stack`          | 容器适配器（默认 `deque`） | 后进先出 LIFO                 | 括号匹配、单调栈   | `stack<int> st;`                |
+| `queue`          | 容器适配器（默认 `deque`） | 先进先出 FIFO                 | BFS、任务队列      | `queue<int> q;`                 |
+| `priority_queue` | 堆（默认大顶堆）           | 获取最大值 O(1)               | Top K、优先级调度  | `priority_queue<int> pq;`       |
+| `set`            | 红黑树                     | 元素唯一、自动有序            | 有序去重、范围查询 | `set<int> s;`                   |
+| `unordered_set`  | 哈希表                     | 元素唯一、无序，平均查询 O(1) | 快速判重           | `unordered_set<int> s;`         |
+| `map`            | 红黑树                     | Key 唯一且有序                | 有序键值映射       | `map<string, int> m;`           |
+| `unordered_map`  | 哈希表                     | Key 唯一且无序，平均查询 O(1) | 计数、索引、缓存   | `unordered_map<string, int> m;` |
+
+
+
+1. set:
+```cpp
+#include <set>
+using namespace std;
+
+set<int> s = {5, 2, 3, 2, 1};
+
+s.insert(4);
+s.erase(2);
+
+bool exists = s.count(3) > 0;
+
+for (int x : s) {
+    cout << x << " ";
+}
+// 输出：1 3 4 5
+```
+2. map:
+```cpp
+#include <map>
+
+map<string, int> scores;
+
+scores["Alice"] = 90;
+scores["Bob"] = 85;
+scores["Charlie"] = 95;
+
+cout << scores["Alice"];  // 90
+```
+
+3. priority_queue:
+```cpp
+// 大顶堆（默认）
+priority_queue<int> maxHeap;
+
+// 小顶堆
+priority_queue<
+    int,
+    vector<int>,
+    greater<int>
+> minHeap;
+
+minHeap.push(3);
+minHeap.push(1);
+minHeap.push(2);
+
+cout << minHeap.top();  // 1
+```
+#### map和set的通用成员函数
+| 方法          | 作用                             | 示例             |
+| ------------- | -------------------------------- | ---------------- |
+| `insert(x)`   | 插入元素                         | `s.insert(5);`   |
+| `erase(x)`    | 删除指定元素或 Key               | `s.erase(5);`    |
+| `count(x)`    | 判断元素或 Key 是否存在          | `s.count(5);`    |
+| `find(x)`     | 查找元素，返回迭代器             | `s.find(5);`     |
+| `contains(x)` | 判断是否存在，返回 bool（C++20） | `s.contains(5);` |
+| `size()`      | 获取元素数量                     | `s.size();`      |
+| `empty()`     | 判断容器是否为空                 | `s.empty();`     |
+| `clear()`     | 清空容器                         | `s.clear();`     |
+| `begin()`     | 返回首元素迭代器                 | `s.begin();`     |
+| `end()`       | 返回尾后迭代器                   | `s.end();`       |
+
+特别需要注意的是,二者都可以通过迭代器区间初始化:
+```cpp
+vector<int> nums = {3, 1, 2, 2, 4};
+
+set<int> s(nums.begin(), nums.end());
+
+unordered_set<int> us(nums.begin(), nums.end());
+```
+```cpp
+vector<pair<int, int>> nums = {
+    {1, 10},
+    {2, 20},
+    {3, 30}
+};
+
+map<int, int> m(nums.begin(), nums.end());
+
+unordered_map<int, int> um(nums.begin(), nums.end());
+```
+
 
 ### struct/class全解(9/8)
 Cpp中struct和class的区别比我想的还要小很多,它们都有访问控制符,有构造和析构函数,支持`->`访问符,唯一的区别在于,struct的默认成员权限为public,而class的默认成员权限为private.

@@ -97,6 +97,32 @@ operations:
 ```
 
 ### Apache APISIX
+Apache APISIX 是 Apache 软件基金会下的顶级项目，由 API7.ai 开发并捐赠。它是一个具有动态、实时、高性能等特点的云原生 API 网关.它构建于 NGINX + ngx_lua 的技术基础之上，充分利用了 LuaJIT 所提供的强大性能
+
+![架构](PixPin_2026-10-15_22-07-19.webp)
+### Apache Iceberg
+Apache Iceberg 是一种面向大规模分析数据的开放表格式（Open Table Format），最初由 Netflix 于 2017 年左右开发，2018 年捐赠给 Apache 软件基金会，2020 年成为 Apache 顶级项目
+
+它主要解决的问题是：当海量数据存储在 HDFS、Amazon S3 等分布式存储系统中时，如何像操作数据库表一样，可靠、高效地管理这些数据？
 
 
-## 构建和库相关
+## 构建和测试
+
+### Testcontainers
+Testcontainers 是一个基于 Docker 的开源集成测试工具，诞生于 2015 年，最初面向 Java 生态，随后扩展到 Python、Go、Node.js、.NET 等语言。
+
+它的核心思想是：在自动化测试中，通过代码临时启动真正的数据库、消息队列等外部服务，完成测试后自动销毁。
+
+如此一来,我们就不需要单独执行prestart脚本来启动测试容器了,而是直接运行pytest测试即可,怎么说呢,偶尔可以用用,毕竟真执行测试还是要启动真实数据库的:
+```py
+# conftest.py
+
+import pytest
+from testcontainers.postgres import PostgresContainer
+
+@pytest.fixture(scope="session")
+def postgres():
+    with PostgresContainer("postgres:16") as container:
+        yield container
+```
+

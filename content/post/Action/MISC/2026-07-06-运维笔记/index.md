@@ -555,7 +555,7 @@ app.on('window-all-closed', function () {
 
 ## 手机端
 ### Capacitor
-
+支持ios和安卓端,可以把原生的前端代码包装成webview组件,所以体验效果比较差,甚至不如直接看网站来得好.
 
 ## 多端
 ### Tauri
@@ -607,7 +607,7 @@ pnpm tauri dev
 React Native由Facebook于15年发布的多平台(除了Linux)打包框架.
 
 ### Flutter
-
+支持全平台,但需要专门学习dart语言,实际上是一个更难用的Javascript
 # 可观测性
 
 

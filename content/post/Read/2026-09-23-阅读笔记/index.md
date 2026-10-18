@@ -7,47 +7,57 @@ math: true
 ---
 
 # 阅读中
+## Prompt Engineering for LLMs
+### ch1: 介绍提示词工程
+简单介绍,可惜当时是24年.
+### ch2: 介绍LLM
+![温度的原理](PixPin_2026-10-18_11-44-59.webp)
 
-## 深入剖析Nginx
-- 出版于2013年，作者：高群凯。
-### ch1: 准备工作
-由于Nginx本身就不是一个特别复杂的软件,所以目录也很清晰:
+当T趋近于0时,概率最大项会趋近于正无穷,而如果T=0,则是直接选择概率最大项,因为此时它的概率为1.
 
-![目录图](PixPin_2026-10-09_19-28-58.webp)
+如果温度大于1,则会让模型的输出偏离典型的输出,而小于1,则会逐渐靠近典型的输出.
 
-其中`src`文件夹是放源码的,`conf`文件夹放默认的配置文件,`auto`文件夹用于编译时的检查.实际上只看源码文件夹就够了.
-### ch3: 进程模型
-启动Nginx后会运行多个Nginx进程,有用于监控的Master(主进程),有Worker(工作进程),还有Cache相关的进程,进程之间彼此通信:
+>值得注意的是,主流的API中,如果开启了reasoning即CoT,那么就无法调节温度,至于为什么,很有可能是LLM公司发现如果调了温度会让LLM的输出惨不忍睹,但又不知道具体的原因是什么,所以才遮遮掩掩的.
 
-![整体架构](PixPin_2026-10-09_19-39-23.webp)
+Transformer只能向过去的输出看,而永远无法向未来看,所以这些LLM都被称为单向Transformer
+### ch3: chat
+## The Agentic Enterprise
+### 引言
+鉴于多智能体系统的强大功能，我们可以预见未来组织的架构将由相互关联的智能体构成；然而，在可预见的未来，除非文化和社会发生根本性变革，智能体被赋予某种程度的人格，否则人类仍将是责任的唯一承担者。这意味着，多智能体系统的控制和设计将以人类为最终仲裁者和高风险行为审批者。
 
-自然,Worker和Master内部都是通过无限循环实现持续不断处理客户端请求的,Master大部分时间都是Pending状态,直到接收到信号(如子进程退出,或者用户发送SIGKILL)才会开始处理.
+### ch1: Agent引入企业
 
-如果启动了缓存,那么Master还会创建两个进程,Cache Loader用于缓存与和Cache Manager用于清除缓存,
-### ch4: 数据结构
-讲了内存分配,Nginx hash,Radix tree(前缀树Trie的改进版,用于IP前缀匹配)
-### ch5: 配置解析
-Nginx配置文件是由多个配置项组成的，每一个配置项都有一个项目名和对应的项目值，项目名又称为指令（Directive），而项目值可能是简单的字符串（以分号结尾），也可能是由简单字符串和多个配置项组合而成配置块的复合结构（以大括号结尾），我们可以将配置项归纳为两种：简单配置项和复杂配置项:
-![结构图](PixPin_2026-10-14_10-55-43.webp)
 
-某些字段如error_log可以多次出现:
-![结构图](PixPin_2026-10-14_10-56-43.webp)
-### ch6: 模块
-Nginx不会像Apache或Lighttpd那样在编译时生成so动态库，然后在程序执行时再进行动态加载，Nginx模块源文件会在生成Nginx时就直接被编译到其二进制执行文件中，所以，如果要选用不同的功能模块，必须对Nginx做重新配置和编译。
-### ch7: 事件管理
-各种操作系统平台下支持的各种I/O事件处理机制在Nginx内部都被进行了统一封装，这样不论Nginx被用在何种平台都能以最高效的方式运行,涉及的I/O多路复用接口如下:
-| 名称          | 特点                                                                                                                                                                                                                                                                                       |
-| :------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **select**    | 标准的 I/O 复用模型，几乎所有的类 UNIX 系统上都有提供，但性能相对较差。如果在当前系统平台上找不到更优的 I/O 事件处理机制，那么 Nginx 默认编译并使用 select 复用模型，我们也可以通过使用 `--with-select_module` 或 `--without-select_module` 配置选项来启用或禁用 select 复用模型模块的编译 |
-| **poll**      | 标准的 I/O 复用模型，理论上比 select 复用模型要优。同 select 复用模型类似，可以通过使用 `--with-poll_module` 或 `--without-poll_module` 配置选项来启用或禁用 poll 复用模型模块的编译                                                                                                       |
-| **epoll**     | 系统 Linux 2.6+ 上正式提供的性能更为优秀的 I/O 复用模型                                                                                                                                                                                                                                    |
-| **kqueue**    | 在系统 FreeBSD 4.1+，OpenBSD 2.9+，NetBSD 2.0 和 MacOS X 上特有的性能更优秀的 I/O 复用模型                                                                                                                                                                                                 |
-| **eventport** | 在系统 Solaris 10 上可用的高性能 I/O 复用模型                                                                                                                                                                                                                                              |
-| **/dev/poll** | 在系统 Solaris 7 11/99+，HP/UX 11.22+ (eventport)，IRIX 6.5.15+ 和 Tru64 UNIX 5.1A+ 上可用的高性能 I/O 复用模型                                                                                                                                                                            |
 
-![封装图](PixPin_2026-10-15_08-06-24.webp)
-### ch9: 请求处理与响应
 
+## Apache Kafka in Action
+
+
+## Docker Deep Dive
+### ch1-4: 介绍
+>尽管开发 Windows 容器投入了大量精力，但几乎所有容器都是Linux 容器。这是因为 Linux 容器体积更小、速度更快，而且 Linux 拥有更丰富的工具。
+
+由于容器共享运行所在主机的内核。这意味着容器化的Windows应用需要运行Windows内核的主机，而容器化的Linux应用则需要运行Linux内核的主机。但是，如前所述，您可以在安装了WSL 2后端的Windows系统上运行Linux容器
+#### OCI
+生态系统中的主要参与者齐聚一堂，成立了 OCI，这是一个厂商中立的轻量级委员会，负责管理容器标准:
+- The image-spec
+- The runtime-spec
+- The distribution-spec
+
+OCI规范对容器生态系统起到了同样的作用，此后容器生态系统蓬勃发展。Docker自OCI成立以来也发生了巨大变化，所有现代版本的Docker都实现了全部三项OCI规范。例如：
+
+- Docker 构建器 (BuildKit) 创建符合 OCI 标准的镜像
+- Docker 使用符合 OCI 标准的运行时来创建符合 OCI 标准的容器
+- Docker Hub 实现了 OCI 发行版规范，并且是一个符合 OCI 标准的镜像仓库。
+### ch5: Docker Engine
+![基本架构](PixPin_2026-10-18_10-59-57.webp)
+
+最初的Docker将所有功能都放入了daemon中,是在后面才逐渐拆分得到runc和containerd等独立工具的.
+
+![构建流程](PixPin_2026-10-18_11-10-31.webp)
+
+- shim可以让我们很轻松的将runc替换为其他runtime
+### ch6: images
 
 
 ## Architecture Patterns with Python
@@ -430,142 +440,6 @@ with uow:
 
 ### ch7: Aggregates
 
-## Docker Deep Dive
-### ch1-4: 介绍
->尽管开发 Windows 容器投入了大量精力，但几乎所有容器都是Linux 容器。这是因为 Linux 容器体积更小、速度更快，而且 Linux 拥有更丰富的工具。
-
-由于容器共享运行所在主机的内核。这意味着容器化的Windows应用需要运行Windows内核的主机，而容器化的Linux应用则需要运行Linux内核的主机。但是，如前所述，您可以在安装了WSL 2后端的Windows系统上运行Linux容器
-#### OCI
-生态系统中的主要参与者齐聚一堂，成立了 OCI，这是一个厂商中立的轻量级委员会，负责管理容器标准:
-- The image-spec
-- The runtime-spec
-- The distribution-spec
-
-OCI规范对容器生态系统起到了同样的作用，此后容器生态系统蓬勃发展。Docker自OCI成立以来也发生了巨大变化，所有现代版本的Docker都实现了全部三项OCI规范。例如：
-
-- Docker 构建器 (BuildKit) 创建符合 OCI 标准的镜像
-- Docker 使用符合 OCI 标准的运行时来创建符合 OCI 标准的容器
-- Docker Hub 实现了 OCI 发行版规范，并且是一个符合 OCI 标准的镜像仓库。
-### ch5: Docker Engine
-
-
-
-## Kubernetes in Action, Second Edition(待补充)
-- 出版于2026年（第2版），出版商：Manning，作者：Marko Lukša。
-
-### 入门
-
-#### ch1: Introducing Kubernetes
->Kubernetes 一词源自希腊语，意为“领航员”或“舵手”,最初由Google开发.
-
-Kubernetes集群包含两组nodes:
-1. control plane nodes: 控制整个集群
-
-![图示](PixPin_2026-07-09_17-26-06.webp)
-
-2. worker nodes: 实际工作的节点.
-
-![图示](PixPin_2026-07-09_17-27-13.webp)
-
-1. 你将应用清单提交至 Kubernetes API。API 服务器随后将清单中定义的对象写入 etcd。
-
-2. 控制器察觉到这些新建对象，随之创建若干新对象——每个应用实例对应一个。
-
-3. 调度器为每个实例分配一个节点。
-
-4. Kubelet 察觉到有实例被调度至其所在节点，便通过容器运行时启动该应用实例。
-
-5. kube-proxy 检测到应用实例已准备好接收客户端连接，随即为它们配置负载均衡器。
-
-6. Kubelet 与控制器持续监控系统状态，确保应用程序保持运行。
-#### ch2: 容器介绍
-每个容器都有着独立的文件系统和进程ID,如果是有Shell的Linux镜像的话,还可以使用bash命令.
-#### ch3: 部署kubernetes
-![关系图](PixPin_2026-10-12_14-42-11.webp)
-
-![创建流程](PixPin_2026-10-12_14-48-18.webp)
-每个Pod都有自己的IP地址,但这个地址仅在Cluster内部可见,通过expose命令即可将Pod部署为Service对外暴露
-
->你不应该关心Pod被调度到哪里。这也是为什么默认的kubectl get pods命令不会显示列表中Pod所属的工作节点信息。在Kubernetes的世界里，这点并不那么重要。
-
-Kube-proxy会自动提供负载均衡,所以不用担心多个Pod的流量访问:
-
-![结构图](PixPin_2026-10-12_15-02-28.webp)
-
-#### ch4: Kubernetes API and Model(待补充)
-
-### 使用Kubernetes
-#### ch5: Running applications with pods
-容器的设计初衷是**只运行单个进程**，不计算它创建的任何子进程。容器工具和Kubernetes都是围绕这个事实开发的。例如，容器中运行的进程应该将其日志写入标准输出。用于显示日志的Docker和Kubernetes命令仅显示从该输出捕获的内容。如果只有一个进程在容器中运行，它就是唯一的写入者，但如果你在容器中运行多个进程，它们都会写入相同的输出。因此，它们的日志会相互交织，难以判断每一行属于哪个进程。
-
-因此,为了组合相关的独立进程,我们需要引入Pod,为他们提供几乎相同的环境——仿佛它们都在同一个容器中运行。这些进程会存在一定程度的隔离，但并非完全隔离——它们共享部分资源。这让我们兼得了两者的优势：既能使用容器提供的全部特性，又能让进程协同工作。Pod使得这些相互关联的容器可以作为一个统一单元进行管理。
-
-在第2章中，你已经了解到容器使用自己的Linux命名空间集合，但同时也能够与其他容器共享部分命名空间。正是这种命名空间共享机制，使得Kubernetes与容器运行时能够将多个容器组合成一个Pod。Pod中的所有容器共享同一个网络命名空间，因此也就共享属于该命名空间的网络接口、IP地址以及端口空间。
-
-![示意图](PixPin_2026-10-14_11-41-07.webp)
-
-而一般来说,只有两个容器有必要放在同一个pod中相互交流时我们才会这么做,前端和后端则一般放在不同pod中:
-
-![示意图](PixPin_2026-10-14_11-52-54.webp)
-
-仅当应用程序由一个主进程和一个或多个补充主进程运行的辅助进程组成时，才适合将多个容器放入同一个Pod中。容纳补充进程的容器被称为Sidecar Containers,Sidecar就是给摩托车加装一个轮子变成三轮,但不同于摩托车的是，一个Pod可以拥有多个边车:
-
-![示意图](PixPin_2026-10-14_11-55-36.webp)
-
-##### pod中运行多个容器
-```yml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: kiada-ssl
-spec:
-  containers:
-    - name: kiada
-      image: luksa/kiada:0.2
-      ports:
-        - name: http
-          containerPort: 8080
-
-    - name: envoy
-      image: luksa/kiada-ssl-proxy:0.1
-      ports:
-        - name: https
-          containerPort: 8443
-        - name: admin
-          containerPort: 9901
-```
-当一个Pod包含多个容器时，所有容器会并行启动。Kubernetes未提供指定容器间依赖关系的机制，因此无法确保某个容器在其他容器之前启动。但Kubernetes允许在主容器启动前，通过运行一系列容器来初始化Pod。
-```yml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: kiada-init
-spec:
-  initContainers:
-    - name: init-demo
-      image: luksa/init-demo:0.1
-
-    - name: network-check
-      image: luksa/network-connectivity-checker:0.1
-
-  containers:
-    - name: kiada
-      image: luksa/kiada:0.2
-      stdin: true
-      ports:
-        - name: http
-          containerPort: 8080
-
-    - name: envoy
-      image: luksa/kiada-ssl-proxy:0.1
-      ports:
-        - name: https
-          containerPort: 8443
-        - name: admin
-          containerPort: 9901
-```
-#### ch6: 管理Pod
-
 ## 面向模式的软件架构
 ### 介绍
 这书总共有5卷:
@@ -863,6 +737,224 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 
 
 # 基础
+## Kubernetes in Action, Second Edition(待补充)
+- 出版于2026年（第2版），出版商：Manning，作者：Marko Lukša。
+
+### 入门
+
+#### ch1: Introducing Kubernetes
+>Kubernetes 一词源自希腊语，意为“领航员”或“舵手”,最初由Google开发.
+
+Kubernetes集群包含两组nodes:
+1. control plane nodes: 控制整个集群
+
+![图示](PixPin_2026-07-09_17-26-06.webp)
+
+2. worker nodes: 实际工作的节点.
+
+![图示](PixPin_2026-07-09_17-27-13.webp)
+
+1. 你将应用清单提交至 Kubernetes API。API 服务器随后将清单中定义的对象写入 etcd。
+
+2. 控制器察觉到这些新建对象，随之创建若干新对象——每个应用实例对应一个。
+
+3. 调度器为每个实例分配一个节点。
+
+4. Kubelet 察觉到有实例被调度至其所在节点，便通过容器运行时启动该应用实例。
+
+5. kube-proxy 检测到应用实例已准备好接收客户端连接，随即为它们配置负载均衡器。
+
+6. Kubelet 与控制器持续监控系统状态，确保应用程序保持运行。
+#### ch2: 容器介绍
+每个容器都有着独立的文件系统和进程ID,如果是有Shell的Linux镜像的话,还可以使用bash命令.
+#### ch3: 部署kubernetes
+![关系图](PixPin_2026-10-12_14-42-11.webp)
+
+![创建流程](PixPin_2026-10-12_14-48-18.webp)
+每个Pod都有自己的IP地址,但这个地址仅在Cluster内部可见,通过expose命令即可将Pod部署为Service对外暴露
+
+>你不应该关心Pod被调度到哪里。这也是为什么默认的kubectl get pods命令不会显示列表中Pod所属的工作节点信息。在Kubernetes的世界里，这点并不那么重要。
+
+Kube-proxy会自动提供负载均衡,所以不用担心多个Pod的流量访问:
+
+![结构图](PixPin_2026-10-12_15-02-28.webp)
+
+#### ch4: Kubernetes API and Model(待补充)
+
+### 使用Kubernetes
+#### ch5: Running applications with pods
+容器的设计初衷是**只运行单个进程**，不计算它创建的任何子进程。容器工具和Kubernetes都是围绕这个事实开发的。例如，容器中运行的进程应该将其日志写入标准输出。用于显示日志的Docker和Kubernetes命令仅显示从该输出捕获的内容。如果只有一个进程在容器中运行，它就是唯一的写入者，但如果你在容器中运行多个进程，它们都会写入相同的输出。因此，它们的日志会相互交织，难以判断每一行属于哪个进程。
+
+因此,为了组合相关的独立进程,我们需要引入Pod,为他们提供几乎相同的环境——仿佛它们都在同一个容器中运行。这些进程会存在一定程度的隔离，但并非完全隔离——它们共享部分资源。这让我们兼得了两者的优势：既能使用容器提供的全部特性，又能让进程协同工作。Pod使得这些相互关联的容器可以作为一个统一单元进行管理。
+
+在第2章中，你已经了解到容器使用自己的Linux命名空间集合，但同时也能够与其他容器共享部分命名空间。正是这种命名空间共享机制，使得Kubernetes与容器运行时能够将多个容器组合成一个Pod。Pod中的所有容器共享同一个网络命名空间，因此也就共享属于该命名空间的网络接口、IP地址以及端口空间。
+
+![示意图](PixPin_2026-10-14_11-41-07.webp)
+
+而一般来说,只有两个容器有必要放在同一个pod中相互交流时我们才会这么做,前端和后端则一般放在不同pod中:
+
+![示意图](PixPin_2026-10-14_11-52-54.webp)
+
+仅当应用程序由一个主进程和一个或多个补充主进程运行的辅助进程组成时，才适合将多个容器放入同一个Pod中。容纳补充进程的容器被称为Sidecar Containers,Sidecar就是给摩托车加装一个轮子变成三轮,但不同于摩托车的是，一个Pod可以拥有多个边车:
+
+![示意图](PixPin_2026-10-14_11-55-36.webp)
+
+##### pod中运行多个容器
+```yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kiada-ssl
+spec:
+  containers:
+    - name: kiada
+      image: luksa/kiada:0.2
+      ports:
+        - name: http
+          containerPort: 8080
+
+    - name: envoy
+      image: luksa/kiada-ssl-proxy:0.1
+      ports:
+        - name: https
+          containerPort: 8443
+        - name: admin
+          containerPort: 9901
+```
+当一个Pod包含多个容器时，所有容器会并行启动。Kubernetes未提供指定容器间依赖关系的机制，因此无法确保某个容器在其他容器之前启动。但Kubernetes允许在主容器启动前，通过运行一系列容器来初始化Pod。
+```yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kiada-init
+spec:
+  initContainers:
+    - name: init-demo
+      image: luksa/init-demo:0.1
+
+    - name: network-check
+      image: luksa/network-connectivity-checker:0.1
+
+  containers:
+    - name: kiada
+      image: luksa/kiada:0.2
+      stdin: true
+      ports:
+        - name: http
+          containerPort: 8080
+
+    - name: envoy
+      image: luksa/kiada-ssl-proxy:0.1
+      ports:
+        - name: https
+          containerPort: 8443
+        - name: admin
+          containerPort: 9901
+```
+#### ch6: 管理Pod
+### 总结
+日后来看,又臭又长.
+## 深入剖析Nginx
+- 出版于2013年，作者：高群凯。
+### ch1: 准备工作
+由于Nginx本身就不是一个特别复杂的软件,所以目录也很清晰:
+
+![目录图](PixPin_2026-10-09_19-28-58.webp)
+
+其中`src`文件夹是放源码的,`conf`文件夹放默认的配置文件,`auto`文件夹用于编译时的检查.实际上只看源码文件夹就够了.
+### ch3: 进程模型
+启动Nginx后会运行多个Nginx进程,有用于监控的Master(主进程),有Worker(工作进程),还有Cache相关的进程,进程之间彼此通信:
+
+![整体架构](PixPin_2026-10-09_19-39-23.webp)
+
+自然,Worker和Master内部都是通过无限循环实现持续不断处理客户端请求的,Master大部分时间都是Pending状态,直到接收到信号(如子进程退出,或者用户发送SIGKILL)才会开始处理.
+
+如果启动了缓存,那么Master还会创建两个进程,Cache Loader用于缓存与和Cache Manager用于清除缓存,
+### ch4: 数据结构
+讲了内存分配,Nginx hash,Radix tree(前缀树Trie的改进版,用于IP前缀匹配)
+### ch5: 配置解析
+Nginx配置文件是由多个配置项组成的，每一个配置项都有一个项目名和对应的项目值，项目名又称为指令（Directive），而项目值可能是简单的字符串（以分号结尾），也可能是由简单字符串和多个配置项组合而成配置块的复合结构（以大括号结尾），我们可以将配置项归纳为两种：简单配置项和复杂配置项:
+![结构图](PixPin_2026-10-14_10-55-43.webp)
+
+某些字段如error_log可以多次出现:
+![结构图](PixPin_2026-10-14_10-56-43.webp)
+### ch6: 模块
+Nginx不会像Apache或Lighttpd那样在编译时生成so动态库，然后在程序执行时再进行动态加载，Nginx模块源文件会在生成Nginx时就直接被编译到其二进制执行文件中，所以，如果要选用不同的功能模块，必须对Nginx做重新配置和编译。
+### ch7: 事件管理
+各种操作系统平台下支持的各种I/O事件处理机制在Nginx内部都被进行了统一封装，这样不论Nginx被用在何种平台都能以最高效的方式运行,涉及的I/O多路复用接口如下:
+| 名称          | 特点                                                                                                                                                                                                                                                                                       |
+| :------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **select**    | 标准的 I/O 复用模型，几乎所有的类 UNIX 系统上都有提供，但性能相对较差。如果在当前系统平台上找不到更优的 I/O 事件处理机制，那么 Nginx 默认编译并使用 select 复用模型，我们也可以通过使用 `--with-select_module` 或 `--without-select_module` 配置选项来启用或禁用 select 复用模型模块的编译 |
+| **poll**      | 标准的 I/O 复用模型，理论上比 select 复用模型要优。同 select 复用模型类似，可以通过使用 `--with-poll_module` 或 `--without-poll_module` 配置选项来启用或禁用 poll 复用模型模块的编译                                                                                                       |
+| **epoll**     | 系统 Linux 2.6+ 上正式提供的性能更为优秀的 I/O 复用模型                                                                                                                                                                                                                                    |
+| **kqueue**    | 在系统 FreeBSD 4.1+，OpenBSD 2.9+，NetBSD 2.0 和 MacOS X 上特有的性能更优秀的 I/O 复用模型                                                                                                                                                                                                 |
+| **eventport** | 在系统 Solaris 10 上可用的高性能 I/O 复用模型                                                                                                                                                                                                                                              |
+| **/dev/poll** | 在系统 Solaris 7 11/99+，HP/UX 11.22+ (eventport)，IRIX 6.5.15+ 和 Tru64 UNIX 5.1A+ 上可用的高性能 I/O 复用模型                                                                                                                                                                            |
+
+![封装图](PixPin_2026-10-15_08-06-24.webp)
+### ch9: 请求处理与响应
+介绍了Nginx解析Request Header,根据监听IP/端口创建socket,派生子请求来并发处理某次请求涉及的多个资源
+
+### ch10: location解析
+标准的location指令配置语法为
+```text
+location [ = | ~ | ~* | ^~ ] uri { ... }
+```
+官方示例如下:
+```json
+location = / {
+    # matches the query / only.
+    [ configuration A ]
+}
+location / {
+    # matches any query, since all queries begin with /, but regular
+    # expressions and any longer conventional blocks will be
+    # matched first.
+    [ configuration B ]
+}
+location ^~ /images/ {
+    # matches any query beginning with /images/ and halts searching,
+    # so regular expressions will not be checked.
+    [ configuration C ]
+}
+location ~* \.(gif|jpg|jpeg)$ {
+    # matches any request ending in gif, jpg, or jpeg. However, all
+    # requests to the /images/ directory will be handled by
+    # Configuration C.
+    [ configuration D ]
+}
+```
+
+nginx会自动对用户配置的location进行整理,将各自server下的location放在一起形成树.
+### ch13: 负载均衡
+Nginx默认采用加权轮询策略(通过weight,backup,down等字段配置),或者显式写明采用IP哈希策略.
+
+加权轮询:
+```c
+http {
+    upstream backend {
+        server 127.0.0.1:8000 weight=5;
+        server 127.0.0.1:8001 backup;
+    }
+
+    server {
+        listen 80;
+
+        location /api/ {
+            proxy_pass http://backend;
+        }
+    }
+}
+```
+
+由于加权轮询无法保留会话,所以只能用根据用户IP分派服务器的IP哈希策略了;但同时,IP哈希有负载不均衡等缺点(比如来自某个IP地址的请求特别多),所以需要进行斟酌一下来选择哪个策略.
+### ch14: 访问控制
+可以配置deny字段来禁止某个IP来访问服务器
+
+### 总结
+阅读起来相当累,因为作者是真的在一行行剖析源码的,似乎也觉得读者都是愿意和他一样一行行看源码的.
+
+
 ## Redis设计与实现
 - 出版于2014年，作者：黄健宏。
 - 本书基于Redis 2.9(Redis 3.0开发版)编写,而现在已经更新到8.10版本了,不过仍然值得一读
