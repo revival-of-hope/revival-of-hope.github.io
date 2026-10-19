@@ -572,6 +572,77 @@ HANDLERS = {
 ### ch3&&ch4: 管理领域复杂性
 为了确保项目成功，至关重要的是开发一种所有利益相关者（从软件工程师到领域专家）都能使用的通用语言进行沟通。这种语言应该反映领域专家对业务领域内部运作和基本原理的理解。但如果领域专家对某个技术名词的定义也要通过上下文才能精准判断时,我们就要引入Bounded Context
 ### ch5: 实现简单业务逻辑
+当我在领域驱动设计课程中介绍事务脚本模式时，学生们常常会皱起眉头，甚至有人会问：“这值得我们花时间吗？我们来这里难道不是为了学习更高级的模式和技术吗？”
+
+关键在于，事务脚本模式是你后续将要学习的更高级业务逻辑实现模式的基础。此外，尽管它看似简单，却也是最容易出错的模式。**我曾参与排查和修复的大量生产环境问题，最终或多或少都归结为系统业务逻辑的事务行为实现有误。**
+
+对于本地事务,我们写一个commit+rollback模式即可:
+```csharp
+public void Execute(Guid userId, DateTime visitedOn)
+{
+    try
+    {
+        _db.StartTransaction();
+        _db.Execute(@"UPDATE Users SET last_visit=@p1
+                       WHERE user_id=@p2",
+                    visitedOn, userId);
+        _db.Execute(@"INSERT INTO VisitsLog(user_id, visit_date)
+                       VALUES(@p1, @p2)",
+                    userId, visitedOn);
+        _db.Commit();
+    }
+    catch
+    {
+        _db.Rollback();
+        throw;
+    }
+}
+```
+但如果是分布式事务,就需要将消息发布到消息总线:
+```csharp
+public class LogVisit
+{
+    // ...
+
+    public void Execute(Guid userId, DateTime visitedOn)
+    {
+        _db.Execute("UPDATE Users SET last_visit=@p1 WHERE user_id=@p2",
+            visitedOn, userId);
+        _messageBus.Publish("VISITS_TOPIC",
+            new { UserId = userId, VisitDate = visitedOn });
+    }
+}
+```
+就算执行时出错,由于没能将消息发送到消息总线,所以也就无法恢复数据
+
+事务脚本模式的主要优势在于其简洁性。它引入的抽象层级极少，从而最大限度地降低了运行时性能和业务逻辑理解方面的开销。然而，这种简洁性也是该模式的缺点。业务逻辑越复杂，就越容易在事务之间出现重复，进而导致行为不一致——当重复的代码失去同步时。因此，事务脚本模式绝不应用于核心子域，因为它无法应对核心子域业务逻辑的高度复杂性。
+
+另一种方法则是使用Active Record,用于实现简单的CRUD,即模型自己负责持久化和业务逻辑:
+```csharp
+public class CreateUser
+{
+    // ...
+
+    public void Execute(UserDetails userDetails)
+    {
+        try
+        {
+            _db.StartTransaction();
+            var user = new User();
+            user.Name = userDetails.Name;
+            user.Email = userDetails.Email;
+            user.Save();
+            _db.Commit();
+        }
+        catch
+        {
+            _db.Rollback();
+            throw;
+        }
+    }
+}
+```
+### ch6: 处理复杂业务逻辑
 
 ## The Architecture of Open Source Applications
 

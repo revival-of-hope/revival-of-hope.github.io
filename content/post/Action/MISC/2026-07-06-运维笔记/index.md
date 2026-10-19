@@ -296,7 +296,9 @@ echo "Hello World"
 | Python 可执行脚本           | `#!/usr/bin/env python3` |
 | 始终通过 `bash xxx.sh` 执行 | 可以省略                 |
 
-在Docker容器中,一般推荐使用 `#!/bin/sh`，因为大多数 Linux 基础镜像都有 `/bin/sh`，但不一定安装了 Bash。
+在Docker容器中,推荐使用 `#!/bin/sh`，因为大多数 Linux 基础镜像都有 `/bin/sh`，但不一定安装了 Bash。
+
+
 ## Linux命令
 ### 常用命令
 | 序号 | 分类       | 命令     | 全名                            | 作用                         | 常见用法                         |
