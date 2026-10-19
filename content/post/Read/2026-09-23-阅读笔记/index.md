@@ -17,21 +17,40 @@ math: true
 
 如果温度大于1,则会让模型的输出偏离典型的输出,而小于1,则会逐渐靠近典型的输出.
 
->值得注意的是,主流的API中,如果开启了reasoning即CoT,那么就无法调节温度,至于为什么,很有可能是LLM公司发现如果调了温度会让LLM的输出惨不忍睹,但又不知道具体的原因是什么,所以才遮遮掩掩的.
+>值得注意的是,主流的API中,如果开启了reasoning即CoT,那么就无法调节温度,至于为什么,有可能是LLM公司发现如果调了温度会让LLM的输出惨不忍睹,但又不知道具体的原因是什么,所以才遮遮掩掩的.
 
 Transformer只能向过去的输出看,而永远无法向未来看,所以这些LLM都被称为单向Transformer
 ### ch3: chat
+比较详细的叙述了从文本补全模型到对话模型的改进,以GPT为中心.
+### ch4: 设计LLM应用程序
+
+
 ## The Agentic Enterprise
 ### 引言
 鉴于多智能体系统的强大功能，我们可以预见未来组织的架构将由相互关联的智能体构成；然而，在可预见的未来，除非文化和社会发生根本性变革，智能体被赋予某种程度的人格，否则人类仍将是责任的唯一承担者。这意味着，多智能体系统的控制和设计将以人类为最终仲裁者和高风险行为审批者。
 
 ### ch1: Agent引入企业
+一些作者的沉思,还是有点看头的
+
+### ch2: 商业案例
 
 
 
 
 ## Apache Kafka in Action
+### ch1: 介绍
+>Kafka 是一个强大、开源、分布式的流式处理平台，它从根本上改变了组织处理数据流的方式。Kafka 的核心功能是持久化、分布式地记录组织的所有数据事件。
 
+![架构](PixPin_2026-10-19_10-24-40.webp)
+
+
+### ch2: 入门
+![本书用例](PixPin_2026-10-19_10-29-37.webp)
+
+Kafka 默认保留数据七天，但我们也可以设置不删除数据,与go中的channel还是不一样的.
+
+我们已成功完成第一个 Kafka 用例，该用例涉及 Kafka 的数据读写操作。首先，我们使用 kafka-topics.sh 命令行工具创建了一个名为 products.prices.changelog 的主题，用于存储所有产品的价格变动。接下来，我们使用 kafka-console-producer.sh 命令将数据写入该主题，捕获价格更新。随后，我们使用 kafka-console-consumer.sh 命令读取并显示这些数据。此外，我们还通过使用多个生产者并行生产数据并使用多个消费者同时读取数据，进一步探索了 Kafka 的用法。通过在 kafka-console-consumer.sh 中使用 --from-beginning 标志，我们访问了历史数据。通过这个过程，我们熟悉了如何使用 Kafka 的命令行工具进行数据读写操作。
+### ch3: Kafka topic and messages
 
 ## Docker Deep Dive
 ### ch1-4: 介绍
@@ -58,6 +77,19 @@ OCI规范对容器生态系统起到了同样的作用，此后容器生态系�
 
 - shim可以让我们很轻松的将runc替换为其他runtime
 ### ch6: images
+>例如，官方的 Alpine Linux 镜像目前只有大约 3MB。这是因为它没有预装六个不同的 shell、三个不同的包管理器，以及一大堆你可能十年才用一次的工具。事实上，现在越来越多的镜像都不包含 shell 或包管理器——如果应用程序在运行时不需要它们，镜像就不会包含。我们称这些为精简镜像
+
+Docker在pull镜像时默认从Docker Hub拉取latest的镜像,除非特地指明,因此我们可以省略这两个字段:
+```bash
+docker pull nigelpoulton/tu-demo
+```
+
+有两点值得注意。
+
+* 如前所述，如果您未在仓库名称后指定镜像标签，Docker 会默认将镜像标记为 `latest`。如果仓库中没有标记为 `latest` 的镜像，则该命令将失败。
+* 标记为 `latest` 的image不保证是存储库中最新的image
+### ch7: 容器
+
 
 
 ## Architecture Patterns with Python
@@ -439,6 +471,114 @@ with uow:
 所以uow其实就是对数据库操作做了一层封装,并且通过抽象基类可以保证能随时替换数据库.
 
 ### ch7: Aggregates
+>当我们开始考虑扩展应用程序时，我们意识到，将订单行分配到所有可用批次的模型可能无法扩展。如果我们每小时处理数万个订单，以及数十万条订单行，我们不可能对每一条订单行都持有整个 batches 表的锁——**至少会遇到死锁或性能问题。**
+
+因此我们需要将原子操作封装到一个更大的单元里:
+```python
+class Product:
+    def __init__(self, sku: str, batches: List[Batch]):
+        self.sku = sku
+        self.batches = batches
+    def allocate(self, line: OrderLine) -> str:
+        try:
+            batch = next(
+                b for b in sorted(self.batches) if
+                b.can_allocate(line)
+            )
+            batch.allocate(line)
+            return batch.reference
+        except StopIteration:
+            raise OutOfStock(f'Out of stock for sku {line.sku}')
+```
+### Part Two前言
+>恕我直言——我们一直强调，每种模式都有其代价。每一层间接性都会增加代码的复杂性和重复性，并且会让从未见过这些模式的程序员感到困惑。如果你的应用本质上只是一个简单的数据库CRUD封装，并且在可预见的未来不太可能发展成其他功能，那么你就不需要这些模式。直接使用Django，省去很多麻烦吧。
+### ch8: Events and the Message Bus
+如果我们需要在库存不足时向管理员发送邮件提醒,一个显而易见的想法就是在路由里直接写,相关异常被抛出时就发送邮件.
+
+如果我们希望保持简洁,也可以把它放在domain或者service里面:
+```python
+def allocate(self, line: OrderLine) -> str:
+    try:
+        batch = next(
+            b for b in sorted(self.batches) if
+            b.can_allocate(line)
+        )
+        #...
+    except StopIteration:
+        email.send_mail('stock@made.com', f'Out of
+stock for {line.sku}')
+        raise OutOfStock(f'Out of stock for sku
+{line.sku}')
+```
+
+无论如何,这都破坏了single responsibility principle (SRP),即每个函数只应该有一个职责.
+
+如此一来,我们就有必要引入Events,它是一个简单的dataclass:
+```python
+from dataclasses import dataclass
+
+class Event:
+    pass
+
+@dataclass
+class OutOfStock(Event):
+    sku: str
+```
+
+因此,当出现异常时,我们就在发生异常的地方记录事件,由Message Bus来处理这些事件:
+```python
+def handle(event: events.Event):
+    for handler in HANDLERS[type(event)]:
+        handler(event)
+
+def send_out_of_stock_notification(event: events.OutOfStock):
+    email.send_mail(
+        'stock@made.com',
+        f'Out of stock for {event.sku}',
+    )
+
+HANDLERS = {
+    events.OutOfStock: [send_out_of_stock_notification],
+}  # type: Dict[Type[events.Event], List[Callable]]
+```
+至于具体怎么用,可以在service中处理,也可以在uow中处理
+### ch9: Message Bus深入
+
+## Learning Domain-Driven Design
+- 出版于2021年，出版商：O'Reilly，作者：Vlad Khononov。
+### ch1: Analyzing Business Domains
+讲了一些关于Domain的基本知识
+### ch2: 发现领域知识
+和专业领域人员探讨,找到通用语言.
+
+假设我们正在开发一个广告活动管理系统。请考虑以下陈述：
+
+* 广告宣传活动可以展示不同的创意素材。
+* 只有当广告系列中至少有一个广告位处于激活状态时，该广告系列才能发布。
+* 销售佣金在交易获得批准后进行结算。
+
+另一方面，以下陈述严格来说是技术性的，因此不符合通用语言的概念：
+
+* 广告 iframe 会显示一个 HTML 文件。
+* 只有当活动广告位表中至少有一条关联记录时，该广告活动才能发布。
+* 销售佣金是根据交易记录和已批准销售表中的相关记录计算的。
+
+可以看到,专业领域人员是看不懂技术名词的,我们需要精确实行二者间的转换.
+
+这一点值得重申：**一个有用的模型并非现实世界的复制品**。相反，模型的目的是为了解决问题，它只需提供足以实现该目的的信息。或者，正如统计学家乔治·博克斯所说：
+
+> **“所有模型都是错误的，但有些是有用的。”**
+
+### ch3&&ch4: 管理领域复杂性
+为了确保项目成功，至关重要的是开发一种所有利益相关者（从软件工程师到领域专家）都能使用的通用语言进行沟通。这种语言应该反映领域专家对业务领域内部运作和基本原理的理解。但如果领域专家对某个技术名词的定义也要通过上下文才能精准判断时,我们就要引入Bounded Context
+### ch5: 实现简单业务逻辑
+
+## The Architecture of Open Source Applications
+
+### 引言
+>建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
+### ch3: Bash
+
 
 ## 面向模式的软件架构
 ### 介绍
@@ -487,38 +627,23 @@ with uow:
     *   列举其他一些模式，它们要么解决了类似问题，要么有助于改进当前模式。
 
 ### ch2: 架构模式
+本章介绍如下8个架构模式：Layers（分层）、Pipes and Filters（管道和过滤器）、Blackboard（黑板）、Broker（中间人）、Model-View-Controller（模型—视图—控制器）、Presentation-Abstraction-Control（表示—抽象—控制）、Microkernel（微核）和Reflection（反射）。
+
+每个架构模式都有助于获得特定的系统整体特征，如用户界面的可适应性。可根据模式有助于实现的特征对它们进行分类，本章将架构模式分为四类。
+
+*   从混乱到有序。这类模式有助于避免组件（对象）过多。具体地说，它们有助于以可控的方式将整个系统面临的任务分解成相互协作的子任务。这类模式包括Layers、Pipes and Filters和Blackboard。
+*   分布式系统。这个类别只包含一个模式——Broker，但涉及其他类别中的两个模式：Microkernel和Pipes and Filters。Broker给分布式应用程序提供了完备的基础设施，对象管理组织（Object Management Group，OMG）不久后将对其底层架构标准化[OMG92]。Microkernel和Pipes and Filters模式将分布性视为次要考虑因素，因此根据它们考虑的主要因素将它们划归到了其他类别，但2.3节将详细讨论这两个模式的分布性方面。
+*   交互式系统。这个类别包含两个模式：Smalltalk领域大名鼎鼎的Model-View-Controller模式以及Presentation-Abstraction-Control模式。这两个模式都有助于组织支持人机交互的软件系统。
+*   可适应系统。如果应用程序需要扩展，以适应不断发展的技术及不断变化的功能性需求，使用模式Reflection和Microkernel将大有裨益。
 
 
-
-
-## Learning Domain-Driven Design
-- 出版于2021年，出版商：O'Reilly，作者：Vlad Khononov。
-### ch1: Analyzing Business Domains
-讲了一些关于Domain的基本知识
-### ch2: 发现领域知识
-和专业领域人员探讨,找到通用语言.
-
-假设我们正在开发一个广告活动管理系统。请考虑以下陈述：
-
-* 广告宣传活动可以展示不同的创意素材。
-* 只有当广告系列中至少有一个广告位处于激活状态时，该广告系列才能发布。
-* 销售佣金在交易获得批准后进行结算。
-
-另一方面，以下陈述严格来说是技术性的，因此不符合通用语言的概念：
-
-* 广告 iframe 会显示一个 HTML 文件。
-* 只有当活动广告位表中至少有一条关联记录时，该广告活动才能发布。
-* 销售佣金是根据交易记录和已批准销售表中的相关记录计算的。
-
-可以看到,专业领域人员是看不懂技术名词的,我们需要精确实行二者间的转换.
-
-这一点值得重申：**一个有用的模型并非现实世界的复制品**。相反，模型的目的是为了解决问题，它只需提供足以实现该目的的信息。或者，正如统计学家乔治·博克斯所说：
-
-> **“所有模型都是错误的，但有些是有用的。”**
-
-### ch3&&ch4: 管理领域复杂性
-为了确保项目成功，至关重要的是开发一种所有利益相关者（从软件工程师到领域专家）都能使用的通用语言进行沟通。这种语言应该反映领域专家对业务领域内部运作和基本原理的理解。但如果领域专家对某个技术名词的定义也要通过上下文才能精准判断时,我们就要引入Bounded Context
-### ch5: 实现简单业务逻辑
+#### 从混乱到有序
+- Layers:
+  - 应用: OSI七层协议,虚拟机,API,操作系统
+  - 优点: 各层可重用和轻易更换
+  - 缺点: 引入大量的适配代码和不必要的抽象,效率低下,而且底层代码的行为变化可能引发高层的剧烈崩溃
+- Pipes and Filters:
+  - 
 
 ## Kafka: The Definitive Guide,2nd edition
 - 出版于2021年（第2版），出版商：O'Reilly，作者：Gwen Shapira。
@@ -672,10 +797,7 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 
 
 
-## The Architecture of Open Source Applications(待补充)
 
-### 引言
->建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
 ## Systems Performance,2nd edition(待补充)
 - 出版于2020年（第2版），作者：Brendan Gregg。
 

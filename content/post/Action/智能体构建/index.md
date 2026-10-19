@@ -9264,7 +9264,7 @@ def delete_user(current_user: Superuser, session: SessionDep, user_id: int) -> R
 
 一个简单的想法是让路由部分根据crud部分的返回值来抛出异常,如返回1说明找不到用户,返回2说明删除失败.但更为精确的设计则是让crud部分返回异常,路由部分根据crud异常的名字来重新抛出HTTP异常.
 
-但问题接踵而至,curd作为业务代码,不应该接触数据持久化和回滚等底层逻辑,否则代码之间的界限就会相当模糊.一个好的想法是新建一个类,将回滚等操作都放入该类中,并由该类向路由部分抛出数据库操作异常.
+但问题接踵而至,crud作为业务代码,不应该接触数据持久化和回滚等底层逻辑,否则代码之间的界限就会相当模糊.一个好的想法是新建一个类,将回滚等操作都放入该类中,并由该类向路由部分抛出数据库操作异常.
 
 如此考量下来,代码之间的界限就相当清晰了,测试编写也变得简单了不少,路由部分就用我们之前的API自动测试即可;业务部分则测试边界情况,看是否会抛出相关的异常;crud层则可以引入sqlite等测试数据库,测试数据库的持久化行为是否正常.
 
@@ -9312,6 +9312,7 @@ flowchart TB
 路由层则改为直接访问数据库操作的Service,由Service访问Repository来实现数据库操作.
 
 ### Models重构
+#### 源代码分析
 先看看源代码:
 ```py
 from enum import Enum
@@ -9424,7 +9425,7 @@ class Message(MessageBase, table=True):
 也就是说,这里的models实际上是领域模型的具象化,但我们在建模时自动忽略了领域模型.因此,我们需要还原领域模型,从而实现真正的抽象和解耦,这也是DDD的核心概念之一.
 
 首先在app父文件夹下新建一个domain文件夹,然后新建文件`models.py`:
-
+#### domain创建
 **domain/models.py(经典写法)**
 ```py
 from dataclasses import dataclass, field
@@ -9594,6 +9595,9 @@ class Token(BaseModel):
 class TokenPayload(BaseModel):
     sub: str
 ```
+这样我们就可以干脆的把schemas.py移入domain文件夹里了,毕竟这也算是domain.
+
+
 其实,丢掉UserBase等依赖后,代码反而变得更加清晰了.不过如此一来,原来的`tables.py`也就非常好改了:
 ```py
 from enum import Enum
@@ -9686,7 +9690,7 @@ class MessageRecord(SQLModel, table=True):
         back_populates="messages",
     )
 ```
-
+#### mapper创建
 现在就是需要加一个转换层,从而让我们操作Domain的时候就能自动用对应的Record进行持久化存储.可惜的是并没有那么方便的工具能够一键执行.
 
 我们有两个选择,用Pydantic方法来自动操作,或者干脆全部像上面的例子一样一个个写映射关系,尽管目前我们的domain还很简单,但我也完全不愿意这么写,所以还是将domain转成用Pydantic的BaseModel定义比较好,写法如下:
@@ -9742,20 +9746,504 @@ class Message(BaseModel):
 **models/mappers.py**
 ```py
 from pydantic import BaseModel
+from typing import TypeVar
+
+T = TypeVar("T", bound=BaseModel)
 
 
-class Mapper:
+def mapper(source: BaseModel, target: type[T]) -> T:
+    return target.model_validate(source.model_dump())
 
-    @staticmethod
-    def convert(source: BaseModel, target: BaseModel) -> BaseModel:
-        return target.model_validate(source.model_dump())
 ```
 之所以这么写,也是考虑到转换关系实际上很明显,就没必要针对Record和Domain都单独写一个转换函数了,那样反而很麻烦.
 
 ### CRUD和仓库重构
-Models部分的a重构告一段落,现在就需要把我们的CRUD用Repo封装了.在动手之前,我们先想一下,我们的Repo需要如何和crud之间映射?要知道,可不是把所有的crud函数用一个Repo类封装起来就可以了,最好是能够高度复用,并且能够随便扩展.
+#### 基本分析
+Models部分的重构告一段落,现在就需要把我们的CRUD用Repo封装了.在动手之前,我们先想一下,我们的Repo需要如何和crud之间映射?要知道,可不是把所有的crud函数用一个Repo类封装起来就可以了,最好是能够高度复用,并且能够随便扩展.
 
-所以,我们需要加入一个基类`AbstractRepo`,用抽象方法填充,并供其他具体的仓库调用
+这需要我们先看看crud.py中的crud操作,总结出共性和不同点,好判断需要几个Repo类:
+
+**crud.py**
+```py
+
+def register_user(
+    *, session: Session, user_register: UserRegister | UserCreate
+) -> User:
+    user = User.model_validate(
+        user_register,
+        update={"hashed_password": hashing_password(user_register.password)},
+    )
+    try:
+        session.add(user)
+        session.flush()
+        if user.user_id is None:
+            raise RuntimeError("Failed to generate user_id")
+
+        usage = UserUsage(user_id=user.user_id)
+
+        session.add(usage)
+        session.commit()
+
+    except Exception:
+        session.rollback()
+        raise
+
+    session.refresh(user)
+    return user
+
+
+def get_user_by_name(*, session: Session, name: str) -> User | None:
+    return session.exec(select(User).where(User.name == name)).first()
+
+
+def check_user(*, session: Session, name: str, password: str) -> User | None:
+    db_user = get_user_by_name(session=session, name=name)
+    if not db_user:
+        verify_password(password, DUMMY_HASH)
+        return None
+    verified = verify_password(password, db_user.hashed_password)
+    if not verified:
+        return None
+    return db_user
+
+
+def get_users(*, session: Session, offset: int, limit: int) -> UsersPublic:
+    count_statement = select(func.count()).select_from(User)
+    count = session.exec(count_statement).one()
+
+    statement = (
+        select(User)
+        .options(selectinload(User.usage))  # type: ignore
+        .order_by(
+            desc(User.created_at),
+            desc(User.user_id),
+        )
+        .offset(offset)
+        .limit(limit)
+    )
+    users = session.exec(statement).all()
+
+    users_public = [UserPublic.model_validate(user) for user in users]
+    return UsersPublic(data=users_public, count=count)
+
+
+def get_usage_totals(*, session: Session) -> UsagePublic:
+    # 长这么丑我也很无奈
+    statement = select(
+        func.coalesce(func.sum(UserUsage.messages_count), 0),
+        func.coalesce(func.sum(UserUsage.input_tokens), 0),
+        func.coalesce(func.sum(UserUsage.output_tokens), 0),
+        func.coalesce(func.sum(UserUsage.total_tokens), 0),
+    )
+
+    result = session.exec(statement).one()
+
+    return UsagePublic(
+        messages_count=int(result[0]),
+        input_tokens=int(result[1]),
+        output_tokens=int(result[2]),
+        total_tokens=int(result[3]),
+    )
+
+
+def create_conversation(
+    *,
+    session: Session,
+    user_id: int,
+    title: str,
+) -> Conversation:
+    conversation = Conversation(user_id=user_id, title=title)
+
+    session.add(conversation)
+    session.commit()
+    session.refresh(conversation)
+    return conversation
+
+
+def get_conversation_for_user(
+    *,
+    session: Session,
+    conversation_id: int,
+    user_id: int,
+) -> Conversation | None:
+    statement = select(Conversation).where(
+        Conversation.conversation_id == conversation_id,
+        Conversation.user_id == user_id,
+    )
+    result = session.exec(statement).first()
+    return result
+
+
+def list_conversations(
+    *,
+    session: Session,
+    user_id: int,
+    offset: int = 0,
+    limit: int = 20,
+) -> list[Conversation]:
+    statement = (
+        select(Conversation)
+        .where(Conversation.user_id == user_id)
+        .order_by(
+            desc(Conversation.updated_at),
+            desc(Conversation.conversation_id),
+        )
+        .offset(offset)
+        .limit(limit)
+    )
+    result = session.exec(statement).all()
+    return list(result)
+
+
+def save_message(
+    *,
+    session: Session,
+    conversation: Conversation,
+    role: MessageRole,
+    content: str,
+    reasoning: str | None = None,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    total_tokens: int = 0,
+) -> Message:
+    if conversation.conversation_id is None:
+        raise ValueError("Conversation must be persisted before saving messages")
+
+    message = Message(
+        conversation_id=conversation.conversation_id,
+        role=role,
+        content=content,
+        reasoning=reasoning,
+    )
+    conversation.updated_at = get_datetime()
+
+    if role == MessageRole.ASSISTANT:
+        usage = session.get(UserUsage, conversation.user_id)
+
+        if usage is None:
+            usage = UserUsage(user_id=conversation.user_id)
+            session.add(usage)
+
+        usage.messages_count += 1
+        usage.input_tokens += input_tokens
+        usage.output_tokens += output_tokens
+        usage.total_tokens += total_tokens
+    try:
+        session.add(message)
+        session.add(conversation)
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
+    session.refresh(message)
+    return message
+
+
+def list_messages(
+    *,
+    session: Session,
+    conversation_id: int,
+    offset: int = 0,
+    limit: int = 100,
+) -> list[Message]:
+    statement = (
+        select(Message)
+        .where(Message.conversation_id == conversation_id)
+        .order_by(
+            asc(Message.created_at),
+            asc(Message.message_id),
+        )
+        .offset(offset)
+        .limit(limit)
+    )
+    result = list(session.exec(statement).all())
+    return result
+
+
+def get_history_message(
+    *,
+    session: Session,
+    conversation_id: int,
+    limit: int = 4,
+) -> list[Message]:
+    if limit < 1:
+        return []
+
+    statement = (
+        select(Message)
+        .where(Message.conversation_id == conversation_id)
+        .order_by(
+            desc(Message.created_at),
+            desc(Message.message_id),
+        )
+        .limit(limit)
+    )
+    messages = list(session.exec(statement).all())
+    messages.reverse()
+    return messages
+```
+涉及的crud方法列举如下: 
+1. User相关
+   1. 注册用户
+   2. 根据名字获取用户
+   3. 检查用户是否verified
+   4. 管理员获取用户列表
+2. Agent相关
+   1. 获取用户的token消耗等信息
+   2. 根据单条消息更新用户的token消耗等信息
+3. 对话相关
+   1. 创建对话
+   2. 根据用户id和对话id获取对话
+   3. 用户个人获取对话列表
+   4. 在对话内部新建单条消息并保存
+   5. 用户获取对话中的消息列表和用户为了多轮对话获取历史的消息列表,二者肯定是要合并的
+
+因此,实际上我们只要两个类就行,而且这两个类都有获取单条数据,获取数据列表,添加新数据三个方法,其他的则是自己独有的方法,至于用量统计可以先放着,我们得先重构了agents部分再来解决它.
+
+
+
+所以,我们需要加入一个基类`AbstractRepo`,用抽象方法填充,并供其他具体的仓库调用,这个基类应该支持以下抽象方法:
+1. get: 获取该类的必要信息
+2. get_all: 管理员获取该类相关列表的所有信息
+3. post: 加入新数据并刷新,遇到错误时回滚
+
+至于其他的独特方法则由相关的类自己实现即可.
+#### 基类仓库实现
+新建一个infra文件夹,并在其中新建一个`repo.py`,写入如下内容:
+
+```py
+from abc import abstractmethod, ABC
+from sqlmodel import Session
+
+
+class AbstractRepo(ABC):
+    def __init__(self, session: Session):
+        self._session = session
+
+    @abstractmethod
+    def get(self): ...
+
+    @abstractmethod
+    def get_all(self): ...
+
+    @abstractmethod
+    def post(self): ...
+```
+如此一来,继承的子类就不需要再重复写session初始化,而且必须实现三个抽象方法才能使用.
+#### 用户仓库实现
+先写实现用户的Repo,获取用户的函数是相当好写的:
+```py
+class UserRepo(AbstractRepo):
+    def get(self, name: str) -> User | None:
+        statement = select(UserRecord).where(UserRecord.name == name)
+        user = self._session.exec(statement).one()
+        if user is None:
+            return None
+
+        return mapper(user, User)
+```
+但对于获取用户列表这个功能,我们需要获取用户总数,所以还是单独放在一个工具函数`repo/datas.py`中比较好,之后的用量统计等功能也可以放进来:
+```py
+from sqlmodel import Session, select, func
+from app.models import UserRecord
+
+
+def users_amount(session: Session) -> int:
+    statement = select(func.count()).select_from(UserRecord)
+
+    amount = session.exec(statement).one()
+    return amount
+```
+然后放到类里面:
+```py
+    def get_all(self, offset: int, limit: int) -> UsersPublic:
+        statement = (
+            select(UserRecord)
+            .options(selectinload(UserRecord.usage))  # type: ignore
+            .order_by(
+                desc(UserRecord.created_at),
+                desc(UserRecord.user_id),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
+        users = self._session.exec(statement).all()
+
+        users_public: list = []
+        for user in users:
+            users_public.append(UserPublic.model_validate(user))
+
+        return UsersPublic(
+            data=users_public,
+            count=users_amount(self._session),
+        )
+```
+
+至于用户注册,可以先看看原函数:
+```py
+def register_user(
+    *, session: Session, user_register: UserRegister | UserCreate
+) -> User:
+    user = User.model_validate(
+        user_register,
+        update={"hashed_password": hashing_password(user_register.password)},
+    )
+    try:
+        session.add(user)
+        session.flush()
+        if user.user_id is None:
+            raise RuntimeError("Failed to generate user_id")
+
+        usage = UserUsage(user_id=user.user_id)
+
+        session.add(usage)
+        session.commit()
+
+    except Exception:
+        session.rollback()
+        raise
+
+    session.refresh(user)
+    return user
+```
+这里是很有问题的,如果UserRegister和UserCreate可以一起处理,那么两者肯定相差不多,完全可以放在一起,看一下原来的schema:
+```py
+# User
+class UserRegister(BaseModel):
+    # 写成1是为了偷懒~
+    name: str = Field(min_length=1, max_length=30)
+    password: str = Field(min_length=1, max_length=15)
+
+
+class UserCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=30)
+    is_active: bool = True
+    is_superuser: bool = False
+    password: str = Field(min_length=1, max_length=15)
+```
+合并如下:
+```py
+# User
+class UserRegister(BaseModel):
+    # 写成1是为了偷懒~
+    name: str = Field(min_length=1, max_length=30)
+    password: str = Field(min_length=1, max_length=15)
+
+
+class UserCreate(UserRegister):
+    is_active: bool = True
+    is_superuser: bool = False
+```
+二者都是用来创建用户的,因为UserCreate权限更高,所以只有管理员才能使用.
+
+用户注册函数的另一个问题在于,我们只需要返回UserPublic就可以,却在这里额外返回了多余的hash密码,所以需要缩减权限,最终的版本如下:
+```py
+    def post(self, user_in: UserRegister) -> UserPublic:
+        user = UserRecord.model_validate(
+            user_in,
+            update={"hashed_password": hashing_password(user_in.password)},
+        )
+
+        try:
+            self._session.add(user)
+            self._session.flush()
+            if user.user_id is None:
+                raise Exception
+            usage = UserUsage(user_id=user.user_id)
+
+        except Exception:
+            self._session.rollback()
+            raise
+
+        self._session.refresh(user)
+        return UserPublic.model_validate(user)
+```
+
+
+由于定义异常名字和报错信息是个很精致的活儿,所以我们都暂时用Exception填充,在较后面解决.
+
+而引入uow来让回滚和refresh自动化也等我们完成其他仓库类后再一并实现.
+
+接下来就是独属于user的check方法了,先看看唯一一个要用到验证用户的地方:
+```py
+@router.post("/access-token", tags=["auth"])
+def login_access_token(
+    session: SessionDep,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+) -> Token:
+    user = check_user(
+        session=session,
+        name=form_data.username,
+        password=form_data.password,
+    )
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect name or password",
+        )
+    elif not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user",
+        )
+    token_expires = timedelta(minutes=TOKEN_EXPIRE_MINUTES)
+    return Token(
+        access_token=security.create_token(
+            user.user_id,
+            expires_delta=token_expires,
+        )
+    )
+```
+上述写法是相当不入流了,验证用户的函数结果返回了整个user类,更别提属于数据库的错误要单独提升到路由中来处理了,我们先实现更加精确完善的check方法,日后再修改路由:
+```py
+    def check(self, name: str, password: str) -> int | None:
+        db_user = self.get(name)
+        if db_user is None:
+            verify_password(password, DUMMY_HASH)
+            raise Exception
+        verified = verify_password(password, db_user.hashed_password)
+        if not verified:
+            raise Exception
+        return db_user.user_id
+```
+
+#### 对话仓库实现
+三个基本操作函数的实现方法和用户仓库基本相同,看看就行:
+```py
+class ConversationRepo(AbstractRepo):
+    def get(self, conversation_id: int, user_id: int):
+        statement = select(ConversationRecord).where(
+            ConversationRecord.conversation_id == conversation_id,
+            ConversationRecord.user_id == user_id,
+        )
+        conversation = self._session.exec(statement).one()
+        return mapper(conversation, Conversation)
+
+    def get_all(self, user_id: int, offset=0, limit: int = 50) -> ConversationsPublic:
+        statement = (
+            select(ConversationRecord)
+            .where(ConversationRecord.user_id == user_id)
+            .order_by(
+                desc(ConversationRecord.updated_at),
+                desc(ConversationRecord.conversation_id),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
+        results = self._session.exec(statement).all()
+        lists = [mapper(result, ConversationPublic) for result in results]
+        return ConversationsPublic(data=lists)
+
+    def post(self, user_id: int, title: str) -> ConversationPublic:
+        conversation = ConversationRecord(user_id=user_id, title=title)
+
+        self._session.add(conversation)
+        self._session.commit()
+        self._session.refresh(conversation)
+        return ConversationPublic.model_validate(conversation)
+```
+重点在于那几个特殊方法
 ### Agents重构
 先看看原来agents文件夹中的两个文件:
 
