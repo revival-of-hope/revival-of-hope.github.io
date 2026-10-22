@@ -10633,7 +10633,10 @@ class ConversationRepo(AbstractRepo):
         return MessagesPublic(data=messages)
 ```
 
-### Agents重构
+### Service引入
+#### agents的预备重构阶段
+俗话说`“Make the change easy; then make the easy change`,也就是说我们需要先改动原架构中不合理的地方,才能更好地引入设计模式,不过流处理本来就是一个棘手的东西,不像普通的API调用那样好操作.
+
 先看看原来agents文件夹中的两个文件:
 
 **client.py**
@@ -10841,6 +10844,266 @@ class ChatBot:
 有如下问题:
 1. 两个类的函数划分简直是乱来,职责界限一点都不够清晰
 2. Agent本身不应该承担数据存储功能,而应该统一由Service管理.
+
+从最顶层来看,agents相关的函数都是为了服务`messages`路由的:
+```py
+@router.post("/messages")
+def chat(
+    request: ChatRequest,
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> StreamingResponse:
+    try:
+        conversation = chatbot.prepare_chat(
+            session=session,
+            user_id=_current_user_id(current_user),
+            request=request,
+        )
+    except ConversationNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+
+    if conversation.conversation_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Conversation could not be created",
+        )
+    history = crud.get_history_message(
+        session=session,
+        conversation_id=conversation.conversation_id,
+        limit=HISTORY_MESSAGE_LIMIT + 1,
+    )
+
+    chunks = agent.stream_agent(
+        history=history,
+        enable_reasoning=request.enable_reasoning,
+    )
+
+    return StreamingResponse(
+        chatbot.stream_and_save(
+            session=session,
+            conversation_id=conversation.conversation_id,
+            chunks=chunks,
+        ),
+# ...
+    )
+```
+这个路由承担了多个职责:
+1. 当对话不存在时创建对话或者对话存在时返回对话,并且在对话内部新建用户的消息
+2. 获取历史消息
+3. 传输历史消息给agent并开启Stream
+4. 将Stream传输给前端的同时还要保存AI输出的单条消息
+
+可以发现,这些操作都是在crud之上加了一层封装和条件判断,异常处理,所以不能放入Repo中,又不能放入路由中,因此就有必要引入新的中间层: Service.
+
+#### deps.py重构
+新建Service文件夹和chatservice.py文件,考虑到chatservice需要引入数据库依赖,所以把api文件夹中的deps.py移进来最好,顺便把它也重构一下,先看看原内容:
+```py
+from collections.abc import Generator
+from typing import Annotated
+
+from sqlmodel import Session
+
+from app.core.db import engine
+from app.models import User
+from app.models import TokenPayload
+from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, HTTPException, status
+from pydantic import ValidationError
+import jwt
+from jwt.exceptions import InvalidTokenError
+from app.core.config import settings
+from app.core.security import ALGORITHM
+
+oauth2 = OAuth2PasswordBearer(
+    tokenUrl="/api/access-token",
+    scheme_name="Oauth2",
+)
+
+TokenDep = Annotated[str, Depends(oauth2)]
+
+
+def get_db() -> Generator[Session, None, None]:
+    with Session(engine) as session:
+        yield session
+
+
+SessionDep = Annotated[Session, Depends(get_db)]
+
+
+def get_current_user(
+    session: SessionDep,
+    token: TokenDep,
+) -> User:
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[ALGORITHM],
+        )
+        token_data = TokenPayload(**payload)
+    except (InvalidTokenError, ValidationError):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid credentials",
+        )
+    user = session.get(User, token_data.sub)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User Not Found",
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user",
+        )
+    return user
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def get_current_superuser(user: CurrentUser) -> User:
+    if not user.is_superuser:
+        raise HTTPException(
+            status_code=403, detail="The user doesn't have enough privileges"
+        )
+    return user
+
+
+Superuser = Annotated[User, Depends(get_current_superuser)]
+```
+首先,currentuser依赖是过度设计,不用返回user整体,只需要返回user_id即可,而且,业务代码不能抛出HTTP异常,而只是抛出诸如UserNotActive这样的异常即可,但我们先全部留空,日后补全:
+```py
+from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends
+import jwt
+
+from typing import Annotated, Generator
+from sqlmodel import Session
+
+from app.core.db import engine
+from app.domain.models import User
+from app.domain.schemas import TokenPayload
+
+from app.core.config import settings
+from app.core.security import ALGORITHM
+from app.models import UserRecord
+from app.models.mappers import mapper
+
+oauth2 = OAuth2PasswordBearer(tokenUrl="api/access-token", scheme_name="Oauth2")
+
+TokenDep = Annotated[str, Depends(oauth2)]
+
+
+def get_db() -> Generator[Session]:
+    with Session(engine) as session:
+        yield session
+
+
+SessionDep = Annotated[Session, Depends(get_db)]
+
+
+def get_current_user(
+    session: SessionDep,
+    token: TokenDep,
+) -> User:
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[ALGORITHM],
+        )
+
+        # payload带有sub(用户ID)和exp等字段,但我们只需要sub即可
+        sub = TokenPayload(**payload).sub
+    except:
+        raise
+
+    userrecord = session.get(UserRecord, sub)
+    if not userrecord:
+        raise
+
+    user = mapper(userrecord, User)
+
+    if not user.is_active:
+        raise
+    return user
+
+
+def get_current_user_id(user: Annotated[User, Depends(get_current_user)]) -> int | None:
+    return user.user_id
+
+
+CurrentUserID = Annotated[int, Depends(get_current_user_id)]
+
+
+def get_current_superuser_id(
+    user: Annotated[User, Depends(get_current_user)],
+) -> int | None:
+    if not user.is_superuser:
+        raise
+    return user.user_id
+
+
+SuperuserID = Annotated[int, Depends(get_current_superuser_id)]
+```
+
+#### BaseService
+先实现一个基类:
+```py
+from typing import Generic, TypeVar
+from app.infra.repo import AbstractRepo
+
+RepoT = TypeVar("RepoT", bound=AbstractRepo)
+
+
+class BaseService(Generic[RepoT]):
+    def __init__(self, repo: RepoT) -> None:
+        self._repo = repo
+
+```
+这里的Repo尚未插入session,我们移到最后在deps.py中插入即可.
+
+#### UserService
+```py
+from app.services.baseservice import BaseService
+from app.infra.repo import UserRepo
+from app.domain.schemas import UserPublic, UserRegister, UsersPublic
+
+
+class UserService(BaseService[UserRepo]):
+    def get(self, name: str) -> UserPublic:
+        user = self._repo.get(name)
+        if not user:
+            raise
+        return UserPublic.model_validate(user)
+
+    def get_all(self, offset: int, limit: int) -> UsersPublic:
+        users = self._repo.get_all(offset, limit)
+
+        return users
+
+    def post(self, user_in: UserRegister) -> UserPublic:
+        user = self._repo.post(user_in)
+        if not user:
+            raise
+        return user
+
+    def delete(self, user_id: int) -> None:
+        try:
+            self._repo.delete(user_id)
+        except:
+            raise
+```
+异常留待后面统一处理
+#### ChatService
+
+#### UserService
+
 
 ## ch18: 联网搜索引入和MCP使用
 ### 背景介绍

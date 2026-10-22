@@ -7,50 +7,7 @@ math: true
 ---
 
 # 阅读中
-## Prompt Engineering for LLMs
-### ch1: 介绍提示词工程
-简单介绍,可惜当时是24年.
-### ch2: 介绍LLM
-![温度的原理](PixPin_2026-10-18_11-44-59.webp)
 
-当T趋近于0时,概率最大项会趋近于正无穷,而如果T=0,则是直接选择概率最大项,因为此时它的概率为1.
-
-如果温度大于1,则会让模型的输出偏离典型的输出,而小于1,则会逐渐靠近典型的输出.
-
->值得注意的是,主流的API中,如果开启了reasoning即CoT,那么就无法调节温度,至于为什么,有可能是LLM公司发现如果调了温度会让LLM的输出惨不忍睹,但又不知道具体的原因是什么,所以才遮遮掩掩的.
-
-Transformer只能向过去的输出看,而永远无法向未来看,所以这些LLM都被称为单向Transformer
-### ch3: chat
-比较详细的叙述了从文本补全模型到对话模型的改进,以GPT为中心.
-### ch4: 设计LLM应用程序
-
-
-## The Agentic Enterprise
-### 引言
-鉴于多智能体系统的强大功能，我们可以预见未来组织的架构将由相互关联的智能体构成；然而，在可预见的未来，除非文化和社会发生根本性变革，智能体被赋予某种程度的人格，否则人类仍将是责任的唯一承担者。这意味着，多智能体系统的控制和设计将以人类为最终仲裁者和高风险行为审批者。
-
-### ch1: Agent引入企业
-一些作者的沉思,还是有点看头的
-
-### ch2: 商业案例
-
-
-
-
-## Apache Kafka in Action
-### ch1: 介绍
->Kafka 是一个强大、开源、分布式的流式处理平台，它从根本上改变了组织处理数据流的方式。Kafka 的核心功能是持久化、分布式地记录组织的所有数据事件。
-
-![架构](PixPin_2026-10-19_10-24-40.webp)
-
-
-### ch2: 入门
-![本书用例](PixPin_2026-10-19_10-29-37.webp)
-
-Kafka 默认保留数据七天，但我们也可以设置不删除数据,与go中的channel还是不一样的.
-
-我们已成功完成第一个 Kafka 用例，该用例涉及 Kafka 的数据读写操作。首先，我们使用 kafka-topics.sh 命令行工具创建了一个名为 products.prices.changelog 的主题，用于存储所有产品的价格变动。接下来，我们使用 kafka-console-producer.sh 命令将数据写入该主题，捕获价格更新。随后，我们使用 kafka-console-consumer.sh 命令读取并显示这些数据。此外，我们还通过使用多个生产者并行生产数据并使用多个消费者同时读取数据，进一步探索了 Kafka 的用法。通过在 kafka-console-consumer.sh 中使用 --from-beginning 标志，我们访问了历史数据。通过这个过程，我们熟悉了如何使用 Kafka 的命令行工具进行数据读写操作。
-### ch3: Kafka topic and messages
 
 ## Docker Deep Dive
 ### ch1-4: 介绍
@@ -89,9 +46,116 @@ docker pull nigelpoulton/tu-demo
 * 如前所述，如果您未在仓库名称后指定镜像标签，Docker 会默认将镜像标记为 `latest`。如果仓库中没有标记为 `latest` 的镜像，则该命令将失败。
 * 标记为 `latest` 的image不保证是存储库中最新的image
 ### ch7: 容器
+介绍rm,exec,ps,run等常见容器命令.
+### ch8: 构建容器
+介绍了多阶段构建,多架构构建,构建的基本原理
+
+>任何时候，如果指令导致缓存未命中，缓存就会失效，并且在后续构建过程中不再进行检查。这意味着你应该编写 Dockerfile，将最有可能导致缓存失效的指令放在 Dockerfile 的末尾附近。这样可以确保构建过程尽可能长时间地利用缓存。
+### ch9: compose
+
+
+## Just Use Postgres!
+### ch1: 介绍Postgres
+介绍了用Docker运行Postgres,以及使用psql与Postgres进行连接的方法
+```sh
+docker exec -it postgres psql -U postgres
+```
+请注意，我们在 psql 连接字符串中没有指定密码，连接时也不会提示您输入密码。这是因为，一旦进入容器（docker exec -it postgres），psql 就会通过本地 Unix 套接字进行连接。Postgres Docker 镜像配置为将此类本地连接视为可信连接，因此无需输入密码。
+### ch2: Standard RDBMS capabilities
+
+## Agentic Coding with OpenAI Codex CLI
+### ch1: 介绍CodeX CLI
+介绍了CLI的历史和基本原理
+### ch2: 使用CodeX CLI
+
+## The Architecture of Open Source Applications
+
+### 引言
+>建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
+### ch3: Bash
+## Site Reliability Engineering, 2nd ed
+- 超级新鲜,还没出我就在期盼了
+### ch1: 引言
+乍一看，这个名字可能有点奇怪，但每个词都有更深层的含义——它们合在一起，很好地概括了 SRE 的本质：
+- Site: The why
+  - 2003 年，谷歌设立 SRE 部门时，其使命非常明确：“确保网站 (google.com) 正常运行”。
+- Reliability: The what
+  - 可靠性是 SRE 的最终目标。
+- Engineering: The how
+  - 工程是SRE为业务提供可靠性的方法。它并非英雄壮举、超能力或神秘魔法，而是运用软件工程的思维方式来解决可靠性问题
+### ch2: The Value of Reliability
+简单的头脑风暴,可以跳过
+### ch3: Trends in Production
+## Continuous API Management,2nd edtion
+### ch1: API管理的挑战
 
 
 
+# 先放着
+## 面向模式的软件架构
+### 介绍
+这书总共有5卷:
+
+| 卷数     | 英文书名                                      | 中文书名                   | 出版年份 | 主要内容                                                      |
+| :------- | :-------------------------------------------- | :------------------------- | :------- | :------------------------------------------------------------ |
+| **卷 1** | A System of Patterns                          | 模式系统                   | 1996     | 分层架构、MVC、Broker、Pipes and Filters 等架构模式           |
+| **卷 2** | Patterns for Concurrent and Networked Objects | 用于并发和网络化对象的模式 | 2000     | Reactor、Proactor、Acceptor-Connector、线程并发与网络通信模式 |
+| **卷 3** | Patterns for Resource Management              | 资源管理模式               | 2004     | 资源获取、资源生命周期、资源共享与释放                        |
+| **卷 4** | A Pattern Language for Distributed Computing  | 分布式计算的模式语言       | 2007     | 分布式系统架构与多种设计模式的组合                            |
+| **卷 5** | On Patterns and Pattern Languages             | 模式与模式语言             | 2007     | 模式的理论基础、模式语言及模式之间的关系                      |
+### volume 1
+### 模式
+每个模式都包含三部分:
+- 背景（Context）：问题出现的背景；
+- 问题（Problem）：该背景下反复出现的问题；
+- 解决方案（Solution）：经过实践检验的解决之道。
+
+模式类型有三种: 架构模式(如MVC,DDD),设计模式(如Observer模式),成例(针对特定编程语言的某种经验如引用计数),三者的关系是自顶向下,逐渐深入细节.
+
+模式的标准描述模板如下:
+*   **背景**
+    *   模式可能适用的情形。
+*   **问题**
+    *   模式解决的问题，包括涉及的作用力。
+*   **解决方案**
+    *   模式背后的基本解决原则。
+*   **结构**
+    *   详细说明模式的结构方面，包括每个参与组件的 CRC 卡 [BeCu89]（参见本书后面的“表示法”）以及一个 OMT 类图 [RBPEL91]。
+*   **动态**
+    *   通常是一些情景，描述了模式的运行阶段行为。
+    *   我们还使用对象消息序列图（参见本书后面的“表示法”）对情景做进一步说明。
+*   **实现**
+    *   模式实现指南。
+    *   这些指南只是建议，并非永恒的规则。你应根据需求调整实现：添加不同、额外或更详细的步骤，或调整步骤的顺序。我们使用 C++、Smalltalk、Java 或 pSather 示例代码来演示可能的实现，它们通常描述了示例问题的细节。
+*   **示例解答**
+    *   对“解决方案”、“结构”、“动态”和“实现”等部分未涉及，但对解决示例问题至关重要的各个方面进行讨论。
+*   **变种**
+    *   简要地描述当前模式的变种或具体化（specialization）。
+*   **已知应用**
+    *   模式在既有系统中的应用。
+*   **效果**
+    *   模式提供的优点及潜在的缺点。
+*   **参见**
+    *   列举其他一些模式，它们要么解决了类似问题，要么有助于改进当前模式。
+
+### ch2: 架构模式
+本章介绍如下8个架构模式：Layers（分层）、Pipes and Filters（管道和过滤器）、Blackboard（黑板）、Broker（中间人）、Model-View-Controller（模型—视图—控制器）、Presentation-Abstraction-Control（表示—抽象—控制）、Microkernel（微核）和Reflection（反射）。
+
+每个架构模式都有助于获得特定的系统整体特征，如用户界面的可适应性。可根据模式有助于实现的特征对它们进行分类，本章将架构模式分为四类。
+
+*   从混乱到有序。这类模式有助于避免组件（对象）过多。具体地说，它们有助于以可控的方式将整个系统面临的任务分解成相互协作的子任务。这类模式包括Layers、Pipes and Filters和Blackboard。
+*   分布式系统。这个类别只包含一个模式——Broker，但涉及其他类别中的两个模式：Microkernel和Pipes and Filters。Broker给分布式应用程序提供了完备的基础设施，对象管理组织（Object Management Group，OMG）不久后将对其底层架构标准化[OMG92]。Microkernel和Pipes and Filters模式将分布性视为次要考虑因素，因此根据它们考虑的主要因素将它们划归到了其他类别，但2.3节将详细讨论这两个模式的分布性方面。
+*   交互式系统。这个类别包含两个模式：Smalltalk领域大名鼎鼎的Model-View-Controller模式以及Presentation-Abstraction-Control模式。这两个模式都有助于组织支持人机交互的软件系统。
+*   可适应系统。如果应用程序需要扩展，以适应不断发展的技术及不断变化的功能性需求，使用模式Reflection和Microkernel将大有裨益。
+
+
+#### 从混乱到有序
+- Layers:
+  - 应用: OSI七层协议,虚拟机,API,操作系统
+  - 优点: 各层可重用和轻易更换
+  - 缺点: 引入大量的适配代码和不必要的抽象,效率低下,而且底层代码的行为变化可能引发高层的剧烈崩溃
+- Pipes and Filters:
+  - 
 ## Architecture Patterns with Python
 ### 前言
 按照知名度,我们有三种常用的开发架构:
@@ -543,178 +607,59 @@ HANDLERS = {
 ```
 至于具体怎么用,可以在service中处理,也可以在uow中处理
 ### ch9: Message Bus深入
+之前的消息总线是一个附加组件,现在我们试图将所有消息都通过消息总线来传输:
+```mermaid
 
-## Learning Domain-Driven Design
-- 出版于2021年，出版商：O'Reilly，作者：Vlad Khononov。
-### ch1: Analyzing Business Domains
-讲了一些关于Domain的基本知识
-### ch2: 发现领域知识
-和专业领域人员探讨,找到通用语言.
+flowchart TB
+    Flask["Flask"]
 
-假设我们正在开发一个广告活动管理系统。请考虑以下陈述：
+    subgraph SL["Service Layer"]
+        direction LR
 
-* 广告宣传活动可以展示不同的创意素材。
-* 只有当广告系列中至少有一个广告位处于激活状态时，该广告系列才能发布。
-* 销售佣金在交易获得批准后进行结算。
+        Bus{{"Message Bus"}}
 
-另一方面，以下陈述严格来说是技术性的，因此不符合通用语言的概念：
+        Handlers["Handlers<br/>(includes old services)"]
 
-* 广告 iframe 会显示一个 HTML 文件。
-* 只有当活动广告位表中至少有一条关联记录时，该广告活动才能发布。
-* 销售佣金是根据交易记录和已批准销售表中的相关记录计算的。
+        UoW["UoW"]
 
-可以看到,专业领域人员是看不懂技术名词的,我们需要精确实行二者间的转换.
+        Bus -->|"dispatches to"| Handlers
+        Handlers --> UoW
+        Bus -->|"collects new events published by"| UoW
+    end
 
-这一点值得重申：**一个有用的模型并非现实世界的复制品**。相反，模型的目的是为了解决问题，它只需提供足以实现该目的的信息。或者，正如统计学家乔治·博克斯所说：
+    subgraph DL[" "]
+        Domain["Domain"]
+    end
 
-> **“所有模型都是错误的，但有些是有用的。”**
+    Repository["Repository"]
 
-### ch3&&ch4: 管理领域复杂性
-为了确保项目成功，至关重要的是开发一种所有利益相关者（从软件工程师到领域专家）都能使用的通用语言进行沟通。这种语言应该反映领域专家对业务领域内部运作和基本原理的理解。但如果领域专家对某个技术名词的定义也要通过上下文才能精准判断时,我们就要引入Bounded Context
-### ch5: 实现简单业务逻辑
-当我在领域驱动设计课程中介绍事务脚本模式时，学生们常常会皱起眉头，甚至有人会问：“这值得我们花时间吗？我们来这里难道不是为了学习更高级的模式和技术吗？”
+    Flask -->|"puts events on"| Bus
 
-关键在于，事务脚本模式是你后续将要学习的更高级业务逻辑实现模式的基础。此外，尽管它看似简单，却也是最容易出错的模式。**我曾参与排查和修复的大量生产环境问题，最终或多或少都归结为系统业务逻辑的事务行为实现有误。**
+    UoW -->|"gathers events raised by"| Domain
+    UoW --> Repository
+    Repository --> Domain
 
-对于本地事务,我们写一个commit+rollback模式即可:
-```csharp
-public void Execute(Guid userId, DateTime visitedOn)
-{
-    try
-    {
-        _db.StartTransaction();
-        _db.Execute(@"UPDATE Users SET last_visit=@p1
-                       WHERE user_id=@p2",
-                    visitedOn, userId);
-        _db.Execute(@"INSERT INTO VisitsLog(user_id, visit_date)
-                       VALUES(@p1, @p2)",
-                    userId, visitedOn);
-        _db.Commit();
-    }
-    catch
-    {
-        _db.Rollback();
-        throw;
-    }
-}
+    %% 节点样式
+    classDef blue fill:#B5E0F5,stroke:#00A6BA,stroke-width:2px,color:#222
+    classDef yellow fill:#F3E1A0,stroke:#FFA267,stroke-width:3px,color:#222
+    classDef handler fill:#FFFFFF,stroke:#FF9B65,stroke-width:3px,stroke-dasharray:8 5,color:#222
+    classDef domain fill:#FFFFFF,stroke:#7794A2,stroke-width:2px,stroke-dasharray:5 5,color:#222
+
+    class Flask,UoW,Repository blue
+    class Bus yellow
+    class Handlers handler
+    class Domain domain
+
+    %% 容器样式
+    style SL fill:#FFFFFF,stroke:#00A6BA,stroke-width:2px,stroke-dasharray:5 5
+    style DL fill:#FFFFFF,stroke:none
+
+    %% 连线样式
+    linkStyle 2 stroke:#FF9B65,stroke-width:2px
+    linkStyle 3 stroke:#FF9B65,stroke-width:2px
 ```
-但如果是分布式事务,就需要将消息发布到消息总线:
-```csharp
-public class LogVisit
-{
-    // ...
 
-    public void Execute(Guid userId, DateTime visitedOn)
-    {
-        _db.Execute("UPDATE Users SET last_visit=@p1 WHERE user_id=@p2",
-            visitedOn, userId);
-        _messageBus.Publish("VISITS_TOPIC",
-            new { UserId = userId, VisitDate = visitedOn });
-    }
-}
-```
-就算执行时出错,由于没能将消息发送到消息总线,所以也就无法恢复数据
-
-事务脚本模式的主要优势在于其简洁性。它引入的抽象层级极少，从而最大限度地降低了运行时性能和业务逻辑理解方面的开销。然而，这种简洁性也是该模式的缺点。业务逻辑越复杂，就越容易在事务之间出现重复，进而导致行为不一致——当重复的代码失去同步时。因此，事务脚本模式绝不应用于核心子域，因为它无法应对核心子域业务逻辑的高度复杂性。
-
-另一种方法则是使用Active Record,用于实现简单的CRUD,即模型自己负责持久化和业务逻辑:
-```csharp
-public class CreateUser
-{
-    // ...
-
-    public void Execute(UserDetails userDetails)
-    {
-        try
-        {
-            _db.StartTransaction();
-            var user = new User();
-            user.Name = userDetails.Name;
-            user.Email = userDetails.Email;
-            user.Save();
-            _db.Commit();
-        }
-        catch
-        {
-            _db.Rollback();
-            throw;
-        }
-    }
-}
-```
-### ch6: 处理复杂业务逻辑
-
-## The Architecture of Open Source Applications
-
-### 引言
->建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
-### ch3: Bash
-
-
-## 面向模式的软件架构
-### 介绍
-这书总共有5卷:
-
-| 卷数     | 英文书名                                      | 中文书名                   | 出版年份 | 主要内容                                                      |
-| :------- | :-------------------------------------------- | :------------------------- | :------- | :------------------------------------------------------------ |
-| **卷 1** | A System of Patterns                          | 模式系统                   | 1996     | 分层架构、MVC、Broker、Pipes and Filters 等架构模式           |
-| **卷 2** | Patterns for Concurrent and Networked Objects | 用于并发和网络化对象的模式 | 2000     | Reactor、Proactor、Acceptor-Connector、线程并发与网络通信模式 |
-| **卷 3** | Patterns for Resource Management              | 资源管理模式               | 2004     | 资源获取、资源生命周期、资源共享与释放                        |
-| **卷 4** | A Pattern Language for Distributed Computing  | 分布式计算的模式语言       | 2007     | 分布式系统架构与多种设计模式的组合                            |
-| **卷 5** | On Patterns and Pattern Languages             | 模式与模式语言             | 2007     | 模式的理论基础、模式语言及模式之间的关系                      |
-### volume 1
-### 模式
-每个模式都包含三部分:
-- 背景（Context）：问题出现的背景；
-- 问题（Problem）：该背景下反复出现的问题；
-- 解决方案（Solution）：经过实践检验的解决之道。
-
-模式类型有三种: 架构模式(如MVC,DDD),设计模式(如Observer模式),成例(针对特定编程语言的某种经验如引用计数),三者的关系是自顶向下,逐渐深入细节.
-
-模式的标准描述模板如下:
-*   **背景**
-    *   模式可能适用的情形。
-*   **问题**
-    *   模式解决的问题，包括涉及的作用力。
-*   **解决方案**
-    *   模式背后的基本解决原则。
-*   **结构**
-    *   详细说明模式的结构方面，包括每个参与组件的 CRC 卡 [BeCu89]（参见本书后面的“表示法”）以及一个 OMT 类图 [RBPEL91]。
-*   **动态**
-    *   通常是一些情景，描述了模式的运行阶段行为。
-    *   我们还使用对象消息序列图（参见本书后面的“表示法”）对情景做进一步说明。
-*   **实现**
-    *   模式实现指南。
-    *   这些指南只是建议，并非永恒的规则。你应根据需求调整实现：添加不同、额外或更详细的步骤，或调整步骤的顺序。我们使用 C++、Smalltalk、Java 或 pSather 示例代码来演示可能的实现，它们通常描述了示例问题的细节。
-*   **示例解答**
-    *   对“解决方案”、“结构”、“动态”和“实现”等部分未涉及，但对解决示例问题至关重要的各个方面进行讨论。
-*   **变种**
-    *   简要地描述当前模式的变种或具体化（specialization）。
-*   **已知应用**
-    *   模式在既有系统中的应用。
-*   **效果**
-    *   模式提供的优点及潜在的缺点。
-*   **参见**
-    *   列举其他一些模式，它们要么解决了类似问题，要么有助于改进当前模式。
-
-### ch2: 架构模式
-本章介绍如下8个架构模式：Layers（分层）、Pipes and Filters（管道和过滤器）、Blackboard（黑板）、Broker（中间人）、Model-View-Controller（模型—视图—控制器）、Presentation-Abstraction-Control（表示—抽象—控制）、Microkernel（微核）和Reflection（反射）。
-
-每个架构模式都有助于获得特定的系统整体特征，如用户界面的可适应性。可根据模式有助于实现的特征对它们进行分类，本章将架构模式分为四类。
-
-*   从混乱到有序。这类模式有助于避免组件（对象）过多。具体地说，它们有助于以可控的方式将整个系统面临的任务分解成相互协作的子任务。这类模式包括Layers、Pipes and Filters和Blackboard。
-*   分布式系统。这个类别只包含一个模式——Broker，但涉及其他类别中的两个模式：Microkernel和Pipes and Filters。Broker给分布式应用程序提供了完备的基础设施，对象管理组织（Object Management Group，OMG）不久后将对其底层架构标准化[OMG92]。Microkernel和Pipes and Filters模式将分布性视为次要考虑因素，因此根据它们考虑的主要因素将它们划归到了其他类别，但2.3节将详细讨论这两个模式的分布性方面。
-*   交互式系统。这个类别包含两个模式：Smalltalk领域大名鼎鼎的Model-View-Controller模式以及Presentation-Abstraction-Control模式。这两个模式都有助于组织支持人机交互的软件系统。
-*   可适应系统。如果应用程序需要扩展，以适应不断发展的技术及不断变化的功能性需求，使用模式Reflection和Microkernel将大有裨益。
-
-
-#### 从混乱到有序
-- Layers:
-  - 应用: OSI七层协议,虚拟机,API,操作系统
-  - 优点: 各层可重用和轻易更换
-  - 缺点: 引入大量的适配代码和不必要的抽象,效率低下,而且底层代码的行为变化可能引发高层的剧烈崩溃
-- Pipes and Filters:
-  - 
+一个很好的想法是,如果我们把API调用也看作是事件,那么所有的服务和业务就都可以通过消息总线传输了,不再需要区分内部事件还是外部事件.
 
 ## Kafka: The Definitive Guide,2nd edition
 - 出版于2021年（第2版），出版商：O'Reilly，作者：Gwen Shapira。
@@ -814,7 +759,21 @@ docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --topic test-topi
 ### 总结
 了解到这里就基本足够了,后面就是一些琐碎的配置环节了.
 
+## Apache Kafka in Action
+### ch1: 介绍
+>Kafka 是一个强大、开源、分布式的流式处理平台，它从根本上改变了组织处理数据流的方式。Kafka 的核心功能是持久化、分布式地记录组织的所有数据事件。
 
+![架构](PixPin_2026-10-19_10-24-40.webp)
+
+
+### ch2: 入门
+![本书用例](PixPin_2026-10-19_10-29-37.webp)
+
+Kafka 默认保留数据七天，但我们也可以设置不删除数据,与go中的channel还是不一样的.
+
+我们已成功完成第一个 Kafka 用例，该用例涉及 Kafka 的数据读写操作。首先，我们使用 kafka-topics.sh 命令行工具创建了一个名为 products.prices.changelog 的主题，用于存储所有产品的价格变动。接下来，我们使用 kafka-console-producer.sh 命令将数据写入该主题，捕获价格更新。随后，我们使用 kafka-console-consumer.sh 命令读取并显示这些数据。此外，我们还通过使用多个生产者并行生产数据并使用多个消费者同时读取数据，进一步探索了 Kafka 的用法。通过在 kafka-console-consumer.sh 中使用 --from-beginning 标志，我们访问了历史数据。通过这个过程，我们熟悉了如何使用 Kafka 的命令行工具进行数据读写操作。
+### ch3: Kafka topic and messages
+Kafka topics就像是数据库中的表,可以有多个Partition,类似于数据库的备份
 ## Vision Language Models
 - 出版于2026年，出版商：O'Reilly，作者：Merve Noyan。
 
@@ -928,8 +887,139 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 ![架构图](PixPin_2026-10-06_15-46-05.webp)
 ### Ch3: 文件格式
 
+## Learning Domain-Driven Design(待补充)
+- 出版于2021年，出版商：O'Reilly，作者：Vlad Khononov。
+### ch1: Analyzing Business Domains
+讲了一些关于Domain的基本知识
+### ch2: 发现领域知识
+和专业领域人员探讨,找到通用语言.
+
+假设我们正在开发一个广告活动管理系统。请考虑以下陈述：
+
+* 广告宣传活动可以展示不同的创意素材。
+* 只有当广告系列中至少有一个广告位处于激活状态时，该广告系列才能发布。
+* 销售佣金在交易获得批准后进行结算。
+
+另一方面，以下陈述严格来说是技术性的，因此不符合通用语言的概念：
+
+* 广告 iframe 会显示一个 HTML 文件。
+* 只有当活动广告位表中至少有一条关联记录时，该广告活动才能发布。
+* 销售佣金是根据交易记录和已批准销售表中的相关记录计算的。
+
+可以看到,专业领域人员是看不懂技术名词的,我们需要精确实行二者间的转换.
+
+这一点值得重申：**一个有用的模型并非现实世界的复制品**。相反，模型的目的是为了解决问题，它只需提供足以实现该目的的信息。或者，正如统计学家乔治·博克斯所说：
+
+> **“所有模型都是错误的，但有些是有用的。”**
+
+### ch3&&ch4: 管理领域复杂性
+为了确保项目成功，至关重要的是开发一种所有利益相关者（从软件工程师到领域专家）都能使用的通用语言进行沟通。这种语言应该反映领域专家对业务领域内部运作和基本原理的理解。但如果领域专家对某个技术名词的定义也要通过上下文才能精准判断时,我们就要引入Bounded Context
+### ch5: 实现简单业务逻辑
+当我在领域驱动设计课程中介绍事务脚本模式时，学生们常常会皱起眉头，甚至有人会问：“这值得我们花时间吗？我们来这里难道不是为了学习更高级的模式和技术吗？”
+
+关键在于，事务脚本模式是你后续将要学习的更高级业务逻辑实现模式的基础。此外，尽管它看似简单，却也是最容易出错的模式。**我曾参与排查和修复的大量生产环境问题，最终或多或少都归结为系统业务逻辑的事务行为实现有误。**
+
+对于本地事务,我们写一个commit+rollback模式即可:
+```csharp
+public void Execute(Guid userId, DateTime visitedOn)
+{
+    try
+    {
+        _db.StartTransaction();
+        _db.Execute(@"UPDATE Users SET last_visit=@p1
+                       WHERE user_id=@p2",
+                    visitedOn, userId);
+        _db.Execute(@"INSERT INTO VisitsLog(user_id, visit_date)
+                       VALUES(@p1, @p2)",
+                    userId, visitedOn);
+        _db.Commit();
+    }
+    catch
+    {
+        _db.Rollback();
+        throw;
+    }
+}
+```
+但如果是分布式事务,就需要将消息发布到消息总线:
+```csharp
+public class LogVisit
+{
+    // ...
+
+    public void Execute(Guid userId, DateTime visitedOn)
+    {
+        _db.Execute("UPDATE Users SET last_visit=@p1 WHERE user_id=@p2",
+            visitedOn, userId);
+        _messageBus.Publish("VISITS_TOPIC",
+            new { UserId = userId, VisitDate = visitedOn });
+    }
+}
+```
+就算执行时出错,由于没能将消息发送到消息总线,所以也就无法恢复数据
+
+事务脚本模式的主要优势在于其简洁性。它引入的抽象层级极少，从而最大限度地降低了运行时性能和业务逻辑理解方面的开销。然而，这种简洁性也是该模式的缺点。业务逻辑越复杂，就越容易在事务之间出现重复，进而导致行为不一致——当重复的代码失去同步时。因此，事务脚本模式绝不应用于核心子域，因为它无法应对核心子域业务逻辑的高度复杂性。
+
+另一种方法则是使用Active Record,用于实现简单的CRUD,即模型自己负责持久化和业务逻辑:
+```csharp
+public class CreateUser
+{
+    // ...
+
+    public void Execute(UserDetails userDetails)
+    {
+        try
+        {
+            _db.StartTransaction();
+            var user = new User();
+            user.Name = userDetails.Name;
+            user.Email = userDetails.Email;
+            user.Save();
+            _db.Commit();
+        }
+        catch
+        {
+            _db.Rollback();
+            throw;
+        }
+    }
+}
+```
+### ch6: 处理复杂业务逻辑
+额这一章真的没看明白在讲什么
+### ch7: 时间建模
+加入事件溯源模型,即追踪某个人物各个状态的演变过程(如普通用户申请成为管理员,不代表普通用户时期的数据就不重要了)
+### ch8: 架构模式
+讲了几个常用的架构
+### ch9: 通信模式
+### 总结
+一旦你发现一本书无论如何都看不懂的时候,就应该过段时间再来看.
 
 # 基础
+## Prompt Engineering for LLMs
+### ch1: 介绍提示词工程
+简单介绍,可惜当时是24年.
+### ch2: 介绍LLM
+![温度的原理](PixPin_2026-10-18_11-44-59.webp)
+
+当T趋近于0时,概率最大项会趋近于正无穷,而如果T=0,则是直接选择概率最大项,因为此时它的概率为1.
+
+如果温度大于1,则会让模型的输出偏离典型的输出,而小于1,则会逐渐靠近典型的输出.
+
+>值得注意的是,主流的API中,如果开启了reasoning即CoT,那么就无法调节温度,至于为什么,有可能是LLM公司发现如果调了温度会让LLM的输出惨不忍睹,但又不知道具体的原因是什么,所以才遮遮掩掩的.
+
+Transformer只能向过去的输出看,而永远无法向未来看,所以这些LLM都被称为单向Transformer
+### ch3: chat
+比较详细的叙述了从文本补全模型到对话模型的改进,以GPT为中心.
+### ch4: 设计LLM应用程序
+不值得看,因为这两年的Agent变化确实太大了
+### ch5: Prompt Content
+向LLM（机器学习模型）明确提出的问题比大多数人想象的更重要，也更难。原因之一是，人际沟通中误解非常普遍——只不过，当人们彼此交流时，任何误解往往都能迅速得到解决。但当你的应用与LLM通信时（例如，在ChatGPT上以程序化方式而非实时方式查询模型），误解往往会导致彻底失败。向LLM明确问题之所以重要，另一个原因是，更清晰的描述有助于模型每次遇到相同问题时都以相同的方式处理。明确描述能够带来一致性。
+
+讲了RAG和提示词撰写
+### 总结
+很遗憾,这本书刚好卡在两波潮流中间,不推荐阅读.
+
 ## Kubernetes in Action, Second Edition(待补充)
 - 出版于2026年（第2版），出版商：Manning，作者：Marko Lukša。
 
@@ -18453,6 +18543,42 @@ review_pipeline = SequentialAgent(
 
 ### 总结
 还是很不错的,把所有Agent的常见Pattern都讲了一遍.
+## The Agentic Enterprise
+### 引言
+鉴于多智能体系统的强大功能，我们可以预见未来组织的架构将由相互关联的智能体构成；然而，在可预见的未来，除非文化和社会发生根本性变革，智能体被赋予某种程度的人格，否则人类仍将是责任的唯一承担者。这意味着，多智能体系统的控制和设计将以人类为最终仲裁者和高风险行为审批者。
+
+### ch1: Agent引入企业
+一些作者的沉思,还是有点看头的
+
+### ch2: 商业案例
+现在采取行动拥抱代理式AI（Agentic AI）的论据并非建立在炒作之上，而是建立在证据之上。在接下来的篇幅中，我们将探讨促成这一绝佳战略时机的三大汇聚力量：已跨越成熟门槛的技术、正在重塑竞争格局的经济压力，以及已经开始奠定基础的组织机构。
+
+一旦竞争对手利用智能体在几分钟内完成决策，无论是重新规划供应链、调整报价还是集中营销最有潜力的客户，任何仍然需要耗费数天时间进行人工协调才能完成同样工作的组织都将面临日益严峻的竞争劣势。
+
+### ch3: 实际应用
+>本章提到的许多多智能体系统实际上是使用名为 NeuroSAN 的开源多智能体平台创建和部署的。该平台易于构建智能体系统，因此推荐给技术水平较低的读者使用。
+
+其实就是在我之前的Agent思考上扩展探究了,找到了更多的Agent应用层面.
+### ch4: 评估风险
+分析了三个公司实际使用Agent带来的提升,要我说,这些指标未必有那么有用,但用了Agent就肯定是有提升的,无论在文档操作还是代码编写上,或多或少能帮到一点.
+
+### ch5: 如何引入Agent
+简单介绍如何接入Agent
+
+### ch7: 信任Agent
+>在商业环境中，责任通常指的是谁负责执行某项任务，而问责指的是谁最终对结果负责并必须对此负责（向管理层、监管机构或客户）。正是基于这种区别，大型组织会使用诸如 RACI 矩阵之类的治理工具来正式明确“谁负责什么/谁拥有什么”。RACI 分别代表负责（Responsibility）、问责（Accountable）、咨询（Consulted）和知情（Informed）。这类框架迫使团队明确哪个角色/个人负责具体工作，如果出现问题谁要承担责任，关键决策前必须咨询谁，以及谁只需要了解情况即可。
+
+因此，诸如“是人工智能干的”之类的解释是行不通的。相反，组织需要明确的角色分工、类似RACI矩阵的职责映射以及升级路径，以便当智能体采取行动时，始终有人和团队（或委员会）对这些行动及其后果负责。
+
+使用Agent的人群可以分为以下几类:
+1. Enthusiastic early adopters (often younger or tech-centric roles): 这些人已经大量使用人工智能工具,往往对人工智能工具非常熟悉,且信任度较高，但在极端情况下或进入高风险领域时，可能会低估风险,对于智能体人工智能，他们需要清晰了解其局限性、明确的不确定性信号以及可见的安全机制，以避免智能体超出其安全运行范围。
+2. Skeptical experts in high-stakes domains (e.g., clinicians, risk, legal): 这些用户通常乐于接受人工智能作为决策支持工具，但不愿将最终的高风险判断委托给不透明的系统。他们担忧问责制、罕见的极端情况以及公平性，并且往往在职业环境中养成保守的习惯，不愿做出可能损害患者、客户或公司利益的改变——无论是否涉及正式的法规。对于这类用户，应将智能人工智能明确定位为副驾驶或第二位审阅者：提供基于案例的解释、不确定性评估，并使其能够轻松地升级、推翻或请求人工审核。
+3. Cautious pragmatists (mid-career managers, operations leaders): 许多管理者和运营领导者属于中间立场：他们既非早期拥护者，也非彻底反对者，但他们最关心的是运营风险、可靠性和声誉。他们希望看到智能体人工智能在他们的实际环境中切实有效，并且在出现问题时能够得到有效控制。他们最能接受具体的商业案例、可见的控制措施（审批流程、审计跟踪、事件处理手册）以及能够显示错误率、升级情况和改进情况的简洁性能仪表盘。对他们而言，信任是通过与管理良好的试点项目进行实践经验逐步建立起来的，而不是通过抽象的承诺。
+4. Low-familiarity or change-fatigued staff: 这个群体对人工智能的了解甚少，却非常担心人工智能会对他们的工作造成影响，而且常常难以理解人工智能如何与他们的日常工作联系起来。他们可能被晦涩难懂的专业术语所困扰，或者将人工智能视为“又一项自上而下强加的变革实验”。对于智能体系统而言，要想成功地让这个群体接受人工智能，首先需要用通俗易懂的语言进行基础教育，让他们亲身体验安全、低风险的应用案例，明确他们的角色和责任，并提供简洁易用、符合角色需求的界面，让人工智能支持感觉像是现有工具的自然延伸。早期体验至关重要：如果最初的互动令人困惑、带有惩罚性或解释不清，这些用户很快就会变成根深蒂固的怀疑者。
+
+### 总结
+一场酣畅淋漓的思考,停下来看看路在何方.
+
 # 高级
 
 
@@ -18869,9 +18995,17 @@ API 网关提供了用户认证、请求速率限制和超时/重试等横向需
 ### 操作系统
 `Operating Systems: Three Easy Pieces`我想是每个程序员的必读书了吧,如果要作为补充的话,`操作系统设计与实现`(讲解MINIX)和`Linux内核设计与实现`都是不错的书籍,其他的书就没什么好推荐的了.
 ### 计算机网络
-除了`计算机网络:自顶向下方法`外,我更推荐的反而是`计算机网络: 自底向上方法`,当然,原书的名字只是叫做`computer networking`,但由于它是从物理层向上讲的,所以就这么称呼了.
+除了`计算机网络:自顶向下方法`外,我更推荐的反而是`计算机网络: 自底向上方法`,原书是Andrew S. Tanenbaum主笔的`computer networks`,但由于它是从物理层向上讲的,所以就这么称呼了.
 
 **自顶向下**更偏向应用,对于底层的原理讲的都不是很透彻,我读的时候就有不少解释不清的地方;而**自底向上**更偏向理论,对于技术的原理都讲的很清晰,能够让人更深入的了解某一层的具体设计.
+
+自底向上在21年出了第六版,而自顶向下在25年出了第九版.
+
+另外还有两本值得关注的计算机网络书,一本叫做`Computer Networks: A Systems Approach`,由Larry L. Peterson编写,21年出了第六版,目前(26/10)第七版还在撰写中;另一本叫做`Data Communications and Networking`,21年出了第六版.
+
+由于计算机网络的相关知识确实很多很杂,所以多读几本绝非坏事.
+
+
 ### 处理器架构
 `计算机组成与设计: 硬件/软件接口`(有多个架构版本,推荐RISC-V的)和`计算机体系结构: 量化研究方法`是姊妹书,第一本打基础,第二本作为进阶,如果与国内课程对应的话,那就是计算机组成原理和计算机系统结构的关系.
 

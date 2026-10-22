@@ -672,4 +672,11 @@ React Native由Facebook于15年发布的多平台(除了Linux)打包框架.
 # 可观测性
 
 
+# 杂项
+## 斜杠(Slash)和反斜杠(Backslash)
+* `/`：**正斜杠 (Forward Slash)**，主要用于 Linux、macOS 文件路径、URL、Docker 路径，以及命令行选项等。
+* `\`：**反斜杠 (Backslash)**，主要用于 Windows 文件路径、编程语言转义、Bash/Dockerfile等的换行。
+
+简单来说,无脑用`/`,只有Windows,转义,换行要考虑用`\`.
+
 
