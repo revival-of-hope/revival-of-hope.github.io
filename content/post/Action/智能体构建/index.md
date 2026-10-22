@@ -10366,12 +10366,17 @@ def add_usage(userusage: UserUsage, usage: TokenUsage, role: MessageRole) -> Non
     def get_messages(
         self,
         conversation_id: int,
+        user_id: int,
         offset: int = 0,
         limit: int = HISTORY_MESSAGE_LIMIT,
     ) -> MessagesPublic:
         statement = (
             select(MessageRecord)
-            .where(MessageRecord.conversation_id == conversation_id)
+            .join(ConversationRecord)
+            .where(
+                ConversationRecord.conversation_id == conversation_id,
+                Conversation.user_id == user_id,
+            )
             .order_by(
                 desc(MessageRecord.created_at),
                 desc(MessageRecord.message_id),
@@ -10385,6 +10390,10 @@ def add_usage(userusage: UserUsage, usage: TokenUsage, role: MessageRole) -> Non
 
         return MessagesPublic(data=messages)
 ```
+
+>[!NOTE]
+>
+>这个函数通过相当巧妙的设计同时实现了**给Agent返回特定对话的历史消息**,**给用户返回特定对话的消息列表**两个功能.怎么说呢,确实很巧妙.
 
 最后的datas.py长这样:
 ```py
@@ -11066,7 +11075,7 @@ class BaseService(Generic[RepoT]):
         self._repo = repo
 
 ```
-这里的Repo尚未插入session,我们移到最后在deps.py中插入即可.
+这里的Repo尚未插入session,我们移到最后在deps.py中组装即可.
 
 #### UserService
 ```py
@@ -11102,7 +11111,7 @@ class UserService(BaseService[UserRepo]):
 异常留待后面统一处理
 #### ChatService
 
-#### UserService
+
 
 
 ## ch18: 联网搜索引入和MCP使用

@@ -608,259 +608,28 @@ X在09年的时候发布了第一条博客,内容如下:
 ### O’Reilly/Manning系列书籍(8/10)
 不搜不知道,一搜吓一跳,O’Reilly出版的技术书籍可谓是浩如烟海,如果能够把其中的精华全都读一读,立马就能成为一个很有见识的优秀程序员了.另一方面,这也让人不由得感叹O’Reilly对互联网生态的贡献之大.
 
->AI说的...
 >综合算上自 20 世纪 80 年代至今出版的所有纸质书、电子书、更新版次（Editions）以及动物系列（Animal Books）和 Nutshell 系列，O'Reilly 自身累计出版的图书品种数量在 5,000 至 7,000 册 之间
 
 ![离谱至极的出版量](PixPin_2026-08-10_17-08-06.webp)
 
-```md
-按 **2021 年 8 月—2026 年 8 月 10 日**统计，我核对 Manning 当前目录后，得到：
+不过这也给了我不少的动力,争取在下半年把我AI翻译出来的将近一百本O’Reilly的经典书籍全部搞定.这样一来面试的时候说不定我能比面试官还更懂某门技术
 
-> **共 55 本正式出版的书。**
+### 数据库架构问题(8/18)
+DBMS的诞生是程序员的福音,但也是各类生产事故的来源,从早期的关系数据库,迈步到MongoDB等文档数据库,再到焕发新生的NoSQL数据库,数据库的架构一直在演进,但我们却始终找不到一个可靠的方案去一次性解决所有的问题,我们只有一个万无一失的口诀: `It depends`.
 
-这里把**新版视为一本新的出版物**，例如 *AI Agents in Action*（2025）和 *AI Agents in Action, Second Edition*（2026）分别计数；不计 Video Edition、liveProject、单独章节合集，也不计尚未正式出版或已取消的 MEAP。比如 *Go in Action, Second Edition* 和 *Authorization in Action* 当前都预计 2026 年 9 月出版，所以不计入；*Kubeflow in Action* 已明确取消。([Manning Publications][1])
+不过,我们还是要思考一下,为什么数据库架构会这么难处理:
 
-Manning 对部分 2021 年旧书只显示到月份，因此我把 **2021 年 8 月整月**纳入五年窗口。
+1. 对于初创公司来说,光是配置一个云服务器就够了,毕竟几千几万的用户量也不太需要有什么额外的考量.至于选什么数据库倒是无所谓,看你主要存储的数据类型就行了.
 
----
+![示意图](PixPin_2026-08-18_22-51-54.webp)
 
-# 一、AI、机器学习与数据科学：16 本
+2. 当用户增长到百万级之后,一个服务器就不够用了,这时候你可能说,那我们可以把数据拆分后放到多个数据库中,这时候就有个非常关键的问题了,如果还用的是关系型数据库,一般来说用SQL的话只能对单个数据库起作用,一个容易想到的方法是在后端中通过条件判断来分流,将1-100万的用户id分配到第一个数据库里,依次类推,当然,更好的方法是将不同类型的数据分到各个数据库中,这样操作起来也更有针对性
+3. 显然,这种硬编码维护起来非常麻烦,用起来也有问题,当我想要一次性获取所有用户的信息用于数据统计时,这又该怎么办?只能单独写一个函数去逐个遍历所有数据库了吧.
+4. 但是这又有一个问题,数据库分流后不可避免地会拖慢查询速度,毕竟大多数流量都来自于读请求而非写请求,这样一来,我们必须在数据库前面套一层Redis缓存,存储先前传来的完全相同的请求结果.
+5. 如此一来又引入了缓存一致性问题,当你更新数据库的时候如果没能更新缓存的话,用户获取的就仍然是旧的数据,这在很多时候都会有灾难性的影响,特别是转账等常见的交易环节.
 
-这是近五年 In Action 扩张最明显的一类，尤其 2024 年以后明显向生成式 AI、LLM 和 Agent 倾斜。2025 年就集中出版了 AI Agents、GNN、NLP、Hugging Face、Knowledge Graphs + LLMs、Spring AI 和 Transformers 等。([Manning Publications][2])
+这一过程可以不断递推下去,每次的扩展都会引入新的问题,可以说永远不会完结,这不像房地产行业,交付了新房后直接走人即可,将维护问题丢给物业,而是需要持续不断地调整架构,**软件工程永远都是进行时**
 
-1. **Pandas in Action** — 2021
-2. **R in Action, Third Edition** — 2022
-3. **Machine Learning Engineering in Action** — 2022
-4. **Automated Machine Learning in Action** — 2022
-5. **TensorFlow in Action** — 2022
-6. **Bayesian Optimization in Action** — 2023
-7. **Generative AI in Action** — 2024
-8. **AI Agents in Action** — 2025
-9. **Graph Neural Networks in Action** — 2025
-10. **Natural Language Processing in Action, Second Edition** — 2025
-11. **Hugging Face in Action** — 2025
-12. **Knowledge Graphs and LLMs in Action** — 2025
-13. **Spring AI in Action** — 2025
-14. **Transformers in Action** — 2025
-15. **AI Agents in Action, Second Edition** — 2026
-16. **Digital Twins in Action** — 2026
-
-其中 *AI Agents in Action, Second Edition* 已于 **2026 年 6 月**正式出版；*Digital Twins in Action* 的电子版出版信息目前列为 **2026 年 7 月**。([Manning Publications][3])
-
----
-
-# 二、数据库、大数据、消息与流处理：10 本
-
-这一组基本就是后端数据基础设施：
-
-1. **PostGIS in Action, Third Edition** — 2021
-2. **Apache Pulsar in Action** — 2021
-3. **Kafka in Action** — 2022
-4. **Data Mesh in Action** — 2022
-5. **Elasticsearch in Action, Second Edition** — 2023
-6. **Kafka Streams in Action, Second Edition** — 2024
-7. **DuckDB in Action** — 2024
-8. **ScyllaDB in Action** — 2024
-9. **Apache Kafka in Action** — 2025
-10. **MongoDB 8.0 in Action, Third Edition** — 2025
-
-其中最早进入本统计窗口的两本分别是 *PostGIS in Action, Third Edition*（2021 年 8 月）和 *Apache Pulsar in Action*（2021 年 10 月）。([Manning Publications][4])
-
-2024—2025 年则比较集中：Kafka Streams 2e 为 2024 年 4 月，DuckDB 为 2024 年 7 月，ScyllaDB 为 2024 年 9 月；新的 *Apache Kafka in Action* 是 2025 年 4 月，MongoDB 8.0 3e 是 2025 年 6 月。([Manning Publications][5])
-
----
-
-# 三、云计算、云原生、DevOps与可观测性：10 本
-
-这一模块和你最近关注的 **Kubernetes、监控、微服务治理**关系最大：
-
-1. **Logging in Action** — 2022
-2. **Istio in Action** — 2022
-3. **Podman in Action** — 2022
-4. **Cloud Native Spring in Action** — 2022
-5. **Amazon Web Services in Action, Third Edition** — 2023
-6. **Google Anthos in Action** — 2023
-7. **Cloud Observability in Action** — 2023
-8. **GitHub Actions in Action** — 2024
-9. **Microsoft Azure in Action** — 2025
-10. **Kubernetes in Action, Second Edition** — 2026
-
-其中 Istio 2022、AWS 3e 2023、GitHub Actions 2024、Azure 2025，基本形成了一条相当完整的云原生学习线。([Manning Publications][6])
-
-*Kubernetes in Action, Second Edition* 已于 **2026 年 3 月**正式出版，688 页，是这一组里目前最新、也最值得注意的新版之一。([Manning Publications][7])
-
----
-
-# 四、Web、后端框架、Java/.NET应用开发：10 本
-
-1. **Spring in Action, Sixth Edition** — 2022
-2. **Blazor in Action** — 2022
-3. **ASP.NET Core Razor Pages in Action** — 2022
-4. **Akka in Action, Second Edition** — 2023
-5. **ASP.NET Core in Action, Third Edition** — 2023
-6. **.NET MAUI in Action** — 2023
-7. **.NET in Action, Second Edition** — 2024
-8. **Django in Action** — 2024
-9. **Spring Security in Action, Second Edition** — 2024
-10. **Quarkus in Action** — 2025
-
-.NET这一支尤其明显：ASP.NET Core Razor Pages（2022）→ ASP.NET Core 3e、.NET MAUI（2023）→ .NET in Action 2e（2024）。Manning 当前目录也明确列出了这些年份。([Manning Publications][8])
-
-Java这一边则有：
-
-
-其中 Quarkus 的正式版权页为 2025 年。([LiveBook][9])
-
----
-
-# 五、编程语言、开发平台、可视化与特殊计算：7 本
-
-1. **Hugo in Action** — 2022
-2. **Unity in Action, Third Edition** — 2022
-3. **Quantum Computing in Action** — 2022
-4. **Elixir in Action, Third Edition** — 2024
-5. **F# in Action** — 2024
-6. **Kotlin in Action, Second Edition** — 2024
-7. **D3.js in Action, Third Edition** — 2024
-
-
-
-Manning 的正式产品页分别确认了这些出版时间。([Manning Publications][10])
-
----
-
-# 六、软件工程与测试：2 本
-
-1. **BDD in Action, Second Edition** — 2023
-2. **Contract Testing in Action** — 2024
-
-前者系统讲 Behavior-Driven Development，2023 年 3 月出版；后者针对微服务/API的契约测试，使用 Pact、PactFlow 与 GitHub Actions，2024 年 11 月出版。([Manning Publications][11])
-
----
-
-# 汇总
-
-| 模块                                 |   数量 |
-| ------------------------------------ | -----: |
-| AI、机器学习与数据科学               | **16** |
-| 数据库、大数据、消息与流处理         | **10** |
-| 云计算、云原生、DevOps、可观测性     | **10** |
-| Web、后端框架、Java/.NET             | **10** |
-| 编程语言、开发平台、可视化与特殊计算 |  **7** |
-| 软件工程与测试                       |  **2** |
-| **总计**                             | **55** |
-
-```
-```md
-如果你说的是 O’Reilly 的 **“X: Up & Running / Up and Running”** 这一命名体系，我按与你上一问相同的口径统计：
-
-> **2021 年 8 月 10 日—2026 年 8 月 10 日，英文原版、O’Reilly Media 正式出版、书名明确含 `Up & Running` 或 `Up and Running`。**
-
-按这个口径，我目前核到的是 **12 本**。这里不重复计算韩文、德文、意大利文等翻译版，也不计 Video、课程和未来尚未正式出版的 Early Release。比如 *Claude Code: Up and Running* 目前标注正式出版时间为 **2026 年 12 月**，所以暂时不计。([O'Reilly Media][1])
-
-## 一、云原生、DevOps、基础设施：8 本
-
-这是 `Up & Running` 近五年最集中的领域，实际上已经非常明显地形成了 **容器 → K8s → IaC → Service Mesh → GitOps → eBPF 网络** 这一条技术路线。
-
-1. **Consul: Up and Running** — Luke Kysow，**2022 年 6 月**
-
-   * Consul、服务发现、Service Mesh、服务间安全、流量治理。
-   * 比较适合理解 HashiCorp 的服务网络体系。([O'Reilly Media][2])
-
-2. **Ansible: Up and Running, 3rd Edition** — Bas Meijer、Lorin Hochstein、René Moser，**2022 年 7 月**
-
-   * Ansible、Inventory、Playbook、Role、配置管理和基础设施自动化。
-   * 是这批书中偏传统运维自动化的一本。([O'Reilly Media][3])
-
-3. **Kubernetes: Up and Running, 3rd Edition** — Brendan Burns、Joe Beda、Kelsey Hightower、Lachlan Evenson，**2022 年 8 月**
-
-   * Kubernetes 核心模型、Pod、Service、Deployment、ConfigMap、RBAC、扩展机制等。
-   * 第三版正式首发日期为 2022 年 8 月 2 日。([O'Reilly Media][4])
-
-4. **Terraform: Up and Running, 3rd Edition** — Yevgeniy Brikman，**2022 年 9 月**
-
-   * Infrastructure as Code、Terraform state、module、测试、团队工作流。
-   * 非常适合和 Kubernetes、Ansible 连着学习。([O'Reilly Media][5])
-
-5. **Docker: Up & Running, 3rd Edition** — Sean P. Kane、Karl Matthias，**2023 年 4 月**
-
-   * Docker Engine、Image、Container、Networking、调试、生产部署及规模化容器平台。([O'Reilly Media][6])
-
-6. **Linkerd: Up and Running** — Jason Morgan、Flynn，**2024 年 4 月**
-
-   * Service Mesh、Linkerd control plane、proxy、mTLS、可靠性、可观测性和 Kubernetes 部署。([O'Reilly Media][7])
-
-7. **Argo CD: Up and Running** — Andrew Block、Christian Hernandez，**2025 年 6 月**
-
-   * GitOps、Argo CD、Application、同步策略、多集群、ApplicationSet、CI 集成。
-   * 对现代 Kubernetes 发布体系很有价值。([O'Reilly Media][8])
-
-8. **Cilium: Up and Running** — Nico Vibert、Filip Nikolic、James Laverack，**2026 年 2 月**
-
-   * Cilium、eBPF、CNI、Network Policy、Gateway API、Service Mesh、Hubble、透明加密和多集群网络。
-   * 是目前这批书里**最新的正式英文版**。([O'Reilly Media][9])
-
-这八本串起来其实很漂亮：
-
-
----
-
-## 二、监控与可观测性：1 本
-
-9. **Prometheus: Up & Running, 2nd Edition** — Julien Pivotto、Brian Brazil，**2023 年 4 月**
-
-   * Prometheus 架构
-   * Metrics
-   * Instrumentation
-   * Exporter
-   * PromQL
-   * Recording Rule
-   * Alertmanager
-   * Grafana
-   * Kubernetes
-   * 长期存储与生产部署
-
-
-这本应该排在非常前面。
-
----
-
-## 三、Web与应用开发：2 本
-
-10. **React: Up & Running, 2nd Edition** — Stoyan Stefanov，**2021 年 11 月**
-
-    * React、JSX、组件、Props/State、生命周期及应用构建。
-    * 它是这次五年窗口里最早的一本。([O'Reilly Media][11])
-
-11. **Laravel: Up & Running, 3rd Edition** — Matt Stauffer，**2023 年 9 月**
-
-    * Laravel、PHP Web应用、路由、数据库、认证、测试、队列等。
-    * 第一版2016、第二版2019，第三版在2023年重新更新。([O'Reilly Media][12])
-
-不过这两本的时效性评价要区别看。
-
-**React 2e 已经不算我现在最优先推荐的 React 教材**，因为前端技术栈变化太快；Laravel 3e 相对仍有较好的系统参考价值。
-
----
-
-## 四、数据库：1 本
-
-12. **Aerospike: Up and Running** — V. Srinivasan、Tim Faulkes、Albert Autin、Paige Roberts，**2024 年 10 月**
-
-    * Aerospike 分布式 NoSQL 数据库
-    * AP/CP 模式
-    * shared-nothing architecture
-    * flash optimization
-    * sub-millisecond workloads
-    * 数据建模
-    * 集群部署与运维
-
-它定位比较专业，不是像 PostgreSQL/MySQL 那样的通用数据库入门书，而是专门面向**高吞吐、低延迟分布式 KV/NoSQL 场景**。([O'Reilly Media][13])
-
-
-```
-
-不过这也给了我不少的动力,争取在下半年把我AI翻译出来的将近一百本O’Reilly的经典书籍全部搞定.这样一来面试的时候说不定我能比面试官还更懂某门技术😅
 ### 看看大佬(9/3)
 这个暑假属实是有点颓废了,只好看看大佬们的成果来鞭策一下自己
 
@@ -1118,6 +887,58 @@ PTC（Programmatic Tool Calling）是解决这个问题的一个好方法,大意
 
 
 
+### 看看新闻(10/22)
+停下来,看一看,想一想,或许有新的出路吧.
+
+1. [AI岗位](https://www.time-weekly.com/post/333286)
+   1. 虽然AI岗位需求旺盛，但多份人才报告印证赛道扩张的同时，**传统技术岗出现收缩**。大厂并非整体扩招，而是上演结构性“换血”：**压缩后端、NLP等传统技术岗位，将招聘预算重点投向AI业务**。即使同为AI领域岗位，部分求职机会也在向顶尖院校少数人才倾斜。字节跳动TopSeed、腾讯青云计划以及各类大厂奖学金，成为锁定顶尖人才的定向通道。
+   2. 此外，脉脉高聘人才智库《Agent重置职场——AI人才流动报告》还显示，2026年1月-7月，AI应用开发岗位在整体AI招聘中的占比达到60.97%，AI技术底座岗位占比24.55%，AI业务效能岗位占比14.48%。AI招聘的重心正在从训练和研发扩展到应用建设、现场交付和业务提效。
+2. [AI浪潮](https://news.sig.ai/cn/article/cmsxtixfs0006niufmevq27px?utm_source=chatgpt.com)
+   1. 我们和五位2026届、2027届毕业生聊了聊：有人投了四五十份简历，只拿到一次大厂面试机会；有人手握头部大厂实习，却因为不够垂直而被算法岗拒之门外；有人早早转向AI应用层，勉强接住了这波浪潮；也有人去年尝试投AI岗位，简历全挂，最后靠一段非AI的暑期实习转正留在了大厂
+   2. 过去，我们要联系几十名小体量KOC拍产品图，再反复修改。后来只要把产品放进AI工具，就能自动生成展示图。旁边负责优衣库的团队更直接：KOC提供正面、背面和侧面等九张照片，AI就能生成像真人拍摄的试衣镜自拍。主管在会上问：“以后是不是只买账号的发布权就够了，连真人拍摄都不需要？”
+3. [AI改革](https://www.yicai.com/epaper/pc/202608/07/content_53333.html?utm_source=chatgpt.com)
+   1. 8月5日，阿里巴巴集团及淘天集团、阿里云、阿里国际、Token Foundry（2026年6月8日成立的AI事业部）、千问办公、千问事业部、平头哥、高德等16个业务集团和公司同时开启2027届应届生招聘。记者了解到，阿里本届招聘涵盖算法、研发、芯片、产品等八大职类，AI相关岗位占比达到了80%。
+   2. 本周，字节跳动同样在“公司不同业务场景都有AI相关岗位需求”的背景下早早启动了2027年校园招聘，本次的招聘中，技术和产品岗位需求占比超过70%，字节表示，产品类岗位需求增加20%，其中超一半为AI产品，同时，算法类岗位需求也较去年再增加，首次上新AI全栈工程师、AI agent开发等岗位。
+4. [抢人大战](https://www.jiemian.com/article/13152361.html?utm_source=chatgpt.com)
+   1. “大厂都在使用各种方式争夺应届生，这导致校招生的薪资水平和社招的差距大幅缩减，一些顶尖院校的应届生薪资已经接近社招的水平。”
+   2. 虽然各家互联网大厂都在争夺AI人才，但不可否认的是，**这些岗位对求职者的学历和技术能力要求较高，市场上能够符合要求的应届生求职者数量本身就不多。**
+   3. 对于大多数应届生来说，他们通过校招进入大厂的难度并没有变得更低，而且这种竞争激烈的态势已经持续几年时间。脉脉高聘人才智库在2023年春招期间进行的一项调研显示，从当年1-4月成功签约的应届生中，超过85%感觉求职有难度，其中近32%觉得“非常难”。从求职时间来看，43.91%已签约应届生从求职到接到offer用了3个月以上。
+5. [校招规模普涨，AI岗占比最高超九成](https://www.51ldb.com/shsldb/zc/content/01a009425f9bc001000066d533acd97d.html?utm_source=chatgpt.com)
+   1. 从各家放出的校招计划看，“总量扩张、AI集中”特征鲜明。阿里2027届秋招计划发放7000余个offer，覆盖15个业务集团，AI相关岗位占比超六成，其中阿里云、阿里国际、钉钉占比高达80%，高德占比75%；淘天预计发出约1000个岗位，技术类占比超九成，AI相关岗位占比近五成。
+   2. 字节跳动计划在中国地区招聘超5000人，研发类岗位同比增长23%，算法、前端、客户端增幅最大，非研发类岗位增幅超100%，产品岗offer较去年翻一倍。腾讯校招覆盖70余种岗位，技术类扩招36%、产品类扩招39%，AI相关岗位需求提升30%，并在简历中新增“AI应用技能模块”。百度校招提供超4000个职位，较去年增长35%，AI相关职位占比超九成，新增90个职位聚焦多模态、跨模态等前沿方向。
+   3. 此外，美团补招6000人，新增AI产品经理、AI Agent开发工程师等岗位；蚂蚁集团技术岗占比85%，超70%与AI直接相关，聚焦大模型算法、多模态生成及具身智能等领域。
+   4. 与校招扩张形成强烈反差的是，有数据统计，2026年上半年全球科技行业出现约400起裁员事件，影响员工超15.3万人，平均每天约900名科技从业者失业。
+   5. 国内大厂同样动作密集。**阿里员工总数从2024年底的约19.4万人降至2025年底的12.8万人，一年减少6.6万人**，减员比例达34%；**百度核心移动生态事业群部分团队裁员比例达30%至40%，个别非核心业务线高达90%**，但AI及云计算相关职位基本被保留。由此可见，“一边裁人一边招人”正在成为行业常态。
+      1. 一开始被吓了一条,但阿里2025年5月的官方财报明确说明，人数下降主要由于高鑫零售出售并不再纳入集团合并报表，同时被新增招聘部分抵消。而到2026年3月，员工总数反而比上年增加了7,142人.
+      2. 所以这种三流新闻的报道只信一半就行了,不添油加醋是吸引不了读者的
+   6. 值得关注的是，顶尖人才争夺已趋白热化。从腾讯“青云计划”到阿里“阿里星”，从科大讯飞“飞星计划”到B站“B—UP”，各大厂纷纷推出顶尖技术人才专项招聘计划，今年4月更有AI科学家被曝以亿级年薪加入字节跳动。
+6. [AI的破坏](https://app.xinhuanet.com/news/article.html?articleId=20260721191ec565a0a64ae6a03ed7853bda892e&utm_source=chatgpt.com)
+   1. 目前，AI收缩效应主要集中在月薪5000—8000元，有1至3年工作经验的入门中端劳动者。过去，企业依靠入门新人完成文档、录入、标准化沟通等基础训练任务，如今这些环节被大模型承接，不再设置低薪练手岗。
+   2. 虽然大众期待生成式AI能催生全新职业赛道，但报告数据给出反向结论：2023年至2026年间，**新增职业名称体量极小，仅大模型算法、机器人工程师等少数岗位小幅扩张。**
+7. [春招报告](https://www.nbd.com.cn/articles/2026-05-14/4391595.html?utm_source=chatgpt.com)
+8. [字节招聘](https://www.nbd.com.cn/articles/2026-09-16/4583369.html?utm_source=chatgpt.com)
+   1. 在AI人才争夺战中，字节跳动持续领跑。《报告》显示，从岗位需求看，2026年1—7月，字节跳动位居新发AI岗位量榜首，小红书、蚂蚁集团、腾讯分列第二至四位。深度求索（DeepSeek）同期新发AI岗位量同比增长601.40%，云计算、智能硬件与新锐AI企业也在持续扩大招聘。
+9. [实习转正问题](https://search.laborinfocn.com/articles/95320?utm_source=chatgpt.com)
+   1.  柯卡的期待也落空了。全部门转正成功的实习生只有一个，是那个当时和他一起被叫来加班的实习生。柯卡挺失落的，试着后知后觉地寻找一些端倪，“是不是因为自己的带教不够嫡系？”
+       1. 没绷住哈 
+10. [前端转正失败](https://www.nowcoder.com/discuss/757002832288497664?utm_source=chatgpt.com)
+    1.  **自驱力，用产出说话**： 不能当个闷头干活的“工具人”，要主动去想、去做，去推动事情发生，能够提升团队。
+        1.  我服了哈,就一个实习,难不成还要我自己来提效不成,怎么不让正式员工提效
+
+
+![报告](PixPin_2026-10-22_13-45-05.webp)
+
+| 企业     | 2026年公布的实习招聘计划 | 主要变化                                 |
+| :------- | :----------------------- | :--------------------------------------- |
+| 腾讯     | 10000名以上              | 技术类扩招36%，产品类扩招39%，重点关注AI |
+| 字节跳动 | 7000个以上实习录用名额   | 公司称是史上最大规模转正实习招聘         |
+| 京东     | 10000个实习岗位          | 软件开发、物流、供应链、产品、数据算法等 |
+| 美团     | 超过3000个转正实习岗位   | AI产品、软件开发、大模型、具身智能等     |
+
+
+虽然新闻总有渲染或者夸张的地方,但看完了只有一种无力感,局势比起以往还要严峻,那些在Agent浪潮之前进去的初级工程师该怎么办呢,我们这两年的应届生又该怎么办呢.
+
+不过道理很明显,现在是热点,那么过几年就不是热点了,所谓树大招风,当供过于求的时候,竞争就会额外残酷.所以,当所有人都回过神来的时候,才是真正的地狱难度,由此来看,目前甚至还不是低谷.但未来究竟如何,我不知道,怎么会真有能料事如神的人呢.
 
 # 思考
 
@@ -1355,7 +1176,7 @@ PTC（Programmatic Tool Calling）是解决这个问题的一个好方法,大意
 当然,又会有人说,"你这只是个例而已,再说程序员又不稳定,还是考研后进体制内好",自然我举的例子都是个例,你了解的例子都是全面的了.话又说回来,体制内当然好啊,喜欢体制内的一般人自然会自己去不用你说的,但谁让我是二般人呢,不甘愿自己所学的知识就这样被埋没在连低级AI都能处理的CRUD里,就这样把鸡蛋装到一个所谓安全至极的篮子里.
 
 后悔的是我到了大二下才有了上述的这些体会,要是大一入学的时候就能有这些经验的话那我早就起飞了😇,不过走错的路并非是对自己的否定,更多的是教训和经验.
-### ChatGPT大失败(26/3/10)
+### ChatGPT大失败(3/10)
 现在GPT开始搞内部wiki,并且大幅度给免费版降智了,就连luogu的黄题都不太能搞得定,还总是输出垃圾文字和不存在的文献,可能是更改战略打算像Claude一样面向高端付费用户吧
 
 即便是最近降智的Gemini也更好用一点,而Grok更是非常擅长查找资料和总结文献,所以,我决定彻底抛弃gpt
@@ -1402,7 +1223,7 @@ An I/O -bound program typically has many short CPU bursts. A CPU-bound program m
 #### 总结
 翻译英文的时候你就应该用中国人的思维来看原文,用中国人的想法去理解原文,在保持大致意思的情况下尽可能的还原中文的语法结构才是最重要的.
 
-### AI取代程序员(26/4/1)
+### AI取代程序员(4/1)
 尽管很多人(包括程序员)都在说工作会被AI取代,但鲜有人真正懂得LLM的基本原理,只是看着AI输出一大段代码或者信息后就开始附和媒体的喧嚷,也给了大厂借着AI的名义大幅度裁员的机会.
 
 我的意见是: What the hell?
@@ -1415,7 +1236,7 @@ An I/O -bound program typically has many short CPU bursts. A CPU-bound program m
 
 LLM目前就只是一个概率模型而已,直到泡沫破裂了,才会有优秀的人才去探索更为实际的研究方向,才会有真正的进步和突破.
 
-### 某code源码泄露(26/4/1)
+### 某code源码泄露(4/1)
 ![示意图](PixPin_2026-04-01_21-13-31.webp)
 谁看到这个图能不笑🤣,可惜不是在今天泄露的,不然更有乐子了.
 - 不许你们再说小龙虾的star是沽名钓誉了🤢
@@ -1423,7 +1244,7 @@ LLM目前就只是一个概率模型而已,直到泡沫破裂了,才会有优秀
 ![示意图](PixPin_2026-04-01_21-16-56.webp)
 - 第一次见fork数量比肩star数量的,也是唯一一个fork数量逼近百万的仓库
 
-### 文档学习法(26/4/3)
+### 文档学习法(4/3)
 最好的学习方法就是去阅读一手的文档,而不是去看二手甚至三手的博客教程.
 
 毕竟官方文档的撰写者一般都是该领域的大牛甚至是作者本人,他对这个领域的了解程度会远远超过我们这些初学者.
@@ -1672,6 +1493,20 @@ Agent能够加快生产是真的,但是却不能增加岗位,反而在削减岗�
 我根本看不到有什么好的解决方案,尽管我们这一代人还不是特别明显,毕竟三线城市之下的缓冲区都还在,就算在大城市打拼失败也能回家考个小岗位,但日后的竞争一定是日益加剧的,那么只会剩下一大批的无业游民,就算生育率下滑,但架不住还有着从00年至10年的这一批积累啊,如果生产力发达到了不需要这么多人力的时候,那么这一次的矛盾又该如何转移?唯一想到的两个法子,比较简单的就是和哪个国家签订条约,弄一个开发移民,和以前的法子一样,但最可怕的可能则是...
 
 30年-40年一定是社会的最低谷,是一个不是天才就会被归类为废才的时代.而我们的解决方案也很简单,拼了命的提升自己,做到行业的前10%,才能勉强生存下去.
+### 一招鲜(10/6)
+从网站开发到底层架构,一切都可以用两个模型来解释,Server 和 Client.
+
+Client负责提要求,Server负责完成要求;Client负责发送消息,Server负责接收消息,这可以直接涵盖以下的所有情况:
+1. 网站/APP开发的前端用户交互和后端API
+2. 消息队列的Client和Server
+3. 数据库的客户端负责接收和包装用户操作,执行引擎负责执行该操作
+4. Nginx的客户端负责接收流量,Server负责反代流量
+5. Docker的客户端负责接受用户命令如`docker ps`,服务端负责管理,值得注意的是,这还是通过REST实现通信的
+6. Root用户向Linux内核发送请求,内核负责与文件系统和磁盘交互.
+
+再列举下去就没完没了了,不过这个模型建立其实是一个水到渠成的过程,当服务很简单时,我们甚至可以塞到一个文件里面,但等规模增大时,我们就需要拆分,但却必须要在拆分得到的两个或者多个服务之间保持沟通,也就是存在数据的流动,那这就存在一个收发的不对等关系,也就可以划分成Client和Server模型.
+
+如此一来,我们对计算机和网络的认识就瞬间变得清晰了,大多数应用都是通过收发消息实现的,如果你只需要用到这个应用,那就只学Client就行,如果需要深入研究甚至开发,那么就要学习Server部分,我们平常对某个技术抱有模糊的感觉时,那就是因为你没有关注Server部分的实现.
 
 ### 阶级固化的可能(10/13)
 我一直认为,阶级固化并非那么复杂的东西,最直观的指标就是**选择权的大小**.
@@ -1746,7 +1581,12 @@ Agent能够加快生产是真的,但是却不能增加岗位,反而在削减岗�
 
 
 
+### 整体架构思想(10/21)
+最近在做Agent的时候突然发现,后端开发不是你想写什么功能就写什么功能的,而是要针对前端所需要的接口来编写,按照供应链来说,前端才是上游,我们后端只要完成需求就可以了.
 
+其实核心就在于用户体验这四个字上面,一切的架构设计都是围绕着用户来的,思考一个架构/接口设计的是否合理,其实就是思考用户会怎么使用它,是否通俗易懂.
+
+只要每次在开发时都想到上面这一点,很多难题就可以轻松解决了,从更高层次来说,这叫做领域驱动设计(Domain-Driven Design,DDD),如此一来,我们就不会成为那种只会CRUD的小白了.
 # 文章分享
 ## 技术文章
 ### [cpp构造与析构](https://blog.csdn.net/2501_91275995/article/details/156042381)

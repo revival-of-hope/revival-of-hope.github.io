@@ -68,11 +68,7 @@ docker exec -it postgres psql -U postgres
 介绍了CLI的历史和基本原理
 ### ch2: 使用CodeX CLI
 
-## The Architecture of Open Source Applications
 
-### 引言
->建筑架构和软件架构有很多共同之处，但有一个关键区别。建筑师在培训和职业生涯中会研究成千上万座建筑，而大多数软件开发人员一生中真正熟悉的却寥寥无几的大型程序。而且，这些程序往往是他们自己编写的。他们从未有机会接触历史上那些伟大的程序，也从未阅读过经验丰富的从业者对这些程序设计的评论。结果，他们往往是在重复彼此的错误，而不是借鉴彼此的成功经验。
-### ch3: Bash
 ## Site Reliability Engineering, 2nd ed
 - 超级新鲜,还没出我就在期盼了
 ### ch1: 引言
@@ -86,6 +82,10 @@ docker exec -it postgres psql -U postgres
 ### ch2: The Value of Reliability
 简单的头脑风暴,可以跳过
 ### ch3: Trends in Production
+>如果管理不当，企业往往会发现，他们只是用波动性极大的运营支出（OpEx）取代了可预测的资本支出（CapEx）。这催生了金融运营（FinOps）这一学科，它将站点可靠性工程（SRE）的概念（例如自动化和以客户为中心的监控）应用于可靠性、容量和成本的交汇点。
+
+
+
 ## Continuous API Management,2nd edtion
 ### ch1: API管理的挑战
 
