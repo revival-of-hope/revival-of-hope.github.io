@@ -10393,7 +10393,9 @@ def add_usage(userusage: UserUsage, usage: TokenUsage, role: MessageRole) -> Non
 
 >[!NOTE]
 >
->这个函数通过相当巧妙的设计同时实现了**给Agent返回特定对话的历史消息**,**给用户返回特定对话的消息列表**两个功能.怎么说呢,确实很巧妙.
+>这个函数通过相当巧妙的设计同时实现了**给Agent返回特定对话的历史消息**,**给用户返回特定对话的消息列表**两个功能.确实很精细,但说难听点就叫功能耦合.
+
+
 
 最后的datas.py长这样:
 ```py
@@ -11110,6 +11112,48 @@ class UserService(BaseService[UserRepo]):
 ```
 异常留待后面统一处理
 #### ChatService
+获取单条对话的历史消息:
+```py
+class ChatService(BaseService[ConversationRepo]):
+    def get_messages(self, conversation_id: int, user_id: int) -> MessagesPublic:
+        messages = self._repo.get_messages(conversation_id, user_id,0,settings.MESSAGE_LIMIT)
+        return messages
+```
+
+而新建对话和新建消息我们需要反复斟酌,原来的设计非常粗暴,根据前端传入的Conversation_id是否为None来判断是否为空对话,并在一次请求中同时完成消息保存和流式输出.但是,如果前端出错,把某个实际存在的Conversation_id传成了None,那么就会真的新建一个对话,这是一个非常严重的问题.
+
+而往高处想一想的话,这个问题很好解决,不允许前端传入空的Conversation_id即可,对于空对话,我们只需要在前端做处理,不在数据库层面改变,在用户按下回车的那一刻,我们才真正创建对话,并同步发送API请求给LLM.而无论用户点击多少次新建对话,我们只在前端保持幂等性即可.实际看一看,所有的LLM对话平台都是这么做的.
+
+完整步骤如下:
+1. 用户前端新建空对话,输入后点击回车
+2. 后端新建对话,并根据用户输入生成标题(另写一个函数,不混在一起)
+3. 发起API请求
+4. 将用户输入存入对话中,并等待API流式返回
+5. 设立两个流式接口,一个是输出给前端的,一个是输出给后端保存的
+6. 考虑到一般情况,我们就不存储AI的thinking字段了,而是只存AI输出即可
+7. 一个比较常见的情况是,**前端中断AI输出**,由于Responses API在传输完成后才会发送完成的事件,根据这个我么们就可以判断是否要保存消息了,而且还不用自己拼接字符串,用例如下:
+
+```py
+stream = client.responses.create(
+    model="gpt-5.5",
+    input="你好",
+    stream=True,
+)
+
+for event in stream:
+    if event.type == "response.output_text.delta":
+        yield event.delta
+
+    elif event.type == "response.completed":
+        # 不用自己拼接字符串！
+        full_text = event.response.output_text
+
+        save_to_database(full_text)
+```
+
+>不过Responses API在流式输出之后,竟然还会重新输出一次完整的对话,尽管浪费带宽,但对开发来说确实很便捷
+
+
 
 
 

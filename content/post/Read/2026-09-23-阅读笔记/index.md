@@ -52,7 +52,8 @@ docker pull nigelpoulton/tu-demo
 
 >任何时候，如果指令导致缓存未命中，缓存就会失效，并且在后续构建过程中不再进行检查。这意味着你应该编写 Dockerfile，将最有可能导致缓存失效的指令放在 Dockerfile 的末尾附近。这样可以确保构建过程尽可能长时间地利用缓存。
 ### ch9: compose
-
+介绍构建一个简单的网页对话大模型
+### ch10: Docker and Wasm
 
 ## Just Use Postgres!
 ### ch1: 介绍Postgres
@@ -62,11 +63,64 @@ docker exec -it postgres psql -U postgres
 ```
 请注意，我们在 psql 连接字符串中没有指定密码，连接时也不会提示您输入密码。这是因为，一旦进入容器（docker exec -it postgres），psql 就会通过本地 Unix 套接字进行连接。Postgres Docker 镜像配置为将此类本地连接视为可信连接，因此无需输入密码。
 ### ch2: Standard RDBMS capabilities
+#### 多用户
+在Postgres中实现多租户有多种方法:
+1. Table-Level: 用一个共享表记录用户,使用类似tenant_id 的列来区分一个租户的数据与其他租户的数据。粒度很细
+2. Schema-level: 每个用户有一个专用的Schema,每个Schema有自己的Table,粒度适中
+3. Database-level: 每个用户有自己的数据库,粒度最大
+
+一个Postgres实例,可以内含多个数据库.
+#### 创建表
+Postgres 默认创建 postgres 数据库和 public schema，因此数据库和模式的创建步骤是可选的。但是，表的设计和创建完全由您负责——没有捷径可走。
+
+```sql
+CREATE TABLE products.catalog (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR (100) NOT NULL,
+    description TEXT NOT NULL,
+    category TEXT CHECK (category IN ('coffee', 'mug', 't-shirt')),
+    price NUMERIC(10, 2),
+    stock_quantity INT CHECK (stock_quantity >= 0)
+);
+```
+此语句将 catalog 表置于 products 模式下。模式名称在 CREATE TABLE语句中是可选的，仅当需要将表添加到特定模式时才使用,如果不指定则默认添加到当前Schema下,而这一般是Public Schema.
+
+#### SQL语句
 
 ## Agentic Coding with OpenAI Codex CLI
 ### ch1: 介绍CodeX CLI
 介绍了CLI的历史和基本原理
 ### ch2: 使用CodeX CLI
+几乎每个人在第一周都会犯同样的几个错误:
+1. 将其视为聊天，并且任务描述不够具体。“清理授权码”这样的任务没有给代理提供任何验证依据，因此它会自行定义“清理”的含义，并以此运行数分钟。解决方法是设置完成标准：指定文件名、所需的更改以及必须通过的测试。
+2. 打断你第一次不同意的修改。正如演示所示，第一次修改通常是一种试探。如果在智能体做出你不会做的事情时立即停止它，就会破坏使其发挥作用的测试和纠正循环。
+3. 在没有测试和 AGENTS.md 的情况下运行。没有测试，代理无法判断是否成功；没有 AGENTS.md，它无法确定要运行哪个测试命令或遵循哪些约定，因此只能靠猜测。
+
+Codex命令会激活交互式对话页面,但带上参数可以支持各种各样的功能,如codex exec
+### ch3: Prompting Codex CLI Effectively
+Four elements appear reliably in prompts that produce good results:
+
+- **Goal:** what ‘done’ looks like in one concrete sentence. Use outcome verbs: ‘add’, ‘fix’, ‘migrate’, ‘replace’.
+- **Context:** language version, framework and an analogous piece of code: ‘follow the pattern in `src/api/users.ts`'.
+- **Constraints:** what Codex CLI should not do. No new dependencies. Don't modify the database schema. Don't touch files in `src/legacy/`.
+- **Completion criteria:** a concrete, runnable check: '`GET /api/posts?page=2&limit=20` returns the correct JSON, and `npm test` exits with code 0'.
+
+包含四个要素的提示也暗示了任务的范围。理想的任务规模是同事可以在一个下午完成的，并且任务完成前后的状态清晰可见。较小的任务会浪费结构化提示的额外工作；较大的任务应该分解成若干里程碑，或者进入计划模式。
+
+一个技巧是渐进式披露Skill,Codex CLI 最初只显示名称和描述，仅在激活时加载完整指令,示例如下:
+
+>I have a skill at ~/.agents/skills/api-scaffold/SKILL.md.
+It should activate when I ask to create a new REST endpoint but NOT when I'm debugging an existing endpoint.
+### ch4: AGENTS.md
+![结构图](PixPin_2026-10-23_10-03-32.webp)
+
+一些值得一开始就了解的操作细节：
+1. Codex CLI 每次运行时都会重新构建此链；编辑文件时无需清除缓存。
+2. 空文件会被静默跳过；它们不会重置或中断链。
+3. 所有已加载文件的总大小受 project_doc_max_bytes 设置的限制，默认值为 32 KiB。超过此限制的文件将被静默截断
+4. 任何级别的 .override.md 变体都优先于同一级别的普通 .md 变体。
+
+
 
 
 ## Site Reliability Engineering, 2nd ed
