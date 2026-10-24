@@ -53,8 +53,17 @@ docker pull nigelpoulton/tu-demo
 >任何时候，如果指令导致缓存未命中，缓存就会失效，并且在后续构建过程中不再进行检查。这意味着你应该编写 Dockerfile，将最有可能导致缓存失效的指令放在 Dockerfile 的末尾附近。这样可以确保构建过程尽可能长时间地利用缓存。
 ### ch9: compose
 介绍构建一个简单的网页对话大模型
-### ch10: Docker and Wasm
+### ch10: Docker and Wasm(WebAssembly)
+介绍了与Linux容器相比性能更好的Wasm.
+### ch11: Docker Swarm
+Swarm 是 Docker 的原生技术，用于管理 Docker 节点集群和编排微服务应用程序。它类似于 Kubernetes，但功能相对简单，使用起来也更方便。
 
+介绍了Swarm的基本运作机制: 节点通过Token认证来决定作为Manager还是Worker加入swarm,Manager采用Raft算法,所以最好选用奇数个Manager节点.节点间自动通过TLS通信,无需手动配置连接细节.
+
+
+
+`docker swarm init`用于创建一个新的集群。运行该命令的节点将成为第一个管理器，并且该节点的 Docker Engine 会切换到集群模式。
+### ch11: Deploying apps to Swarm
 ## Just Use Postgres!
 ### ch1: 介绍Postgres
 介绍了用Docker运行Postgres,以及使用psql与Postgres进行连接的方法
@@ -85,7 +94,22 @@ CREATE TABLE products.catalog (
 ```
 此语句将 catalog 表置于 products 模式下。模式名称在 CREATE TABLE语句中是可选的，仅当需要将表添加到特定模式时才使用,如果不指定则默认添加到当前Schema下,而这一般是Public Schema.
 
-#### SQL语句
+#### 约束添加
+```sql
+ALTER TABLE products.catalog
+ADD CONSTRAINT catalog_price_check CHECK (price > 0);
+```
+可以看到这里的Constraint是对整个表添加的,而不需要特别指明是应用到price字段.
+
+但是`NOT NULL`这样的约束就需要特别指定列了:
+```sql
+ALTER TABLE products.reviews
+ALTER COLUMN review SET NOT NULL,
+ADD CONSTRAINT review_rank_check CHECK (rank BETWEEN 1 AND 5);
+```
+
+
+#### Transactions
 
 ## Agentic Coding with OpenAI Codex CLI
 ### ch1: 介绍CodeX CLI
@@ -120,8 +144,28 @@ It should activate when I ask to create a new REST endpoint but NOT when I'm deb
 3. 所有已加载文件的总大小受 project_doc_max_bytes 设置的限制，默认值为 32 KiB。超过此限制的文件将被静默截断
 4. 任何级别的 .override.md 变体都优先于同一级别的普通 .md 变体。
 
+AGENTS.md 文件一开始并不大，通常只有三四行。问题在于其增长曲线。每次智能体出错时，本能反应就是添加一条指令。每次添加指令本身都是合理的，但累积起来却会造成新的问题。
 
+请对 AGENTS.md 实施以下检查：
+- 是否涉及仓库结构、架构或布局？如果是，请移除。智能体通过阅读代码来了解仓库结构。
+- 是否为通用最佳实践？如果是，请移除。这些知识已内置于模型中。
+- 是否描述了框架约定？如果是，请移除。模型已知晓这些内容。
+- 是否与你的 README 内容重叠？如果是，请移除。以免重复消耗资源（Token）。
+- 能否移至嵌套的 AGENTS.md 中？如果仅与特定子目录相关，请将其下移。
+- 能否移至 Skill（技能）中？如果仅在特定工作流中相关，应将其放入按需加载的 Skill 文件中。
 
+指令只是建议。它们决定了 Codex CLI 的运行方式，但并不能阻止它执行你意料之外的操作。信任模型的硬性规定在于审批策略和沙箱模式：这些配置选项决定了代理程序可以执行哪些操作，以及操作系统会阻止哪些操作（即使代理程序尝试执行）。
+
+### ch5: Approval Modes and Trust Boundaries
+>如今，AI编程智能体生成代码的速度已比人类编写或审查的速度快出许多倍，随之而来的是一个结构性问题：下达提示词的开发者已经无法对生成的代码进行有意义的审查了。面对这一现象，**一些组织并没有将其视为需要加强代码审查的信号，反而开始把拉取请求（Pull Request）当作拖慢AI生成产出的瓶颈。**
+>
+>**目前行业的应对方式是叠加更多的智能体：由智能体审查员来审查智能体生成的代码，由智能体测试员来进行测试**。正如一位前 GitHub 高级工程师所言：“建立在缺陷系统之上的缺陷系统，并不会趋于完美。”对于没有机密信息的模块进行格式化处理，自动批准是没问题的。但当任务涉及医疗系统、金融平台或数以百万计的人所依赖的基础设施时，审批环节就不是瓶颈：它是最后一道防线。
+
+大多数会话都使用显式组合 `-a on-request -s workspace-write`分别对应执行敏感操作时请求Approval(全称为--ask-for-approval)和允许更改工作区文件的Sandbox(全称为--sandbox).
+
+推荐通过权限阶梯来控制Agent的权限:
+![示意图](PixPin_2026-10-24_10-20-19.webp)
+### ch6: Model Selection and Reasoning Effort
 
 ## Site Reliability Engineering, 2nd ed
 - 超级新鲜,还没出我就在期盼了
@@ -138,7 +182,17 @@ It should activate when I ask to create a new REST endpoint but NOT when I'm deb
 ### ch3: Trends in Production
 >如果管理不当，企业往往会发现，他们只是用波动性极大的运营支出（OpEx）取代了可预测的资本支出（CapEx）。这催生了金融运营（FinOps）这一学科，它将站点可靠性工程（SRE）的概念（例如自动化和以客户为中心的监控）应用于可靠性、容量和成本的交汇点。
 
+介绍了一些SRE领域相关的新变化,如今的生产环境与短短十年前相比已截然不同.面对各有特色却又大同小异的挑战，许多组织最终都趋同于采用共同的模式来应对规模化、复杂性和持续变化的需求
+### ch4: SRE的文化背景
+实际上在讲管理...
+### ch5: SRE Hiring, Training,and Career Management
+- 一次面试表现不佳并不一定意味着候选人不合适，也可能反映出面试官的水平
+  - 太直白了
 
+讲培训SRE的
+### ch6: SRE 的组织结构
+依旧讲管理
+### ch7: SRE Engagement Models
 
 ## Continuous API Management,2nd edtion
 ### ch1: API管理的挑战
@@ -19096,3 +19150,4 @@ API 网关提供了用户认证、请求速率限制和超时/重试等横向需
 - `Deep Learning from Scratch`是我最推荐的深度学习入门书籍,他能够让你知道,神经网络可以很简单,根本不是多复杂的东西,而我们离所谓高深莫测的AI也并没有那么遥远.
 - `RAG with Python Cookbook`: 真真正正讲RAG的,而不是直接从langchain调用个模型来就生成embedding了.
 - `Hugging Face in Action`: 介绍怎么用Hugging Face的,说真的,新人第一次进网站都会被吓到劝退好不好
+- `Agentic Coding with OpenAI Codex CLI`: 不仅仅是教Codex,而是在教在Agent时代怎么用Agent,非常详细易懂

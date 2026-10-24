@@ -9027,9 +9027,9 @@ INFO:__main__:Initial data created
 
 - 忘了将思考和对话的前端单独处理了...
 ## ch16: 断章-测试引入与API优化
->并非是说测试不必要,但测试驱动开发还是太扯淡了,只要不是多人合作的大型项目,个人开发者是完全有能力搞清楚整个程序的来龙去脉的,加入测试只是怕自己以后开发的时候忘记了当时想起的需求而已.
->
->但当项目大到几百个文件或者说需要多人开发时,那就必须要加测试了,因为人的脑容量终究是有限的,你不可能一个人记得住那么多东西,同样,你不能指望别人能记住所有东西.
+- 之所以叫断章是因为由于目前我们代码的职责十分混乱,想要编写测试无比艰难,就不真正编写具体的测试了,所以才有了下一章的重构.
+  - **重构,是为了更好的测试,测试,是为了更好的重构.**
+
 
 有个很现实的问题,没写过测试的人如何知道怎么写测试?唯一的方法就是去阅读经典项目了.不过好在python的第三方库太多了,我们有一些不用自己写测试的邪修方法,不过主要都聚焦在API设计上,毕竟业务代码的测试只能自己写,框架也不知道你希望产生什么结果嘛.
 ### Redocly静态检查
@@ -9234,7 +9234,7 @@ if __name__ == "__main__":
 
 
 # 智能体进阶
-## ch17: 引入设计模式
+## ch17: 引入设计模式(上)
 ### 前言
 是时候引入一点设计模式了,我们之前的类封装简直是在瞎写,完全没有一点美感.职责上可以说是相当的混乱,毫不客气的说,就是一堆垃圾,不具备可维护性.😁
 
@@ -9756,6 +9756,8 @@ def mapper(source: BaseModel, target: type[T]) -> T:
 
 ```
 之所以这么写,也是考虑到转换关系实际上很明显,就没必要针对Record和Domain都单独写一个转换函数了,那样反而很麻烦.
+#### 总结
+原代码的model名字和内容我们都没动,到了后面边重构边改,这也符合重构的Minimal Change原则.
 
 ### CRUD和仓库重构
 #### 基本分析
@@ -11112,15 +11114,8 @@ class UserService(BaseService[UserRepo]):
 ```
 异常留待后面统一处理
 #### ChatService
-获取单条对话的历史消息:
-```py
-class ChatService(BaseService[ConversationRepo]):
-    def get_messages(self, conversation_id: int, user_id: int) -> MessagesPublic:
-        messages = self._repo.get_messages(conversation_id, user_id,0,settings.MESSAGE_LIMIT)
-        return messages
-```
 
-而新建对话和新建消息我们需要反复斟酌,原来的设计非常粗暴,根据前端传入的Conversation_id是否为None来判断是否为空对话,并在一次请求中同时完成消息保存和流式输出.但是,如果前端出错,把某个实际存在的Conversation_id传成了None,那么就会真的新建一个对话,这是一个非常严重的问题.
+新建对话和新建消息我们需要反复斟酌,原来的设计非常粗暴,根据前端传入的Conversation_id是否为None来判断是否为空对话,并在一次请求中同时完成消息保存和流式输出.但是,如果前端出错,把某个实际存在的Conversation_id传成了None,那么就会真的新建一个对话,这是一个非常严重的问题.
 
 而往高处想一想的话,这个问题很好解决,不允许前端传入空的Conversation_id即可,对于空对话,我们只需要在前端做处理,不在数据库层面改变,在用户按下回车的那一刻,我们才真正创建对话,并同步发送API请求给LLM.而无论用户点击多少次新建对话,我们只在前端保持幂等性即可.实际看一看,所有的LLM对话平台都是这么做的.
 
@@ -11129,9 +11124,9 @@ class ChatService(BaseService[ConversationRepo]):
 2. 后端新建对话,并根据用户输入生成标题(另写一个函数,不混在一起)
 3. 发起API请求
 4. 将用户输入存入对话中,并等待API流式返回
-5. 设立两个流式接口,一个是输出给前端的,一个是输出给后端保存的
+5. 流式输出给前端
 6. 考虑到一般情况,我们就不存储AI的thinking字段了,而是只存AI输出即可
-7. 一个比较常见的情况是,**前端中断AI输出**,由于Responses API在传输完成后才会发送完成的事件,根据这个我么们就可以判断是否要保存消息了,而且还不用自己拼接字符串,用例如下:
+7. 一个比较常见的情况是,**前端中断AI输出**,由于Responses API在传输完成后才会发送完成的事件,根据这个我们就可以判断是否要保存消息了,而且还不用自己拼接字符串,用例如下:
 
 ```py
 stream = client.responses.create(
@@ -11151,14 +11146,238 @@ for event in stream:
         save_to_database(full_text)
 ```
 
->不过Responses API在流式输出之后,竟然还会重新输出一次完整的对话,尽管浪费带宽,但对开发来说确实很便捷
+>不过Responses API在流式输出之后,竟然还会重新输出一次完整的对话,尽管浪费带宽,但对开发来说确实很便捷.
+
+因此我们需要以下Service:
+1. 获取单条对话的历史消息,用于前端展示对话历史
+2. 获取所有的对话列表,只包含Title这一必要信息
+3. 新建空对话,该对话接受用户输入生成标题
+4. 允许用户更新标题
+5. 新建消息,无论是用户消息还是AI消息统一用一个函数
+6. 给管理员返回总Token消耗
 
 
+完整代码:
+```py
+from app.domain.models import MessageRole, TokenUsage
+from app.services.baseservice import BaseService
+from app.infra.repo import ConversationRepo
+from app.domain.schemas import (
+    ConversationPublic,
+    ConversationsPublic,
+    MessagesPublic,
+    UsagePublic,
+)
+from app.core.config import settings
 
 
+class ChatService(BaseService[ConversationRepo]):
+    def get_messages(self, conversation_id: int, user_id: int) -> MessagesPublic:
+        messages = self._repo.get_messages(
+            conversation_id, user_id, 0, settings.MESSAGE_LIMIT
+        )
+
+        return messages
+
+    def get_conversations(
+        self, user_id: int, offset: int, limit: int
+    ) -> ConversationsPublic:
+        try:
+            conversations = self._repo.get_all(user_id, offset, limit)
+        except:
+            raise
+        return conversations
+
+    def post_conversation(self, user_id: int, content: str) -> ConversationPublic:
+        conversation = self._repo.post(user_id, content)
+        if not conversation:
+            raise
+        return conversation
+
+    def update_conversation_title(self, conversation_id: int, title: str) -> None:
+        try:
+            self._repo.update_title(conversation_id, title)
+        except:
+            raise
+
+    def post_message(
+        self, conversation_id: int, content: str, reasoning: str, role: MessageRole
+    ) -> None:
+        self._repo.post_message(conversation_id, role, content, reasoning)
+
+    def post_usage(
+        self, user_id: int, tokenusage: TokenUsage, role: MessageRole
+    ) -> None:
+        self._repo.post_usage(user_id, tokenusage, role)
+
+    def get_usages(self) -> UsagePublic:
+        return self._repo.get_usages()
+```
+### Agents初步重构
+先看看我们的Agent要支持的功能:
+1. 根据API发送用户消息给大模型
+2. 接收大模型的流式输出,并供数据库持久化
+
+功能其实很简单,但我们之前的实现并不具有美感,我们先做一个可用的最初版出来,将原来的`chat.py`和`client.py`重构为`streams.py`一个文件即可.
+
+考虑到response输出有usage和output_text两个字段,我们干脆自己建一个新的Schema来包裹这两个字段,避免依赖Responses API本身:
+```py
+# Agent
+class ResponsePublic(BaseModel):
+    output_text: str
+    usage:TokenUsage
+```
+- 这里的TokenUsage则来自于Domain.
+
+完整代码如下:
+```py
+from typing import Generator
+
+from openai import OpenAI, Stream
+from openai.types.responses import (
+    ResponseInputParam,
+    ResponseStreamEvent,
+    Response,
+    EasyInputMessageParam,
+)
+
+from app.domain.schemas import MessagesPublic, ResponsePublic
+from app.domain.models import TokenUsage
 
 
-## ch18: 联网搜索引入和MCP使用
+def build_inputs(history: MessagesPublic) -> ResponseInputParam:
+    response_input: ResponseInputParam = []
+    for message in history.data:
+        response_input.append(
+            EasyInputMessageParam(
+                role=message.role,  # type: ignore
+                content=message.content,
+            )
+        )
+    return response_input
+
+
+def build_client(*, api_key: str, url: str) -> OpenAI:
+    return OpenAI(api_key=api_key, base_url=url)
+
+
+def create_stream(
+    *,
+    client: OpenAI,
+    model: str,
+    instructions: str,
+    input: ResponseInputParam,
+    reasoning: str = "none",
+) -> Stream[ResponseStreamEvent]:
+
+    return client.responses.create(
+        model=model,
+        instructions=instructions,
+        input=input,
+        stream=True,
+        reasoning=({"effort": reasoning}),  # type: ignore
+    )
+
+
+def _stream_output(
+    stream: Stream[ResponseStreamEvent],
+) -> Generator[dict[str, str], None, Response]:
+    final_response: Response | None = None
+    for event in stream:
+        # thinking字段和answer字段
+        if event.type == "response.reasoning_text.delta":
+            yield {"type": "reasoning", "content": event.delta}
+        elif event.type == "response.output_text.delta":
+            yield {"type": "answer", "content": event.delta}
+
+        # 错误处理
+        elif event.type == "error":
+            raise RuntimeError(event.message)
+        elif event.type == "response.failed":
+            error = event.response.error
+            if error:
+                raise RuntimeError(error.message)
+            else:
+                raise RuntimeError("Response failed")
+
+        # 完成输出
+        elif event.type == "response.completed" or event.type == "response.incomplete":
+            final_response = event.response
+
+    if not final_response:
+        raise Exception
+
+    return final_response
+
+
+def standard_stream(
+    stream: Stream[ResponseStreamEvent],
+) -> Generator[dict[str, str], None, ResponsePublic]:
+    try:
+        raw_response = yield from _stream_output(stream)
+    except:
+        raise
+    usage = raw_response.usage
+    if usage is None:
+        raise
+
+    tokenusage = TokenUsage(
+        input_tokens=usage.input_tokens,
+        output_tokens=usage.output_tokens,
+        total_tokens=usage.total_tokens,
+    )
+    response = ResponsePublic(
+        output_text=raw_response.output_text,
+        usage=tokenusage,
+    )
+    return response
+```
+- 异常处理依旧稍后完整处理
+
+我们现在只剩下最后一步了,将`standard_stream`交给前端,并且将数据存入数据库就大公告成了,这本质上还是属于ChatService的业务,所以我们新增一个函数`stream_and_save`,至于数据库操作和流处理耦合的问题,留到下个章节解决:
+```py
+    def stream_and_save(
+        self,
+        user_id: int,
+        conversation_id: int,
+        content: str,
+        reasoning: str,
+    ) -> Generator[dict[str, str], None, None]:
+
+        # 权限验证
+        try:
+            self._repo.get(conversation_id, user_id)
+        except:
+            raise
+        # 获取历史消息
+        history_message = self._repo.get_messages(conversation_id, user_id)
+
+        # 创建默认Agent和流
+        client = default_agent(
+            history=history_message,
+            content=content,
+            reasoning=reasoning,
+        )
+        response = yield from standard_stream(client)
+
+        # 存储消息
+        try:
+            self._repo.post_usage(user_id, response.usage, MessageRole.ASSISTANT)
+            self._repo.post_message(conversation_id, MessageRole.USER, content)
+            self._repo.post_message(
+                conversation_id, MessageRole.ASSISTANT, response.output_text
+            )
+        except:
+            raise
+```
+
+
+### 总结
+太长了,先切分一下,光是Service和Repo的重构便是如此复杂了,但接下来我们就将认识到设计模式的优秀之处,看到这次大规模重构带来的好处.
+
+
+## ch18: 引入设计模式(下)
+## ch19: 联网搜索引入和MCP使用
 ### 背景介绍
 目前,我们的Agent还不能叫做Agent,毕竟联网搜索都做不到呢.不过联网搜索并非有那么难实现,大致思想如下:
 1. 设置一个循环,让LLM能够自己识别是否需要搜索并决定搜索内容
@@ -11910,8 +12129,16 @@ asyncio.run(call_tool("Ford"))
 #### 服务器部分
 
 
-## ch19: 接入RAG和Vector Database
-## ch20: Agent框架测评与引入
+## ch20: 断章-接入RAG和Vector Database
+之所以叫断章,是因为小项目引入RAG的成本远大于直接输入文档的成本,而大型项目的RAG由于经费充足,完全可以调用subagent来处理文档.如此一来,RAG似乎就没有用武之地了.
+
+究其根本,是因为RAG属于LLM时代,当时的上下文窗口缺乏,RAG是为了塞入大量文档作为上下文的不得已之举.
+
+Agent时代我们能够直接调用工具,编写python代码处理文档,上下文窗口又纷纷达到了1M大小,那么又为什么还要用低效的embedding模型来生成向量并存储呢.
+
+不过早就有聪明人认识到了这点,所以引入了GraphRAG和Agentic RAG,试图挽救RAG的未来
+
+## ch21: Agent框架测评与引入
 ### 背景
 可以发现,当服务越堆越多时,我们这个项目的可维护性就越来越低,唯一的解决方法就是引入框架,将大量重复工作封装在框架背后,只关注高层的逻辑设计,如此一来,不但开发起来更加简单,也能让代码的性能更高.
 
