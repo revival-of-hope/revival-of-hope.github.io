@@ -1,16 +1,108 @@
 ---
 title: "Agent笔记"
-date: 2026-10-23T20:43:52+08:00
+date: 2026-10-24T20:43:52+08:00
 image: 134718880_p0-さっさと片付けるわよ.webp
 description: 未来会怎样
-draft: true
 ---
 
 
 # Agent基建
 ## Agent标准
 Agent是一个相当新的东西,在目前阶段各个厂商的标准都尚未完全统一,但已经有一些值得关注的成熟标准,最出名的就是成立于2025年12月9日的Agentic AI Foundation（AAIF，智能体 AI 基金会）,隶属于Linux基金会,主要负责推动 AI Agent 领域的开放协议、技术标准和开源基础设施。
+
+目前(10/23),AAIF旗下一共有10个开源项目:
+| 项目               | 主要用途                          | 最初贡献方   |
+| :----------------- | :-------------------------------- | :----------- |
+| **MCP**            | 让 AI 连接外部工具和数据          | Anthropic    |
+| **AGENTS.md**      | 为 AI 编程智能体提供项目指令      | OpenAI       |
+| **goose**          | 开源 AI Agent 框架                | Block        |
+| **A2A**            | 实现不同 AI Agent 之间的通信      | Google       |
+| **agentgateway**   | 管理 Agent、模型和工具之间的连接  | Solo.io      |
+| **Agent Router**   | AI 模型与工具的访问和路由管理     | —            |
+| **Agent Skills**   | 让 Agent 加载、复用专业技能       | Anthropic    |
+| **Open Responses** | 统一不同大模型供应商的 API 接口   | OpenAI       |
+| **OpenEnv**        | 为 AI Agent 提供强化学习训练环境  | Hugging Face |
+| **OpenSandbox**    | 为 Agent 提供安全、隔离的执行环境 | 阿里巴巴     |
+
+当AAIF最初成立时，只有三个创始项目：MCP、AGENTS.md 和 goose,而Agent Skills、Open Responses、OpenEnv、OpenSandbox 则是2026年10月22日,也就是昨天,刚刚宣布加入的四个项目(我这文章的时效性高吧😂).
+
+由于诞生于24年11月底的MCP,创建于25年8月的AGENTS.md,发布于25年4月的A2A以及发布于25年10月的SKILLs这四个对于小白来说都是耳熟能详的,因此我只会简单介绍剩余的六个项目,想深入了解就去看文档吧.
+
+### Goose
+Goose就是一个Agent软件,通过调用第三方API启动对话,至于为什么能被加到标准里面,还是在于它出现的很早,然后又是开源的.
+### agentgateway
+25年4月推出的Agent网关,因为传统的API网关不太适合LLM API,MCP和A2A等通信方式.不过主要是面向企业的,毕竟个人项目连API网关都很难用到吧(Nginx只能算反向代理,并不是网关),更别提Agent网关了.
+
+![操作界面](PixPin_2026-10-24_22-47-25.webp)
+
+- 可以看到基本操作就是通过UI操作接入LLM和MCP而已
+
+
+### Agent Router(原Envoy AI Gateway)
+Agent Router也是网关,和agentgateway有所重叠,但更强调模型和工具的统一接入.但由于来源于Envoy,所以在Kubernetes中才有比较好的效果,官方文档也都是基于K8s的.
+### Open Responses
+LLM API的格式一变再变,先是`Chat Completions API`,再是`Responses API`,至于糟心的A公司,就不管它了.OpenAI自己用起来也不舒坦,因此在26年1月推出了`Open Responses`标准,建立在Responses API的设计之上,只要Agent的能力不再有跳跃式的变化,这个规范还是很稳定的,所以推荐全面转向`Responses API`,毕竟`Chat Completions API`用着也麻烦不是吗.
+
+### OpenEnv
+Hugging Face推出的LLM训练框架,用于在Agent环境中测试和调控LLM,支持以下场景:
+
+| 环境           | 用途                                             |
+| :------------- | :----------------------------------------------- |
+| **Coding**     | 执行代码、测试程序                               |
+| **BrowserGym** | 浏览网页、点击、导航                             |
+| **TextArena**  | Wordle、Sudoku 等文字游戏                        |
+| **OpenSpiel**  | 国际象棋之外的多种棋盘和博弈任务                 |
+| **Harbor**     | 使用真实编程任务评估和训练 Codex、Claude Code 等 |
+| **Calendar**   | 训练 Agent 使用日历工具                          |
+| **KernRL**     | GPU Kernel 优化任务                              |
+
+
+### OpenSandbox
+- [官方文档](https://open-sandbox.ai/getting-started/)
+
+看代码就知道用法了:
+```py
+import asyncio
+from datetime import timedelta
+
+from opensandbox import Sandbox
+from opensandbox.config import ConnectionConfig
+from opensandbox.models import WriteEntry
+
+
+async def main() -> None:
+    sandbox = await Sandbox.create(
+        "python:3.12",
+        timeout=timedelta(minutes=10),
+        connection_config=ConnectionConfig(
+            domain="localhost:8080",
+            use_server_proxy=True,
+        ),
+    )
+    try:
+        execution = await sandbox.commands.run("python -c 'print(1 + 1)'")
+        for output in execution.logs.stdout:
+            print(output.text)
+
+        await sandbox.files.write_files([
+            WriteEntry(path="/tmp/hello.txt", data="Hello World", mode=644)
+        ])
+        print(await sandbox.files.read_file("/tmp/hello.txt"))
+    finally:
+        await sandbox.destroy()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+在sandbox里我们可以执行python代码,下载依赖,控制Agent的权限,并在执行可控操作后销毁代码.
+
+至于效果怎么样?只能说先让子弹飞一会儿比较好.
 ## Agent框架
+上述的标准中唯独少了一个很重要的地方,Agent开发框架,如果能够有一个简单好用,支持多平台多语言多功能的框架,那我想Agent开发才会真正地走上正轨,但目前还是百花齐放的场面,对于普通的开发者来说只能按需选择了.
+
+
 ### 设计思想历史-AI
 | 时间                   | 代表框架 / 事件                               | 当时最核心的思想                                                   | 主要解决什么问题                                        | 历史位置                                                                                    |
 | ---------------------- | --------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -32,19 +124,19 @@ Agent是一个相当新的东西,在目前阶段各个厂商的标准都尚未�
 | **2026 至今**          | 新一代 Agent Runtime / Harness                | `Model + Tools + State + Sandbox + Persistence + Runtime`          | 让 Agent 真正承担分钟级、小时级乃至更长的任务           | 当前重点已经越来越接近**后端、工作流引擎和分布式系统**                                      |
 
 ### 主流Agent框架-AI
-| 框架                          | 定位                      | 模型绑定                  | 强项                                                     | 我给的定位 |
-| ----------------------------- | ------------------------- | ------------------------- | -------------------------------------------------------- | ---------- |
-| **OpenAI Agents SDK**         | 轻量 Agent SDK            | OpenAI 最佳，也能接第三方 | Agent loop、tools、handoff、guardrails、tracing、sandbox | ⭐⭐⭐⭐⭐      |
-| **Pydantic AI**               | Python 通用 Agent SDK     | 很低                      | 类型安全、多模型、工具、Graph、eval、durable execution   | ⭐⭐⭐⭐⭐      |
-| **LangGraph**                 | Agent workflow/runtime    | 很低                      | 状态机、复杂流程、持久化、HITL、长任务                   | ⭐⭐⭐⭐⭐      |
-| **Google ADK 2.0**            | 企业级 Agent 开发套件     | Gemini/Google 最佳        | multi-agent、graph、A2A、GCP、context                    | ⭐⭐⭐⭐½      |
-| **Microsoft Agent Framework** | 企业 Agent + workflow     | 很低                      | Azure/.NET/Python、状态、工作流、企业集成                | ⭐⭐⭐⭐½      |
-| **Claude Agent SDK**          | Claude 原生 Agent harness | Claude                    | coding/file/shell、长任务、Claude 原生能力               | ⭐⭐⭐⭐½      |
-| **Mastra**                    | TypeScript Agent 框架     | 很低                      | TS、workflow、eval、memory、前后端整合                   | ⭐⭐⭐⭐½      |
-| **Vercel AI SDK v7**          | Web/TS AI SDK             | 很低                      | Next.js、streaming、Agent UI、ToolLoopAgent              | ⭐⭐⭐⭐½      |
-| **CrewAI**                    | 高层 Multi-Agent 框架     | 较低                      | Role/Crew/Task 抽象、快速多 Agent                        | ⭐⭐⭐⭐       |
-| **LlamaIndex**                | 数据/RAG Agent            | 低                        | RAG、知识库、数据 Agent                                  | ⭐⭐⭐⭐       |
-| **Haystack**                  | RAG/搜索/Agent Pipeline   | 低                        | 企业搜索、RAG pipeline                                   | ⭐⭐⭐½       |
+| 框架                          | 定位                      | 模型绑定                  | 强项                                                     | 定位  |
+| ----------------------------- | ------------------------- | ------------------------- | -------------------------------------------------------- | ----- |
+| **OpenAI Agents SDK**         | 轻量 Agent SDK            | OpenAI 最佳，也能接第三方 | Agent loop、tools、handoff、guardrails、tracing、sandbox | ⭐⭐⭐⭐⭐ |
+| **Pydantic AI**               | Python 通用 Agent SDK     | 很低                      | 类型安全、多模型、工具、Graph、eval、durable execution   | ⭐⭐⭐⭐⭐ |
+| **LangGraph**                 | Agent workflow/runtime    | 很低                      | 状态机、复杂流程、持久化、HITL、长任务                   | ⭐⭐⭐⭐⭐ |
+| **Google ADK 2.0**            | 企业级 Agent 开发套件     | Gemini/Google 最佳        | multi-agent、graph、A2A、GCP、context                    | ⭐⭐⭐⭐½ |
+| **Microsoft Agent Framework** | 企业 Agent + workflow     | 很低                      | Azure/.NET/Python、状态、工作流、企业集成                | ⭐⭐⭐⭐½ |
+| **Claude Agent SDK**          | Claude 原生 Agent harness | Claude                    | coding/file/shell、长任务、Claude 原生能力               | ⭐⭐⭐⭐½ |
+| **Mastra**                    | TypeScript Agent 框架     | 很低                      | TS、workflow、eval、memory、前后端整合                   | ⭐⭐⭐⭐½ |
+| **Vercel AI SDK v7**          | Web/TS AI SDK             | 很低                      | Next.js、streaming、Agent UI、ToolLoopAgent              | ⭐⭐⭐⭐½ |
+| **CrewAI**                    | 高层 Multi-Agent 框架     | 较低                      | Role/Crew/Task 抽象、快速多 Agent                        | ⭐⭐⭐⭐  |
+| **LlamaIndex**                | 数据/RAG Agent            | 低                        | RAG、知识库、数据 Agent                                  | ⭐⭐⭐⭐  |
+| **Haystack**                  | RAG/搜索/Agent Pipeline   | 低                        | 企业搜索、RAG pipeline                                   | ⭐⭐⭐½  |
 
 # Agent应用
 ## Ollama
@@ -101,7 +193,21 @@ import ollama
 response = ollama.web_search("What is Ollama?")
 print(response)
 ```
-## 主流Coding工具
+## 主流Coding平台
+### 基本情况
+| 平台                       | 主要开发语言     | 核心技术与架构                                   | 开源情况 | 首次发布时间               |
+| -------------------------- | ---------------- | ------------------------------------------------ | -------- | -------------------------- |
+| OpenAI Codex               | Rust             | Rust 原生 Agent 核心、TypeScript SDK             | 核心开源 | 2025年4月16日              |
+| Claude Code                | TypeScript       | TypeScript、Bun 运行时                           | 核心闭源 | 2025年2月24日              |
+| Cursor                     | TypeScript、Rust | VS Code Fork、Electron、Rust 高性能组件          | 闭源     | 2023年3月                  |
+| Gemini CLI                 | TypeScript       | Node.js、React Ink 终端界面                      | 开源     | 2025年6月25日              |
+| OpenCode                   | TypeScript       | Bun 运行时、客户端—服务端架构                    | 开源     | 2025年5月                  |
+| Cline                      | TypeScript       | VS Code 扩展、React 界面                         | 开源     | 2024年7月（原 Claude Dev） |
+| Aider                      | Python           | Python CLI、Git 集成                             | 开源     | 2023年6月                  |
+| \| DeepSeek Harness（DSH） | TypeScript       | Node.js、Cordis 插件化架构、可组合 Agent Runtime | 开源     | 2026年8月13日              |
+
+
+### 使用ollama启动coding工具
 使用ollama,我们可以很轻松的体验主流的一些coding平台,而不用专门到官网去下载,真觉得好用的时候再去下载就行了:
 
 ![面板](PixPin_2026-09-19_13-05-40.webp)
@@ -131,8 +237,6 @@ npm install -g @openai/codex
 
 ![启动图](PixPin_2026-09-19_14-45-16.webp)
 
-其实用网页端也够用了,毕竟我不太希望Agent能直接修改我的本地文件夹呢.
-
 
 ### Hermes Agent
 今年2月推出的新Coding工具,一开始只支持CLI交互,后来新增了Desktop端
@@ -151,11 +255,12 @@ ollama launch hermes
 ```bash
 ollama launch dsh
 ```
+
 目前(26/9/19)还处于开发阶段,通过本地的网页端即可访问:
 
 ![看着还是不错的](PixPin_2026-09-19_14-11-51.webp)
 
-有一个非常惊艳的地方就是它的插件功能,你可以选择需要启动的功能,可以关闭不想要的功能:
+有一个非常惊艳的地方就是它极其丰富的插件功能:
 
 ![插件面板](PixPin_2026-09-19_14-13-21.webp)
 
@@ -207,7 +312,7 @@ Your working directory is F:\codes\learn\backend\python\MediaCrawler.
 - 这个工具编排还是很有意思的.
 
 
-# LLM历史
+# LLM历史(待补充)
 ## LLM演进总表
 | 发布时间    | 模型名称                     | 所属系列     | 开放性       | 基座 / 主要借鉴                                 |                   参数规模 |       上下文长度 |                                  Coding 性能 |
 | ----------- | ---------------------------- | ------------ | ------------ | ----------------------------------------------- | -------------------------: | ---------------: | -------------------------------------------: |
