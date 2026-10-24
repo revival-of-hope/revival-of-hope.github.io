@@ -11377,6 +11377,204 @@ def standard_stream(
 
 
 ## ch18: 引入设计模式(下)
+### 填补异常
+我们先简单了解一下Python的异常机制:
+
+首先,在try-except控制块中,无论是try调用的函数内部抛出异常,还是该函数执行失败抛出异常,都会被except语句接住,至于如何接住,就得看一下Python内置异常的继承体系了:
+```text
+BaseException
+├── SystemExit
+├── KeyboardInterrupt
+├── GeneratorExit
+├── BaseExceptionGroup
+└── Exception
+    ├── ArithmeticError
+    │   ├── ZeroDivisionError
+    │   ├── OverflowError
+    │   └── FloatingPointError
+    ├── LookupError
+    │   ├── IndexError
+    │   └── KeyError
+    ├── OSError
+    │   ├── FileNotFoundError
+    │   ├── PermissionError
+    │   ├── TimeoutError
+    │   └── ConnectionError
+    ├── RuntimeError
+    │   ├── NotImplementedError
+    │   └── RecursionError
+    ├── ValueError
+    │   └── UnicodeError
+    ├── TypeError
+    ├── AttributeError
+    ├── NameError
+```
+
+简单来说,所有的业务异常都由Exception类包揽了,所以如果我们写成`except Exception as e`,就会默认接收所有继承自Exception的子类.
+
+那么我们这里也是同理,在domain里编写一个`exceptions.py`文件夹,通过合理的继承关系把所有异常统合在一起即可,具体来说,目前有三大子类,自底向上排列:
+
+1. `DbException`: 所有Session层面的异常
+2. `RepoException`: 所有Repo层面的异常
+3. `ServiceException`: 所有Service层面的异常
+
+
+每一层不仅可以捕获先前一层的异常,也可以自己新增异常,从而做到尽可能地全方面兜底,增强代码的健壮性,并提供足够丰富的调试信息供前端展示:
+```py
+
+# 基类异常
+class BaseException(Exception):
+    pass
+
+
+# DB异常
+class DbException(BaseException):
+    pass
+
+
+# Repo异常
+class RepoException(BaseException):
+    pass
+
+
+
+# Service异常
+class ServiceException(BaseException):
+    pass
+```
+
+
+#### UserRepo填补
+```py
+class UserRepo(AbstractRepo):
+    def get(self, name: str) -> User | None:
+        statement = select(UserRecord).where(UserRecord.name == name)
+
+        userrecord = self._session.exec(statement).one()
+
+        if userrecord is None:
+            raise UserRecordNotFound("User Record Not Found")
+
+        return mapper(userrecord, User)
+
+    def get_all(self, offset: int, limit: int) -> UsersPublic:
+        statement = (
+            select(UserRecord)
+            .options(selectinload(UserRecord.usage))  # type: ignore
+            .order_by(
+                desc(UserRecord.created_at),
+                desc(UserRecord.user_id),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
+        users = self._session.exec(statement).all()
+
+        if not users:
+            raise UsersRecordNotFound("Users Record Not Found")
+
+        users_public: list = []
+        for user in users:
+            users_public.append(UserPublic.model_validate(user))
+
+        return UsersPublic(
+            data=users_public,
+            count=users_amount(self._session),
+        )
+
+    def post(self, user_in: UserRegister) -> UserPublic:
+        user = UserRecord.model_validate(
+            user_in,
+            update={"hashed_password": hashing_password(user_in.password)},
+        )
+
+        try:
+            self._session.add(user)
+            self._session.flush()
+            if user.user_id is None:
+                raise UserRecordCreateFailed("User Record Create Failed")
+
+        except UserRecordNotFound, AddError:
+            self._session.rollback()
+            raise
+
+        self._session.refresh(user)
+        return UserPublic.model_validate(user)
+
+    def delete(self, user_id: int) -> None:
+        userrecord = self._session.get(UserRecord, user_id)
+
+        if not userrecord:
+            raise UsersRecordNotFound("Users Record Not Found")
+        try:
+            self._session.delete(userrecord)
+            self._session.commit()
+        except CommitError, DeleteError:
+            self._session.rollback()
+            raise DeleteError("user delete failed")
+
+    def check(self, name: str, password: str) -> int | None:
+        db_user = self.get(name)
+
+        if db_user is None:
+            verify_password(password, DUMMY_HASH)
+            raise UserNameNotFound("Username Not Found")
+
+        verified = verify_password(password, db_user.hashed_password)
+        if not verified:
+            raise VerifyError("vecification failed")
+
+        return db_user.user_id
+```
+用到的异常类如下:
+```py
+# DB异常
+class DbException(BaseException):
+    pass
+
+
+class SQLError(DbException, SQLAlchemyError):
+    pass
+
+
+class AddError(SQLError):
+    pass
+
+
+class DeleteError(SQLError):
+    pass
+
+class CommitError(DbException, SQLAlchemyError):
+    pass
+
+# Repo异常
+class RepoException(BaseException):
+    pass
+
+
+class UserRecordNotFound(RepoException):
+    pass
+
+
+class UsersRecordNotFound(RepoException):
+    pass
+
+
+class UserRecordCreateFailed(RepoException):
+    pass
+
+class UserNameNotFound(RepoException):
+    pass
+
+class VerifyError(RepoException):
+    pass
+```
+#### ConversationRepo填补
+
+
+### 组装依赖
+### 完成路由
+
 ## ch19: 联网搜索引入和MCP使用
 ### 背景介绍
 目前,我们的Agent还不能叫做Agent,毕竟联网搜索都做不到呢.不过联网搜索并非有那么难实现,大致思想如下:

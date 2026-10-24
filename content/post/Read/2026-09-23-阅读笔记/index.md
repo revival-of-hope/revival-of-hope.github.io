@@ -196,7 +196,13 @@ AGENTS.md 文件一开始并不大，通常只有三四行。问题在于其增�
 
 ## Continuous API Management,2nd edtion
 ### ch1: API管理的挑战
+简单介绍API和API管理
+### ch2: API Governance
+如何设计某个API接口,如何确定API的统一风格,API冲突时如何解决,这些都属于API Governance的范围.
 
+对于决策者/架构师来说,我们需要决定如何下放API Governance,哪些决策可以由小组成员独立解决,哪些决策又必须由本人决定.
+
+### ch3: The API as a Product
 
 
 # 先放着
