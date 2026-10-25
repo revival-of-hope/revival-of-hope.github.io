@@ -66,11 +66,14 @@ Unity 5 被视为实现“通用开发”目标的重要一步。
 ### 环境问题
 如今的内地开发者学习unity的第一步是下载真正的unity,而非tuanjie引擎,尽管在国内开发游戏的话现在貌似只能用tuanjie引擎了...
 - 这么丑陋的名字是谁想出来的
+
 >[官方介绍](https://unity.cn/tuanjie/tuanjieyinqing)
-团结引擎是 Unity 中国的引擎研发团队基于 Unity 2022 LTS 版本**为中国开发者定制的实时 3D 引擎**；基于 Unity 的核心能力，团结引擎团队倾听中国开发者的声音和需求，为团结引擎加入了一些中国开发者需要的定制化功能，并会在未来持续不断的为中国开发者量身定制需要的功能。
+>
+>团结引擎是 Unity 中国的引擎研发团队基于 Unity 2022 LTS 版本**为中国开发者定制的实时 3D 引擎**；基于 Unity 的核心能力，团结引擎团队倾听中国开发者的声音和需求，为团结引擎加入了一些中国开发者需要的定制化功能，并会在未来持续不断的为中国开发者量身定制需要的功能。
 团结引擎以 Unity 2022 LTS 为研发基础，融入了团结引擎独有功能和优化，未来会加入更多为中国开发者量身定制的功能和优化。
 
 - [unity is losing users in china](https://discussions.unity.com/t/unity-is-losing-users-in-china/1711678)
+
 >It’s also worth noting that in certain industries, foreign companies in China are required to form a joint venture with a Chinese partner and **are not allowed to hold more than 50%**. That’s why Unity created Unity China, and it’s likely the reason why the regular global version of Unity can no longer be distributed directly in China by Unity itself.
 >
 >The global Asset Store probably operated in a gray area for a while and was tolerated, but that seems to have changed.
@@ -88,7 +91,8 @@ Unity 5 被视为实现“通用开发”目标的重要一步。
 
 - 而且由于功能多,有时候会出现一些莫名其妙的bug.
 ### 开发语言
-脚本语言只能使用C#,C#的参考语言是cpp和java,所以如果你先学了这两门语言再来学C#的话基本能直接看懂大部分代码了.
+开发语言只能使用C#,C#的参考语言是cpp和java,所以如果你先学了这两门语言再来学C#的话基本能直接看懂大部分代码了.
+
 微软官方的C#教程写的很烂(或者说没有教程),建议找第三方网站如w3schools.当然,直接根据游戏开发教程来上手也可以.
 
 ## Unreal Engine
@@ -140,7 +144,7 @@ UE 历史上统治力最强的版本，确立了其在 3A 游戏市场的地位�
 使用了MIT协议的开源游戏引擎,历史比一般人想象的要悠久的多
 ### 著名游戏
 杀戮尖塔2,战地6,背包乱斗,土豆兄弟,恶魔轮盘
-- 开发出来的游戏风格如此多样,反过来说明Godot的可操作性极高
+- 开发出来的游戏风格如此多样,说明Godot的可操作性极高
 ### 引擎历史
 
 * **1999年－2014年**
@@ -225,8 +229,8 @@ blacksouls1&&2,恐惧与饥饿1&&2,Lisa两部曲,魔女之家
 - 由于是一次性收费,故怎么想都不会便宜的,而且不同版本的引擎素材不可混用,只能针对特定引擎购买特定的官方素材或者自己画素材
 以2020年发布,使用js的RPG Maker MZ为例,我们先看看它的[steam商品页面](https://store.steampowered.com/app/1096900/RPG_Maker_MZ/),只够买引擎本体的话需要四百多人民币,如果想使用官方素材的话还得额外购买,不过本地带的素材也已经很多了
 ### 学习资料
-[新手入门](https://forum.gamer.com.tw/C.php?bsn=4918&snA=31047)
-[插件与素材网站合集](https://rpg.blue/forum.php?mod=viewthread&tid=483881)
+- [新手入门](https://forum.gamer.com.tw/C.php?bsn=4918&snA=31047)
+- [插件与素材网站合集](https://rpg.blue/forum.php?mod=viewthread&tid=483881)
 ## cocos2d
 >Cocos2d is an **open-source** game development framework for creating 2D games and other graphical software for iOS, Android, Windows, macOS, Linux, HarmonyOS, OpenHarmony and web platforms. It is written in C++ and provides bindings for various programming languages, including C++, C#, Lua, and JavaScript. The framework offers a wide range of features, including physics, particle systems, skeletal animations, tile maps, and others.
 >
@@ -251,23 +255,7 @@ blacksouls1&&2,恐惧与饥饿1&&2,Lisa两部曲,魔女之家
 * **品牌标识**：由 Michael Heald 设计了现行的 Cocos2d Logo，取代了最初的“奔跑的椰子”形象。
 ### 与Cocos Creator的关系
 
-Cocos Creator是**Cocos2d-x**的内地商业化版本,在后端为主的游戏开发生态中拥抱前端开发,并在早期错误的投入大量精力在lua脚本上,因此发展的不是很好...
-以下是AI总结的Cocos Creator特性:
-#### 技术架构的更迭
-* **Cocos2d-x (API 驱动):** 传统的编程框架。开发者通过 C++、Lua 或 JavaScript 编写代码来构建场景、添加节点。这种方式高度依赖代码逻辑，缺乏可视化支撑，开发过程类似“盲写”布局。
-* **Cocos Creator (编辑器驱动):** 以 **数据驱动** 为核心。它借鉴了 Unity 的组件化（Component-Based）设计思路，提供了一个可视化编辑器。开发者在界面中拖拽资源、配置属性，代码仅作为挂载在节点上的脚本组件。
-
-#### 核心语言的转变
-* **Cocos2d-x:** 主打 **C++**，同时支持 Lua 和 JS 绑定。追求底层控制力和执行效率。
-* **Cocos Creator:** 早期支持 JavaScript，现已全面转向 **TypeScript**。这使得开发更符合现代前端工程化标准，且更易于维护大型项目。
-
-#### 渲染引擎的重构
-* **Cocos2d-x:** 主要是为 2D 游戏设计，3D 功能是后续强行修补的插件化功能，架构较为沉重。
-* **Cocos Creator (3.x 系列):** 底层合并了原有的 2D 引擎与 3D 引擎分支，实现了真正的 **2D/3D 一体化** 渲染架构。它支持基于物理的渲染（PBR）和 GPU 粒子系统，而这些在旧版 Cocos2d-x 中难以实现。
-
-#### 跨平台能力的差异
-* **Cocos2d-x:** 侧重于原生平台（iOS, Android, Windows）。虽然有 Cocos2d-js 对应 Web，但双端表现往往不一致。
-* **Cocos Creator:** 针对 **小游戏平台**（微信、TikTok、华为等）进行了底层定制优化，拥有极高的 Web 运行时性能，同时兼顾原生跨平台打包。
+Cocos Creator是**Cocos2d-x**的内地商业化版本,但由于早期错误的投入大量精力在lua支持上,因此发展的不是很好...
 
 
 

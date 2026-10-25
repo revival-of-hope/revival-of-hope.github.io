@@ -63,7 +63,203 @@ Swarm 是 Docker 的原生技术，用于管理 Docker 节点集群和编排微�
 
 
 `docker swarm init`用于创建一个新的集群。运行该命令的节点将成为第一个管理器，并且该节点的 Docker Engine 会切换到集群模式。
-### ch11: Deploying apps to Swarm
+### ch12: Deploying apps to Swarm
+Docker Swarm通过于Compose文件极其相同的Stack文件定义:
+```yml
+
+version: "3.8"
+
+services:
+
+  # 1. 反向代理
+  traefik:
+    image: traefik:v3.4
+    command:
+      - "--providers.swarm=true"
+      - "--providers.swarm.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: ingress
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - frontend
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+        delay: 5s
+
+  # 2. FastAPI 后端
+  api:
+    image: registry.example.com/my-api:1.0.0
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: appdb
+      DB_USER: app
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      REDIS_URL: redis://redis:6379/0
+    secrets:
+      - db_password
+    networks:
+      - frontend
+      - backend
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
+
+      labels:
+        - "traefik.enable=true"
+        - "traefik.swarm.network=myapp_frontend"
+        - "traefik.http.routers.api.rule=Host(`api.example.com`)"
+        - "traefik.http.routers.api.entrypoints=web"
+        - "traefik.http.routers.api.service=api"
+        - "traefik.http.services.api.loadbalancer.server.port=8000"
+
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+
+  # 3. PostgreSQL 数据库
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d appdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.database == true
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+  # 4. Redis 缓存
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "no"]
+    networks:
+      - backend
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+# 5. 网络
+networks:
+  frontend:
+    driver: overlay
+
+  backend:
+    driver: overlay
+    internal: true
+
+# 6. 数据卷
+volumes:
+  pgdata:
+    driver: local
+
+# 7. 敏感信息
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+```
+
+在使用前,我们需要先初始化管理节点,并在管理节点中用stack文件创建Stack.
+
+Docker Swarm 默认会在所有可用节点之间自动调度Replicas，包括 Worker 和 Manager 节点，并倾向于分散部署,这和Kubernetes就不太一样了.
+### ch13: Docker网络
+从最高层面来看，Docker 网络基于以下三个组件：
+- The Container Network Model (CNM)
+  - 设计规范,概述了Docker网络的基本模块,定义了Sandbox(包括以太网接口,Ports,DNS配置等网络组件),Endpoint(虚拟网络接口,将Sandbox连接到Network),Network(虚拟的交换机)
+
+具体的通信过程如下:
+
+![通信图](PixPin_2026-10-25_10-11-58.webp)
+
+
+- Libnetwork
+  - 隶属于Moby项目,是CNM的具体实现.原来也是放在Daemon中的,后来被移除出来作为外部库配置,实现了网络控制平面(即API managements,服务发现,负载均衡等功能)
+- Drivers
+  - 作为数据平面,负责创建网络并确保隔离和连通性
+
+我们创建的每个network都属于一个driver,该driver负责创建和管理network的所有相关内容
+
+![示意图](PixPin_2026-10-25_10-07-22.webp)
+
+#### Single-host bridge networks
+这是最简单的network类型,只运行在一个host中.每个host都会自动创建一个名为Bridge的默认Network,Docker 会将新容器连接到该网络，除非您使用 --network 标志覆盖它。
+
+所有基于 Linux 的 Docker 主机上的默认桥接网络名为 bridge，它映射到主机内核中名为 docker0 的底层 Linux 桥接网络:
+
+![映射图](PixPin_2026-10-25_10-37-18.webp)
+
+#### 端口映射
+![结构图](PixPin_2026-10-25_10-42-47.webp)
+
+### ch14: Docker overlay networking
 ## Just Use Postgres!
 ### ch1: 介绍Postgres
 介绍了用Docker运行Postgres,以及使用psql与Postgres进行连接的方法
@@ -19132,7 +19328,7 @@ API 网关提供了用户认证、请求速率限制和超时/重试等横向需
 
 ### 杂项/运维
 1. [Pro git](https://git-scm.com/book/zh/v2): 不会git不好意思说自己是程序员吧,而官方的文档比起其他的二手资料要详细的多,但很奇怪的是,在官方文档讲的如此形象有趣的时候,还总是有人喜欢自己去写教程.
-2. [Docker 从入门到实践](https://yeasy.gitbook.io/docker_practice): 写前后端必须要会docker吧,这本书比官方文档讲的更好.
+2. `Docker Deep Dive`: 相当优秀的Docker入门书籍.
 3. `程序设计语言原理`: 大部分内容都是无意义的唠叨,但这本书的第二章让它能够在这里获得一个席位,以详实的笔调记录了程序设计语言的整个发展历史,可以这么说,这是我见过的最详细的资料了,任何一个好奇我们是如何从Fortran进化到Go的程序员都应该来读这本书,当然,读第二章就可以了.
 4. `深入浅出密码学`: 要想写出一个安全的网站,这本书是必读的.
 5. `Designing APIs with Swagger and OpenAPI`: 鉴于现在还是Rest的天下,所以学习OpenAPI还是很有必要的,而这本书讲的也很具体形象
