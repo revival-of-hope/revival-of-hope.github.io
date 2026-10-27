@@ -9,303 +9,9 @@ math: true
 # 阅读中
 
 
-## Docker Deep Dive
-### ch1-4: 介绍
->尽管开发 Windows 容器投入了大量精力，但几乎所有容器都是Linux 容器。这是因为 Linux 容器体积更小、速度更快，而且 Linux 拥有更丰富的工具。
 
-由于容器共享运行所在主机的内核。这意味着容器化的Windows应用需要运行Windows内核的主机，而容器化的Linux应用则需要运行Linux内核的主机。但是，如前所述，您可以在安装了WSL 2后端的Windows系统上运行Linux容器
-#### OCI
-生态系统中的主要参与者齐聚一堂，成立了 OCI，这是一个厂商中立的轻量级委员会，负责管理容器标准:
-- The image-spec
-- The runtime-spec
-- The distribution-spec
+## 深入理解 AI Agent
 
-OCI规范对容器生态系统起到了同样的作用，此后容器生态系统蓬勃发展。Docker自OCI成立以来也发生了巨大变化，所有现代版本的Docker都实现了全部三项OCI规范。例如：
-
-- Docker 构建器 (BuildKit) 创建符合 OCI 标准的镜像
-- Docker 使用符合 OCI 标准的运行时来创建符合 OCI 标准的容器
-- Docker Hub 实现了 OCI 发行版规范，并且是一个符合 OCI 标准的镜像仓库。
-### ch5: Docker Engine
-![基本架构](PixPin_2026-10-18_10-59-57.webp)
-
-最初的Docker将所有功能都放入了daemon中,是在后面才逐渐拆分得到runc和containerd等独立工具的.
-
-![构建流程](PixPin_2026-10-18_11-10-31.webp)
-
-- shim可以让我们很轻松的将runc替换为其他runtime
-### ch6: images
->例如，官方的 Alpine Linux 镜像目前只有大约 3MB。这是因为它没有预装六个不同的 shell、三个不同的包管理器，以及一大堆你可能十年才用一次的工具。事实上，现在越来越多的镜像都不包含 shell 或包管理器——如果应用程序在运行时不需要它们，镜像就不会包含。我们称这些为精简镜像
-
-Docker在pull镜像时默认从Docker Hub拉取latest的镜像,除非特地指明,因此我们可以省略这两个字段:
-```bash
-docker pull nigelpoulton/tu-demo
-```
-
-有两点值得注意。
-
-* 如前所述，如果您未在仓库名称后指定镜像标签，Docker 会默认将镜像标记为 `latest`。如果仓库中没有标记为 `latest` 的镜像，则该命令将失败。
-* 标记为 `latest` 的image不保证是存储库中最新的image
-### ch7: 容器
-介绍rm,exec,ps,run等常见容器命令.
-### ch8: 构建容器
-介绍了多阶段构建,多架构构建,构建的基本原理
-
->任何时候，如果指令导致缓存未命中，缓存就会失效，并且在后续构建过程中不再进行检查。这意味着你应该编写 Dockerfile，将最有可能导致缓存失效的指令放在 Dockerfile 的末尾附近。这样可以确保构建过程尽可能长时间地利用缓存。
-### ch9: compose
-介绍构建一个简单的网页对话大模型
-### ch10: Docker and Wasm(WebAssembly)
-介绍了与Linux容器相比性能更好的Wasm.
-### ch11: Docker Swarm
-Swarm 是 Docker 的原生技术，用于管理 Docker 节点集群和编排微服务应用程序。它类似于 Kubernetes，但功能相对简单，使用起来也更方便。
-
-介绍了Swarm的基本运作机制: 节点通过Token认证来决定作为Manager还是Worker加入swarm,Manager采用Raft算法,所以最好选用奇数个Manager节点.节点间自动通过TLS通信,无需手动配置连接细节.
-
-
-
-`docker swarm init`用于创建一个新的集群。运行该命令的节点将成为第一个管理器，并且该节点的 Docker Engine 会切换到集群模式。
-### ch12: Deploying apps to Swarm
-Docker Swarm通过于Compose文件极其相同的Stack文件定义:
-```yml
-
-version: "3.8"
-
-services:
-
-  # 1. 反向代理
-  traefik:
-    image: traefik:v3.4
-    command:
-      - "--providers.swarm=true"
-      - "--providers.swarm.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-    ports:
-      - target: 80
-        published: 80
-        protocol: tcp
-        mode: ingress
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - frontend
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      restart_policy:
-        condition: any
-        delay: 5s
-
-  # 2. FastAPI 后端
-  api:
-    image: registry.example.com/my-api:1.0.0
-    environment:
-      DB_HOST: db
-      DB_PORT: "5432"
-      DB_NAME: appdb
-      DB_USER: app
-      DB_PASSWORD_FILE: /run/secrets/db_password
-      REDIS_URL: redis://redis:6379/0
-    secrets:
-      - db_password
-    networks:
-      - frontend
-      - backend
-
-    healthcheck:
-      test:
-        - CMD
-        - python
-        - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-
-    deploy:
-      mode: replicated
-      replicas: 3
-      endpoint_mode: vip
-
-      labels:
-        - "traefik.enable=true"
-        - "traefik.swarm.network=myapp_frontend"
-        - "traefik.http.routers.api.rule=Host(`api.example.com`)"
-        - "traefik.http.routers.api.entrypoints=web"
-        - "traefik.http.routers.api.service=api"
-        - "traefik.http.services.api.loadbalancer.server.port=8000"
-
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 128M
-
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
-        failure_action: rollback
-        monitor: 30s
-
-      rollback_config:
-        parallelism: 1
-        order: stop-first
-
-  # 3. PostgreSQL 数据库
-  db:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_DB: appdb
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
-    secrets:
-      - db_password
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - backend
-
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app -d appdb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.labels.database == true
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-
-  # 4. Redis 缓存
-  redis:
-    image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "no"]
-    networks:
-      - backend
-
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-
-# 5. 网络
-networks:
-  frontend:
-    driver: overlay
-
-  backend:
-    driver: overlay
-    internal: true
-
-# 6. 数据卷
-volumes:
-  pgdata:
-    driver: local
-
-# 7. 敏感信息
-secrets:
-  db_password:
-    file: ./secrets/db_password.txt
-```
-
-在使用前,我们需要先初始化管理节点,并在管理节点中用stack文件创建Stack.
-
-Docker Swarm 默认会在所有可用节点之间自动调度Replicas，包括 Worker 和 Manager 节点，并倾向于分散部署,这和Kubernetes就不太一样了.
-### ch13: Docker网络
-从最高层面来看，Docker 网络基于以下三个组件：
-- The Container Network Model (CNM)
-  - 设计规范,概述了Docker网络的基本模块,定义了Sandbox(包括以太网接口,Ports,DNS配置等网络组件),Endpoint(虚拟网络接口,将Sandbox连接到Network),Network(虚拟的交换机)
-
-具体的通信过程如下:
-
-![通信图](PixPin_2026-10-25_10-11-58.webp)
-
-
-- Libnetwork
-  - 隶属于Moby项目,是CNM的具体实现.原来也是放在Daemon中的,后来被移除出来作为外部库配置,实现了网络控制平面(即API managements,服务发现,负载均衡等功能)
-- Drivers
-  - 作为数据平面,负责创建网络并确保隔离和连通性
-
-我们创建的每个network都属于一个driver,该driver负责创建和管理network的所有相关内容
-
-![示意图](PixPin_2026-10-25_10-07-22.webp)
-
-#### Single-host bridge networks
-这是最简单的network类型,只运行在一个host中.每个host都会自动创建一个名为Bridge的默认Network,Docker 会将新容器连接到该网络，除非您使用 --network 标志覆盖它。
-
-所有基于 Linux 的 Docker 主机上的默认桥接网络名为 bridge，它映射到主机内核中名为 docker0 的底层 Linux 桥接网络:
-
-![映射图](PixPin_2026-10-25_10-37-18.webp)
-
-#### 端口映射
-![结构图](PixPin_2026-10-25_10-42-47.webp)
-
-### ch14: Docker overlay networking
-## Just Use Postgres!
-### ch1: 介绍Postgres
-介绍了用Docker运行Postgres,以及使用psql与Postgres进行连接的方法
-```sh
-docker exec -it postgres psql -U postgres
-```
-请注意，我们在 psql 连接字符串中没有指定密码，连接时也不会提示您输入密码。这是因为，一旦进入容器（docker exec -it postgres），psql 就会通过本地 Unix 套接字进行连接。Postgres Docker 镜像配置为将此类本地连接视为可信连接，因此无需输入密码。
-### ch2: Standard RDBMS capabilities
-#### 多用户
-在Postgres中实现多租户有多种方法:
-1. Table-Level: 用一个共享表记录用户,使用类似tenant_id 的列来区分一个租户的数据与其他租户的数据。粒度很细
-2. Schema-level: 每个用户有一个专用的Schema,每个Schema有自己的Table,粒度适中
-3. Database-level: 每个用户有自己的数据库,粒度最大
-
-一个Postgres实例,可以内含多个数据库.
-#### 创建表
-Postgres 默认创建 postgres 数据库和 public schema，因此数据库和模式的创建步骤是可选的。但是，表的设计和创建完全由您负责——没有捷径可走。
-
-```sql
-CREATE TABLE products.catalog (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR (100) NOT NULL,
-    description TEXT NOT NULL,
-    category TEXT CHECK (category IN ('coffee', 'mug', 't-shirt')),
-    price NUMERIC(10, 2),
-    stock_quantity INT CHECK (stock_quantity >= 0)
-);
-```
-此语句将 catalog 表置于 products 模式下。模式名称在 CREATE TABLE语句中是可选的，仅当需要将表添加到特定模式时才使用,如果不指定则默认添加到当前Schema下,而这一般是Public Schema.
-
-#### 约束添加
-```sql
-ALTER TABLE products.catalog
-ADD CONSTRAINT catalog_price_check CHECK (price > 0);
-```
-可以看到这里的Constraint是对整个表添加的,而不需要特别指明是应用到price字段.
-
-但是`NOT NULL`这样的约束就需要特别指定列了:
-```sql
-ALTER TABLE products.reviews
-ALTER COLUMN review SET NOT NULL,
-ADD CONSTRAINT review_rank_check CHECK (rank BETWEEN 1 AND 5);
-```
-
-
-#### Transactions
 
 ## Agentic Coding with OpenAI Codex CLI
 ### ch1: 介绍CodeX CLI
@@ -362,7 +68,97 @@ AGENTS.md 文件一开始并不大，通常只有三四行。问题在于其增�
 推荐通过权限阶梯来控制Agent的权限:
 ![示意图](PixPin_2026-10-24_10-20-19.webp)
 ### ch6: Model Selection and Reasoning Effort
+针对具体任务设置模型强度从而节省费用
+### ch7: Context Window Management
+多轮对话中,每次对话都需要传输之前所有的对话,会让消耗的token数成指数级增长.
 
+Codex会在窗口容量到达一定程度时激活compact命令,生成对话的结构化摘要,并替换累计的历史记录,尽管是有损的,但这一操作相当重要,毕竟Tool Use非常容易引入一大堆调试信息,我们实际上只需要知道某个操作是否正常完成即可,从而可以极大地精简对话历史.
+
+compact不保留以下内容:
+* **已读取文件的完整内容**（摘要仅按文件名引用文件，但不再保留其具体内容）
+* **确切的错误信息或编译器输出**（这些内容会被转化为文字概括）
+* **工具调用和中间状态的确切顺序**
+* **任何通过对话语气或隐性假设所建立的隐含上下文**
+
+因此,**必须在上下文压缩后仍然有效的指令应该放在系统提示符或 AGENTS.md 中**，而不是放在会被上下文压缩概括得面目全非的对话中。
+
+#### 何时派生子智能体
+委托操作本身也存在开销：每次调用都需要提供指令（100 到 400 个 token），且返回的摘要会消耗父级上下文。一个粗略的衡量标准是：当子任务需要读取三四个以上的重要文件、执行多个 Shell 命令，或经历超过两次错误修复循环时，才建议进行委托。低于此阈值时，委托的开销将与直接内联执行的成本不相上下。
+
+### ch8: MCP
+
+## Just Use Postgres!
+### ch1: 介绍Postgres
+介绍了用Docker运行Postgres,以及使用psql与Postgres进行连接的方法
+```sh
+docker exec -it postgres psql -U postgres
+```
+请注意，我们在 psql 连接字符串中没有指定密码，连接时也不会提示您输入密码。这是因为，一旦进入容器（docker exec -it postgres），psql 就会通过本地 Unix 套接字进行连接。Postgres Docker 镜像配置为将此类本地连接视为可信连接，因此无需输入密码。
+### ch2: Standard RDBMS capabilities
+#### 多用户
+在Postgres中实现多租户有多种方法:
+1. Table-Level: 用一个共享表记录用户,使用类似tenant_id 的列来区分一个租户的数据与其他租户的数据。粒度很细
+2. Schema-level: 每个用户有一个专用的Schema,每个Schema有自己的Table,粒度适中
+3. Database-level: 每个用户有自己的数据库,粒度最大
+
+一个Postgres实例,可以内含多个数据库.
+#### 创建表
+Postgres 默认创建 postgres 数据库和 public schema，因此数据库和模式的创建步骤是可选的。但是，表的设计和创建完全由您负责——没有捷径可走。
+
+```sql
+CREATE TABLE products.catalog (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR (100) NOT NULL,
+    description TEXT NOT NULL,
+    category TEXT CHECK (category IN ('coffee', 'mug', 't-shirt')),
+    price NUMERIC(10, 2),
+    stock_quantity INT CHECK (stock_quantity >= 0)
+);
+```
+此语句将 catalog 表置于 products 模式下。模式名称在 CREATE TABLE语句中是可选的，仅当需要将表添加到特定模式时才使用,如果不指定则默认添加到当前Schema下,而这一般是Public Schema.
+
+#### 约束添加
+```sql
+ALTER TABLE products.catalog
+ADD CONSTRAINT catalog_price_check CHECK (price > 0);
+```
+可以看到这里的Constraint是对整个表添加的,而不需要特别指明是应用到price字段.
+
+但是`NOT NULL`这样的约束就需要特别指定列了:
+```sql
+ALTER TABLE products.reviews
+ALTER COLUMN review SET NOT NULL,
+ADD CONSTRAINT review_rank_check CHECK (rank BETWEEN 1 AND 5);
+```
+
+
+#### Transactions
+当您需要原子地执行多个 SQL 语句时，显式事务非常有用。它将这些语句视为一个单一操作，要么成功完成，要么优雅地回滚，不留下任何痕迹。显式事务以 BEGIN 语句开始，并且必须使用 COMMIT 操作显式提交.
+
+```sql
+BEGIN;
+INSERT INTO sales.orders (id, customer_id, total_amount)
+VALUES ('19a0cffc-8757-453c-a4d2-b554fdc08954', 1, 26.53);
+INSERT INTO sales.order_items (order_id, product_id, quantity, price)
+VALUES ('19a0cffc-8757-453c-a4d2-b554fdc08954', 1, 1, 16.54),
+('19a0cffc-8757-453c-a4d2-b554fdc08954', 4, 1, 9.99);
+UPDATE products.catalog
+SET stock_quantity = stock_quantity - 1
+WHERE id IN (1, 4);
+COMMIT;
+```
+
+成功应用但随后被 Postgres 回滚的更改不会立即从数据库中消失。The Postgres multiversion concurrency control (MVCC)引擎确保这些更改对后续的应用程序请求和事务不再可见。然而，即使回滚的更改不再可见，它们仍会在数据库中保留一段时间，直到 Postgres 执行垃圾回收（称为vacuum）。
+
+Postgres的默认隔离级别是Read Committed,即一个事务只能读取其他事务已经提交的数据。它很好地平衡了数据一致性和并发性，使您能够在不牺牲数据一致性的前提下构建高性能的事务型应用程序。然而，除了读已提交隔离级别可以防止的脏读现象之外，SQL 标准还定义了其他现象，例如幻读和不可重复读。PostgreSQL 提供了更强的隔离级别——可重复读和可序列化——来解决这些额外的读取异常问题。
+#### Join
+基本的join操作
+#### 函数和触发器
+## Software Design for Python Programmers
+## Learning LangChain
+
+
+# 先放着
 ## Site Reliability Engineering, 2nd ed
 - 超级新鲜,还没出我就在期盼了
 ### ch1: 引言
@@ -388,20 +184,16 @@ AGENTS.md 文件一开始并不大，通常只有三四行。问题在于其增�
 讲培训SRE的
 ### ch6: SRE 的组织结构
 依旧讲管理
-### ch7: SRE Engagement Models
+### ch8: Service Level Objectives
+Service level indicator (SLI)是衡量服务绩效的量化指标,如p99响应时间等数据,SLO由SLI和对应的目标值结合起来,如: 我们需要p99响应时间少于20ms,这就是一个SLO.
 
-## Continuous API Management,2nd edtion
-### ch1: API管理的挑战
-简单介绍API和API管理
-### ch2: API Governance
-如何设计某个API接口,如何确定API的统一风格,API冲突时如何解决,这些都属于API Governance的范围.
+而Service level agreement (SLA)则是在SLO未达成时的必要措施,是服务提供商和消费者之间达成的某些协议.
 
-对于决策者/架构师来说,我们需要决定如何下放API Governance,哪些决策可以由小组成员独立解决,哪些决策又必须由本人决定.
-
-### ch3: The API as a Product
+### ch9: 可观测性和监控
 
 
-# 先放着
+
+
 ## 面向模式的软件架构
 ### 介绍
 这书总共有5卷:
@@ -1306,29 +1098,293 @@ public class CreateUser
 一旦你发现一本书无论如何都看不懂的时候,就应该过段时间再来看.
 
 # 基础
-## Prompt Engineering for LLMs
-### ch1: 介绍提示词工程
-简单介绍,可惜当时是24年.
-### ch2: 介绍LLM
-![温度的原理](PixPin_2026-10-18_11-44-59.webp)
+## Docker Deep Dive
+### ch1-4: 介绍
+>尽管开发 Windows 容器投入了大量精力，但几乎所有容器都是Linux 容器。这是因为 Linux 容器体积更小、速度更快，而且 Linux 拥有更丰富的工具。
 
-当T趋近于0时,概率最大项会趋近于正无穷,而如果T=0,则是直接选择概率最大项,因为此时它的概率为1.
+由于容器共享运行所在主机的内核。这意味着容器化的Windows应用需要运行Windows内核的主机，而容器化的Linux应用则需要运行Linux内核的主机。但是，如前所述，您可以在安装了WSL 2后端的Windows系统上运行Linux容器
+#### OCI
+生态系统中的主要参与者齐聚一堂，成立了 OCI，这是一个厂商中立的轻量级委员会，负责管理容器标准:
+- The image-spec
+- The runtime-spec
+- The distribution-spec
 
-如果温度大于1,则会让模型的输出偏离典型的输出,而小于1,则会逐渐靠近典型的输出.
+OCI规范对容器生态系统起到了同样的作用，此后容器生态系统蓬勃发展。Docker自OCI成立以来也发生了巨大变化，所有现代版本的Docker都实现了全部三项OCI规范。例如：
 
->值得注意的是,主流的API中,如果开启了reasoning即CoT,那么就无法调节温度,至于为什么,有可能是LLM公司发现如果调了温度会让LLM的输出惨不忍睹,但又不知道具体的原因是什么,所以才遮遮掩掩的.
+- Docker 构建器 (BuildKit) 创建符合 OCI 标准的镜像
+- Docker 使用符合 OCI 标准的运行时来创建符合 OCI 标准的容器
+- Docker Hub 实现了 OCI 发行版规范，并且是一个符合 OCI 标准的镜像仓库。
+### ch5: Docker Engine
+![基本架构](PixPin_2026-10-18_10-59-57.webp)
 
-Transformer只能向过去的输出看,而永远无法向未来看,所以这些LLM都被称为单向Transformer
-### ch3: chat
-比较详细的叙述了从文本补全模型到对话模型的改进,以GPT为中心.
-### ch4: 设计LLM应用程序
-不值得看,因为这两年的Agent变化确实太大了
-### ch5: Prompt Content
-向LLM（机器学习模型）明确提出的问题比大多数人想象的更重要，也更难。原因之一是，人际沟通中误解非常普遍——只不过，当人们彼此交流时，任何误解往往都能迅速得到解决。但当你的应用与LLM通信时（例如，在ChatGPT上以程序化方式而非实时方式查询模型），误解往往会导致彻底失败。向LLM明确问题之所以重要，另一个原因是，更清晰的描述有助于模型每次遇到相同问题时都以相同的方式处理。明确描述能够带来一致性。
+最初的Docker将所有功能都放入了daemon中,是在后面才逐渐拆分得到runc和containerd等独立工具的.
 
-讲了RAG和提示词撰写
+![构建流程](PixPin_2026-10-18_11-10-31.webp)
+
+- shim可以让我们很轻松的将runc替换为其他runtime
+### ch6: images
+>例如，官方的 Alpine Linux 镜像目前只有大约 3MB。这是因为它没有预装六个不同的 shell、三个不同的包管理器，以及一大堆你可能十年才用一次的工具。事实上，现在越来越多的镜像都不包含 shell 或包管理器——如果应用程序在运行时不需要它们，镜像就不会包含。我们称这些为精简镜像
+
+Docker在pull镜像时默认从Docker Hub拉取latest的镜像,除非特地指明,因此我们可以省略这两个字段:
+```bash
+docker pull nigelpoulton/tu-demo
+```
+
+有两点值得注意。
+
+* 如前所述，如果您未在仓库名称后指定镜像标签，Docker 会默认将镜像标记为 `latest`。如果仓库中没有标记为 `latest` 的镜像，则该命令将失败。
+* 标记为 `latest` 的image不保证是存储库中最新的image
+### ch7: 容器
+介绍rm,exec,ps,run等常见容器命令.
+### ch8: 构建容器
+介绍了多阶段构建,多架构构建,构建的基本原理
+
+>任何时候，如果指令导致缓存未命中，缓存就会失效，并且在后续构建过程中不再进行检查。这意味着你应该编写 Dockerfile，将最有可能导致缓存失效的指令放在 Dockerfile 的末尾附近。这样可以确保构建过程尽可能长时间地利用缓存。
+### ch9: compose
+介绍构建一个简单的网页对话大模型
+### ch10: Docker and Wasm(WebAssembly)
+介绍了与Linux容器相比性能更好的Wasm.
+### ch11: Docker Swarm
+Swarm 是 Docker 的原生技术，用于管理 Docker 节点集群和编排微服务应用程序。它类似于 Kubernetes，但功能相对简单，使用起来也更方便。
+
+介绍了Swarm的基本运作机制: 节点通过Token认证来决定作为Manager还是Worker加入swarm,Manager采用Raft算法,所以最好选用奇数个Manager节点.节点间自动通过TLS通信,无需手动配置连接细节.
+
+
+
+`docker swarm init`用于创建一个新的集群。运行该命令的节点将成为第一个管理器，并且该节点的 Docker Engine 会切换到集群模式。
+### ch12: Deploying apps to Swarm
+Docker Swarm通过于Compose文件极其相同的Stack文件定义:
+```yml
+
+version: "3.8"
+
+services:
+
+  # 1. 反向代理
+  traefik:
+    image: traefik:v3.4
+    command:
+      - "--providers.swarm=true"
+      - "--providers.swarm.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: ingress
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - frontend
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+        delay: 5s
+
+  # 2. FastAPI 后端
+  api:
+    image: registry.example.com/my-api:1.0.0
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: appdb
+      DB_USER: app
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      REDIS_URL: redis://redis:6379/0
+    secrets:
+      - db_password
+    networks:
+      - frontend
+      - backend
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
+
+      labels:
+        - "traefik.enable=true"
+        - "traefik.swarm.network=myapp_frontend"
+        - "traefik.http.routers.api.rule=Host(`api.example.com`)"
+        - "traefik.http.routers.api.entrypoints=web"
+        - "traefik.http.routers.api.service=api"
+        - "traefik.http.services.api.loadbalancer.server.port=8000"
+
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+
+  # 3. PostgreSQL 数据库
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d appdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.database == true
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+  # 4. Redis 缓存
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "no"]
+    networks:
+      - backend
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+# 5. 网络
+networks:
+  frontend:
+    driver: overlay
+
+  backend:
+    driver: overlay
+    internal: true
+
+# 6. 数据卷
+volumes:
+  pgdata:
+    driver: local
+
+# 7. 敏感信息
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+```
+
+在使用前,我们需要先初始化管理节点,并在管理节点中用stack文件创建Stack.
+
+Docker Swarm 默认会在所有可用节点之间自动调度Replicas，包括 Worker 和 Manager 节点，并倾向于分散部署,这和Kubernetes就不太一样了.
+### ch13: Docker网络
+从最高层面来看，Docker 网络基于以下三个组件：
+- The Container Network Model (CNM)
+  - 设计规范,概述了Docker网络的基本模块,定义了Sandbox(包括以太网接口,Ports,DNS配置等网络组件),Endpoint(虚拟网络接口,将Sandbox连接到Network),Network(虚拟的交换机)
+
+具体的通信过程如下:
+
+![通信图](PixPin_2026-10-25_10-11-58.webp)
+
+
+- Libnetwork
+  - 隶属于Moby项目,是CNM的具体实现.原来也是放在Daemon中的,后来被移除出来作为外部库配置,实现了网络控制平面(即API managements,服务发现,负载均衡等功能)
+- Drivers
+  - 作为数据平面,负责创建网络并确保隔离和连通性
+
+我们创建的每个network都属于一个driver,该driver负责创建和管理network的所有相关内容
+
+![示意图](PixPin_2026-10-25_10-07-22.webp)
+
+#### Single-host bridge networks
+这是最简单的network类型,只运行在一个host中.每个host都会自动创建一个名为Bridge的默认Network,Docker 会将新容器连接到该网络，除非您使用 --network 标志覆盖它。
+
+所有基于 Linux 的 Docker 主机上的默认桥接网络名为 bridge，它映射到主机内核中名为 docker0 的底层 Linux 桥接网络:
+
+![映射图](PixPin_2026-10-25_10-37-18.webp)
+
+#### 端口映射
+![结构图](PixPin_2026-10-25_10-42-47.webp)
+
+### ch14: Docker overlay networking
+很专业,可跳过
+### ch15: 持久化存储
+对于无状态应用程序，Docker 会为每个容器创建一个与容器生命周期绑定的非持久性本地存储区域。该存储区域适用于存放临时数据和临时文件，但当您删除容器或容器终止时，该存储区域内的数据将会丢失。
+
+连绑定挂载和volume的区别都没讲,不够深入
+
+### ch16: Docker安全
+在Docker中,命名空间提供了轻量级的隔离,每个Docker容器都有一下独立的namespace:
+
+![示意图](PixPin_2026-10-26_11-35-14.webp)
+
+1. PID: 每个容器都有自己的PID 1,无法查看或者访问其他容器或者主机中的进程,
+2. network: 每个容器都有自己的IP地址和网络接口,所有内部端口都不会冲突
+3. mount: 每个容器都有自己的文件系统,可以有自己的`/`根文件系统和`/etc`等文件夹
+4. Inter-process Communication: 容器内的进程都可以进行共享的内存访问
+5. User: 每个容器都有自己的用户,我们可以将容器中的用户如root映射到主机上的非root用户
+6. UTS: 为每个容器提供自己的hostname
+
+#### Control Groups
+如果命名空间是关于隔离的，那么控制组（cgroups）就是关于限制的。
+
+可以将容器想象成酒店里的客房。虽然每个房间看起来都是独立的，但实际上它们共享很多东西，例如供水、供电、空调、游泳池、健身房、电梯、早餐吧等等。容器也是如此——即使它们是独立的，它们也共享很多公共资源，例如主机的 CPU、内存、网络 I/O 和磁盘 I/O。
+
+Docker 使用 cgroups 来限制容器对这些共享资源的使用，防止任何容器消耗掉所有资源，从而导致拒绝服务 (DoS) 攻击。
+
+Linux root 用户底层拥有众多权限。这些权限包括：
+* **CAP_CHOWN**：允许您更改文件所有权
+* **CAP_NET_BIND_SERVICE**：允许您将套接字绑定到编号较低的网络端口
+* **CAP_SETUID**：允许您提升进程的权限级别。
+* **CAP_SYS_BOOT**：允许您重新启动系统。
+
+Docker 利用权限控制功能，**允许您以 root 用户身份运行容器，同时移除所有不需要的权限**。例如，假设您的容器只需要绑定到低编号网络端口的权限。在这种情况下，Docker 可以以 root 用户身份启动容器，移除所有 root 权限，然后再添加 CAP_NET_BIND_SERVICE 权限。
+
 ### 总结
-很遗憾,这本书刚好卡在两波潮流中间,不推荐阅读.
+阅读体验很好,基本的要点都有了,非常优秀的Docker书籍
+
 
 ## Kubernetes in Action, Second Edition(待补充)
 - 出版于2026年（第2版），出版商：Manning，作者：Marko Lukša。
@@ -8359,7 +8415,7 @@ parent:
   key1: value1
   key2: value2
   child:
-  key1: value1
+    key1: value1
 ```
 list的写法则用`-`标明:
 
@@ -18888,6 +18944,29 @@ review_pipeline = SequentialAgent(
 
 ### 总结
 一场酣畅淋漓的思考,停下来看看路在何方.
+## Prompt Engineering for LLMs
+### ch1: 介绍提示词工程
+简单介绍,可惜当时是24年.
+### ch2: 介绍LLM
+![温度的原理](PixPin_2026-10-18_11-44-59.webp)
+
+当T趋近于0时,概率最大项会趋近于正无穷,而如果T=0,则是直接选择概率最大项,因为此时它的概率为1.
+
+如果温度大于1,则会让模型的输出偏离典型的输出,而小于1,则会逐渐靠近典型的输出.
+
+>值得注意的是,主流的API中,如果开启了reasoning即CoT,那么就无法调节温度,至于为什么,有可能是LLM公司发现如果调了温度会让LLM的输出惨不忍睹,但又不知道具体的原因是什么,所以才遮遮掩掩的.
+
+Transformer只能向过去的输出看,而永远无法向未来看,所以这些LLM都被称为单向Transformer
+### ch3: chat
+比较详细的叙述了从文本补全模型到对话模型的改进,以GPT为中心.
+### ch4: 设计LLM应用程序
+不值得看,因为这两年的Agent变化确实太大了
+### ch5: Prompt Content
+向LLM（机器学习模型）明确提出的问题比大多数人想象的更重要，也更难。原因之一是，人际沟通中误解非常普遍——只不过，当人们彼此交流时，任何误解往往都能迅速得到解决。但当你的应用与LLM通信时（例如，在ChatGPT上以程序化方式而非实时方式查询模型），误解往往会导致彻底失败。向LLM明确问题之所以重要，另一个原因是，更清晰的描述有助于模型每次遇到相同问题时都以相同的方式处理。明确描述能够带来一致性。
+
+讲了RAG和提示词撰写
+### 总结
+很遗憾,这本书刚好卡在两波潮流中间,不推荐阅读.
 
 # 高级
 
@@ -19299,6 +19378,16 @@ API 网关提供了用户认证、请求速率限制和超时/重试等横向需
 
 ### 总结
 确实看不得这种书,全是正确的废话,真要领悟还是得靠实战.
+## Continuous API Management,2nd edtion
+### ch1: API管理的挑战
+简单介绍API和API管理
+### ch2: API Governance
+如何设计某个API接口,如何确定API的统一风格,API冲突时如何解决,这些都属于API Governance的范围.
+
+对于决策者/架构师来说,我们需要决定如何下放API Governance,哪些决策可以由小组成员独立解决,哪些决策又必须由本人决定.
+
+### 总结
+实际上就是面向管理岗的,也没什么看头其实,没有一点实战环节
 # 推荐阅读书籍
 看了那么多书,自然能找到几本写的不错的.这里只放了一些核心的书籍,至于那些写的一般的书尽管有一定的阅读价值,但想了想还是不放上来,虽然说"人要从错误中学习",但能少走弯路就别走吧.
 ## 基础

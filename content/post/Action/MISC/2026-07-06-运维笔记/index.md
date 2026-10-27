@@ -379,84 +379,160 @@ docker exec -it linux-lab bash
 
 
 
-# 部署
-## git
-推荐阅读: Pro git
-## GitHub 
-### GitHub Flavored Markdown,GFM
-- [参考文章](https://github.com/guodongxiaren/README)
+# CI/CD
+## GitHub Actions
+### 介绍
+GitHub Actions 于2018年10月发布，2019年11月正式推出。在项目根目录的`.github/workflows`文件夹中配置yml文件后,即可在推送代码到Github时按需运行CI/CD.
+### 基本语法
+#### 基本概念
+GitHub Actions 的 Workflow YAML 文件共有9个顶级Key:
+| 一级 Key    | 作用                     | 是否必需 |
+| :---------- | :----------------------- | :------- |
+| name        | 定义工作流名称           | 否       |
+| run-name    | 定义每次执行的名称       | 否       |
+| on          | 定义触发工作流的事件     | 是       |
+| permissions | 设置 GITHUB_TOKEN 权限   | 否       |
+| env         | 定义全局环境变量         | 否       |
+| defaults    | 设置默认 Shell、工作目录 | 否       |
+| concurrency | 控制工作流并发执行       | 否       |
+| cache-mode  | 控制工作流的缓存读写权限 | 否       |
+| jobs        | 定义需要执行的任务       | 是       |
 
-值得一提的是hugo也内置了对GFM的支持,感兴趣的博主可以在里面测试一下.
-#### Alerts
-```md
-> [!NOTE]
-> 这是一个提示信息
 
-> [!TIP]
-> 这是一个技巧提示
-
-> [!IMPORTANT]
-> 这是重要信息
-
-> [!WARNING]
-> 这是警告信息
-
-> [!CAUTION]
-> 这是危险警告
+#### 设定触发条件
+在顶级关键字`on`下面,我们可以指定某个workflow在push,fork,pull_request,issues发生时触发,也可以指定在某个特定branch如master,main,dev触发,还可以指定当对应path下的文件或者文件夹发生修改时才触发,也可以忽略某些文件夹的修改,一个实战的yml如下:
+```yml
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - 'doc/**'
+      - 'src/pretix/locale/**'
+  pull_request:
+    branches: [ master ]
+    paths-ignore:
+      - 'doc/**'
+      - 'src/pretix/locale/**'
 ```
-![图示](PixPin_2026-07-31_16-14-52.webp)
 
-在hugo上的效果如下:
-> [!NOTE]
-> 这是一个提示信息
+其中,push等二级key被称为Event Trigger(事件触发器),表示当对应事件发生时触发Workflow,目前总共有33个触发器:
+| 分类           | 数量 | 触发器                                                                              |
+| :------------- | :--- | :---------------------------------------------------------------------------------- |
+| 代码与分支     | 6    | push、create、delete、pull_request、pull_request_target、merge_group                |
+| Issue与讨论    | 6    | issues、issue_comment、discussion、discussion_comment、label、milestone             |
+| 代码审查与检查 | 5    | pull_request_review、pull_request_review_comment、check_run、check_suite、status    |
+| 发布与部署     | 6    | release、deployment、deployment_status、registry_package、page_build、image_version |
+| 仓库活动       | 5    | fork、watch、public、gollum、branch_protection_rule                                 |
+| 自动化调度     | 5    | schedule、workflow_dispatch、workflow_call、workflow_run、repository_dispatch       |
 
-> [!TIP]
-> 这是一个技巧提示
+#### 设定jobs
+jobs关键字下用开发者自定义的`job_id`定义job,job_id下有21个三级key,常用的有以下几个:
 
-> [!IMPORTANT]
-> 这是重要信息
+| Key         | 作用                     |
+| :---------- | :----------------------- |
+| runs-on     | 指定任务运行环境         |
+| steps       | 定义任务执行步骤         |
+| name        | 设置任务显示名称         |
+| needs       | 定义任务之间的依赖关系   |
+| if          | 条件判断，决定是否执行   |
+| env         | 定义环境变量             |
+| permissions | 设置 GitHub Token 权限   |
+| strategy    | 使用矩阵并行测试不同环境 |
 
-> [!WARNING]
-> 这是警告信息
+一个不太全面的例子是这样的:
+```yml
+  test:
+    strategy:
+      matrix:
+        runs-on: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.runs-on }}
 
-> [!CAUTION]
-> 这是危险警告
-#### diff
-其语法与代码高亮类似，只是在三个反引号后面写diff，
-并且其内容中，可以用 `+ `开头表示新增，`- `开头表示删除。
-另外还有有 `!`和`#`的语法。
+    steps:
+      # Clone this repo
+      - name: Checkout
+        uses: actions/checkout@v4.1.6
 
-```diff
-+ 人闲桂花落，
-- 夜静春山空。
-! 月出惊山鸟，
-# 时鸣春涧中。
+      # Basic checkout
+      - name: Checkout basic
+        uses: ./
+        with:
+          ref: test-data/v2/basic
+          path: basic
+      - name: Verify basic
+        shell: bash
+        run: __test__/verify-basic.sh
+
 ```
-### GitHub Actions
-推荐阅读: GitHub Actions in action
-## 实践
-### 个人项目部署
-对于个人项目来说,Docker Compose+Dokploy简直不能太好用,基本的流程如下:
 
-1. 找一个服务器厂商和域名厂商,其中任何一个选了国内的就要备案.
-2. 目前Dokploy只支持Ubuntu24及Debian12以下版本,建议用Ubuntu24一键速通即可
-3. `ssh root@服务器IP`后安装Dokploy:
 
-```bash
-curl -sSL https://dokploy.com/install.sh | sh
+
+steps下定义了该job的运行流程,按照yml列表展示,有以下几种常用的key:
+
+| Key               | 作用               |
+| :---------------- | :----------------- |
+| name              | 设置步骤显示名称   |
+| uses              | 调用已有的 Action  |
+| run               | 执行 Shell 命令    |
+| with              | 向 Action 传递参数 |
+| id                | 设置步骤唯一标识符 |
+| if                | 设置步骤执行条件   |
+| env               | 定义步骤环境变量   |
+| working-directory | 设置命令执行目录   |
+| shell             | 指定 Shell 类型    |
+
+steps中的每个step可以粗暴地用dockerfile的构建系统来看,所有step共享同一个Runner的文件系统,使用独立的Shell进程.所以可以这么写:
+```yml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
 ```
->如果你像我一样总要反复销毁服务器实例的话,当IP重复导致SSH报错时,用`ssh-keygen -R 报错IP`即可
 
->当然,如果你用国内平台的话,还需要先用国内镜像源安装Docker:`curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun`.
+#### Runner
+每个Job都会由Github自动分配一个虚拟机来跑,你写什么运行环境就会分配什么:
 
-4. 安装Dokploy后,注册你的Git仓库,导入仓库后Build即可,注入环境变量.由于Dokploy会自动配置Traefik,所以需要将无端口的完整域名导引到你的Nignx或者其他反向代理上,这需要在Domain页中配置.
+| 标签           | 运行环境            |
+| :------------- | :------------------ |
+| ubuntu-latest  | GitHub 托管 Ubuntu  |
+| ubuntu-24.04   | Ubuntu 24.04        |
+| windows-latest | GitHub 托管 Windows |
+| macos-latest   | GitHub 托管 macOS   |
 
-通常来讲,个人小项目选择最低配置即可(如1核/2核的2G内存,20/30G的硬盘就足够了)
-#### 腾讯云实践
-腾讯云刚好有一个月的轻量服务器免费用,记录一下踩坑:
-1. 先装Docker的阿里云镜像再装Dokploy,否则会非常麻烦
-2. Dokploy需要开放3000端口,而腾讯云的防火墙很严格,所以需要检查服务器的防火墙是否放行3000端口
-   1. 折腾这个折腾了二十分钟
+尽管服务器的花销肯定不小,但是Github官方财大气粗,只要你正常使用Actions,是绝对不可能用完免费额度的.
+
+而且,如果是Public仓库,又使用了Github托管的Runner,就不消耗任何额度,除非你要用规模更大的Runner或者改为Private仓库,那才会消耗额度,而这样也有每个月运行2000min的额度,一般来说也够用了.
+
+#### 常用action
+基本来说每个Github Action的job都有这一行:
+```yml
+- uses: actions/checkout@v4
+```
+它会用git自动从当前Github仓库拉取(fetch)对应提交版本到当前的Runner中,深度为1(即不拉取git历史)
+
+>至于为什么叫checkout,因为老式的git切换分支写法就是`git checkout v6.0`嘛.
+
+
+### 总结
+实际上我没用多少字数就把Actions的基本原理给介绍清楚了,但如果看官方文档,那是不可能看懂的...
+
+通过GitHub Actions就能很好地理解CI的便利了,编写代码后,如果觉得本地运行测试太麻烦,或者自己本身是在Linux平台写的代码,不确定能不能在Windows上运行,只要提交一次git commit,构建和测试一次完成,彻底解放双手.
+
+至于CD的话,无论是发布博客到Github Pages,还是将新版本的库发布到PyPI,都可以用到Github Actions.
+
+# 可观测性
+
 # 跨平台构建工具
 ## 总表
 | 时间            | 技术                           | 原本熟悉的技术 → 目标平台                    | 核心实现方式                                                                 | 历史意义 / 今天怎么看                                                                                                                                          |
@@ -669,8 +745,6 @@ React Native由Facebook于15年发布的多平台(除了Linux)打包框架.
 
 ### Flutter
 支持全平台,但需要专门学习dart语言,实际上是一个更难用的Javascript
-# 可观测性
-
 
 # 杂项
 ## 斜杠(Slash)和反斜杠(Backslash)
@@ -679,4 +753,76 @@ React Native由Facebook于15年发布的多平台(除了Linux)打包框架.
 
 简单来说,无脑用`/`,只有Windows,转义,换行要考虑用`\`.
 
+## GitHub Flavored Markdown,GFM
+- [参考文章](https://github.com/guodongxiaren/README)
 
+值得一提的是hugo也内置了对GFM的支持,感兴趣的博主可以在里面测试一下.
+### Alerts
+```md
+> [!NOTE]
+> 这是一个提示信息
+
+> [!TIP]
+> 这是一个技巧提示
+
+> [!IMPORTANT]
+> 这是重要信息
+
+> [!WARNING]
+> 这是警告信息
+
+> [!CAUTION]
+> 这是危险警告
+```
+![图示](PixPin_2026-07-31_16-14-52.webp)
+
+在hugo上的效果如下:
+> [!NOTE]
+> 这是一个提示信息
+
+> [!TIP]
+> 这是一个技巧提示
+
+> [!IMPORTANT]
+> 这是重要信息
+
+> [!WARNING]
+> 这是警告信息
+
+> [!CAUTION]
+> 这是危险警告
+### diff
+其语法与代码高亮类似，只是在三个反引号后面写diff，
+并且其内容中，可以用 `+ `开头表示新增，`- `开头表示删除。
+另外还有有 `!`和`#`的语法。
+
+```diff
++ 人闲桂花落，
+- 夜静春山空。
+! 月出惊山鸟，
+# 时鸣春涧中。
+```
+
+# 个人实践
+## 个人项目部署
+对于个人项目来说,Docker Compose+Dokploy简直不能太好用,基本的流程如下:
+
+1. 找一个服务器厂商和域名厂商,其中任何一个选了国内的就要备案.
+2. 目前Dokploy只支持Ubuntu24及Debian12以下版本,建议用Ubuntu24一键速通即可
+3. `ssh root@服务器IP`后安装Dokploy:
+
+```bash
+curl -sSL https://dokploy.com/install.sh | sh
+```
+>如果你像我一样总要反复销毁服务器实例的话,当IP重复导致SSH报错时,用`ssh-keygen -R 报错IP`即可
+
+>当然,如果你用国内平台的话,还需要先用国内镜像源安装Docker:`curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun`.
+
+4. 安装Dokploy后,注册你的Git仓库,导入仓库后Build即可,注入环境变量.由于Dokploy会自动配置Traefik,所以需要将无端口的完整域名导引到你的Nignx或者其他反向代理上,这需要在Domain页中配置.
+
+通常来讲,个人小项目选择最低配置即可(如1核/2核的2G内存,20/30G的硬盘就足够了)
+### 腾讯云实践
+腾讯云刚好有一个月的轻量服务器免费用,记录一下踩坑:
+1. 先装Docker的阿里云镜像再装Dokploy,否则会非常麻烦
+2. Dokploy需要开放3000端口,而腾讯云的防火墙很严格,所以需要检查服务器的防火墙是否放行3000端口
+   1. 折腾这个折腾了二十分钟
