@@ -11412,11 +11412,11 @@ BaseException
 
 简单来说,所有的业务异常都由Exception类包揽了,所以如果我们写成`except Exception as e`,就会默认接收所有继承自Exception的子类.
 
-那么我们这里也是同理,在domain里编写一个`exceptions.py`文件夹,通过合理的继承关系把所有异常统合在一起即可,具体来说,目前有三大子类,自底向上排列:
+那么我们这里也是同理,在domain里编写一个`exceptions.py`文件夹,通过合理的继承关系把所有异常统合在一起即可,具体来说,目前有两个子类,自底向上排列:
 
-1. `DbException`: 所有Session层面的异常
-2. `RepoException`: 所有Repo层面的异常
-3. `ServiceException`: 所有Service层面的异常
+
+1. `RepoException`: 所有Repo层面的异常
+2. `ServiceException`: 所有Service层面的异常
 
 
 每一层不仅可以捕获先前一层的异常,也可以自己新增异常,从而做到尽可能地全方面兜底,增强代码的健壮性,并提供足够丰富的调试信息供前端展示:
@@ -11424,11 +11424,6 @@ BaseException
 
 # 基类异常
 class BaseException(Exception):
-    pass
-
-
-# DB异常
-class DbException(BaseException):
     pass
 
 
@@ -11528,25 +11523,6 @@ class UserRepo(AbstractRepo):
 ```
 用到的异常类如下:
 ```py
-# DB异常
-class DbException(BaseException):
-    pass
-
-
-class SQLError(DbException, SQLAlchemyError):
-    pass
-
-
-class AddError(SQLError):
-    pass
-
-
-class DeleteError(SQLError):
-    pass
-
-class CommitError(DbException, SQLAlchemyError):
-    pass
-
 # Repo异常
 class RepoException(BaseException):
     pass
@@ -11570,10 +11546,385 @@ class VerifyError(RepoException):
     pass
 ```
 #### ConversationRepo填补
+```py
+class ConversationRepo(AbstractRepo):
+    def get(self, conversation_id: int, user_id: int) -> Conversation:
+        statement = select(ConversationRecord).where(
+            ConversationRecord.conversation_id == conversation_id,
+            ConversationRecord.user_id == user_id,
+        )
+        conversation = self._session.exec(statement).one()
+        if not conversation:
+            raise ConversationRecordNotFound("Conversation Record Not Found")
+        return mapper(conversation, Conversation)
+
+    def get_all(
+        self, user_id: int, offset: int = 0, limit: int = 50
+    ) -> ConversationsPublic:
+        statement = (
+            select(ConversationRecord)
+            .where(ConversationRecord.user_id == user_id)
+            .order_by(
+                desc(ConversationRecord.updated_at),
+                desc(ConversationRecord.conversation_id),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
+        results = self._session.exec(statement).all()
+        if not results:
+            raise ConversationsRecordNotFound("Conversations Record Not Found")
+        lists = [mapper(result, ConversationPublic) for result in results]
+        return ConversationsPublic(data=lists)
+
+    def post(self, user_id: int, content: str) -> ConversationPublic:
+        title = build_conversation_title(content)
+        conversation = ConversationRecord(user_id=user_id, title=title)
+        try:
+            self._session.add(conversation)
+            self._session.commit()
+            self._session.refresh(conversation)
+            result = ConversationPublic.model_validate(conversation)
+        except SQLAlchemyError as e:
+            self._session.rollback()
+            raise ConversationRecordCreateError(
+                "Conversation record create failed"
+            ) from e
+
+        return result
+
+    def update_title(self, conversation_id: int, title: str) -> None:
+        conversationrecord = self._session.get(ConversationRecord, conversation_id)
+        if not conversationrecord:
+            raise Exception
+        conversationrecord.title = title
+        try:
+            self._session.add(conversationrecord)
+            self._session.commit()
+        except SQLAlchemyError:
+            self._session.rollback()
+            raise ConversationTitleUpdateError("Conversation title update failed")
+
+    def post_usage(
+        self, user_id: int, tokenusage: TokenUsage, role: MessageRole
+    ) -> None:
+        # 用量计算
+        usage = self._session.get(UserUsage, user_id)
+        if usage is None:
+            usage = UserUsage(user_id=user_id)
+            self._session.add(usage)
+        add_usage(usage, tokenusage, role)
+
+        self._session.commit()
+
+    def post_message(
+        self,
+        conversation_id: int,
+        role: MessageRole,
+        content: str,
+    ) -> None:
+        # 对话保存
+        message = MessageRecord(
+            conversation_id=conversation_id,
+            role=role,
+            content=content,
+        )
+
+        # 更新对话的最新更新时间
+        conversation = self._session.get(ConversationRecord, conversation_id)
+        if conversation is None:
+            raise ConversationsRecordNotFound("Conversations Record Not Found")
+
+        conversation.updated_at = get_datetime()
+        try:
+            self._session.add(message)
+            self._session.add(conversation)
+            self._session.commit()
+        except SQLAlchemyError:
+            self._session.rollback()
+            raise MessageRecordCreateError("Message record create failed")
+
+    def get_messages(
+        self,
+        conversation_id: int,
+        user_id: int,
+        offset: int = 0,
+        limit: int = settings.HISTORY_MESSAGE_LIMIT,
+    ) -> MessagesPublic:
+        statement = (
+            select(MessageRecord)
+            .join(ConversationRecord)
+            .where(
+                ConversationRecord.conversation_id == conversation_id,
+                Conversation.user_id == user_id,
+            )
+            .order_by(
+                desc(MessageRecord.created_at),
+                desc(MessageRecord.message_id),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
+        try:
+            messagesequence = self._session.exec(statement).all()
+        except SQLAlchemyError:
+            raise MessageRecordNotFound("Message record not found")
+
+        lists = list(messagesequence)
+
+        lists.reverse()
+        messages = [MessagePublic.model_validate(message) for message in lists]
+
+        return MessagesPublic(data=messages)
+
+    def get_usages(self) -> UsagePublic:
+        return get_usage_totals(self._session)
+```
+用到的异常类:
+```py
+## ConversationRepo
+class ConversationRecordNotFound(RepoException):
+    pass
 
 
+class ConversationsRecordNotFound(RepoException):
+    pass
+
+
+class ConversationRecordCreateError(RepoException):
+    pass
+
+
+class ConversationTitleUpdateError(RepoException):
+    pass
+
+class MessageRecordCreateError(RepoException):
+    pass
+
+
+class MessageRecordNotFound(RepoException):
+    pass
+```
+
+#### Service填补
+**UserService**
+```py
+class UserService(BaseService[UserRepo]):
+    def get(self, name: str) -> UserPublic:
+        try:
+            user = self._repo.get(name)
+        except UserRecordNotFound:
+            raise UserNotFound("User not found")
+
+        return UserPublic.model_validate(user)
+
+    def get_all(self, offset: int, limit: int) -> UsersPublic:
+        try:
+            users = self._repo.get_all(offset, limit)
+        except UsersRecordNotFound:
+            raise UsersNotFound("Fail to get users list")
+
+        return users
+
+    def post(self, user_in: UserRegister) -> UserPublic:
+        try:
+            user = self._repo.post(user_in)
+        except UserRecordCreateFailed:
+            raise UserCreateError("Fail to create new user")
+        return user
+
+    def delete(self, user_id: int) -> None:
+        try:
+            self._repo.delete(user_id)
+        except UserRecordDeleteError:
+            raise UserDeleteError("Fail to delete user")
+```
+
+**ChatService**
+```py
+class ChatService(BaseService[ConversationRepo]):
+    def get_messages(self, conversation_id: int, user_id: int) -> MessagesPublic:
+        try:
+            messages = self._repo.get_messages(
+                conversation_id, user_id, 0, settings.MESSAGE_LIMIT
+            )
+        except MessageRecordNotFound:
+            raise MessagesNotFound("Messages not found")
+        return messages
+
+    def get_conversations(
+        self, user_id: int, offset: int, limit: int
+    ) -> ConversationsPublic:
+        try:
+            conversations = self._repo.get_all(user_id, offset, limit)
+        except ConversationRecordNotFound:
+            raise ConversationNotFound("Conversation not found")
+        return conversations
+
+    def post_conversation(self, user_id: int, content: str) -> ConversationPublic:
+        try:
+            conversation = self._repo.post(user_id, content)
+        except ConversationRecordCreateError:
+            raise ConversationCreateError("Fail to create conversation")
+        return conversation
+
+    def update_conversation_title(self, conversation_id: int, title: str) -> None:
+        try:
+            self._repo.update_title(conversation_id, title)
+        except ConversationTitleUpdateError:
+            raise TitleUpdateError("Fail to update conversation title")
+
+    def post_message(
+        self, conversation_id: int, content: str, role: MessageRole
+    ) -> None:
+        try:
+            self._repo.post_message(conversation_id, role, content)
+        except MessageRecordCreateError:
+            raise MessageCreateError("Fail to create message")
+
+    def post_usage(
+        self, user_id: int, tokenusage: TokenUsage, role: MessageRole
+    ) -> None:
+        try:
+            self._repo.post_usage(user_id, tokenusage, role)
+        except:
+            raise UsageUpdateError("Fail to update usage")
+
+    def get_usages(self) -> UsagePublic:
+        try:
+            usages = self._repo.get_usages()
+        except:
+            raise UsagesNotFound("Usages not found")
+        return usages
+
+    def stream_and_save(
+        self,
+        user_id: int,
+        conversation_id: int,
+        content: str,
+        reasoning: str,
+    ) -> Generator[dict[str, str], None, None]:
+
+        # 权限验证
+        try:
+            self._repo.get(conversation_id, user_id)
+        except ConversationRecordNotFound:
+            raise ConversationNotFound("Conversation not found")
+        # 获取历史消息
+        history_message = self._repo.get_messages(conversation_id, user_id)
+
+        # 创建默认Agent和流
+        client = default_agent(
+            history=history_message,
+            content=content,
+            reasoning=reasoning,
+        )
+        response = yield from standard_stream(client)
+
+        # 存储消息
+        try:
+            self._repo.post_usage(user_id, response.usage, MessageRole.ASSISTANT)
+            self._repo.post_message(conversation_id, MessageRole.USER, content)
+            self._repo.post_message(
+                conversation_id, MessageRole.ASSISTANT, response.output_text
+            )
+        except:
+            raise ChatSaveError("Fail to save chat")
+```
+
+#### 总结
+多了异常之后,尽管代码变长了,但逻辑链却变得更加清晰了.
 ### 组装依赖
+在`deps.py`中组装依赖:
+```py
+oauth2 = OAuth2PasswordBearer(tokenUrl="api/access-token", scheme_name="Oauth2")
+
+TokenDep = Annotated[str, Depends(oauth2)]
+
+
+def get_db() -> Generator[Session]:
+    with Session(engine) as session:
+        yield session
+
+
+SessionDep = Annotated[Session, Depends(get_db)]
+
+
+def get_user_service(session: SessionDep) -> UserService:
+    repo = UserRepo(session)
+    return UserService(repo)
+
+
+def get_chat_service(session: SessionDep) -> ChatService:
+    repo = ConversationRepo(session)
+    return ChatService(repo)
+
+
+UserServiceDep = Annotated[UserService, Depends(get_user_service)]
+ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
+
+
+def get_current_user(
+    session: SessionDep,
+    token: TokenDep,
+) -> User:
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[ALGORITHM],
+        )
+
+        # payload带有sub(用户ID)和exp等字段,但我们只需要sub即可
+        sub = TokenPayload(**payload).sub
+    except:
+        raise ValidationError("User not verified")
+
+    userrecord = session.get(UserRecord, sub)
+    if not userrecord:
+        raise UserNotFound("User not found")
+
+    user = mapper(userrecord, User)
+
+    if not user.is_active:
+        raise UserNotActive("User not active")
+    return user
+
+
+def get_current_user_id(user: Annotated[User, Depends(get_current_user)]) -> int | None:
+    return user.user_id
+
+
+CurrentUserID = Annotated[int, Depends(get_current_user_id)]
+
+
+def get_current_superuser_id(
+    user: Annotated[User, Depends(get_current_user)],
+) -> int | None:
+    if not user.is_superuser:
+        raise UserNotAdmin("User not admin")
+    return user.user_id
+
+
+SuperuserID = Annotated[int, Depends(get_current_superuser_id)]
+```
+
+如此一来,路由层就无法接触到底层的数据库操作了.
 ### 完成路由
+#### users部分
+对于用户注册来说,我们一直都是用的register根路由,但语义上还是有点模糊,我们看一下常见的几种写法:
+| API 路径          | HTTP 方法 | 风格    | 含义                 |
+| :---------------- | :-------- | :------ | :------------------- |
+| `/users`          | POST      | RESTful | 创建一个用户         |
+| `/auth/register`  | POST      | 动作式  | 注册账号             |
+| `/auth/signup`    | POST      | 动作式  | 用户自主注册         |
+| `/register`       | POST      | 动作式  | 注册账号             |
+| `/signup`         | POST      | 动作式  | 注册账号             |
+| `/users/register` | POST      | 混合式  | 在用户资源下执行注册 |
+
+考虑了一番之后,我觉得还是设定为`POST "users/"`比较好
+
+
 
 ## ch19: 联网搜索引入和MCP使用
 ### 背景介绍
