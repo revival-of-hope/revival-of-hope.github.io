@@ -34,12 +34,13 @@ tags:
 3. HTTP的头部有哪些内容
    1. 分为Response header(响应头),由服务器返回的详细参数,和Request header(请求头),用户对服务器的要求.
    2. ...待补充
-4. select、poll、epoll分别的优缺点
-5. HTTP1,1.1,2,3各自的基本内容?
-6. CDN是什么，为什么用，怎么评价CDN的效果和性能
-7. Websocket和Http长链接的区别,二者对服务器性能有什么影响
-8. JWT原理?和Cookie的区别?
-9. 如果有中间人抓包截取了JWT，作为劫持攻击该怎么办?能不能主动让JWT失效呢?
+4. 常用的status code有哪些?说一说你项目中用到的几个
+5. select、poll、epoll分别的优缺点
+6. HTTP1,1.1,2,3各自的基本内容?
+7. CDN是什么，为什么用，怎么评价CDN的效果和性能
+8. Websocket和Http长链接的区别,二者对服务器性能有什么影响
+9. JWT原理?和Cookie的区别?
+10. 如果有中间人抓包截取了JWT，作为劫持攻击该怎么办?能不能主动让JWT失效呢?
 #### 操作系统
 1. 线程有哪些状态,什么是死锁,如何恢复和避免
    1. 不同参考书的模型不一样,但常见的说法是有Ready,Running,Waiting,Terminated,New五种状态

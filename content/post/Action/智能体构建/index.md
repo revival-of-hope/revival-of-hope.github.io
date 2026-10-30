@@ -11912,17 +11912,266 @@ SuperuserID = Annotated[int, Depends(get_current_superuser_id)]
 如此一来,路由层就无法接触到底层的数据库操作了.
 ### 完成路由
 #### users部分
-对于用户注册来说,我们一直都是用的register根路由,但语义上还是有点模糊,我们看一下常见的几种写法:
-| API 路径          | HTTP 方法 | 风格    | 含义                 |
-| :---------------- | :-------- | :------ | :------------------- |
-| `/users`          | POST      | RESTful | 创建一个用户         |
-| `/auth/register`  | POST      | 动作式  | 注册账号             |
-| `/auth/signup`    | POST      | 动作式  | 用户自主注册         |
-| `/register`       | POST      | 动作式  | 注册账号             |
-| `/signup`         | POST      | 动作式  | 注册账号             |
-| `/users/register` | POST      | 混合式  | 在用户资源下执行注册 |
+先考虑一下我们如今可以支持的API:
+1. get:
+   1. 获取用户个人信息
+   2. 获取所有用户信息
+2. post:
+   1. 用户注册
+3. delete:
+   1. 普通用户删除自己(即注销)
+   2. 管理员删除普通用户(不能在此操作中删除自己)
 
-考虑了一番之后,我觉得还是设定为`POST "users/"`比较好
+
+对于这些操作,推荐的API写法如下:
+| HTTP 方法 | 路由              | 用途             |
+| :-------- | :---------------- | :--------------- |
+| GET       | `/api/users`      | 获取用户列表     |
+| GET       | `/api/users/{id}` | 获取指定用户     |
+| POST      | `/api/users`      | 创建用户         |
+| DELETE    | `/api/users/{id}` | 删除用户         |
+| GET       | `/api/users/me`   | 获取当前登录用户 |
+
+实践一下:
+```py
+from fastapi import APIRouter, HTTPException, status
+from app.domain.exceptions import UserCreateError, UserDeleteError, UserNotFound
+from app.services.deps import UserServiceDep, CurrentUserID, SuperuserID
+from app.domain.schemas import UserPublic, UsersPublic, UserRegister
+from app.domain.schemas import UsersPublic
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+
+# 用户注册
+@router.post("", status_code=status.HTTP_201_CREATED)
+def user_register(serivce: UserServiceDep, user_in: UserRegister) -> UserPublic:
+    user = serivce.get_by_name(user_in.name)
+    if user:
+        # 由于没有邮箱,所以只好用名字来进行唯一标识
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="Name already exists",
+        )
+    try:
+        user = serivce.post(user_in)
+    except UserCreateError as e:
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create user",
+        ) from e
+
+    return user
+
+
+# 获取用户个人信息
+@router.get("/me", status_code=status.HTTP_200_OK)
+def get_user(service: UserServiceDep, user_id: CurrentUserID) -> UserPublic:
+    try:
+        user = service.get_by_id(user_id)
+    except UserNotFound as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found") from e
+    return user
+
+
+# 获取用户列表
+@router.get("", status_code=status.HTTP_200_OK)
+def get_users_list(
+    _: SuperuserID,
+    service: UserServiceDep,
+    skip: int,
+    limit: int,
+) -> UsersPublic:
+    return service.get_all(offset=skip, limit=limit)
+
+
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+def delete_current_user(
+    service: UserServiceDep, current_user_id: CurrentUserID
+) -> None:
+    try:
+        service.delete(current_user_id)
+    except UserDeleteError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User cannot be deleted",
+        )
+    except UserNotFound:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+
+# 删除用户
+@router.delete("/{user_id}")
+def superuser_delete_user(
+    service: UserServiceDep,
+    superuser_id: SuperuserID,
+    user_id: int,
+) -> None:
+    if superuser_id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Superusers are not allowed to delete themselves",
+        )
+    try:
+        service.delete(user_id)
+    except UserDeleteError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User cannot be deleted",
+        )
+    except UserNotFound:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+```
+如今的user路由是不是比以前还要清晰很多了,只需要考虑执行service并抛出HTTP异常即可,至于再深一层就没必要考虑了.
+#### auth部分
+我们之前把token获取路由放在了utils.py中,这个写法不太对,最好是放在单独的auth.py中,因为除了获取token外,我们还需要考虑刷新token和注销token两种情况,所以最好一并组织在一起,不过我们留待日后解决token的刷新问题,先完成最初的token获取接口:
+```py
+from typing import Annotated
+from datetime import timedelta
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+from app.core import security
+from app.core.config import settings
+from app.domain.exceptions import PasswordMatchError, UserNotFound
+from app.domain.schemas import Token
+from app.services.deps import UserServiceDep
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.post("/access-token")
+def create_token(
+    service: UserServiceDep,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+) -> Token:
+    try:
+        user_id = service.check(form_data.username, form_data.password)
+    except UserNotFound, PasswordMatchError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect name or password",
+        )
+    token = Token(
+        access_token=security.create_token(
+            user_id,
+            expires_delta=timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES),
+        )
+    )
+    return token
+```
+#### chats部分
+先考虑一下目前能实现的API:
+1. get
+   1. 对话列表
+   2. 单个对话的全部消息
+   3. 管理员获取总计token消耗
+2. post
+   1. 创建对话
+3. patch
+   1. 用户更新标题
+4. chat
+   1. 发送消息并收到LLM流式响应
+
+实践一下:
+```py
+router = APIRouter(prefix="/chat", tags=["chat"])
+
+
+@router.get("", status_code=status.HTTP_200_OK)
+def get_conversations_list(
+    service: ChatServiceDep,
+    user_id: CurrentUserID,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 20,
+) -> ConversationsPublic:
+    return service.get_conversations(user_id, offset, limit)
+
+
+@router.get("/messages", status_code=status.HTTP_200_OK)
+def get_messages_list(
+    service: ChatServiceDep,
+    user_id: int,
+    conversation_id: int,
+) -> MessagesPublic:
+    return service.get_messages(conversation_id, user_id)
+
+
+@router.get("/usages", status_code=status.HTTP_200_OK)
+def get_total_usages(_: SuperuserID, service: ChatServiceDep):
+    return service.get_usages()
+
+
+@router.post("", status_code=status.HTTP_201_CREATED)
+def create_conversation(
+    service: ChatServiceDep, user_id: CurrentUserID, content: str
+) -> ConversationPublic:
+    try:
+        conversation = service.post_conversation(user_id, content)
+    except ConversationCreateError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create conversation",
+        )
+    return conversation
+
+
+@router.patch("/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
+def update_title(
+    user_id: CurrentUserID, service: ChatServiceDep, conversation_id: int, title: str
+) -> None:
+    try:
+        service.update_conversation_title(user_id, conversation_id, title)
+    except ConversationNotFound:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+
+
+@router.post("/{conversation_id}", status_code=status.HTTP_200_OK)
+def chat(
+    service: ChatServiceDep,
+    user_id: CurrentUserID,
+    conversation_id: int,
+    content: str,
+    reasoning: str,
+):
+    try:
+        stream = service.stream_and_save(
+            user_id,
+            conversation_id,
+            content,
+            reasoning,
+        )
+    except ConversationNotFound:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+    return StreamingResponse(
+        (f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n" for chunk in stream),
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+```
+对于最后stream的json拆包封装,是因为我们的stream返回的是一个dict,但StreamingResponse默认只支持文本格式或者二进制格式,也就是说我们必须强制转成字符串,或者写成这样:
+```py
+yield '{"content": "你好"}'
+```
+考虑到这样一来内部的生成器反而会写的很混乱,不如只在最外层做一个简单的转换就好.
+
+### 加入uow
+#### 背景
+路由完成之后,我们的初步重构就真的结束了,但现在看一下完整的代码,实际上
+#### 预备阶段
 
 
 

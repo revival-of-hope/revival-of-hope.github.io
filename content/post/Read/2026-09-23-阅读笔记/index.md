@@ -31,6 +31,45 @@ math: true
 
 Harness 的核心就是原公式中的“上下文 + 工具”，再加上三层保障机制：约束（限定 Agent 能做什么、不能做什么）、验证（检查 Agent 做得对不对）和纠正（做错了怎么补救）
 ### ch2: 上下文工程
+#### KV Cache
+KV Cache 的做法是：把前文的中间计算结果缓存下来，下一轮只需要计算新增 token 的部分。**前提是前缀完全不变**——只要前缀里有一个字符被改写，缓存就全部作废，模型不得不从被修改的位置重算。
+
+使用 KV Cache 时，A、B、C、D 的 K、V 向量算过一次后就缓存起来。生成 E 时，只需要计算 E 自身的 K、V，然后与缓存中的 4 组一起完成注意力计算。需要注意的是，KV Cache 省去的是历史 token 的 K、V 投影重算，使每步解码不必重算整个前缀；**但每个新 token 的注意力计算仍要遍历全部缓存的 K、V**，计算量随上下文长度线性增长——这正是长上下文解码越来越慢、KV Cache 的显存与带宽成为推理瓶颈的原因。
+#### Chat Template
+![转换图](PixPin_2026-10-29_08-25-29.webp)
+
+API格式的结构化消息会被模型的Chat Template自动转换为LLM可使用的标准格式.
+
+#### Prompt Cache
+在API服务层,我们也可以缓存相同前缀的计算结果,这被称为Prompt Cache,工作原理是: API 服务商对请求的前缀进行匹配，如果多次请求的前缀相同（比如系统提示词和工具定义不变），就直接复用之前计算好的 KV Cache。 而不需要重新计算这部分 token 的键值对。缓存读取的成本远低于首次计算——以 Anthropic、DeepSeek 为例约为十分之一.
+#### 提示工程
+语气和风格的设计是提示工程中最容易被忽视，却又深刻影响用户体验的部分。例如“You MUST answer concisely with fewer than 4 lines”（你必须简洁地回答，不超过 4 行）。在无法完成任务时要求“keep your response to 1-2 sentences”（把回复控制在 1-2 句话），并且“不要解释为什么不能做某事”——这种设计避免了 Agent 陷入冗长的自我辩护。大写字母（如“NEVER do X”）比“Please avoid doing X”更能引起模型的“注意”，但过度使用会导致效果被稀释，应保留给真正关键的约束。
+
+#### Skill设置
+Skill内容的插入位置在哪里?有三种方案:
+1. 注入系统提示词: 由于每次加载/切换Skill都会该笔那系统提示词,就会影响KV Cache
+2. 作为普通文件读取,置于用户消息中,由于出现在上下文的中间位置,需要模型针对这种情况进行特调,不同模型的效果差别很大,Claude对这一点做的较好.
+3. 生产实现中,metadata作为system/user角色注入上下文(不同模型设置不同),而完整内容则由Skill工具加载并注入到上下文中
+#### Agent状态栏
+
+
+
+## 大模型原理与架构
+### ch1: Transformer诞生
+#### 序列建模(Sequence Modeling)
+>在深入 Transformer 的技术细节之前，有必要先理解它试图解决的根本问题：如何对序列数据进行有效建模。
+
+序列建模（Sequence Modeling）是指让计算机理解和处理有序数据的任务。**自然语言**是最典型的序列数据——一句话中词语的排列顺序直接决定了语义。“猫追狗”和“狗追猫”使用了完全相同的词汇，但含义截然不同。
+
+序列建模有三大难题:
+1. 变长输入: 句子的长度可以从一个词到数千个词不等,但传统的全连接网络需要输入维度固定,无法直接处理变长序列
+2. 长距离依赖: 两个词语在一段话中可能相隔很远,但却是强相关的,模型必须具有捕捉这种依赖的能力.
+3. 计算效率问题: 如果模型严格按照顺序逐个处理每个元素,那么长序列的计算时间线性增长,无法并行计算,计算效率低
+
+围绕这三大根本难题，序列建模领域展开了长达几十年的探索与发展。在这段漫长的技术演进中，循环神经网络（RNN）较好地解决了变长输入问题，随后的长短期记忆网络（LSTM）在长距离依赖问题上取得了显著改善。然而，直到 Transformer 横空出世，计算效率问题才真正迎来了突破——不仅如此，它在前两个问题上也给出了更为优雅的答案。
+#### RNN与CNN
+
+## 智能体 Harness 工程指南
 
 ## Agentic Coding with OpenAI Codex CLI
 ### ch1: 介绍CodeX CLI
@@ -153,8 +192,222 @@ Hook类似于回调函数,当某个事件触发时(如开始对话,subagent执�
 Hooks对于调试信息,追踪异常耗费,提示任务完成等情景非常有用.
 
 ### ch10: Skills Ecosystem
+Codex搜寻Skills的优先级顺序如下:
+
+```bash
+$CWD/.agents/skills             # 项目级
+$CWD/../.agents/skills          # 父目录
+$REPO_ROOT/.agents/skills       # 代码库根目录
+$HOME/.agents/skills            # 用户级
+/etc/codex/skills               # 系统/管理员级
+Built-in system skills          # 最低优先级
+```
 
 
+如果你想阻止某个技能加载而不删除其目录，请在 `~/.codex/config.toml` 中添加一个条目：
+```toml
+[[skills.config]]
+name = "gh-address-comments"
+enabled = false
+```
+
+>修改 config.toml 后，请重启 Codex CLI。当某个技能导致意外的隐式激活时，此方法非常有效：禁用该技能，查看其描述，并在调整后重新启用它.
+
+SKILL.md 包含两个部分，由 YAML frontmatter 分隔符分隔。开头 --- 和结尾 --- 之间的所有内容都是结构化的metadata。之后的所有内容都是 Markdown 文本，技能激活后，代理会将其作为指令读取。
+
+```markdown
+---
+name: deploy-to-staging
+description: |
+  将当前服务部署到预发环境。当被要求部署、推送到预发环境、切出发布候选版本，或更新正在运行的预发服务时使用。请勿用于生产环境部署或本地测试环境。
+license: Apache-2.0
+compatibility: 需要 Docker, AWS CLI ≥ 2.x
+allowed-tools: Bash Read
+metadata:
+  author: platform-team
+  version: "2.1"
+---
+## 指令
+1. 运行 `scripts/preflight.sh` 验证环境变量及 Docker 守护进程的连通性。
+2. 构建并标记 Docker 镜像：`docker build -t $SERVICE:$SHA .`
+3. 推送到 ECR：`scripts/push-ecr.sh`
+4. 更新 ECS 任务定义并注册新版本。
+5. 等待服务稳定；报告成功或失败。
+```
+
+metadata中,以下字段是必需的:
+1. name: 长度为 1 至 64 个字符。仅限小写字母、数字和连字符。必须与父目录名称完全匹配。不能有前导/尾随连字符，也不能有连续的连字符。
+2. description: 长度为 1 至 1024 个字符。每次会话开始时加载。用作路由规则：描述技能的功能以及何时使用，包括帮助代理识别相关任务的关键词。
+
+
+- 正文不宜太长,控制在500行以内,大约5000个token即可.如果指令超出该限制,最好进行拆分
+
+会话启动时,Codex会扫描每个Skill.md的metadata,
+
+#### 编写描述字段
+metadata中的description字段写法相当重要:
+```yaml
+# 太模糊 —— 会导致漏掉触发
+description: 管理部署。
+
+# 太宽泛 —— 会在不相关的任务上触发
+description: 处理任何基础设施或云端任务。
+
+# 良好编写 —— 特定的触发条件，明确的排除项
+description: |
+  将当前服务部署到预发环境。适用于要求部署、推送到预发环境、切出发布候选版本或更新正在运行的预发服务时。请勿用于生产环境部署或本地 Docker Compose 测试环境。
+```
+
+#### Plugin
+Codex将Skill和MCP集成为了Plugin.
+
+插件是一个包含`.codex-plugin/plugin.json` 的清单文件和可选组件包的目录,清单文件内支持三种组件:
+1. Skills: 在`./.skills`文件夹中声明
+2. Apps: 外部服务连接器（GitHub、Slack、Gmail、Google Drive），通过 OAuth 或 API 令牌提供经过身份验证的数据访问。
+3. MCP servers: 在`./.mcp.json`声明
+### ch11: SubAgent
+Codex自带default(默认主agent),worker(执行全新上下文的任务)和explorer(侧重于读取和探索代码库)三个Agent.
+
+Codex只会在用户明确发出请求时才会生成Subagent,例如`spawn an **explorer** to map every reference to payment_service across the repo`
+
+Agent可以在`.codex/agents/<name>.toml`中定义,有三个必填字段: name,description(何时调用),developer_instuctions(系统指令),还有一些可选字段如model(指定模型名字),sandbox_mode(指定agent权限).一个示例如下:
+```toml
+name = "migration-auditor"
+description = "Reviews SQL migration scripts for irreversibility, loc
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+nickname_candidates = ["Codd", "Stonebraker", "Hellerstein", "DeWitt"
+developer_instructions = """
+You audit SQL migration scripts before they are applied to a producti
+For each file you read, report findings under three headings:
+- Irreversible: DROP, RENAME, NOT NULL additions, or column type narr
+- Lock-heavy: statements that hold an exclusive lock on a large table
+- Order-sensitive: operations whose result depends on whether the mig
+Cite the file and line number for every finding. Do not propose fixes
+"""
+```
+
+当两个或多个任务可并行运行时,派生Subagent才有奇效.当您不确定两个任务是否真正独立时，请问自己：“如果员工 A 和员工 B 完成任务的顺序不同，最终结果会改变吗？” 如果会，则说明它们之间存在依赖关系。请在父任务的流程编排逻辑中明确定义这种依赖关系。
+
+### ch12: Multi-Agent
+
+
+## Python Concurrency with asyncio
+### ch1: 认识asyncio
+虽然asyncio的名称可能让我们认为这个库仅适用于I/O操作，但它通过支持多线程和多进程的互操作功能，也能处理其他类型的操作。借助这种互操作性，我们可以将async和await语法用于线程和进程，使这些工作流程更易于理解。这意味着这个库不仅适用于基于I/O的并发操作，还可以用于CPU密集型代码。
+
+在Python编程领域，CPU密集型操作通常指代计算与代码处理过程，例如计算圆周率数字或遍历字典内容并应用业务逻辑。而I/O密集型操作则多见于等待网络传输或其他输入输出设备响应的场景，比如向网络服务器发送请求，或读取本地硬盘中的文件。
+#### 并发与并行
+并发(concurrency)指的是两个任务可以交错/并排执行,即具有**顺序无关性**,或者说,**彼此独立**.如: 我们不必等到完成第一个蛋糕才开始为第二个蛋糕进行准备工作。我们可以先做好一份蛋糕糊放进立式搅拌机，趁它搅拌完成前开始准备第二份蛋糕糊。在这种模式下，我们正在同时切换处理不同的任务。这种任务间的切换行为——比如在烤箱预热时做其他事、穿梭于两种蛋糕的制作之间——正是并发行为的体现。
+
+并行(parallelism)指的是两个任务正在同时发生,**即并排执行这件事已经发生了**.以烘焙蛋糕为例，假设我们有一位助手的帮助：在此场景下，我将制作第一块蛋糕，而第二位烘焙师则同时制作第二块蛋糕。两人同时搅拌面糊就是典型的并行计算，因为我们实现了两个独立任务的并发执行。
+
+#### multitask
+- preemptive multitasking(抢占式多任务): 通过时间切片机制,由**操作系统**在后台主动切换任务
+- cooperative multitasking:(协作性多任务): 在应用程序中显式编排任务,在某些时间点允许其他任务插入进来执行.
+
+asyncio用协作性多任务来实现并发,即用`async/await`显式标记某些任务是可以被中断的.
+#### 进程、线程、多线程以及多进程
+- 进程是一个应用程序运行实例，拥有其他应用程序无法访问的独立内存空间
+- 线程是轻量级进程,**不像进程那样拥有独立内存，而是共享创建它们的进程的内存空间。**线程与创建它们的进程相关联。每个进程至少会有一个关联线程，通常称为主线程。进程还可以创建其他线程，它们常被称为工作线程或后台线程。这些线程能与主线程并发执行其他任务。与进程类似，线程可以在多核CPU上并行运行，操作系统也能通过时间片轮转在它们之间进行切换。当运行普通Python应用程序时，我们会创建一个进程以及用于运行该Python应用的主线程。
+
+
+>多线程并非实现并发的唯一方式；我们还可以创建多个进程来同时完成工作，这被称为多进程。在多进程中，父进程会创建一个或多个由其管理的子进程，随后可以将任务分配给这些子进程处理。
+#### GIL
+>全局解释器锁（简称GIL，发音为"gill"）是Python社区中备受争议的话题。简而言之，GIL**阻止单个Python进程在任意时刻执行超过一条Python字节码指令**。这意味着即使机器拥有多核心并开启多线程，一个Python进程同时也只能有一个线程在运行Python代码。在当前多核CPU普及的时代，这给希望利用多线程提升应用程序性能的Python开发者带来了重大挑战。
+
+asyncio利用I/O操作会释放全局解释器锁（GIL）这一特性，即使仅靠单线程也能实现并发.
+
+使用asyncio时，我们会创建名为协程的对象。可以将协程理解为**轻量级线程的执行体**。就像多线程环境下每个线程可同时进行独立的I/O操作一样，多个协程也能协同并行运行。在等待I/O型协程完成任务的同时，我们仍可执行其他Python代码，从而实现并发。需要特别注意的是，**asyncio并未绕过GIL的限制，我们依然受其制约**。若遇到CPU密集型任务，仍需借助多进程方案来实现并发执行（可通过asyncio自身实现），否则将导致应用程序性能问题。
+
+#### How single-threaded concurrency works
+通信的底层都是通过socket实现的,默认情况下,socket是阻塞的,这意味着我们在发送请求之后,只要数据尚未传输完成,我们的应用就会停止运行其他任务.
+
+但我们可以将socket配置为非阻塞的,那么就能实现并行处理多项事务,而不用再空等数据传输回来,只需要由操作系统主动通知我们传输完成即可.
+
+在后台，这一功能由几个不同的事件通知系统执行，具体取决于我们运行的操作系统。asyncio的抽象程度足够高，以至于它能够根据我们操作系统所支持的不同通知系统进行切换。以下是一些特定操作系统使用的事件通知系统：
+1. linux: epoll
+2. MacOS: kqueue
+3. Windows: IOCP
+
+#### How an event loop works
+事件循环是所有asyncio应用程序的核心。事件循环是许多系统中相当常见的设计模式，且已存在相当长的时间。如果你曾在浏览器中使用JavaScript发起异步网络请求，实际上就已经在事件循环上创建了一个任务。Windows图形用户界面应用在底层使用所谓的消息循环，作为处理键盘输入等事件的主要机制，同时仍允许UI进行绘制。
+
+在asyncio中，事件循环维护的是一个任务队列而非消息队列。任务是对协程的封装。当协程在执行时遇到I/O密集型操作，它会暂停执行，允许事件循环运行其他无需等待I/O操作完成的任务。
+
+### ch2: asyncio basics
+#### Coroutines
+>将协程想象成一个普通的Python函数，但它具备一个超能力：当遇到可能需要较长时间才能完成的操作时，可以暂停自身的执行。待那个耗时操作完成后，我们就能“唤醒”暂停的协程，继续执行该协程中的剩余代码。在等待暂停操作完成期间，我们可以运行其它代码。这种在等待过程中并行执行其它代码的能力，便是应用程序实现并发的体现。
+
+`async`关键字让我们定义协程；而`await`关键字则允许我们在执行耗时操作时暂停协程。
+
+```python
+async def coroutine_add_one(number: int) -> int:
+    return number + 1
+
+def add_one(number: int) -> int:
+    return number + 1
+
+function_result = add_one(1)
+coroutine_result = coroutine_add_one(1)
+print(f'Function result is {function_result} and the type is {type(function_result)}')
+print(f'Coroutine result is {coroutine_result} and the type is {type(coroutine_result)}')
+
+#Method result is 2 and the type is <class 'int'>
+#Coroutine result is <coroutine object coroutine_add_one at 0x1071d6040> and the type
+#is <class 'coroutine'>
+```
+当我们调用常规的 add_one 函数时，它会立即执行并返回预期的整数值。然而，当调用 coroutine_add_one 时，我们的协程代码完全没有被执行，而是返回了一个协程对象。
+
+也就是说协程不会在直接调用时执行,而是创建了一个需要事件循环主动激活的协程对象,比如我们可以引入`asyncio.run`执行器:
+```python
+import asyncio
+
+async def coroutine_add_one(number: int) -> int:
+    return number + 1
+
+result = asyncio.run(coroutine_add_one(1))
+print(result)
+```
+asyncio.run在此场景中执行了几项关键操作。首先，它创建了一个全新事件。成功创建事件后，它会接收我们传入的任何协程并运行至完成，随后返回执行结果。该函数还会在主协程运行结束后清理残存运行状态。待所有任务完成，它将关闭并终止事件循环。
+
+
+要暂停执行，我们使用 await 关键字。await 关键字后面通常跟随着对一个协程的调用（更具体地说，是一个被称为可等待对象的对象，它并不总是协程；我们将在本章后面了解关于可等待对象的更多内容）。
+
+![执行图](PixPin_2026-10-30_17-34-16.webp)
+#### asyncio.sleep
+我们可以使用 `asyncio.sleep` 使协程在指定秒数内"休眠"——这会暂停协程一段给定的时间，模拟调用数据库或Web API时可能出现的长时间运行状态。
+
+asyncio.sleep 本身是一个协程，因此必须使用 await 关键字与其搭配使用。若直接单独调用，则会返回一个协程对象。
+
+```python
+import asyncio
+from util import delay
+
+async def add_one(number: int) -> int:
+    return number + 1
+
+async def hello_world_message() -> str:
+    await delay(1)
+    return 'Hello World!'
+
+async def main() -> None:
+    message = await hello_world_message()  
+    one_plus_one = await add_one(1)
+    print(one_plus_one)
+    print(message)
+
+asyncio.run(main())
+```
+
+![时间线](PixPin_2026-10-30_17-41-02.webp)
+#### tasks
+Task是对协程的封装,提供一个尽可能早地在事件循环中运行的机会,以非阻塞方式进行,意味着一旦我们创建了一个任务，就可以在任务运行的同时立即执行其他代码.这与await的阻塞调用正好相反.
+
+
+## Learning LangChain
+### ch1: 基础知识
 ## Just Use Postgres!
 ### ch1: 介绍Postgres
 介绍了用Docker运行Postgres,以及使用psql与Postgres进行连接的方法
@@ -221,12 +474,128 @@ COMMIT;
 Postgres的默认隔离级别是Read Committed,即一个事务只能读取其他事务已经提交的数据。它很好地平衡了数据一致性和并发性，使您能够在不牺牲数据一致性的前提下构建高性能的事务型应用程序。然而，除了读已提交隔离级别可以防止的脏读现象之外，SQL 标准还定义了其他现象，例如幻读和不可重复读。PostgreSQL 提供了更强的隔离级别——可重复读和可序列化——来解决这些额外的读取异常问题。
 #### Join
 基本的join操作
-#### 函数和触发器
-## Software Design for Python Programmers
-## Learning LangChain
+#### 函数和触发器(待补充)
+何时以及为何需要使用数据库函数呢？至少可以想到以下两种情况：
+1. 当复杂的业务逻辑与数据紧密耦合，且需要每个客户端应用程序或微服务独立实现和维护时，您可以创建一个所有客户端和微服务都能利用的单一数据库函数。这种方法使得数据库函数能够直接在数据库中高效地实现业务逻辑。
+2. 当您需要处理复杂的、多步骤的业务逻辑，并且需要在应用层和数据库层之间进行多次往返时，将逻辑实现为数据库函数会更加高效，尤其是在网络延迟较高且需要在应用层和数据库层之间传输大量数据的情况下。
 
+
+### ch3: Modern SQL
+自 1999 年以来，SQL 不再局限于关系模型。当时，ISO/IEC 9075（“SQL 标准”）加入了数组、对象和递归查询。如今，SQL 标准的规模已是 SQL-92 的五倍。换句话说：关系型 SQL 仅占现代 SQL 的约 20%。
+#### Common table expressions
+CTE的标准格式如下:
+```sql
+WITH cte_name AS (
+    auxiliary_statement
+)
+primary_statement
+```
+辅助语句(auxiliary_statement)是一个常规的SQL查询,执行结果可供接下来执行的(主语句)primary_statement使用
+
+- 总的来说，您可以将 CTE视为仅由给定查询生成和使用的临时表或视图
+
+一个例子如下:
+```sql
+WITH plays_cte AS (
+    SELECT s.title, s.duration
+    FROM streaming.plays p
+    JOIN streaming.songs s ON p.song_id = s.id
+    WHERE p.play_start_time::DATE BETWEEN '2024-09-15' AND '2024-09-16'
+      AND p.play_duration = s.duration
+)
+SELECT title, COUNT(*) AS play_count
+FROM plays_cte
+GROUP BY title
+ORDER BY play_count DESC;
+```
+事实上就是with语句而已,属于SQL-99标准
+#### 递归查询(待补充)
+#### Window Function
+最简单的窗口函数形式如下:
+```sql
+SELECT function_name(arguments)
+OVER (PARTITION BY columnA)
+FROM table;
+```
+
+一个示例是,如果我们需要计算一个云端播放器中每首歌曲的总播放时长,可以这么写:
+```sql
+SELECT song_id, SUM(play_duration) as total_duration
+FROM streaming.plays
+GROUP BY song_id ORDER BY total_duration DESC;
+```
+但如果我们不仅需要计算歌曲的总播放时长，还需要在输出中包含所有收听过该歌曲的用户，该怎么办？本质上，我们需要为每个收听过歌曲的用户创建一个单独的行，同时还要显示所有用户的总播放时长。
+
+一个错误的方法是:
+```sql
+SELECT song_id, user_id, SUM(play_duration) as total_duration
+FROM streaming.plays
+GROUP BY (song_id, user_id) ORDER BY song_id;
+```
+如果这么写,那么就无法获取每首歌的总播放时长,而是得到单个用户对每一首歌的总播放时长.
+
+如果不用窗口函数,我们就需要用join连接两次查询结果:
+```sql
+SELECT DISTINCT p.song_id,
+                p.user_id,
+                t.total_duration
+FROM streaming.plays p
+JOIN (
+    SELECT song_id,
+           SUM(play_duration) AS total_duration
+    FROM streaming.plays
+    GROUP BY song_id
+) t ON p.song_id = t.song_id
+ORDER BY p.song_id;
+```
+而用窗口函数,是这样写的:
+```sql
+WITH plays_with_total AS (
+    SELECT 
+        song_id, 
+        user_id, 
+        SUM(play_duration) OVER (PARTITION BY song_id) AS total_duration
+    FROM streaming.plays
+)
+SELECT DISTINCT song_id, user_id, total_duration
+FROM plays_with_total
+ORDER BY song_id, user_id;
+```
+窗口函数和Group By很像,都是分组聚合,但是窗口函数会保留原行,将新算出来的数据插入到原行的新列中.
+
+### ch4: 索引
+
+
+## Databse Internals
+### ch1: 介绍
+![架构图](PixPin_2026-10-06_15-46-05.webp)
+
+大部分DBMS都是基于硬盘的,而内存数据库如Redis之所以选择Main Memory,是因为内存的访问成本相对较低,并且容易编程,因为操作系统抽象了内存管理,使我们能够以分配和释放任意大小内存块的方式来思考问题.
+
+而在磁盘中,我们需要手动管理数据引用、序列化格式、已释放的内存以及碎片等问题。
+
+不过,鉴于内存缺乏持久性,而且成本高昂,不如更容易维护且价格更低的硬盘,所以内存数据库的发展依然受到了不少限制.
+
+数据库系统可以分为传统的行式存储(将相邻行存储在连续磁盘块中)和新兴的列式存储(将相同列存储在连续磁盘块中),前者即为MySQL,Postgre等关系型数据库,后者的代表有ClickHouse,以及文件格式Apache Parquet.
+
+行存储的优点在于单个用户的数据会存储一起,不需要跨越多个磁盘块就能定位到所有数据,缺点在于执行针对非主键的条件查询时,如果不使用索引,效率极低.
+
+列存储的优点在于能够进行大规模的聚合运算,但缺点就是无法轻松定位到单个用户的所有信息.
+
+>大多数现代存储系统**不会显式地从页面中删除数据**。相反，它们使用删除标记（也称为墓碑标记），其中包含删除元数据，例如键和时间戳。被更新或删除标记覆盖的记录所占用的空间会在垃圾回收过程中被回收。垃圾回收会读取页面，将存活的（即未被覆盖的）记录写入新位置，并丢弃被覆盖的记录。
+#### 索引
+主（数据）文件上的索引称为主索引。然而，在大多数情况下，我们也可以假设主索引是基于一个主键或一组被标识为主键的键构建的。所有其他索引都称为辅助索引。
+
+二级索引**可以直接指向数据记录，也可以只存储其主键**。指向数据记录的指针可以保存指向堆文件或索引组织表的偏移量。多个二级索引可以指向同一条记录，从而允许通过不同的字段标识同一条数据记录，并通过不同的索引定位该记录。
+
+两种方法各有优缺点，最好在完整的实现框架下进行讨论。直接引用数据可以减少磁盘寻道次数，但每次记录更新或维护过程中发生重定位时，都需要更新指针，这会带来一定的开销。使用主索引形式的间接引用可以降低指针更新的开销，但会增加读取路径的开销。
+### ch2: B树
+
+### Ch3: 文件格式
 
 # 先放着
+
+## Software Design for Python Programmers
 ## Site Reliability Engineering, 2nd ed
 - 超级新鲜,还没出我就在期盼了
 ### ch1: 引言
@@ -1051,11 +1420,6 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 ![样例](PixPin_2026-10-08_15-13-51.webp)
 ### ch2: 观察者模式(Observer Pattern)
 
-## 数据库系统内幕
-- 一直久闻大名,现在就来试试水
-### Part I介绍
-![架构图](PixPin_2026-10-06_15-46-05.webp)
-### Ch3: 文件格式
 
 ## Learning Domain-Driven Design(待补充)
 - 出版于2021年，出版商：O'Reilly，作者：Vlad Khononov。

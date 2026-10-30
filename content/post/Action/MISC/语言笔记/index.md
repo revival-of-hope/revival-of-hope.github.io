@@ -723,6 +723,111 @@ usage.input_tokens = 200
 ### SQLModel/SQLAlchemy要点
 
 ## Golang
+### Gin速通(10/30)
+#### r和c
+Gin中的绝大部分常用操作都只围绕着两个字母`r`(route)和`c`(gin.Context)展开.
+
+对于route,我们只用到以下操作即可:
+```go
+func main() {
+  route := gin.Default()
+  route.GET("/testing", startPage)
+  route.POST("/testing", startPage)
+  route.Run(":8085")
+}
+```
+`route.HTTPMethod`接收两个参数,一个是路由,另一个就是路由处理函数.
+
+路由处理函数一律需要接收`gin.Context`,惯例简写为`c`参数,最常用的方法可以分成三种:
+1. HTTP响应: 如`c.JSON`,`c.File`,`c.Header`,`c.String`,`c.HTML`,换句话说,所有的HTTP响应都可以从这个接口返回,这些响应方法一般都是接收两个参数,第一个就是状态响应码,第二个就是数据负载,如最常用的c.JSON格式如下:
+```go
+c.JSON(http.StatusOK, gin.H{
+    "code": 200,
+    "message": "success",
+    "data": user,
+})
+// gin.H本质上就是一个map[string]any类型,方便我们构造JSON对象
+```
+1. 路由和请求参数提取: 如`c.Param()`获取路径参数,`c.Query()`获取查询参数,`c.PostForm()`获取表单字段.
+2. 参数绑定和校验: 如`c.ShouldBind`,`c.ShouldBindJSON`,例子如下,这会提取请求体中的user字段并填充到空结构体中:
+
+```go
+type User struct {
+    Name string `json:"name" binding:"required"`
+    Age  int    `json:"age" binding:"gte=0"`
+}
+
+func createUser(c *gin.Context) {
+    var user User
+
+    if err := c.ShouldBindJSON(&user); err != nil {
+        c.JSON(400, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(201, user)
+}
+```
+
+有了这些知识,我们就已经能做一个简单的无数据库网站出来了,要想进一步优化数据交互,就要加上结构体标签来处理:
+```go
+package main
+
+import (
+  "log"
+  "net/http"
+  "time"
+
+  "github.com/gin-gonic/gin"
+)
+
+type Person struct {
+  Name     string    `form:"name"`
+  Address  string    `form:"address"`
+  Birthday time.Time `form:"birthday" time_format:"2006-01-02" time_utc:"1"`
+}
+
+func main() {
+  route := gin.Default()
+  route.GET("/testing", startPage)
+  route.POST("/testing", startPage)
+  route.Run(":8085")
+}
+
+func startPage(c *gin.Context) {
+  var person Person
+  if err := c.ShouldBind(&person); err != nil {
+    c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+    return
+  }
+
+  log.Printf("Name: %s, Address: %s, Birthday: %s\n", person.Name, person.Address, person.Birthday)
+  c.JSON(http.StatusOK, gin.H{
+    "name":     person.Name,
+    "address":  person.Address,
+    "birthday": person.Birthday,
+  })
+}
+```
+#### 结构体标签
+Gin支持解析的结构体标签有常见的以下几种:
+1. 请求字段映射: 指定请求中的某个字段应该映射到结构体的哪个字段
+
+| 标签     | 作用                   | 示例                     | 对应方法                        |
+| :------- | :--------------------- | :----------------------- | :------------------------------ |
+| `json`   | JSON 字段映射          | `json:"name"`            | `ShouldBindJSON`                |
+| `form`   | 表单、URL 查询参数映射 | `form:"name"`            | `ShouldBindQuery`、`ShouldBind` |
+| `uri`    | URL 路径参数映射       | `uri:"id"`               | `ShouldBindUri`                 |
+| `header` | HTTP 请求头映射        | `header:"Authorization"` | `ShouldBindHeader`              |
+| `xml`    | XML 字段映射           | `xml:"name"`             | `ShouldBindXML`                 |
+| `yaml`   | YAML 字段映射          | `yaml:"name"`            | `ShouldBindYAML`                |
+| `toml`   | TOML 字段映射          | `toml:"name"`            | `ShouldBindTOML`                |
+
+2. 通过binding标签实现的数据验证: 如`binding:"required"`要求该参数为必填项,`binding:"email"`表示该字段必须为邮箱格式,`binding:"omitempty,email"`在该字段为空时跳过后续验证,`binding:"gt=0"`表示该字段必须大于0
+3. 提供默认值: 如`form:"page,default=1"`
+
+### Gorm速通(10/31)
+
 ## Java
 ### Java历史
 - [wiki](https://en.wikipedia.org/wiki/Java_(programming_language))
