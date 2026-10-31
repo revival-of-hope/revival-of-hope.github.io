@@ -5,23 +5,12 @@ description: 持续更新中~
 image: 67189487_p0-最凶最悪.webp
 ---
 ## ch0: 前言
-- 星星之火,可以燎原
+>(10/10)如今来看这篇文章的质量是很堪忧的,但我也不打算重写前面的部分了,作为ADR也是不错的嘛.
+>
+>这个项目从3月份开始动手,除了前端外都是我手搓的,随着项目的日愈成熟,我对后端工程的认识也越来越深,所以越往后的部分越值得读,至于前面就没必要看了,因为很多地方都有错误,原因在于我还是个菜鸟~
 
-最近两年的AI浪潮对普通的程序员来说根本算不上是好事,究其根本,还是因为开源的精神丢失掉了,在AI爆发之前,尽管大公司高筑壁垒,但总会或多或少的发布开源产品或者参与开源软件的开发,而随着GPT4.0的轰动出世,所有人都意识到,这并不是能够轻易开源的东西.
 
-头部公司花费大量资金投入AI研发,最终得到的无非是用于训练的PB级数据和训练得到的万亿级参数,即便是一些大公司发布的所谓开源模型,也仅仅是开源了参数而已,而对于训练数据集他们向来都是遮遮掩掩的.毕竟这才是核心的地方,即便拿到了标准的架构,如果没有数据,又何谈进行训练呢?
 
-不过,就算拿到了数据集,现在也没用了,因为参数规模已经到了一个可怕的程度,即便是Deepseek-V3,参数量就有671B了,而近两年的模型,参数量都是在万亿级别的.
-
-- [推测](https://en.theblockbeats.news/flash/343837)
-
-这么大规模的模型训练,需要成百上千万张显卡的协同操作,这已经完全超出了普通人所能触及的界限了,用带了4060显卡的电脑跑个几B的模型玩玩就可以了.
-
-因此,AI浪潮与草根程序员并没有任何关系,就算你懂得了基本原理,又何谈去贡献自己的力量呢.
-
-所以,唯一能让自己有点参与感的方法就是去调用大公司恩赐下来的API,并通过自己的手段来优化API的使用,帮助更多的普通人以更简单的方式接触和认识AI.这也是我写这篇教程的部分初衷.
-
->(10/10)如今来看这篇文章的质量是很堪忧的,但我也不打算重写前面的部分了,作为ADR也是不错的嘛
 
 ### 大纲
 ```mermaid
@@ -12168,14 +12157,61 @@ yield '{"content": "你好"}'
 ```
 考虑到这样一来内部的生成器反而会写的很混乱,不如只在最外层做一个简单的转换就好.
 
+>[!NOTE]
+>上面的代码不少地方由于我对异常处理和分层架构还不是很熟悉,所以有很多错误,大致看个意思即可.要看真实源码还请移步Github仓库
+
+
 ### 加入uow
 #### 背景
-路由完成之后,我们的初步重构就真的结束了,但现在看一下完整的代码,实际上
-#### 预备阶段
+路由完成之后,我们的初步重构就真的结束了,但现在看一下完整的代码,还是一如既往的差劲,最糟糕的一处代码如下:
+```py
+def stream_and_save(
+        self,
+        user_id: int,
+        conversation_id: int,
+        content: str,
+        reasoning: str,
+    ) -> Generator[dict[str, str], None, None]:
 
+        # 权限验证
+        try:
+            self._repo.get(conversation_id, user_id)
+        except ConversationRecordNotFound:
+            raise ConversationNotFound("Conversation not found")
+        # 获取历史消息
+        history_message = self._repo.get_messages(conversation_id, user_id)
 
+        # 创建默认Agent和流
+        client = default_agent(
+            history=history_message,
+            content=content,
+            reasoning=reasoning,
+        )
+        response = yield from standard_stream(client)
 
-## ch19: 联网搜索引入和MCP使用
+        # 存储消息
+        try:
+            self._repo.post_usage(user_id, response.usage, MessageRole.ASSISTANT)
+            self._repo.post_message(conversation_id, MessageRole.USER, content)
+            self._repo.post_message(
+                conversation_id, MessageRole.ASSISTANT, response.output_text
+            )
+        except:
+            raise ChatSaveError("Fail to save chat")
+```
+
+我们看似是将更新usage和更新用户/LLM消息分为了三步并统一处理,但这三个操作对应的Repo都是会独立commit的,如果系统只执行了前两个操作而最后一个操作发生报错,数据库仍然会有更改,从而引发数据的不一致问题.
+
+因此,我们要么把`commit`和`rollback`权限交给service层,但这会导致职责混淆,要么拆分repo层,让提交和事务具体操作解耦.
+
+虽然说要解耦,实际上还是无从下手的,好在前人的实践中发明了一个好东西: UoW(Unit of Work),基本原理是,repo只负责数据访问,而UoW统一管理事务,再由service调用uow来实现原子化操作.
+#### 编写uow
+首先,
+#### 全面引入uow
+
+## ch19: 全面引入测试
+
+## ch20: 联网搜索引入和MCP使用
 ### 背景介绍
 目前,我们的Agent还不能叫做Agent,毕竟联网搜索都做不到呢.不过联网搜索并非有那么难实现,大致思想如下:
 1. 设置一个循环,让LLM能够自己识别是否需要搜索并决定搜索内容
@@ -12927,7 +12963,7 @@ asyncio.run(call_tool("Ford"))
 #### 服务器部分
 
 
-## ch20: 断章-接入RAG和Vector Database
+## ch21: 断章-接入RAG和Vector Database
 之所以叫断章,是因为小项目引入RAG的成本远大于直接输入文档的成本,而大型项目的RAG由于经费充足,完全可以调用subagent来处理文档.如此一来,RAG似乎就没有用武之地了.
 
 究其根本,是因为RAG属于LLM时代,当时的上下文窗口缺乏,RAG是为了塞入大量文档作为上下文的不得已之举.
@@ -12936,23 +12972,23 @@ Agent时代我们能够直接调用工具,编写python代码处理文档,上下�
 
 不过早就有聪明人认识到了这点,所以引入了GraphRAG和Agentic RAG,试图挽救RAG的未来
 
-## ch21: Agent框架测评
+## ch22: Agent框架测评
 ### 背景
 可以发现,当服务越堆越多时,我们这个项目的可维护性就越来越低,唯一的解决方法就是引入框架,将大量重复工作封装在框架背后,只关注高层的逻辑设计,如此一来,不但开发起来更加简单,也能让代码的性能更高.
 
 先看一下目前的主流框架:
-| 框架                          | 定位                      | 模型绑定                  | 强项                                                     | 我给的定位 |
-| ----------------------------- | ------------------------- | ------------------------- | -------------------------------------------------------- | ---------- |
-| **OpenAI Agents SDK**         | 轻量 Agent SDK            | OpenAI 最佳，也能接第三方 | Agent loop、tools、handoff、guardrails、tracing、sandbox | ⭐⭐⭐⭐⭐      |
-| **Pydantic AI**               | Python 通用 Agent SDK     | 很低                      | 类型安全、多模型、工具、Graph、eval、durable execution   | ⭐⭐⭐⭐⭐      |
-| **LangGraph**                 | Agent workflow/runtime    | 很低                      | 状态机、复杂流程、持久化、HITL、长任务                   | ⭐⭐⭐⭐⭐      |
-| **Google ADK 2.0**            | 企业级 Agent 开发套件     | Gemini/Google 最佳        | multi-agent、graph、A2A、GCP、context                    | ⭐⭐⭐⭐½      |
-| **Microsoft Agent Framework** | 企业 Agent + workflow     | 很低                      | Azure/.NET/Python、状态、工作流、企业集成                | ⭐⭐⭐⭐½      |
-| **Claude Agent SDK**          | Claude 原生 Agent harness | Claude                    | coding/file/shell、长任务、Claude 原生能力               | ⭐⭐⭐⭐½      |
-| **Mastra**                    | TypeScript Agent 框架     | 很低                      | TS、workflow、eval、memory、前后端整合                   | ⭐⭐⭐⭐½      |
-| **Vercel AI SDK v7**          | Web/TS AI SDK             | 很低                      | Next.js、streaming、Agent UI、ToolLoopAgent              | ⭐⭐⭐⭐½      |
-| **CrewAI**                    | 高层 Multi-Agent 框架     | 较低                      | Role/Crew/Task 抽象、快速多 Agent                        | ⭐⭐⭐⭐       |
-| **LlamaIndex**                | 数据/RAG Agent            | 低                        | RAG、知识库、数据 Agent                                  | ⭐⭐⭐⭐       |
+| 框架                          | 定位                      | 模型绑定                  | 强项                                                     | 定位  |
+| ----------------------------- | ------------------------- | ------------------------- | -------------------------------------------------------- | ----- |
+| **OpenAI Agents SDK**         | 轻量 Agent SDK            | OpenAI 最佳，也能接第三方 | Agent loop、tools、handoff、guardrails、tracing、sandbox | ⭐⭐⭐⭐⭐ |
+| **Pydantic AI**               | Python 通用 Agent SDK     | 很低                      | 类型安全、多模型、工具、Graph、eval、durable execution   | ⭐⭐⭐⭐⭐ |
+| **LangGraph**                 | Agent workflow/runtime    | 很低                      | 状态机、复杂流程、持久化、HITL、长任务                   | ⭐⭐⭐⭐⭐ |
+| **Google ADK 2.0**            | 企业级 Agent 开发套件     | Gemini/Google 最佳        | multi-agent、graph、A2A、GCP、context                    | ⭐⭐⭐⭐½ |
+| **Microsoft Agent Framework** | 企业 Agent + workflow     | 很低                      | Azure/.NET/Python、状态、工作流、企业集成                | ⭐⭐⭐⭐½ |
+| **Claude Agent SDK**          | Claude 原生 Agent harness | Claude                    | coding/file/shell、长任务、Claude 原生能力               | ⭐⭐⭐⭐½ |
+| **Mastra**                    | TypeScript Agent 框架     | 很低                      | TS、workflow、eval、memory、前后端整合                   | ⭐⭐⭐⭐½ |
+| **Vercel AI SDK v7**          | Web/TS AI SDK             | 很低                      | Next.js、streaming、Agent UI、ToolLoopAgent              | ⭐⭐⭐⭐½ |
+| **CrewAI**                    | 高层 Multi-Agent 框架     | 较低                      | Role/Crew/Task 抽象、快速多 Agent                        | ⭐⭐⭐⭐  |
+| **LlamaIndex**                | 数据/RAG Agent            | 低                        | RAG、知识库、数据 Agent                                  | ⭐⭐⭐⭐  |
 
 
 我们这里就拿其中几个有代表性的来做个测评,看看各自的适用情景.
@@ -13071,9 +13107,6 @@ print(result.final_output)
 *   **保存的沙箱状态和快照让后续运行能够重新连接到先前的工作**，或使用保存的内容初始化新的沙箱会话。
 
 
-
-
-
 #### Runner
 你可以通过 `Runner` 类运行智能体,有 3 种选择：
 
@@ -13166,9 +13199,7 @@ if __name__ == "__main__":
 ```
 
 #### 总结
-满足了一个Agents框架的一些基本需求,但最重要的Agents编排的支持很弱,所以顶多用来做一些简单的智能体,要是告诉我你CodeX也是用这个框架做的话那就是自欺欺人了.
-
-只能说是差强人意,不推荐使用
+满足了一个Agents框架的一些基本需求,但最重要的Agents编排支持很弱,所以顶多用来做一些简单的智能体
 ### [Pydantic AI](https://pydantic.dev/docs/ai/overview/)
 #### 背景
 Pydantic大家都很熟悉了,而在Agent时代,我们都需要强调LLM的标准化输出,Pydantic官方立马就意识到这不就是自己最擅长的领域吗.
@@ -13208,9 +13239,7 @@ agent.to_cli_sync()
 
 
 #### 核心概念
-
-There are five ways to run an agent:
-
+有五种方式可以运行agent:
 1. **`agent.run()`** — an async function which returns a `RunResult` containing a completed response.
 
 2. **`agent.run_sync()`** — a plain, synchronous function which returns a `RunResult` containing a completed response (internally, this just calls `loop.run_until_complete(self.run())`).
@@ -13312,7 +13341,7 @@ if __name__ == '__main__':
 
 *   **选择 LangSmith**：用于追踪、调试和评估使用上述任何框架构建的智能体。请遵循追踪快速入门进行设置。我们建议你同时设置 LangSmith Engine，它可以监控你的追踪记录、检测问题并提出修复建议。
 
-#### Lanchain使用
+#### Lanchain
 ##### 初体验
 安装:
 ```bash
@@ -13405,5 +13434,14 @@ agent = create_agent(
 )
 ```
 
+
+
+
+### [CrewAI](https://docs.crewai.com/)
+
+
+
+### 总结
+现在这个情形说的好是百花齐放,说的差就是群龙无首,这么多框架,还真不太好选,只能看公司要你用什么来开发了,不过主观上还是什么热门用什么.
 
 

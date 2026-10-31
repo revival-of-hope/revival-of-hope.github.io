@@ -2,7 +2,6 @@
 title: "语言笔记"
 date: 2026-09-24T18:41:23+08:00
 image: 45243652_p0-楽園の素敵な巫女.webp
-
 ---
 >[!TIP]
 >曾经我在给每个编程语言都写了几万字的笔记,后来发现基本全是废话,没有什么可读性,远不如专业技术书籍来得有用,真遇到不会的了,也不如查AI来的快,所以,我现在只会放自己的心得了.
@@ -31,13 +30,9 @@ image: 45243652_p0-楽園の素敵な巫女.webp
 | **2000**       | **XHTML**                    | XML 化 HTML         | Web                    | 曾被认为是 HTML 的未来，后来路线失败 |
 | **2001**       | **reStructuredText**         | 轻量级标记          | Python 文档            | Python/Sphinx 生态仍重要             |
 | **2001**       | **SVG**                      | XML 图形标记        | 矢量图形               | 至今 Web 核心格式                    |
-| **2002**       | **Textile**                  | 轻量级标记          | Web、博客              | Markdown 前后时期的重要方案          |
-| **2002**       | **AsciiDoc**                 | 轻量级标记          | 技术文档、图书         | 今天仍很活跃                         |
 | **2001–2002**  | **MediaWiki WikiText**       | Wiki 标记           | Wikipedia              | 世界上影响最大的 Wiki 标记之一       |
 | **2003**       | **Org mode / Org syntax**    | 轻量标记 + 知识管理 | Emacs 笔记、任务、出版 | Emacs 生态核心                       |
 | **2004**       | **Markdown**                 | 轻量级标记          | Web、README、文档      | 当今最普及轻量标记语言               |
-| **2005**       | **DITA**                     | XML 文档架构        | 企业技术文档           | 大型企业内容管理重要标准             |
-| **2007**       | **Wiki Creole**              | Wiki 标记标准       | Wiki 互操作            | 试图统一各家 Wiki 语法               |
 | **2008–2010s** | **GitHub Flavored Markdown** | Markdown 方言       | GitHub                 | 程序员事实上的常用 Markdown          |
 | **2014**       | **CommonMark**               | Markdown 标准化     | 通用 Markdown          | 解决 Markdown 方言不一致问题         |
 | **2014 前后**  | **R Markdown**               | Markdown 扩展       | 数据分析、科研报告     | R / 数据科学领域广泛使用             |
@@ -45,7 +40,7 @@ image: 45243652_p0-楽園の素敵な巫女.webp
 | **2020 前后**  | **MyST Markdown**            | Markdown 扩展       | 科研、Sphinx、Jupyter  | 科学计算文档领域增长明显             |
 | **2022–2023**  | **Typst**                    | 标记式排版语言      | 科研论文、排版         | 新一代 LaTeX 竞争者                  |
 
-最后一个Typst我一开始是很看好的,现在的热度也确实起来了,希望能够早日取代Latex,简直不是人写的.不过话有说回来我又用不到.
+- 最后一个Typst我一开始是很看好的,现在的热度也确实起来了,希望能够早日取代Latex,简直不是人写的.不过话说回来我又用不到.
 
 
 ### 各门语言中导入机制的处理(待补充)
@@ -82,7 +77,7 @@ use foo::Bar;
 ```py
 import sys
 ```
-
+执行导入文件中所有没被包裹在主函数标记`if __name__ == "__main__":`中的所有独立非函数块代码,
 ## Python
 ### 搭建GPU环境(26/1)
 先在nvidia官网下载cuda13.0,然后根据这个toml运行uv sync即可:
@@ -716,11 +711,210 @@ usage.input_tokens = 200
 3. `@property`: 将方法转换成属性,即原来是通过`user.full_name()`调用,而现在可以通过`user.full_name`,在不需要给函数传入参数的时候还是很有用的
 #### 函数装饰器
 
-### Cpython wsgiref学习
-### GIL历史
+### Python项目组织风格(10/31)
+Python官方是没有一个统一的风格推荐的,不过社区里的话,一个比较好的实践是这样的:
+```text
+project/
+├── app/
+├── tests/
+├── alembic/
+├── scripts/
+├── pyproject.toml
+├── alembic.ini
+└── README.md
+```
+- 有的也会把`app`放在`src`文件夹之下.
+
+而另一种风格则是直接把所有的非测试代码放在项目同名文件夹中,如scrapy的根目录下就有`scrapy`文件夹.
+### Python继承与抽象(10/31)
+Python中有多种抽象/接口/继承机制,最主要的有以下几个:
+1. Protocol类: 不具有强制性,不需要显式声明,借助类型检查约束
+2. ABC类: 配合`@abstractmethod`语法糖使用,强制子类实现对应接口
+3. Generic: 不具有强制性,定义泛型类,并通过TypeVar实现注入的变量约束
+4. `@final`和`@override`: 不具有强制性,通过类型检查约束
+5. 类型操作: 这类机制有NewType,Callable,TypeAlias等,均通过静态类型检查实现真实的约束
+#### Protocol
+```py
+from typing import Protocol
+
+class Repository(Protocol):
+    def get(self, user_id: int) -> str:
+        ...
+
+class BadRepository:
+    def get(self, user_id: str) -> int:
+        return 123
+
+def process(repo: Repository):
+    print(repo.get(1))
+
+process(BadRepository())
+```
+Python解释器不会阻止程序运行,但类型检查会警告BadRepository不符合Repository.
+
+#### ABC
+```py
+from abc import ABC, abstractmethod
+
+class Repository(ABC):
+    @abstractmethod
+    def get(self, id: int) -> str:
+        pass
+
+class UserRepository(Repository):
+    pass
+
+repo = UserRepository()
+# TypeError
+```
+- 如果只有继承 ABC 而没有声明抽象方法，不会强制子类实现任何方法。
+#### Generic
+```py
+from typing import Generic, TypeVar
+
+T = TypeVar("T")
+
+class Repository(Generic[T]):
+    def get(self, id: int) -> T:
+        raise NotImplementedError
+
+class User:
+    pass
+
+class UserRepository(Repository[User]):
+    def get(self, id: int) -> User:
+        return User()
+```
+Generic最推荐的写法就是用来组装依赖了:
+
+只要我在一个文件中这么写了:
+```py
+RepoT = TypeVar("RepoT", bound=BaseRepo)
+
+class BaseService(Generic[RepoT]):
+    def __init__(self, repo: RepoT) -> None:
+        self._repo = repo
+```
+那么就可以在子类中直接注入具体的Repo:
+```py
+class ChatService(BaseService[ConversationRepo]):
+    def get_messages(self, conversation_id: int, user_id: int) -> MessagesPublic:
+
+        messages = self._repo.get_messages(
+            conversation_id, user_id, 0, settings.MESSAGE_LIMIT
+        )
+
+        return messages
+```
+初始化时传入repo类即可:
+```py
+def get_chat_service(session: SessionDep) -> ChatService:
+    repo = ConversationRepo(session)
+    return ChatService(repo)
+```
+
+#### final和override
+```py
+from typing import final, override
+
+class BaseService:
+    def get(self):
+        pass
+
+    @final
+    def validate(self):
+        pass
+
+class UserService(BaseService):
+    @override
+    def get(self):
+        pass
+
+    def validate(self):
+        pass  # 静态检查报错
+```
+1. @final 告诉类型检查器，该方法不能被子类覆盖
+2. @override 告诉类型检查器，该方法应该覆盖父类中存在的方法。如果父类将 get() 重命名，类型检查器就能发现覆盖关系失效。
+
+#### 类型操作
+1. NewType用于创建逻辑上不同的类型:
+```py
+from typing import NewType
+
+UserId = NewType("UserId", int)
+OrderId = NewType("OrderId", int)
+
+def get_user(user_id: UserId):
+    ...
+
+def get_order(order_id: OrderId):
+    ...
+
+user_id = UserId(100)
+order_id = OrderId(200)
+
+get_user(user_id)   # 正确
+get_user(order_id)  # 静态类型检查报错
+```
+2. Callable是一个针对函数的类型接口,基本写法如下:
+
+```py
+from collections.abc import Callable
+
+Handler = Callable[[int, str], bool]
+# 对应的函数类型是
+def handler(x: int, y: str) -> bool: ...
+```
+实际使用:
+```py
+from collections.abc import Callable
+
+def execute(
+    callback: Callable[[int], str],
+    value: int,
+) -> str:
+    return callback(value)
+
+def good(x: int) -> str:
+    return str(x)
+
+def bad(x: str) -> int:
+    return len(x)
+
+execute(good, 10)  # 正确
+execute(bad, 10)   # 静态类型检查报错
+```
+3. `@overload`用于解决类型检查过于宽泛的情况:
+```py
+from typing import overload
+
+@overload
+def double(value: int) -> int:
+    ...
+
+@overload
+def double(value: str) -> str:
+    ...
+
+def double(value: int | str) -> int | str:
+    return value * 2
+
+a = double(10)     # 推断为 int
+b = double("Hi")   # 推断为 str
+```
+如果不用overload,我们就需要在函数内部进行条件判断,但话有说回来,写了overload我们也要额外写处理函数,而且分离了处理逻辑,所以需要有一个权衡.
+
+4. TypeAlias/type用于给类型起一个别名:
+```py
+type UserScores = dict[str, list[int]]
+
+def get_users() -> UserScores:
+    ...
+```
+
+### GIL历史(待补充)
 - [PEP703](https://peps.python.org/pep-0703/)
 
-### SQLModel/SQLAlchemy要点
 
 ## Golang
 ### Gin速通(10/30)
@@ -826,7 +1020,362 @@ Gin支持解析的结构体标签有常见的以下几种:
 2. 通过binding标签实现的数据验证: 如`binding:"required"`要求该参数为必填项,`binding:"email"`表示该字段必须为邮箱格式,`binding:"omitempty,email"`在该字段为空时跳过后续验证,`binding:"gt=0"`表示该字段必须大于0
 3. 提供默认值: 如`form:"page,default=1"`
 
-### Gorm速通(10/31)
+### GORM速通(10/31)
+在25年5月发布v1.30.0版本之前,GORM还用的是Traditional API,不需要注入上下文:
+```go
+package main
+
+import (
+  "gorm.io/driver/sqlite"
+  "gorm.io/gorm"
+)
+
+type Product struct {
+  gorm.Model
+  Code  string
+  Price uint
+}
+
+func main() {
+  db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+  if err != nil {
+    panic("连接数据库失败")
+  }
+
+  // 自动建表
+  db.AutoMigrate(&Product{})
+
+  // 创建
+  db.Create(&Product{Code: "D42", Price: 100})
+
+  // 查询
+  var product Product
+  db.First(&product, 1) // 查找对应主键的产品
+  db.First(&product, "code = ?", "D42") // 查找 code 为 D42 的所有产品
+
+  // 更新 - 将产品价格更新为 200
+  db.Model(&product).Update("Price", 200)
+  // 更新 - 更新多个字段
+db.Model(&product).Updates(Product{Price: 200, Code: "F42"}) // 仅更新非零字段
+  db.Model(&product).Updates(map[string]interface{}{"Price": 200, "Code": "F42"})
+
+  // 删除 - 删除产品
+  db.Delete(&product, 1)
+}
+```
+
+而在这之后则引入了泛型API,采用显式传入Context的设置,实际上代码变得难看了很多:
+```go
+package main
+
+import (
+  "context"
+  "gorm.io/driver/sqlite"
+  "gorm.io/gorm"
+)
+
+type Product struct {
+  gorm.Model
+  Code  string
+  Price uint
+}
+
+func main() {
+  db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+  if err != nil {
+    panic("连接数据库失败")
+  }
+
+  ctx := context.Background()
+
+  // 自动建表
+  db.AutoMigrate(&Product{})
+
+  // 创建
+  err = gorm.G[Product](db).Create(ctx, &Product{Code: "D42", Price: 100})
+
+  // 查询
+  product, err := gorm.G[Product](db).Where("id = ?", 1).First(ctx) // 查找对应主键的产品
+  products, err := gorm.G[Product](db).Where("code = ?", "D42").Find(ctx) // 查找 code 为 D42 的所有产品
+
+  // 更新 - 将产品价格更新为 200
+  err = gorm.G[Product](db).Where("id = ?", product.ID).Update(ctx, "Price", 200)
+  // 更新 - 更新多个字段
+  err = gorm.G[Product](db).Where("id = ?", product.ID).Updates(ctx, Product{Code: "D42", Price: 100})
+
+  // 删除 - 删除产品
+  err = gorm.G[Product](db).Where("id = ?", product.ID).Delete(ctx)
+}
+```
+
+尽管这是出于安全和效率的考量,但请你先把文档更新好啊,文档里一堆的Traditional API残留,很混乱的好不好.
+
+#### 数据表
+##### GORM约定
+GORM对数据表的约定如下:
+1. 主键: 默认使用`ID`字段作为主键
+2. 表名: 默认将结构体名称转换为snake_case并加上复数,例如，`User` 结构体会在数据库中变成 `users`，而 `GormUserName` 会变成 `gorm_user_names`。
+3. 列名: 自动将字段名称转换为snake_case
+4. 时间戳字段：使用字段 `CreatedAt` 和 `UpdatedAt` 来自动跟踪记录的创建和更新时间。
+
+值得一提的是GORM提供了一个预定义的结构体`gorm.Model`,定义如下:
+```go
+type Model struct {
+  ID        uint           `gorm:"primaryKey"`
+  CreatedAt time.Time
+  UpdatedAt time.Time
+  DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+```
+只要将这个结构体嵌入到结构体之中,就可以在调用时自动展开这些字段.
+##### 结构体标签
+GORM中常见的结构体标签有几类,均以`gorm:"xxx"`的结构展示:
+1. 主键和数据库约束: 如设定主键和自增的`gorm:"primaryKey;autoIncrement"`,设置unique和not null的`gorm:"unique;not null"`,设置默认值的`gorm:"default:1"`
+2. 设置索引,如普通索引和复合索引:
+```go
+type User struct {
+    ID    uint
+    Name  string `gorm:"index"`
+}
+
+type User struct {
+    ID     uint
+    Name   string `gorm:"index:idx_name_age"`
+    Age    int    `gorm:"index:idx_name_age"`
+}
+```
+3. 关联关系: 设置外键和约束
+```go
+type User struct {
+    ID    uint
+    Posts []Post `gorm:"foreignKey:AuthorID"`
+}
+
+type Post struct {
+    ID       uint
+    Title    string
+    AuthorID uint
+}
+```
+
+```go
+type User struct {
+    ID    uint
+    Posts []Post `gorm:"constraint:OnDelete:CASCADE"`
+}
+```
+
+值得注意的是,GORM采用约定优于配置的设计,只要遵循默认命名,就可以尽可能地少写标签.
+
+如下方示例中,`CompanyID`会自动查找并对应到`Company.ID`,确认这是被引用的外键:
+```go
+type Company struct {
+    ID   uint
+    Name string
+}
+
+type User struct {
+    ID        uint
+    Name      string
+    CompanyID uint
+    Company   Company
+}
+```
+上述情况适用于一对一关系或者隐含的多对一关系,而对于多对一关系,声明成数组即可:
+
+```go
+type User struct {
+    ID    uint
+    Name  string
+    Posts []Post
+}
+
+type Post struct {
+    ID     uint
+    Title  string
+    UserID uint
+}
+```
+#### CRUD
+##### 创建数据表
+有两种格式,第二种result方式可以获取更多关于操作错误的信息,但一版用第一种方法就足够了:
+```go
+user := User{Name: "Jinzhu", Age: 18, Birthday: time.Now()}
+
+// Create a single record
+ctx := context.Background()
+err := gorm.G[User](db).Create(ctx, &user) // pass pointer of data to Create
+
+// Create with result
+result := gorm.WithResult()
+err := gorm.G[User](db, result).Create(ctx, &user)
+user.ID             // returns inserted data's primary key
+result.Error        // returns error
+result.RowsAffected // returns inserted records count
+```
+##### 查询
+对于单个对象的检索,GORM提供三种查询方法:
+```go
+ctx := context.Background()
+
+// Get the first record ordered by primary key
+user, err := gorm.G[User](db).First(ctx)
+// SELECT * FROM users ORDER BY id LIMIT 1;
+
+// Get one record, no specified order
+user, err := gorm.G[User](db).Take(ctx)
+// SELECT * FROM users LIMIT 1;
+
+// Get last record, ordered by primary key desc
+user, err := gorm.G[User](db).Last(ctx)
+// SELECT * FROM users ORDER BY id DESC LIMIT 1;
+
+// check error ErrRecordNotFound
+errors.Is(err, gorm.ErrRecordNotFound)
+```
+
+条件检索的写法比较独特:
+```go
+package main
+
+import (
+  "context"
+  "gorm.io/driver/sqlite"
+  "gorm.io/gorm"
+)
+
+type Product struct {
+  gorm.Model
+  Code  string
+  Price uint
+}
+
+func main() {
+  db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+  if err != nil {
+    panic("连接数据库失败")
+  }
+
+  ctx := context.Background()
+
+  // 自动建表
+  db.AutoMigrate(&Product{})
+
+  // 创建
+  err = gorm.G[Product](db).Create(ctx, &Product{Code: "D42", Price: 100})
+
+  // 查询
+  product, err := gorm.G[Product](db).Where("id = ?", 1).First(ctx) // 查找对应主键的产品
+  products, err := gorm.G[Product](db).Where("code = ?", "D42").Find(ctx) // 查找 code 为 D42 的所有产品
+
+  // 更新 - 将产品价格更新为 200
+  err = gorm.G[Product](db).Where("id = ?", product.ID).Update(ctx, "Price", 200)
+  // 更新 - 更新多个字段
+  err = gorm.G[Product](db).Where("id = ?", product.ID).Updates(ctx, Product{Code: "D42", Price: 100})
+
+  // 删除 - 删除产品
+  err = gorm.G[Product](db).Where("id = ?", product.ID).Delete(ctx)
+}
+```
+使用`?`作为占位符,并用第二个参数注入到`Where`中
+
+
+GORM中的查询默认不会加载关联(Relationship),而是需要用`Preload`函数显式声明:
+```go
+user, err := gorm.G[User](db).
+    Preload("Posts", nil).
+    Where("id = ?", 1).
+    First(ctx)
+```
+GORM大致执行:
+```sql
+-- 查询用户
+SELECT * FROM users WHERE id = 1 LIMIT 1;
+
+-- 查询该用户的文章
+SELECT * FROM posts WHERE user_id IN (1);
+```
+##### 更新
+```go
+ctx := context.Background()
+
+// Update with conditions
+err := gorm.G[User](db).Where("active = ?", true).Update(ctx, "name", "hello")
+// UPDATE users SET name='hello', updated_at='2013-11-17 21:34:10' WHERE active=true;
+
+// Update with ID condition
+err := gorm.G[User](db).Where("id = ?", 111).Update(ctx, "name", "hello")
+// UPDATE users SET name='hello', updated_at='2013-11-17 21:34:10' WHERE id=111;
+
+// Update with multiple conditions
+err := gorm.G[User](db).Where("id = ? AND active = ?", 111, true).Update(ctx, "name", "hello")
+// UPDATE users SET name='hello', updated_at='2013-11-17 21:34:10' WHERE id=111 AND active=true;
+```
+
+##### 删除
+```go
+ctx := context.Background()
+
+// Delete by ID
+err := gorm.G[Email](db).Where("id = ?", 10).Delete(ctx)
+// DELETE from emails where id = 10;
+
+// Delete with additional conditions
+err := gorm.G[Email](db).Where("id = ? AND name = ?", 10, "jinzhu").Delete(ctx)
+// DELETE from emails where id = 10 AND name = "jinzhu";
+```
+
+#### 数据库连接
+连接到Postgres有两种方式,一个是使用键值对格式:
+```sql
+import (
+  "gorm.io/driver/postgres"
+  "gorm.io/gorm"
+)
+
+dsn := "host=localhost user=gorm password=gorm dbname=gorm port=9920 sslmode=disable TimeZone=Asia/Shanghai"
+db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+```
+另一个则是指定URL:
+```go
+import (
+    "gorm.io/driver/postgres"
+    "gorm.io/gorm"
+)
+
+dsn := "postgresql://gorm:gorm@localhost:9920/gorm?sslmode=disable&TimeZone=Asia%2FShanghai"
+
+db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+```
+
+### Go项目组织风格(10/30)
+- [官方文档说明](https://go.dev/doc/modules/layout)
+
+惯例情况下,我们将可供主程序调用的内部源码通通放在`/internal`文件夹下.
+
+我们编译Go时一般都是条件编译的,例如数据库迁移,管理员操作,HTTP服务器三者是彼此独立的组件,我们不可能写一个大的`main.go`,然后把三种操作用if来区分.
+
+因此,传统上是把所有的程序入口都放在`/cmd`文件夹中.
+
+最终,我们得到的文件夹结构如下:
+```text
+project-root-directory/
+  go.mod
+  internal/
+    auth/
+      ...
+    metrics/
+      ...
+    model/
+      ...
+  cmd/
+    api-server/
+      main.go
+    metrics-analyzer/
+      main.go
+    ...
+  ... the project's other directories with non-Go code
+```
 
 ## Java
 ### Java历史
@@ -986,8 +1535,12 @@ map<int, int> m(nums.begin(), nums.end());
 
 unordered_map<int, int> um(nums.begin(), nums.end());
 ```
-
-
+#### string操作
+1. 根据起始下标和长度截取字串:
+```cpp
+// 左右下标 [l, r]，包含 r
+s.substr(l, r - l + 1);
+```
 ### struct/class全解(9/8)
 Cpp中struct和class的区别比我想的还要小很多,它们都有访问控制符,有构造和析构函数,支持`->`访问符,唯一的区别在于,struct的默认成员权限为public,而class的默认成员权限为private.
 
