@@ -7,9 +7,6 @@ math: true
 ---
 
 # 阅读中
-
-
-
 ## 深入理解 AI Agent
 - 都说了是深入理解了,所以必须要在实际用过一段时间的Agent之后再来看,才会有很多收获.
 ### ch1: 入门
@@ -462,8 +459,6 @@ Cite the file and line number for every finding. Do not propose fixes
 ### ch12: Multi-Agent(待补充)
 非常高端的操作,在Goal模式内部,针对Subagent的派生设置门控和审查.但这样一来每个任务都需要单独设置门控和审查代码,非常的麻烦.
 ### ch13: 隔离与WorkTree
-
-
 
 
 
