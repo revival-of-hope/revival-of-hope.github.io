@@ -532,6 +532,125 @@ Cite the file and line number for every finding. Do not propose fixes
 ### ch14: 成本管理
 计算费用
 ### ch15: CI/CD集成
+我们可以在GitHub Actions中用Codex:
+```yaml
+- uses: openai/codex-action@v1
+  id: codex
+  with:
+    prompt: "Summarize what changed in this PR in three bullet points"
+    sandbox: read-only
+  env:
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+- name: Post summary as PR comment
+  uses: actions/github-script@v7
+  with:
+    script: |
+      await github.rest.issues.createComment({
+        issue_number: context.issue.number,
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        body: process.env.CODEX_OUTPUT
+      });
+  env:
+    CODEX_OUTPUT: ${{ steps.codex.outputs.final-message }}
+```
+
+### ch22: Backend Engineering
+示例项目:
+```text
+run-or-relax/
+├── pyproject.toml
+├── AGENTS.md
+├── .codex/
+│   ├── hooks.json
+│   # PostToolUse, Stop, UserPromptSubmit hook
+│   └── scripts/
+│       └── block-legacy-pip.sh
+├── data/
+│   ├── timetable.json
+│   # seeded departures per station
+│   └── delays.json
+│   # simulated delay feed
+├── src/departures/
+│   ├── models.py
+│   # Pydantic response models
+│   ├── timetable.py
+│   ├── verdict.py
+│   └── app.py
+└── tests/
+    ├── conftest.py
+    # load timetable + delays, compute next de
+    # the RUN/relax rule (pure function)
+    # FastAPI app and the /departures route
+    # the timetable fixture
+    ├── test_verdict.py
+    ├── test_timetable.py
+    └── test_api.py
+    # timetable + delay-feed behaviour
+```
+
+正确配置 `AGENTS.md` 是 Python 项目中最重要的配置决策。否则，Codex CLI 会做出看似合理但却错误的选择：例如，使用 `pip install` 而不是 `uv add`，使用 `python -m pytest` 而不是 `uv run pytest`，以及在项目使用 `pyproject.toml` 时，使用 `setup.cfg` 或 `.flake8`。虽然每个错误单独来看都可以修复，但累积起来会导致环境偏差。
+
+文中的示例:
+```markdown
+# AGENTS.md
+
+## Environment
+- Python package manager: uv, never use `pip` directly
+- All tool invocations must go through `uv run` (e.g., `uv run pytest`, `uv run ruff`)
+- To add a dependency: `uv add <package>`; for dev deps: `uv add --dev <package>`
+- Python version: 3.14 (see `.python-version` or `pyproject.toml`)
+
+## Testing
+- Run tests: `uv run pytest tests/ -v`
+- Run a single test file: `uv run pytest tests/test_foo.py -v`
+- Run with coverage: `uv run pytest --cov=src --cov-report=term-missing`
+- All new code must have pytest coverage, with no exceptions
+
+## Linting and formatting
+- Lint: `uv run ruff check . --fix`
+- Format: `uv run ruff format .`
+- Type check: `uv run mypy src/` (the stable default; `uv run ty check` once `ty` leaves beta and is in your dev deps)
+- Run all checks before marking a task done: lint → format → type check
+
+## Commit conventions
+- Conventional Commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
+- Do not commit `uv.lock` changes unless dependency versions were intentionally updated
+```
+
+`Run all checks before marking a task done: lint → format → type check`这句话相当关键.
+
+
+如果采用嵌套AGENTS.md,那么需要保证嵌套md专注于偏差,而不用重复完整的工具链.
+
+测试指令:
+```markdown
+## Coverage
+- Minimum coverage: 90% overall, 100% for `src/departures/verdict.py` (the rule must never regress)
+- Do not add `# pragma: no cover` without a comment explaining why
+
+## Test markers
+- @pytest.mark.unit: no I/O, runs in CI on every push
+- @pytest.mark.integration: requires Docker services, runs in CI on PR
+- @pytest.mark.slow: long-running; skip locally with `-m "not slow"`
+- Default local command: `uv run pytest -m "unit" -q`
+```
+给fastapi的指令:
+```markdown
+## FastAPI conventions
+- Route handlers must be async; use `httpx.AsyncClient` for outbound HTTP calls
+- Pydantic response models live in `src/departures/models.py` (one module per service; split into a package when it grows)
+- Dependency injection via FastAPI's `Depends()`: no global state
+- Error handling: raise `HTTPException` from route handlers; never let domain exceptions propagate
+- OpenAPI schema: keep `response_model` explicit on every route
+- Background tasks: use `BackgroundTasks`
+```
+
+这一章相当重要,指挥Agent写代码的前提是自己会写代码
+### ch23: Frontend Engineering
+
+
 ### ch27: 长时间运行Agent
 Harness 是指封装智能体的所有组件：描述项目的 AGENTS.md 文件、提供确定性反馈的测试套件、限制影响范围的沙箱、验证输出的持续集成 (CI) 流水线、决定何时需要人工干预的审批策略，以及确保耗时数小时的任务在短暂故障后仍能正常运行的检查点逻辑。如果 Harness 设计良好，即使是适中的模型也能自主且高置信度地完成任务。反之，如果 Harness 设计不佳，即使是最好的模型也会束手无策。
 

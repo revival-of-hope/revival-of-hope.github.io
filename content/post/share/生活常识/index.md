@@ -21,7 +21,8 @@ math: true
 - `i.e.` : (id est),换句话说
 - `e.g.` : (exempli gratia),例如
 - `et al.`: (et alii),**以及其他人**,常作为文献中的引用说明:
-  - Objectives may also have other sources of noise than data subsampling, such as dropout (Hinton et al., 2012b) regularization. 
+  - `Objectives may also have other sources of noise than data subsampling, such as dropout (Hinton et al., 2012b) regularization.`
+- `de facto`: 事实上,根据事实;这也就是为什么我们看翻译书籍中总有一个莫名其妙的`xxx是某一领域的事实标准`的来由.
 
 ### 技术名词
 - TL;DR: 是 "Too Long; Didn't Read"（太长不看）的缩写,常作为文档总结
@@ -1029,7 +1030,17 @@ C ─┘        │
 中国股份有限公司 ↔ 美国 Corporation
 
 
+### 薪资构成
+总包(Total Compensation，TC) = 固定工资 + 绩效奖金 + 签字费 + 股权激励 + 其他现金补贴
 
+| 薪资组成                          | 含义                                 | 主要特点                                     |
+| :-------------------------------- | :----------------------------------- | :------------------------------------------- |
+| **基本工资（Base Salary）**       | 每月固定发放的税前工资               | 稳定性最高                                   |
+| **年终奖（Annual Bonus）**        | 根据公司、部门及个人绩效发放         | 可能为数个月工资，金额不保证                 |
+| **绩效奖金（Performance Bonus）** | 与季度、半年或年度绩效挂钩的额外奖励 | 部分公司与年终奖属于同一奖金池，不应重复计算 |
+| **签字费（Signing Bonus）**       | 入职时约定的一次性或分期现金奖励     | 常见于高竞争力岗位，不属于长期收入           |
+| **股权激励（Equity）**            | 股票、限制性股票单位（RSU）或期权等  | 受归属、股价、行权与流动性影响               |
+| **其他补贴（Allowances）**        | 餐补、房补、交通补贴等               | 需要区分现金补贴与实物福利                   |
 ## 生活
 ### 时区
 - [wiki](https://zh.wikipedia.org/wiki/UTC%E5%81%8F%E7%A7%BB%E9%87%8F)
