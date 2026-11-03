@@ -58,6 +58,7 @@ image: 91461486_p0-骤雨.webp
 #### Infra
 - `Deep Learning from Scratch`是我最推荐的深度学习入门书籍,他能够让你知道,神经网络可以很简单,根本不是多复杂的东西,而我们离所谓高深莫测的AI也并没有那么遥远.
 - `Hugging Face in Action`: 介绍怎么用Hugging Face的,说真的,新人第一次进网站都会被吓到劝退好不好,把你那个大头网站设计好行嘛,别总是加一堆找都找不到入口的功能了.
+  - (11/1): 额没过几个礼拜就真的重构网站了,难道我有这么大的影响力😂
 #### 应用
 - `RAG with Python Cookbook`: 真真正正讲RAG的,而不是直接从langchain调用个模型来就生成embedding了,偏向实操.
 - `Agentic Coding with OpenAI Codex CLI`: 不仅仅是教Codex,而是在教在Agent时代怎么用Agent,非常详细易懂

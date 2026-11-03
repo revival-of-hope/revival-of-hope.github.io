@@ -2,17 +2,15 @@
 title: "Agent笔记"
 date: 2026-10-24T20:43:52+08:00
 image: 134718880_p0-さっさと片付けるわよ.webp
-description: 未来会怎样
+description: 浪潮之下
 tags:
   - Agent
 ---
-
-
-# Agent基建
-## Agent标准
+# Agent标准
 Agent是一个相当新的东西,在目前阶段各个厂商的标准都尚未完全统一,但已经有一些值得关注的成熟标准,最出名的就是成立于2025年12月9日的Agentic AI Foundation（AAIF，智能体 AI 基金会）,隶属于Linux基金会,主要负责推动 AI Agent 领域的开放协议、技术标准和开源基础设施。
 
 目前(10/23),AAIF旗下一共有10个开源项目:
+
 | 项目               | 主要用途                          | 最初贡献方   |
 | :----------------- | :-------------------------------- | :----------- |
 | **MCP**            | 让 AI 连接外部工具和数据          | Anthropic    |
@@ -31,7 +29,8 @@ Agent是一个相当新的东西,在目前阶段各个厂商的标准都尚未�
 由于诞生于24年11月底的MCP,创建于25年8月的AGENTS.md,发布于25年4月的A2A以及发布于25年10月的SKILLs这四个对于小白来说都是耳熟能详的,因此我只会简单介绍剩余的六个项目,想深入了解就去看文档吧.
 
 ### Goose
-Goose就是一个Agent软件,通过调用第三方API启动对话,至于为什么能被加到标准里面,还是在于它出现的很早,然后又是开源的.
+Goose就是一个Agent Harness,没有自己的模型,通过调用第三方API启动对话,至于为什么能被加到基金会里面,就没必要纠结了,反正热门程度是远不如主流的几个Harness的.
+
 ### agentgateway
 25年4月推出的Agent网关,因为传统的API网关不太适合LLM API,MCP和A2A等通信方式.不过主要是面向企业的,毕竟个人项目连API网关都很难用到吧(Nginx只能算反向代理,并不是网关),更别提Agent网关了.
 
@@ -101,48 +100,680 @@ if __name__ == "__main__":
 在sandbox里我们可以执行python代码,下载依赖,控制Agent的权限,并在执行可控操作后销毁代码.
 
 至于效果怎么样?只能说先让子弹飞一会儿比较好.
-## Agent框架
-上述的标准中唯独少了一个很重要的地方,Agent开发框架,如果能够有一个简单好用,支持多平台多语言多功能的框架,那我想Agent开发才会真正地走上正轨,但目前还是百花齐放的场面,对于普通的开发者来说只能按需选择了.
+
+# Agent框架
+上述的标准中唯独少了一个很重要的地方,Agent开发框架,如果能够有一个简单好用,支持多平台多语言多功能的框架,那我想Agent开发才会真正地走上正轨,但目前还是百花齐放的场面,对于普通的开发者来说只能按需选择了(公司用什么你就学什么).
+
+| 框架                                                                                              | 抽象程度 | 支持的开发语言                       | 模型绑定程度 | 强项                                          | 热门程度         |
+| ------------------------------------------------------------------------------------------------- | -------- | ------------------------------------ | ------------ | --------------------------------------------- | ---------------- |
+| [LangChain](https://docs.langchain.com/?utm_source=chatgpt.com)                                   | 中高     | Python、TypeScript                   | 低           | Agent 开发、工具集成、模型适配、生态丰富      | 极高             |
+| [LangGraph](https://docs.langchain.com/oss/python/langgraph/overview?utm_source=chatgpt.com)      | 低中     | Python、TypeScript                   | 低           | 状态图、持久化执行、Checkpoint、HITL          | 极高             |
+| [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/?utm_source=chatgpt.com)        | 中       | Python、TypeScript                   | 中           | Agent Loop、Handoff、Guardrails、Tracing      | 极高             |
+| [Vercel AI SDK](https://ai-sdk.dev/docs/introduction?utm_source=chatgpt.com)                      | 中       | TypeScript、JavaScript               | 低           | 流式输出、工具调用、Agent 与前端 UI 集成      | 极高             |
+| [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview?utm_source=chatgpt.com) | 高       | Python、TypeScript                   | 高           | Coding Agent、文件操作、Shell、子 Agent       | 极高             |
+| [Google ADK](https://adk.dev/?utm_source=chatgpt.com)                                             | 中高     | Python、TypeScript、Go、Java、Kotlin | 中           | 多 Agent、工作流、Google Cloud 集成           | 极高             |
+| [CrewAI](https://docs.crewai.com/?utm_source=chatgpt.com)                                         | 高       | Python                               | 低           | 角色式多 Agent、任务分配、Flows 工作流        | 高               |
+| [Mastra](https://mastra.ai/docs?utm_source=chatgpt.com)                                           | 高       | TypeScript                           | 低           | TS 原生 Agent、Workflow、Memory、Evals        | 高               |
+| [LlamaIndex](https://developers.llamaindex.ai/?utm_source=chatgpt.com)                            | 中高     | Python、TypeScript                   | 低           | RAG、知识库、文档处理、数据驱动 Agent         | 高               |
+| [Pydantic AI](https://ai.pydantic.dev/?utm_source=chatgpt.com)                                    | 中       | Python                               | 低           | 类型安全、结构化输出、依赖注入、模型切换      | 高               |
+| [Strands Agents](https://strandsagents.com/?utm_source=chatgpt.com)                               | 低中     | Python、TypeScript                   | 低           | 模型驱动 Agent、工具调用、AWS 集成            | 高               |
+| [Deep Agents](https://docs.langchain.com/oss/python/deepagents/overview?utm_source=chatgpt.com)   | 高       | Python、TypeScript                   | 低           | Agent Harness、任务规划、子 Agent、上下文管理 | 高               |
+| [Microsoft Agent Framework](https://github.com/microsoft/agent-framework?utm_source=chatgpt.com)  | 中高     | Python、C#、Go（预览）               | 低中         | 企业级多 Agent、持久化工作流、Azure 集成      | 中高             |
+| [Agno](https://docs.agno.com/?utm_source=chatgpt.com)                                             | 高       | Python                               | 低           | AgentOS、记忆、工具集成、多 Agent 服务        | 中高             |
+| [DSPy](https://dspy.ai/?utm_source=chatgpt.com)                                                   | 中       | Python                               | 低           | 声明式 LLM 编程、Prompt 优化、推理优化        | 中高             |
+| [Haystack](https://docs.haystack.deepset.ai/?utm_source=chatgpt.com)                              | 中       | Python                               | 低           | RAG Pipeline、检索编排、生产级数据处理        | 中高             |
+| [AgentScope](https://docs.agentscope.io/?utm_source=chatgpt.com)                                  | 中高     | Python、Java（独立实现）             | 低           | 多 Agent 协作、可观测性、Agent 运行服务       | 中高             |
+| [smolagents](https://huggingface.co/docs/smolagents/index?utm_source=chatgpt.com)                 | 低中     | Python                               | 低           | 极简 Agent、代码执行、开源模型集成            | 中高             |
+| [Eino](https://www.cloudwego.io/docs/eino/?utm_source=chatgpt.com)                                | 中       | Go                                   | 低           | Go 原生、组件编排、Graph、ADK、多 Agent       | 中               |
+| [Letta](https://docs.letta.com/?utm_source=chatgpt.com)                                           | 高       | Python、TypeScript SDK               | 低           | 持久记忆、有状态 Agent、长期会话              | 中               |
+| [Rig](https://rig.rs/?utm_source=chatgpt.com)                                                     | 低中     | Rust                                 | 低           | Rust 原生 Agent、类型安全、异步执行           | 中               |
+| [Semantic Kernel](https://github.com/microsoft/semantic-kernel?utm_source=chatgpt.com)            | 中高     | C#、Python、Java                     | 低中         | 企业集成、插件、Azure 生态；逐步迁向 MAF      | 中（存量生态）   |
+| [AutoGen](https://microsoft.github.io/autogen/stable/?utm_source=chatgpt.com)                     | 中高     | Python、.NET                         | 低           | 多 Agent 对话、消息协作；已进入维护模式       | 中（历史热度高） |
+| [CAMEL](https://docs.camel-ai.org/?utm_source=chatgpt.com)                                        | 高       | Python                               | 低           | 多 Agent 社会模拟、角色协作、研究实验         | 中               |
+| [MetaGPT](https://github.com/FoundationAgents/MetaGPT?utm_source=chatgpt.com)                     | 高       | Python                               | 低           | 角色分工、软件开发多 Agent 协作               | 中低（更新放缓） |
+
+- 纵观一下你会发现,所有主流的框架都支持Python,Typescript的支持度都没那么高,可见AI时代Python的重要性.
+
+## [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/)
+
+### 初体验
+导入:
+```bash
+uv add openai-agents
+```
 
 
-### 设计思想历史-AI
-| 时间                   | 代表框架 / 事件                               | 当时最核心的思想                                                   | 主要解决什么问题                                        | 历史位置                                                                                    |
-| ---------------------- | --------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **2022 上半年—下半年** | **ReAct**                                     | `Reason → Action → Observation → Reason`                           | 让 LLM 不只生成答案，还能调用外部工具并根据结果继续决策 | **现代 Agent Loop 的理论基础**                                                              |
-| **2022.10**            | **LangChain**                                 | `Prompt + LLM + Tool + Retriever + Chain`                          | 把零散的 LLM 能力组合成应用                             | **LLM 应用框架时代开始**；LangChain 首版 Python 包于 2022-10-24 发布。([LangChain 博客][1]) |
-| **2023 上半年**        | **AutoGPT、BabyAGI、AgentGPT**                | `Goal → Plan → Act → Reflect → Repeat`                             | 用户只给最终目标，让 LLM 自己制定和执行计划             | **Autonomous Agent 热潮**；第一次大规模探索“全自动 Agent”                                   |
-| **2023 中后期**        | LangChain Agents、各种 Function Calling Agent | `LLM + Tools + Agent Loop`                                         | 稳定完成搜索、数据库、API 等工具调用                    | Agent 从 Demo 开始进入实际应用                                                              |
-| **2023.09 起**         | **Microsoft AutoGen**                         | `Agent ↔ Agent`，以消息通信组织多个 Agent                          | 单 Agent 能力有限，希望多个专业 Agent 协作              | **Multi-Agent 框架的重要代表**                                                              |
-| **2023–2024**          | **CrewAI**                                    | `Role + Goal + Task + Crew`                                        | 把研究员、程序员、审核员等角色组成“AI 团队”             | 把 Multi-Agent 做成非常直观的角色/组织模型                                                  |
-| **2023–2024**          | **Semantic Kernel**                           | LLM + Plugin + Planner + 普通程序代码                              | 将 Agent 能力嵌入传统企业软件                           | 代表微软偏 **Enterprise SDK** 的路线                                                        |
-| **2024 初**            | **LangGraph**                                 | `State + Node + Edge`                                              | 全自主 Agent 不稳定，因此显式定义状态和允许的执行路径   | **从 Autonomous Agent 转向 Controlled Workflow 的关键节点**                                 |
-| **2024**               | **LlamaIndex Workflows / Agents**             | Event-driven Workflow + RAG + Agent                                | 让 Agent 能可靠地围绕企业数据、RAG、工具执行复杂流程    | RAG 框架开始全面 Agent 化                                                                   |
-| **2024**               | **AutoGen 0.4 等新一代 Multi-Agent Runtime**  | Event / Message / Actor / Runtime                                  | Multi-Agent 的状态、消息、执行、调试、扩展问题          | Multi-Agent 从“几个模型聊天”转向真正的软件系统                                              |
-| **2024**               | **PydanticAI** 等轻量框架                     | `Typed Agent + Structured Output + Dependency Injection`           | 大型 Agent 框架抽象过多，希望回到普通 Python 工程模式   | **类型安全、轻量化 Agent SDK** 趋势                                                         |
-| **2024.11.25**         | **MCP**                                       | `Agent ↔ Tool/Data` 的统一协议                                     | 每个框架都要单独接 GitHub、数据库、文件系统等工具的问题 | **Agent 工具生态开始协议标准化**。([Anthropic][2])                                          |
-| **2025.03.11**         | **OpenAI Agents SDK + Responses API**         | `Agent + Tool + Handoff + Guardrail + Tracing`                     | 用更薄的 SDK 构建单 Agent / Multi-Agent，并结合原生工具 | 模型厂商正式进入 Agent Framework 层。([OpenAI][3])                                          |
-| **2025.04.09**         | **Google A2A**                                | `Agent ↔ Agent` 标准协议                                           | 不同公司、不同框架开发的 Agent 怎样相互发现、通信和协作 | **Agent 间协议标准化**。([Google 开发者博客][4])                                            |
-| **2025–2026**          | LangGraph、Agents SDK、Google ADK、AutoGen 等 | Durable execution、checkpoint、sandbox、tracing、human-in-the-loop | Agent 长时间运行、失败恢复、权限、安全、可观测性        | Agent 开始从“框架”向 **Runtime / Infrastructure** 演变                                      |
-| **2026 至今**          | 新一代 Agent Runtime / Harness                | `Model + Tools + State + Sandbox + Persistence + Runtime`          | 让 Agent 真正承担分钟级、小时级乃至更长的任务           | 当前重点已经越来越接近**后端、工作流引擎和分布式系统**                                      |
+基本代码:
+```py
+from openai import AsyncOpenAI
+from agents import (
+    Agent,
+    Runner,
+    ModelSettings,
+    OpenAIChatCompletionsModel,
+)
 
-### 主流Agent框架-AI
-| 框架                          | 定位                      | 模型绑定                  | 强项                                                     | 定位  |
-| ----------------------------- | ------------------------- | ------------------------- | -------------------------------------------------------- | ----- |
-| **OpenAI Agents SDK**         | 轻量 Agent SDK            | OpenAI 最佳，也能接第三方 | Agent loop、tools、handoff、guardrails、tracing、sandbox | ⭐⭐⭐⭐⭐ |
-| **Pydantic AI**               | Python 通用 Agent SDK     | 很低                      | 类型安全、多模型、工具、Graph、eval、durable execution   | ⭐⭐⭐⭐⭐ |
-| **LangGraph**                 | Agent workflow/runtime    | 很低                      | 状态机、复杂流程、持久化、HITL、长任务                   | ⭐⭐⭐⭐⭐ |
-| **Google ADK 2.0**            | 企业级 Agent 开发套件     | Gemini/Google 最佳        | multi-agent、graph、A2A、GCP、context                    | ⭐⭐⭐⭐½ |
-| **Microsoft Agent Framework** | 企业 Agent + workflow     | 很低                      | Azure/.NET/Python、状态、工作流、企业集成                | ⭐⭐⭐⭐½ |
-| **Claude Agent SDK**          | Claude 原生 Agent harness | Claude                    | coding/file/shell、长任务、Claude 原生能力               | ⭐⭐⭐⭐½ |
-| **Mastra**                    | TypeScript Agent 框架     | 很低                      | TS、workflow、eval、memory、前后端整合                   | ⭐⭐⭐⭐½ |
-| **Vercel AI SDK v7**          | Web/TS AI SDK             | 很低                      | Next.js、streaming、Agent UI、ToolLoopAgent              | ⭐⭐⭐⭐½ |
-| **CrewAI**                    | 高层 Multi-Agent 框架     | 较低                      | Role/Crew/Task 抽象、快速多 Agent                        | ⭐⭐⭐⭐  |
-| **LlamaIndex**                | 数据/RAG Agent            | 低                        | RAG、知识库、数据 Agent                                  | ⭐⭐⭐⭐  |
-| **Haystack**                  | RAG/搜索/Agent Pipeline   | 低                        | 企业搜索、RAG pipeline                                   | ⭐⭐⭐½  |
+# 使用 OpenAI 兼容客户端连接 DeepSeek
+client = AsyncOpenAI(
+    api_key="sk",
+    base_url="https://api.deepseek.com",
+)
 
-# Agent应用
-## Ollama
+agent = Agent(
+    name="Assistant",
+    instructions="You are a helpful assistant",
+    model=OpenAIChatCompletionsModel(
+        model="deepseek-flash",
+        openai_client=client,
+    ),
+    # 普通文本生成，关闭深度思考
+    model_settings=ModelSettings(
+        extra_body={"thinking": {"type": "disabled"}},
+    ),
+)
 
+result = Runner.run_sync(
+    agent,
+    "Write a haiku about recursion in programming.",
+)
+
+print(result.final_output)
+```
+
+工具调用:
+```py
+import os
+
+from openai import AsyncOpenAI
+from agents import (
+    Agent,
+    Runner,
+    OpenAIChatCompletionsModel,
+    set_tracing_disabled,
+)
+from agents.decorators import tool
+from dotenv import load_dotenv
+
+load_dotenv("./.env")
+API_KEY = os.getenv("API_KEY")
+
+set_tracing_disabled(True)
+
+
+@tool
+def history_fun_fact() -> str:
+    """Return a short history fact."""
+    return "Sharks are older than trees."
+
+
+# 使用 OpenAI 兼容客户端连接 DeepSeek
+client = AsyncOpenAI(
+    api_key=API_KEY,
+    base_url="https://api.deepseek.com",
+)
+
+agent = Agent(
+    name="Assistant",
+    instructions="You are a helpful assistant",
+    model=OpenAIChatCompletionsModel(
+        model="deepseek-flash",
+        openai_client=client,
+    ),
+    tools=[
+        history_fun_fact,
+    ],
+)
+
+result = Runner.run_sync(
+    agent,
+    "Tell me something surprising about ancient life on Earth.",
+)
+
+print(result.final_output)
+```
+
+光是这样肯定是远不如普通的responses API调用的,所以我们需要继续深入研究.
+### Sandbox Agent
+#### 概念
+现代智能体在能够操作文件系统中的真实文件时效果最佳。沙箱智能体可以利用专用工具和 shell 命令搜索和操作大型文档集、编辑文件、生成制品以及运行命令。沙箱为模型提供一个持久化工作区，智能体可以使用它代您完成工作
+
+以下是从图片中提取的文字，并进行了排版美化：
+
+**SandboxAgent 仍然是 Agent。** 它保留常规的智能体接口，例如 `instructions`、`prompt`、`tools`、`handoffs`、`mcp_servers`、`model_settings`、`output_type`、安全防护措施和钩子，并且仍通过常规的 `Runner` API 运行。变化之处在于执行边界：
+
+*   **`SandboxAgent` 定义智能体本身：** 常规的智能体配置，以及 `default_manifest`、`base_instructions`、`run_as` 等沙箱专用默认值，还有文件系统工具、shell 访问、技能、记忆或压缩等能力。
+*   **`Manifest` 声明新沙箱工作区所需的初始内容和布局**，包括文件、仓库、挂载和环境。
+*   **沙箱会话是运行命令和更改文件的实时执行环境。** 会话提供的隔离程度取决于其后端和配置。
+*   **`SandboxRunConfig` 决定运行如何获取该沙箱会话**，例如直接注入会话、从序列化的沙箱会话状态重新连接，或通过沙箱客户端创建新的沙箱会话。
+*   **保存的沙箱状态和快照让后续运行能够重新连接到先前的工作**，或使用保存的内容初始化新的沙箱会话。
+
+
+### Runner
+你可以通过 `Runner` 类运行智能体,有 3 种选择：
+
+1. **`Runner.run()`**：异步运行并返回 `RunResult`。
+2. **`Runner.run_sync()`**：同步方法，底层直接运行 `.run()`。
+3. **`Runner.run_streamed()`**：异步运行并返回 `RunResultStreaming`。它以流式传输模式调用 LLM，并在收到事件时将其流式传输给你。
+
+调用 `Runner` 方法中的任意一个时，需要传入起始智能体和输入。输入可以是：
+
+*   一个字符串（视为用户消息）；
+*   OpenAI Responses API 格式的输入项列表；或者
+*   恢复暂停的运行或因 `cancel(mode="after_turn")` 而停止的运行时使用的 `RunState`。状态还可以携带为下次恢复后的模型调用暂存的输入。
+
+随后，Runner 会运行以下循环：
+
+1.  使用当前输入调用当前智能体的 LLM。
+2.  LLM 生成输出。
+    *   a. 如果 Runner 将 LLM 输出归类为最终输出，循环结束并返回结果。
+    *   b. 如果 LLM 请求任务转移，则更新当前智能体和输入，并重新运行循环。
+    *   c. 如果 LLM 生成工具调用，则运行这些工具调用、追加结果，然后重新运行循环。
+3.  如果超过传入的 `max_turns`，则引发 `MaxTurnsExceeded` 异常。传入 `max_turns=None` 可禁用此轮次限制。
+
+
+说真的,这个封装很简单,基本的Responses API也能做的差不多,还要你来搞啊.
+
+
+### MCP接入
+```py
+import asyncio
+
+from agents import Agent, HostedMCPTool, Runner
+
+async def main() -> None:
+    agent = Agent(
+        name="Assistant",
+        instructions="Use the DeepWiki hosted MCP server to inspect openai/openai-agents-python.",
+        tools=[
+            HostedMCPTool(
+                tool_config={
+                    "type": "mcp",
+                    "server_label": "deepwiki",
+                    "server_url": "https://mcp.deepwiki.com/mcp",
+                    "require_approval": "never",
+                }
+            )
+        ],
+    )
+
+    result = await Runner.run(
+        agent,
+        "Which language is the repository openai/openai-agents-python written in?",
+    )
+    print(result.final_output)
+
+asyncio.run(main())
+```
+
+### 边角料知识
+1. 查看tokens耗费:
+```py
+result = await Runner.run(agent, "What's the weather in Tokyo?")
+usage = result.context_wrapper.usage
+
+print("Requests:", usage.requests)
+print("Input tokens:", usage.input_tokens)
+print("Output tokens:", usage.output_tokens)
+print("Total tokens:", usage.total_tokens)
+```
+
+2. 流式传输
+```py
+import asyncio
+from openai.types.responses import ResponseTextDeltaEvent
+from agents import Agent, Runner
+
+async def main():
+    agent = Agent(
+        name="Joker",
+        instructions="You are a helpful assistant.",
+    )
+
+    result = Runner.run_streamed(agent, input="Please tell me 5 jokes.")
+    async for event in result.stream_events():
+        if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
+            print(event.data.delta, end="", flush=True)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 总结
+满足了一个Agents框架的一些基本需求,但最重要的Agents编排支持很弱,所以顶多用来做一些简单的智能体
+## [Pydantic AI](https://pydantic.dev/docs/ai/overview/)
+### 背景
+Pydantic大家都很熟悉了,而在Agent时代,我们都需要强调LLM的标准化输出,Pydantic官方立马就意识到这不就是自己最擅长的领域吗.
+
+因此他们在24年10月就构建并开源了Pydantic AI,并在25年9月正式发布了V1版本,而今年的6月份发布了V2版本,逐渐稳定下来.
+### 初体验
+导入:
+```bash
+uv add pydantic-ai pydantic-ai-harness
+```
+
+使用:
+```py
+from dotenv import load_dotenv
+
+from pydantic_ai import Agent
+from pydantic_ai.capabilities import LocalWorkspace, WebSearch
+from pydantic_ai_harness import Advisor, Coder
+
+load_dotenv()
+
+agent = Agent(
+    "deepseek:deepseek-v4-flash",
+    capabilities=[
+        LocalWorkspace("."),
+        Coder(),
+        WebSearch(),
+        Advisor("deepseek:deepseek-v4-pro"),
+    ],
+)
+
+agent.to_cli_sync()
+```
+哎呀妈呀,这一下子就高端起来了,直接做了个Coding Agent出来,用的代码比OpenAI Agents少个几十倍好不好,还原生支持Deepseek,我简直被感动哭了,终于不用加Adapter了.
+
+不过一个问题就是Coder不支持直接在Windows下运行,要么用WSL,要么用虚拟机,才能看到效果.
+### 运行agent
+有五种方式可以运行agent:
+1. **`agent.run()`** — 一个异步函数，返回包含完整响应的 `RunResult`。
+
+2. **`agent.run_sync()`** — 一个普通的同步函数，返回包含完整响应的 `RunResult`（在内部，它只是调用了 `loop.run_until_complete(self.run())`）。
+
+3. **`agent.run_stream()`** — 一个异步上下文管理器，返回一个 `StreamedRunResult`，其中包含将文本和结构化输出作为异步可迭代对象进行流式传输的方法。
+   
+> `agent.run_stream_sync()` 是一个同步变体，返回一个 `StreamedRunResultSync`，提供相同方法的同步版本。
+
+4. **`agent.run_stream_events()`** — 一个异步上下文管理器，它产生一个针对 `AgentStreamEvent` 的异步迭代器，并以包含最终运行结果的 `AgentRunResultEvent` 结束。
+
+5. **`agent.iter()`** — 一个上下文管理器，返回一个 `AgentRun`，它是针对 Agent 底层 `Graph` 节点的一个异步可迭代对象。
+
+
+```py
+import asyncio
+from collections.abc import AsyncIterable
+from datetime import date
+
+from pydantic_ai import (
+    Agent,
+    AgentStreamEvent,
+    FinalResultEvent,
+    FunctionToolCallEvent,
+    FunctionToolResultEvent,
+    PartDeltaEvent,
+    PartStartEvent,
+    RunContext,
+    TextPartDelta,
+    ThinkingPartDelta,
+    ToolCallPartDelta,
+)
+
+weather_agent = Agent(
+    'openai:gpt-5.2',
+    instructions='Providing a weather forecast at the locations the user provides.',
+)
+
+
+@weather_agent.tool
+async def weather_forecast(
+    ctx: RunContext,
+    location: str,
+    forecast_date: date,
+) -> str:
+    return f'The forecast in {location} on {forecast_date} is 24°C and sunny.'
+
+
+output_messages: list[str] = []
+
+async def handle_event(event: AgentStreamEvent):
+    if isinstance(event, PartStartEvent):
+        output_messages.append(f'[Request] Starting part {event.index}: {event.part!r}')
+    elif isinstance(event, PartDeltaEvent):
+        if isinstance(event.delta, TextPartDelta):
+            output_messages.append(f'[Request] Part {event.index} text delta: {event.delta.content_delta!r}')
+        elif isinstance(event.delta, ThinkingPartDelta):
+            output_messages.append(f'[Request] Part {event.index} thinking delta: {event.delta.content_delta!r}')
+        elif isinstance(event.delta, ToolCallPartDelta):
+            output_messages.append(f'[Request] Part {event.index} args delta: {event.delta.args_delta}')
+    elif isinstance(event, FunctionToolCallEvent):
+        output_messages.append(
+            f'[Tools] The LLM calls tool={event.part.tool_name!r} with args={event.part.args} (tool_call_id={event.part.tool_call_id!r})'
+        )
+    elif isinstance(event, FunctionToolResultEvent):
+        output_messages.append(f'[Tools] Tool call {event.tool_call_id!r} returned => {event.part.content}')
+    elif isinstance(event, FinalResultEvent):
+        output_messages.append(f'[Result] The model starting producing a final result (tool_name={event.tool_name})')
+
+
+async def event_stream_handler(
+    ctx: RunContext,
+    event_stream: AsyncIterable[AgentStreamEvent],
+):
+    async for event in event_stream:
+        await handle_event(event)
+
+async def main():
+    user_prompt = 'What will the weather be like in Paris on Tuesday?'
+
+    async with weather_agent.run_stream(user_prompt, event_stream_handler=event_stream_handler) as run:
+        async for output in run.stream_text():
+            output_messages.append(f'[Output] {output}')
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
+
+    print(output_messages)
+    
+```
+### 加入tools
+
+## [Langchain/LangGraph/DeepAgents](https://docs.langchain.com/oss/python/langgraph/overview)
+
+### 辨析
+*   **选择 Deep Agents**：如果你需要一个“开箱即用”（batteries-included）的智能体，具备自动上下文压缩、虚拟文件系统和子智能体生成等特性。Deep Agents 构建于 LangChain 智能体之上，你也可以直接使用 LangChain 智能体。
+
+*   **选择 LangChain** (`create_agent`)：如果你需要一个高度可定制的框架（harness），以便轻松针对你的用例和数据进行量身定制。
+
+*   **选择 LangGraph**（我们的底层编排框架）：如果你有高级需求，需要将确定性工作流和智能体工作流结合起来。
+
+*   **选择 LangSmith**：用于追踪、调试和评估使用上述任何框架构建的智能体。请遵循追踪快速入门进行设置。我们建议你同时设置 LangSmith Engine，它可以监控你的追踪记录、检测问题并提出修复建议。
+
+### Lanchain
+#### 初体验
+安装:
+```bash
+uv add langchain "langchain-deepseek"
+```
+
+代码:
+```py
+from dotenv import load_dotenv
+from langchain.agents import create_agent
+
+load_dotenv()
+
+
+def get_weather(city: str) -> str:
+    """Get weather for a given city."""
+    return f"It's always sunny in {city}!"
+
+
+agent = create_agent(
+    model="deepseek:deepseek-v4-pro",
+    tools=[get_weather],
+    system_prompt="You are a helpful assistant",
+)
+
+result = agent.invoke(
+    {"messages": [{"role": "user", "content": "What's the weather in San Francisco?"}]}
+)
+print(result["messages"][-1].content_blocks)
+```
+#### 流式输出
+```py
+from langchain.messages import AIMessage, HumanMessage
+
+
+stream = agent.stream_events(
+    {"messages": [{"role": "user", "content": "Search for AI news and summarize the findings"}]},
+    version="v3",
+)
+for snapshot in stream.values:
+    # Each snapshot contains the full state at that point
+    latest_message = snapshot["messages"][-1]
+    if latest_message.content:
+        if isinstance(latest_message, HumanMessage):
+            print(f"User: {latest_message.content}")
+        elif isinstance(latest_message, AIMessage):
+            print(f"Agent: {latest_message.content}")
+    elif latest_message.tool_calls:
+        print(f"Calling tools: {[tc['name'] for tc in latest_message.tool_calls]}")
+```
+
+#### 子智能体
+```py
+from deepagents.backends import StateBackend
+from deepagents.middleware import FilesystemMiddleware
+from deepagents.middleware.subagents import SubAgentMiddleware
+from langchain.agents import create_agent
+from langchain.agents.middleware import TodoListMiddleware
+from langchain.tools import tool
+
+
+@tool
+def search(query: str) -> str:
+    """Search for a query and return a short summary."""
+    return f"Search results for: {query}"
+
+
+backend = StateBackend()
+
+agent = create_agent(
+    model="google_genai:gemini-3.6-flash",
+    tools=[search],
+    middleware=[
+        FilesystemMiddleware(backend=backend),
+        TodoListMiddleware(),
+        SubAgentMiddleware(
+            backend=backend,
+            subagents=[
+                {
+                    "name": "researcher",
+                    "description": "Searches and returns a structured summary.",
+                    "system_prompt": "Use the search tool to research the question and summarize key points.",
+                    "tools": [search],
+                    "model": "anthropic:claude-sonnet-4-6",
+                    "middleware": [],
+                }
+            ],
+        ),
+    ],
+)
+```
+
+
+
+
+## [CrewAI](https://docs.crewai.com/)
+
+
+# Agent tools
+## 搜索工具测评
+为什么我们不直接用curl打开baidu和google发送请求呢,想想也知道太麻烦了啊,不但需要动态适配搜索引擎的API变化,还需要一个个分别定制调用框架.而用第三方的搜索工具就没这么麻烦了,调个API就完事了,不少还自带了HTML清洗,甚至还有总结功能.
+
+- 当然,最方便的还是用LLM提供的搜索接口
+
+| 服务                   |                    免费额度 | 是否持续刷新     | 大致够用程度               | 我的评价                  |
+| ---------------------- | --------------------------: | ---------------- | -------------------------- | ------------------------- |
+| **Exa**                | 注册赠送额外 $10 + 每月 $10 | ✅ 每月           | 基础搜索约 1,428 次/月     | **很推荐**                |
+| **Tavily**             |            1,000 credits/月 | ✅ 每月           | 通常约数百～1000 次搜索    | **最适合 Agent 入门**     |
+| **Jina Search/Reader** |       新 API Key 10M tokens | ⚠️ 主要是初始额度 | Search 每次至少 10k tokens | **很适合搜索+网页读取**   |
+| **SerpAPI**            |             250 searches/月 | ✅ 每月           | 250 次                     | Google/Scholar 类搜索很好 |
+| **Brave Search API**   |                       $5/月 | ✅ 每月           | Search 约 1000 次/月       | 免费但要绑卡              |
+| **SearXNG**            |     自己部署则 API 本身免费 | 无限*            | 取决于服务器/上游限制      | **真正零 API 成本**       |
+
+AI是这么说的,但我还是得亲身试一试
+### Exa
+![注册后直接送额度](PixPin_2026-10-05_12-34-01.webp)
+```py
+from exa_py import Exa
+
+exa = Exa()
+
+results = exa.search(
+    "best blog posts about vector databases",
+    contents={"highlights": True},
+)
+
+for result in results.results:
+    print(result.title, result.url)
+```
+上述代码运行后一共返回了 10 个网页结果。每个结果基本包含两部分：`网页标题 + URL`，以及一大段从网页中抽取出来的 正文/摘要内容,还是做的很不错的.
+### Tavily
+![界面很帅](PixPin_2026-10-05_13-04-02.webp)
+
+```py
+from tavily import TavilyClient
+
+tavily_client = TavilyClient(api_key="tvly-YOUR_API_KEY")
+response = tavily_client.search("Who is Leo Messi?")
+
+print(response)
+```
+
+```py
+from tavily import TavilyClient
+
+tavily_client = TavilyClient(api_key="tvly-YOUR_API_KEY")
+response = tavily_client.research("What are the latest developments in AI?")
+
+print(response)
+```
+效果也挺不错的
+
+![支持5种调用](PixPin_2026-10-05_13-08-07.webp)
+### SearXNG
+另外几个都大差不差,但这个SearXNG值得注意.
+
+SearXNG来源于2014年的开源聚合搜索引擎searx,核心理念就是聚合:
+```text
+用户
+ ↓
+searx
+ ├── Google
+ ├── Bing
+ ├── DuckDuckGo
+ ├── Wikipedia
+ └── 其他搜索服务
+ ↓
+合并结果
+```
+SearXNG帮我们封装了对多种搜索引擎的支持,直接用docker部署就可以访问端口调用API了:
+
+1. 下载compose和env文件:
+
+```bash
+curl -fsSL -O https://raw.githubusercontent.com/searxng/searxng/master/container/docker-compose.yml -O https://raw.githubusercontent.com/searxng/searxng/master/container/.env.example
+```
+
+2. 复制环境并启动docker:
+```bash
+cp .env.example .env 
+docker compose up -d 
+```
+访问`http://localhost:8080/`即可看到效果
+
+![效果图](PixPin_2026-10-05_14-47-28.webp)
+
+看一下compose文件:
+```yml
+# Read the documentation before using the `docker-compose.yml` file:
+# https://docs.searxng.org/admin/installation-docker.html
+
+name: searxng
+
+services:
+  core:
+    container_name: searxng-core
+    image: docker.io/searxng/searxng:${SEARXNG_VERSION:-latest}
+    restart: always
+    ports:
+      - ${SEARXNG_HOST:+${SEARXNG_HOST}:}${SEARXNG_PORT:-8080}:${SEARXNG_PORT:-8080}
+    env_file: ./.env
+    volumes:
+      - ./core-config/:/etc/searxng/:Z
+      - core-data:/var/cache/searxng/
+
+  valkey:
+    container_name: searxng-valkey
+    image: docker.io/valkey/valkey:9-alpine
+    command: valkey-server --save 30 1 --loglevel warning
+    restart: always
+    volumes:
+      - valkey-data:/data/
+
+volumes:
+  core-data:
+  valkey-data:
+```
+Valkey是Redis的一个替代品,但我们目前甚至可以不用它,只用SearXNG就足够了.
+
+现在我们先修改一下bind mount的yml文件,让它支持json输出:
+```yml
+use_default_settings: true
+search:
+  formats:
+    - html
+    - json
+
+server:
+  image_proxy: true
+```
+修改后重启容器,访问`http://localhost:8080/search?q=OpenAI&format=json`即可看到格式化输出:
+
+![图片](PixPin_2026-10-05_15-00-46.webp)
+
+可以看到,SearXNG并不能深入读取网页,而是像Google搜索一样返回摘要和元信息,所以如果想要做RAG,要么再加一层爬虫来读取获得的url,要么就只能忍痛割爱了.
+
+### ddgs
+ddgs是我意外发现的宝藏python库,部署方法很简单:
+```bash
+git clone https://github.com/deedy5/ddgs && cd ddgs
+docker-compose up --build -d
+```
+
+不过,更强大的地方在于,它可以直接作为python库导入并使用,还不要API!
+```py
+from ddgs import DDGS
+
+def web_search(query: str):
+    return DDGS().text(
+        query,
+        max_results=8,
+    )
+
+results = web_search("Redis 8 new features")
+
+for r in results:
+    print(r["title"])
+    print(r["href"])
+    print(r["body"])
+```
+目前支持以下引擎:
+
+![示意图](PixPin_2026-10-05_15-08-48.webp)
+
+- 完全够用了好不好
+
+而光是这样肯定不够,ddgs还可以直接提取网页为md:
+```py
+from ddgs import DDGS
+
+ddgs = DDGS()
+
+results = ddgs.text("OpenAI Responses API", max_results=5)
+
+url = results[0]["href"]
+
+page = ddgs.extract(url)
+
+print(page["content"])
+```
+
+![效果图](PixPin_2026-10-05_15-12-13.webp)
+
+#### 总结
+综上所述,我们需要的搜索工具最好是能够根据查询自己返回全文的,尽管Exa和Tavily等平台支持智能总结,但架不住用多了要收费啊,那还不如直接用LLM的搜索接口,而久负盛名的SearXNG在RAG方面的表现是最差的,毕竟只能返回元信息,还要经过第二轮的处理.因此,ddgs从中脱颖而出
+
+
+# Agent Harness
+
+## Ollama使用教程
+ollama可以帮我们轻松下载本地就能跑的开源小模型,用于免费跑Agent Harness,当然,小模型的思考能力有限,所以最好还是调主流LLM的API为好.
 ### 起步
 首先在[官网](https://ollama.com/download)下载Ollama本体,然后按照[文档](https://docs.ollama.com/quickstart#local)所说,先下载一个本地模型,我选择的是`ollama pull qwen3.5:9b`,然后启动ollma后有两种方法使用模型,一种是在终端对话,如:
 ```bash
@@ -153,8 +784,7 @@ ollama run gemma4:e2b
 
 ![多轮对话](PixPin_2026-09-19_12-57-45.webp)
 
-
-另一种方法则是通过API调用:
+另一种使用ollama的方法则是通过API调用:
 ```bash
 curl http://localhost:11434/api/chat \
   -H "Content-Type: application/json" \
@@ -169,80 +799,65 @@ curl http://localhost:11434/api/chat \
     "stream": false
   }'
 ```
-甚至还支持Stream输出:
-```bash
-curl http://localhost:11434/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gemma4:e2b",
-    "messages": [
-      {
-        "role": "user",
-        "content": "Say hello in one sentence."
-      }
-    ]
-  }'
-```
 
-
-### 进阶操作
-1. 接入embedding模型
-2. 接入工具调用
-3. 接入ollama自带的联网搜索:
-
-```py
-import ollama
-response = ollama.web_search("What is Ollama?")
-print(response)
-```
-## 主流Coding平台
-### 基本情况
-| 平台                       | 主要开发语言     | 核心技术与架构                                   | 开源情况 | 首次发布时间               |
-| -------------------------- | ---------------- | ------------------------------------------------ | -------- | -------------------------- |
-| OpenAI Codex               | Rust             | Rust 原生 Agent 核心、TypeScript SDK             | 核心开源 | 2025年4月16日              |
-| Claude Code                | TypeScript       | TypeScript、Bun 运行时                           | 核心闭源 | 2025年2月24日              |
-| Cursor                     | TypeScript、Rust | VS Code Fork、Electron、Rust 高性能组件          | 闭源     | 2023年3月                  |
-| Gemini CLI                 | TypeScript       | Node.js、React Ink 终端界面                      | 开源     | 2025年6月25日              |
-| OpenCode                   | TypeScript       | Bun 运行时、客户端—服务端架构                    | 开源     | 2025年5月                  |
-| Cline                      | TypeScript       | VS Code 扩展、React 界面                         | 开源     | 2024年7月（原 Claude Dev） |
-| Aider                      | Python           | Python CLI、Git 集成                             | 开源     | 2023年6月                  |
-| \| DeepSeek Harness（DSH） | TypeScript       | Node.js、Cordis 插件化架构、可组合 Agent Runtime | 开源     | 2026年8月13日              |
-
-
-### 使用ollama启动coding工具
-使用ollama,我们可以很轻松的体验主流的一些coding平台,而不用专门到官网去下载,真觉得好用的时候再去下载就行了:
+### 使用ollama启动Harness
+使用ollama,我们可以很轻松的体验主流的一些Harness,而不用专门到官网去下载,真觉得好用的时候再去下载就行了:
 
 ![面板](PixPin_2026-09-19_13-05-40.webp)
 
 例如命令`ollama launch opencode`可以启动opencode并通过opencode调用通过ollama下载的模型.
 
-### Claude Code
+
+## 主流Harness一览
+| 名称                                                                                              | 开发语言                 | 开源情况                                  | 发布时间                        | 热门程度                   |
+| ------------------------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------- | ------------------------------- | -------------------------- |
+| [Claude Code](https://code.claude.com/docs/en/overview?utm_source=chatgpt.com)                    | TypeScript（核心实现）   | 闭源                                      | 2025-02                         | 极高                       |
+| [OpenAI Codex](https://github.com/openai/codex?utm_source=chatgpt.com)                            | Rust、TypeScript（SDK）  | CLI 开源（Apache-2.0），云端服务闭源      | 2025-04                         | 极高                       |
+| [OpenCode](https://opencode.ai/?utm_source=chatgpt.com)                                           | TypeScript               | 开源（MIT）                               | 2025-05                         | 极高                       |
+| [Cursor Agent](https://cursor.com/?utm_source=chatgpt.com)                                        | 未完整公开               | 闭源                                      | 2025（Agent 模式）              | 极高                       |
+| [GitHub Copilot Coding Agent](https://github.com/features/copilot?utm_source=chatgpt.com)         | 未完整公开               | 部分开源，Agent 服务闭源                  | 2025-05                         | 极高                       |
+| [OpenClaw](https://github.com/openclaw/openclaw?utm_source=chatgpt.com)                           | TypeScript               | 开源（MIT）                               | 2025-11                         | 极高                       |
+| [Google Antigravity](https://antigravity.google/?utm_source=chatgpt.com)                          | Go（CLI）、Python（SDK） | 部分 SDK 开源，核心闭源                   | 2025-11（平台）、2026-05（CLI） | 极高                       |
+| [Pi Coding Agent](https://github.com/earendil-works/pi?utm_source=chatgpt.com)                    | TypeScript               | 开源（MIT）                               | 2025-08                         | 极高                       |
+| [Gemini CLI](https://github.com/google-gemini/gemini-cli?utm_source=chatgpt.com)                  | TypeScript               | 开源（Apache-2.0）                        | 2025-06                         | 高（逐步转向 Antigravity） |
+| [OpenHands](https://github.com/OpenHands/OpenHands?utm_source=chatgpt.com)                        | Python、TypeScript       | 开源（MIT），另有商业服务                 | 2024-06                         | 高                         |
+| [Cline](https://github.com/cline/cline?utm_source=chatgpt.com)                                    | TypeScript               | 开源（Apache-2.0）                        | 2024-07                         | 高                         |
+| [DeerFlow](https://github.com/bytedance/deer-flow?utm_source=chatgpt.com)                         | Python、TypeScript       | 开源（MIT）                               | 2025（初版）、2026-02（2.0）    | 高                         |
+| [Hermes Agent](https://github.com/NousResearch/hermes-agent?utm_source=chatgpt.com)               | Python                   | 开源（MIT）                               | 2026-03（公开版）               | 高                         |
+| [goose](https://github.com/aaif-goose/goose?utm_source=chatgpt.com)                               | Rust                     | 开源（Apache-2.0）                        | 2024-09                         | 高                         |
+| [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview?utm_source=chatgpt.com) | Python、TypeScript       | SDK 部分开源，底层运行时闭源              | 2025-09                         | 高                         |
+| [Deep Agents](https://github.com/langchain-ai/deepagents?utm_source=chatgpt.com)                  | Python、TypeScript       | 开源（MIT）                               | 2025-07                         | 高                         |
+| [Kilo Code](https://github.com/Kilo-Org/kilocode?utm_source=chatgpt.com)                          | TypeScript               | 开源（MIT）                               | 2025                            | 高                         |
+| [Qwen Code](https://github.com/QwenLM/qwen-code?utm_source=chatgpt.com)                           | TypeScript               | 开源（Apache-2.0）                        | 2025-07                         | 高                         |
+| [Devin](https://devin.ai/?utm_source=chatgpt.com)                                                 | 未公开                   | 闭源                                      | 2024-03                         | 高                         |
+| [aider](https://github.com/Aider-AI/aider?utm_source=chatgpt.com)                                 | Python                   | 开源（Apache-2.0）                        | 2023-06                         | 中高（历史影响力较大）     |
+| [Amp](https://ampcode.com/?utm_source=chatgpt.com)                                                | 未完整公开               | 闭源                                      | 2025                            | 中高                       |
+| [Factory Droid](https://factory.ai/?utm_source=chatgpt.com)                                       | 未公开                   | 闭源                                      | 2025-09                         | 中高                       |
+| [SWE-agent](https://github.com/SWE-agent/SWE-agent?utm_source=chatgpt.com)                        | Python                   | 开源（MIT）                               | 2024-04                         | 中高                       |
+| [Crush](https://github.com/charmbracelet/crush?utm_source=chatgpt.com)                            | Go                       | 源码公开（FSL-1.1-MIT，非传统开源许可证） | 2025                            | 中高                       |
+| [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness?utm_source=chatgpt.com)        | TypeScript               | 开源（MIT）                               | 2026-08                         | 中高（新兴）               |
+| [Kimi Code CLI](https://github.com/MoonshotAI/kimi-code?utm_source=chatgpt.com)                   | TypeScript               | 开源（MIT）                               | 2026-05（新版）                 | 中高                       |
+
+
+## Claude Code
 ![官网](PixPin_2026-09-19_14-08-29.webp)
 
 由于需要手机号注册,我至今都没有体验过呢...
-### Codex 
+## Codex 
 Codex目前是有两种方式访问的,一个是ChatGPT桌面版,一个就是Codex CLI了.
 
-先试试Codex CLI,下载脚本如下:
+Codex CLI的下载脚本如下:
 ```bash
 npm install -g @openai/codex
 ```
 
-![使用图](PixPin_2026-09-19_14-31-48.webp)
-- 一个你好思考了3分多钟,厉害
-
-![测试](PixPin_2026-09-19_14-51-50.webp)
-- 很显然,Codex中塞进了一堆的工具调用和命令,导致小模型根本跑不动.
-
-
-然后再试试Codex,以前好像是要手机号注册的,所以我就一直没用过,不过现在可以用ChatGPT账号直接登录了,先通过MicrosoftStore下载App再启动:
+Codex桌面端的话,以前好像是要手机号注册的,所以我就一直没用过,不过现在可以用ChatGPT账号直接登录了,先通过MicrosoftStore下载App再启动:
 
 ![启动图](PixPin_2026-09-19_14-45-16.webp)
 
 
-### Hermes Agent
+## Hermes Agent
 今年2月推出的新Coding工具,一开始只支持CLI交互,后来新增了Desktop端
-
 ```bash
 ollama launch hermes
 ```
@@ -253,7 +868,7 @@ ollama launch hermes
 
 ![效果图](PixPin_2026-09-19_15-26-51.webp)
 
-### DeepSeek Harness
+## DeepSeek Harness
 ```bash
 ollama launch dsh
 ```
@@ -313,168 +928,12 @@ Your working directory is F:\codes\learn\backend\python\MediaCrawler.
 
 - 这个工具编排还是很有意思的.
 
+- (26/11): 没过多久就推出了桌面端,目前的插件生态非常活跃,QQ/B站上的机器人就挺有意思
 
-# LLM历史(待补充)
-## LLM演进总表
-| 发布时间    | 模型名称                     | 所属系列     | 开放性       | 基座 / 主要借鉴                                 |                   参数规模 |       上下文长度 |                                  Coding 性能 |
-| ----------- | ---------------------------- | ------------ | ------------ | ----------------------------------------------- | -------------------------: | ---------------: | -------------------------------------------: |
-| **2018.06** | **GPT-1**                    | GPT          | 开放         | **Transformer**；生成式预训练 + 微调范式        |                   **117M** |          **512** |                              _ ([OpenAI][1]) |
-| **2019.02** | **GPT-2**                    | GPT          | 开放权重     | **GPT-1**                                       |                   **1.5B** |           **1K** |                              _ ([OpenAI][2]) |
-| **2020.05** | **GPT-3**                    | GPT          | 闭源         | **GPT-2 / GPT Decoder**                         |                   **175B** |           **2K** |                              _ ([OpenAI][3]) |
-| **2022.03** | **Chinchilla**               | Chinchilla   | 闭源研究模型 | **Gopher / Transformer**；重新优化参数-数据配比 |                    **70B** |                _ |                     _ ([Google DeepMind][4]) |
-| **2022.04** | **PaLM**                     | PaLM         | 闭源         | **Transformer + Pathways**                      |                   **540B** |                _ |                     _ ([Google Research][5]) |
-| **2022.11** | **GPT-3.5 / ChatGPT**        | GPT          | 闭源         | **GPT-3 + InstructGPT + RLHF**                  |                          _ |     **4K → 16K** |                                            _ |
-| **2023.02** | **LLaMA 65B**                | Llama        | 开放权重     | Transformer；**Chinchilla式数据/计算扩展思路**  |                    **65B** |           **2K** |                             _ ([Meta AI][6]) |
-| **2023.03** | **Claude 1**                 | Claude       | 闭源         | Transformer + **Constitutional AI**             |                          _ |    **9K → 100K** |                           _ ([Anthropic][7]) |
-| **2023.03** | **GPT-4**                    | GPT          | 闭源         | **GPT-3.x 技术谱系 + RLHF**                     |                          _ |     **8K / 32K** |                              _ ([OpenAI][8]) |
-| **2023.03** | **ChatGLM-6B**               | GLM          | 开放权重     | **GLM / GLM-130B 架构谱系**                     |                   **6.2B** |           **2K** |                                            _ |
-| **2023.07** | **Baichuan-13B**             | Baichuan     | 开放权重     | **Baichuan-7B；LLaMA式 Decoder**                |                    **13B** |           **4K** |                              _ ([GitHub][9]) |
-| **2023.07** | **Llama 2 70B**              | Llama        | 开放权重     | **LLaMA 1**                                     |                    **70B** |           **4K** |                            _ ([Meta AI][10]) |
-| **2023.07** | **Claude 2**                 | Claude       | 闭源         | **Claude 1**                                    |                          _ |         **100K** |                          _ ([Anthropic][11]) |
-| **2023.09** | **Mistral 7B**               | Mistral      | 开放权重     | **LLaMA式 Decoder + GQA + SWA**                 |                   **7.3B** |           **8K** |                                            _ |
-| **2023.11** | **Qwen-72B**                 | Qwen         | 开放权重     | **LLaMA-style 架构** → Qwen自有训练体系         |                    **72B** |          **32K** |                               _ ([Qwen][12]) |
-| **2023.11** | **Yi-34B-200K**              | Yi           | 开放权重     | **LLaMA 架构**                                  |                    **34B** |         **200K** |                             _ ([GitHub][13]) |
-| **2023.12** | **Gemini 1.0 Ultra**         | Gemini       | 闭源         | Transformer + 原生多模态训练                    |                          _ |          **32K** |                                            _ |
-| **2023.12** | **Mixtral 8×7B**             | Mistral      | 开放权重     | **Mistral + Sparse MoE**                        |      **46.7B / 12.9B激活** |          **32K** |                            _ ([Mistral][14]) |
-| **2024.02** | **Gemini 1.5 Pro**           | Gemini       | 闭源         | **Gemini 1.0 + MoE**                            |                          _ | **1M，后扩至2M** |                        _ ([blog.google][15]) |
-| **2024.03** | **Claude 3 Opus**            | Claude       | 闭源         | **Claude 2 系谱**                               |                          _ |         **200K** |                          _ ([Anthropic][16]) |
-| **2024.04** | **Llama 3 70B**              | Llama        | 开放权重     | **Llama 2**                                     |                    **70B** |           **8K** |                            _ ([Meta AI][17]) |
-| **2024.05** | **DeepSeek-V2**              | DeepSeek     | 开放权重     | **DeepSeek-V1 + DeepSeekMoE + MLA**             |         **236B / 21B激活** |         **128K** |                                            _ |
-| **2024.05** | **GPT-4o**                   | GPT          | 闭源         | **GPT-4系谱 + 原生多模态**                      |                          _ |         **128K** |                                            _ |
-| **2024.06** | **Qwen2-72B**                | Qwen         | 开放权重     | **Qwen1.5 + LLaMA-style Qwen谱系**              |                    **72B** |         **128K** |                               _ ([Qwen][18]) |
-| **2024.06** | **Claude 3.5 Sonnet**        | Claude       | 闭源         | **Claude 3**                                    |                          _ |         **200K** |                          _ ([Anthropic][19]) |
-| **2024.07** | **Llama 3.1 405B**           | Llama        | 开放权重     | **Llama 3**                                     |                   **405B** |         **128K** |                            _ ([Meta AI][20]) |
-| **2024.09** | **Qwen2.5-72B**              | Qwen         | 开放权重     | **Qwen2**                                       |                    **72B** |         **128K** |                               _ ([Qwen][21]) |
-| **2024.09** | **OpenAI o1**                | o系列        | 闭源         | **GPT系基础模型 + 大规模推理RL**                |                          _ |         **128K** |                                            _ |
-| **2024.12** | **Gemini 2.0 Flash**         | Gemini       | 闭源         | **Gemini 1.5**                                  |                          _ |           **1M** |                                            _ |
-| **2024.12** | **DeepSeek-V3**              | DeepSeek     | 开放权重     | **DeepSeek-V2 + MLA + DeepSeekMoE + MTP**       |         **671B / 37B激活** |         **128K** |                           _ ([DeepSeek][22]) |
-| **2025.01** | **DeepSeek-R1**              | DeepSeek     | 开放权重     | **DeepSeek-V3-Base + 大规模RL**                 |         **671B / 37B激活** |         **128K** |                           _ ([DeepSeek][23]) |
-| **2025.03** | **Gemini 2.5 Pro**           | Gemini       | 闭源         | **Gemini 2.0 + Thinking/RL**                    |                          _ |           **1M** |                        _ ([blog.google][24]) |
-| **2025.04** | **Llama 4 Scout / Maverick** | Llama        | 开放权重     | **Llama 3 + MoE + Behemoth教师蒸馏**            | **109B/17B；400B/17B激活** | **10M（Scout）** |                            _ ([Meta AI][25]) |
-| **2025.04** | **Qwen3-235B-A22B**          | Qwen         | 开放权重     | **Qwen2.5；LLaMA-style架构谱系**                |         **235B / 22B激活** |         **128K** |                               _ ([Qwen][26]) |
-| **2025.05** | **Claude Opus 4 / Sonnet 4** | Claude       | 闭源         | **Claude 3.x 系谱 + 长程Agent训练**             |                          _ |         **200K** |                          _ ([Anthropic][27]) |
-| **2025.06** | **Seed1.6**                  | Seed / 豆包  | 闭源         | **Seed1.5 Sparse-MoE**                          |         **230B / 23B激活** |         **256K** |                                            _ |
-| **2025.07** | **Kimi K2**                  | Kimi         | 开放权重     | **DeepSeek-V3 CausalLM / MLA 架构复用**         |           **1T / 32B激活** |         **128K** |                                            _ |
-| **2025.07** | **GLM-4.5**                  | GLM          | 开放权重     | **GLM-4系谱 + MoE**                             |         **355B / 32B激活** |         **128K** |                               _ ([Z.ai][28]) |
-| **2025.08** | **GPT-5**                    | GPT          | 闭源         | **GPT-4o + o系列推理 + Agent技术融合**          |                          _ |         **400K** |                             _ ([OpenAI][29]) |
-| **2026.02** | **Kimi K2.5**                | Kimi         | 开放权重     | **Kimi-K2-Base + 原生视觉联合预训练**           |          **≈1T / 32B激活** |         **256K** |                         _ ([Kimi Forum][30]) |
-| **2026.02** | **ERNIE 5.0**                | 文心 / ERNIE | 闭源         | **从头训练；统一多模态架构**                    |          **2.4T，<3%激活** |       **128K级** |                           _ ([百度文心][31]) |
-| **2026.02** | **GLM-5**                    | GLM          | 开放权重     | **GLM-4.5 + DeepSeek DSA**                      |         **744B / 40B激活** |                _ |                               _ ([Z.ai][32]) |
-| **2026.04** | **DeepSeek-V4 Pro**          | DeepSeek     | 开放权重     | **DeepSeek-V3 + DeepSeekMoE/MTP + DSA**         |         **1.6T / 49B激活** |           **1M** |             **AA 43（#9）** ([DeepSeek][33]) |
-| **2026.05** | **ERNIE 5.1**                | 文心 / ERNIE | 闭源         | **ERNIE 5.0**                                   |                          _ |                _ |                           _ ([百度文心][34]) |
-| **2026.06** | **MiniMax M3**               | MiniMax      | 开放权重     | **MiniMax M2 + MSA稀疏注意力**                  |                          _ |           **1M** |                            _ ([MiniMax][35]) |
-| **2026.06** | **Seed2.1 Pro**              | Seed / 豆包  | 闭源         | **Seed2.0**                                     |                          _ |                _ |                       _ ([字节跳动种子][36]) |
-| **2026.07** | **GPT-5.6 Sol**              | GPT          | 闭源         | **GPT-5.x 系谱**                                |                          _ |        **1.05M** |    **AA 55（#6）** ([OpenAI Developers][37]) |
-| **2026.07** | **Kimi K3**                  | Kimi         | 开放权重     | **Kimi K2系谱 + K3新架构**                      |       **2.8T / ≈104B激活** |           **1M** |     **AA 52（#8）** ([月球拍击人工智能][38]) |
-| **2026.08** | **Qwen3.8-2.4T-A95B**        | Qwen         | 开放权重     | **Qwen3 + Hybrid Attention / MoE**              |        **2.4T / ≈95B激活** |           **1M** |       **CodeArena #4†** ([AlibabaCloud][39]) |
-| **2026.08** | **GLM-5.3**                  | GLM          | 开放权重     | **GLM-5.2同一Base；主要扩大Post-training**      |                          _ |     **最高1M级** |                 **AA 54（#7）** ([Z.ai][40]) |
-| **2026.08** | **GLM-5.3-Flash**            | GLM          | 开放权重     | 新Base；**Sparse + Linear Attention + mHC**     |         **320B / 18B激活** |           **1M** |                               _ ([Z.ai][41]) |
-| **2026.09** | **Gemini 3.8 Flash**         | Gemini       | 闭源         | **Gemini 3.7 Flash**                            |                          _ |           **1M** | **AA 42（#10）** ([Artificial Analysis][42]) |
-| **2026.09** | **GPT-6 Astra**              | GPT          | 闭源         | **GPT-5.x / GPT-5.6技术谱系**                   |                          _ |        **1.05M** |               **AA 62（#3）** ([OpenAI][43]) |
-| **2026.09** | **Grok 4.7**                 | Grok         | 闭源         | **Grok 4.6 → 新的、更大Base**                   |                          _ |         **500K** |             **AA 56（#5）** ([SpaceXAI][44]) |
-| **2026.09** | **Claude Opus 5.5**          | Claude       | 闭源         | **Claude Opus 5系谱**                           |                          _ |                _ |            **AA 66（#2）** ([Anthropic][45]) |
-| **2026.09** | **GPT-6 Sol**                | GPT          | 闭源         | **GPT-6 Astra技术成果下放/优化**                |                          _ |        **1.05M** |    **AA 57（#4）** ([OpenAI Developers][46]) |
-| **2026.09** | **Claude Sonnet 5.5**        | Claude       | 闭源         | **Claude Sonnet 5系谱**                         |                          _ |                _ |            **AA 68（#1）** ([Anthropic][47]) |
+# LLM底层
 
-[1]: https://openai.com/index/language-unsupervised/?utm_source=chatgpt.com "Improving language understanding with unsupervised learning | OpenAI"
-
-[2]: https://openai.com/index/better-language-models/?utm_source=chatgpt.com "Better language models and their implications | OpenAI"
-
-[3]: https://openai.com/index/language-models-are-few-shot-learners/?utm_source=chatgpt.com "Language models are few-shot learners | OpenAI"
-
-[4]: https://deepmind.google/blog/an-empirical-analysis-of-compute-optimal-large-language-model-training/?utm_source=chatgpt.com "An empirical analysis of compute-optimal large language model training — Google DeepMind"
-
-[5]: https://research.google/blog/pathways-language-model-palm-scaling-to-540-billion-parameters-for-breakthrough-performance/?utm_source=chatgpt.com "Pathways Language Model (PaLM): Scaling to 540 Billion Parameters for Breakthrou"
-
-[6]: https://ai.meta.com/research/publications/llama-open-and-efficient-foundation-language-models/?utm_source=chatgpt.com "LLaMA: Open and Efficient Foundation Language Models | Research - AI at Meta"
-
-[7]: https://www.anthropic.com/news/100k-context-windows?utm_source=chatgpt.com "Introducing 100K context windows \ Anthropic"
-
-[8]: https://openai.com/index/gpt-4-research/?utm_source=chatgpt.com "GPT-4 | OpenAI"
-
-[9]: https://github.com/baichuan-inc/Baichuan-13B?utm_source=chatgpt.com "GitHub - baichuan-inc/Baichuan-13B: A 13B large language model developed by Baichuan Intelligent Technology · GitHub"
-
-[10]: https://ai.meta.com/research/publications/llama-2-open-foundation-and-fine-tuned-chat-models/?trk=article-ssr-frontend-pulse_little-text-block&utm_source=chatgpt.com "Llama 2: Open Foundation and Fine-Tuned Chat Models | Research - AI at Meta"
-
-[11]: https://www.anthropic.com/research/claude-2?utm_source=chatgpt.com "Claude 2 \ Anthropic"
-
-[12]: https://qwenlm.github.io/blog/qwen/?utm_source=chatgpt.com "Introducing Qwen | Qwen"
-
-[13]: https://github.com/01-ai/yi?utm_source=chatgpt.com "GitHub - 01-ai/Yi: A series of large language models trained from scratch by developers @01-ai · GitHub"
-
-[14]: https://mistral.ai/news/mixtral-of-experts/?utm_source=chatgpt.com "Mixtral of experts | Mistral AI"
-
-[15]: https://blog.google/innovation-and-ai/products/google-gemini-next-generation-model-february-2024/?utm_source=chatgpt.com "Introducing Gemini 1.5, Google's next-generation AI model"
-
-[16]: https://www.anthropic.com/news/claude-3-family?utm_source=chatgpt.com "Introducing the next generation of Claude"
-
-[17]: https://ai.meta.com/blog/meta-llama-3?utm_source=chatgpt.com "Introducing Meta Llama 3: The most capable openly available LLM to date"
-
-[18]: https://qwenlm.github.io/blog/qwen2/?utm_source=chatgpt.com "Hello Qwen2 | Qwen"
-
-[19]: https://www.anthropic.com/news/claude-3-5-sonnet?utm_source=chatgpt.com "Introducing Claude 3.5 Sonnet \ Anthropic"
-
-[20]: https://ai.meta.com/blog/meta-llama-3-1/?utm_source=chatgpt.com "Introducing Llama 3.1: Our most capable models to date"
-
-[21]: https://qwenlm.github.io/blog/qwen2.5-llm/?utm_source=chatgpt.com "Qwen2.5-LLM: Extending the boundary of LLMs | Qwen"
-
-[22]: https://www.deepseek.com/en/news/deepseek-v3/?utm_source=chatgpt.com "DeepSeek | Introducing DeepSeek-V3"
-
-[23]: https://deepseek.com/news/deepseek-r1/?utm_source=chatgpt.com "DeepSeek | DeepSeek-R1 发布，性能对标 OpenAI o1 正式版"
-
-[24]: https://blog.google/innovation-and-ai/models-and-research/google-deepmind/gemini-model-thinking-updates-march-2025/?utm_source=chatgpt.com "Gemini 2.5: Our newest Gemini model with thinking"
-
-[25]: https://ai.meta.com/blog/llama-4-multimodal-intelligence/?utm_source=chatgpt.com "The Llama 4 herd: The beginning of a new era of natively multimodal AI innovation"
-
-[26]: https://qwenlm.github.io/blog/qwen3/?utm_source=chatgpt.com "Qwen3: Think Deeper, Act Faster | Qwen"
-
-[27]: https://www.anthropic.com/news/claude-4?id=4420&utm_source=chatgpt.com "Introducing Claude 4 \ Anthropic"
-
-[28]: https://z.ai/blog/glm-4.5?utm_source=chatgpt.com "GLM-4.5: Reasoning, Coding, and Agentic Abililties"
-
-[29]: https://openai.com/index/introducing-gpt-5/?utm_source=chatgpt.com "Introducing GPT-5 | OpenAI"
-
-[30]: https://forum.moonshot.ai/t/kimi-k2-5-api-is-now-available/218?utm_source=chatgpt.com "🚀 Kimi K2.5 API is now available - Kimi K2 - Kimi Forum"
-
-[31]: https://ernie.baidu.com/blog/posts/ernie5.0/?utm_source=chatgpt.com "ERNIE 5.0: A 2.4 Trillion-Parameter Unified Multimodal Foundation Model | ERNIE Blog"
-
-[32]: https://z.ai/blog/glm-5?utm_source=chatgpt.com "GLM-5: From Vibe Coding to Agentic Engineering"
-
-[33]: https://deepseek.com/en/news/v4-preview/?utm_source=chatgpt.com "DeepSeek | DeepSeek-V4 Preview: Entering the Era of Affordable Million-Token Context"
-
-[34]: https://ernie.baidu.com/blog/posts/ernie-5.1-0508-release/?utm_source=chatgpt.com "ERNIE 5.1 Officially Released! Topping Multiple Leaderboards — A Model That Writes Better and Understands You More | ERNIE Blog"
-
-[35]: https://www.minimax.io/blog/minimax-m3?utm_source=chatgpt.com "MiniMax M3: Frontier Coding, 1M Context, Native Multimodality — All in One Model - MiniMax Research | MiniMax"
-
-[36]: https://seed.bytedance.com/en/blog/seed2-1-officially-released-advancing-ai-productivity?utm_source=chatgpt.com "Seed News - ByteDance Seed Team"
-
-[37]: https://developers.openai.com/api/docs/models/gpt-5.6-sol?utm_source=chatgpt.com "GPT-5.6 Sol Model | OpenAI API"
-
-[38]: https://www.moonshot.ai/?utm_source=chatgpt.com "Moonshot AI"
-
-[39]: https://www.alibabacloud.com/help/en/model-studio/qwen3-8-2-4t-a95b?utm_source=chatgpt.com "qwen3.8-2.4t-a95b Model Info - Alibaba Cloud Model Studio - Alibaba Cloud Documentation Center"
-
-[40]: https://z.ai/blog/glm-5.3?utm_source=chatgpt.com "GLM-5.3: Frontier Coding with Emergent Cyber Capabilities"
-
-[41]: https://z.ai/blog/glm-5.3-flash?utm_source=chatgpt.com "GLM-5.3-Flash: Frontier Intelligence, Flash Cost"
-
-[42]: https://artificialanalysis.ai/agents/coding-agents/comparisons/antigravity-sdk-vs-codex?utm_source=chatgpt.com "Antigravity SDK vs Codex: Coding Agent Comparison | Artificial Analysis"
-
-[43]: https://openai.com/index/gpt-6-astra/?utm_source=chatgpt.com "GPT-6 Astra: A new generation of intelligence | OpenAI"
-
-[44]: https://x.ai/news/grok-4-7?utm_source=chatgpt.com "Introducing Grok 4.7 | SpaceXAI"
-
-[45]: https://www.anthropic.com/claude-opus-5-5?trk=public_post_comment-text&utm_source=chatgpt.com "Introducing Claude Opus 5.5 \ Anthropic"
-
-[46]: https://developers.openai.com/api/docs/models/compare?model=gpt-6-sol&utm_source=chatgpt.com "Compare models | OpenAI API"
-
-[47]: https://www.anthropic.com/claude-sonnet-5-5?utm_source=chatgpt.com "Introducing Claude Sonnet 5.5 \ Anthropic"
-
-
-这实际上是一场你死我活的淘汰赛,总会有公司率先退出竞争或者破产倒闭,不可能永远维持百花齐放的场面,毕竟资源终归是有限的.
-
-## 大模型: 一切的开始
-
+## LLM历史(待补充)
+- 早期文章,日后有空重构
 ### OpenAI: 我一开始没想挣钱的
 
 * [wiki](https://en.wikipedia.org/wiki/OpenAI)
@@ -589,7 +1048,7 @@ Anthropic于2022年暑期就已经训练出了Claude的测试版本,但直到202
 
 尽管DeepSeek实际的使用体验还是远远比不上御三家的,但它以极低的成本揭示了堆叠显卡不如优化架构的事实,所以在竞争如此激烈的大模型产业中还是占有了一席之地.
 
-# Agent体验
+# Agent个人体验
 ## 开篇前言(10/25)
 由于我本人也是个编程小白,所以对AI的认识也是渐进式的,从一开始的一无所知,到在网页端和GPT和Gemini对话,再到使用Manus这类云端Agent尝试Coding,最后到使用Codex,DSH这类本地的Agent Harness.
 

@@ -217,25 +217,93 @@ RAG到底何去何从,Agent有没有可能不再需要RAG,看一下这一章的�
 9. ★★★ 从结构化数据（如司法判决数据库）中自动发现“裁判因素”和“因素重要性层级”，本质上是让 Agent 从数据中归纳规则。这种数据驱动的知识提取是否能达到人类专家手工编写规则的质量？
 
 ### ch4: 工具
+#### 工具分类
+Agent一共有5类工具:
+
+| 工具类型     | 调用方向             | 作用对象              |
+| :----------- | :------------------- | :-------------------- |
+| 感知工具     | Agent 主动调用       | 获取信息              |
+| 执行工具     | Agent 主动调用       | 改变世界              |
+| 协作工具     | Agent 主动调用       | 驱动其他 Agent 或人类 |
+| 用户沟通工具 | Agent 主动调用       | 向用户传递信息        |
+| 事件触发工具 | Agent 注册、外部触发 | 驱动 Agent 开始执行   |
+
+#### 工具设计
+Agent的能力应该用什么形式来表达?目前有两种形态:
+1. 专用代码工具: 结构化的函数调用,确定性高,缺点是工具过多会挤占上下文
+2. Skill+通用执行器: 用Skill描述操作流程,Agent用少量工具就可以覆盖大量场景
+
+举个例子：一个“部署应用”的 Skill 文档可能写成 1. 运行 `npm run build` 构建项目；2. 运行 `docker build -t app:latest .` 打包镜像；3. 运行 `kubectl apply -f deploy.yaml` 部署到集群——Agent 通过 `bash` 工具逐步执行这些指令，无需为每个步骤创建专用工具。
+
+一般来说,通用工具优于专用工具，除非存在明确的安全、权限或性能理由.这条原则背后的逻辑是： **LLM 本身具有强大的思考和代码生成能力**，我们应该利用这种能力而不是限制它.
+
+边界同样重要。文件搜索工具应该明确说明它只能基于文件名进行匹配，不能搜索文件内容——如果缺少这样的反例说明，LLM 就会去猜测。清晰列出工具的边界条件——做不到什么、不接受什么输入——往往比描述能力本身更重要，因为大多数工具调用失败的根因不是模型不知道工具能做什么，而是不知道工具不能做什么。
+#### MCP
+MCP工具如今都是通过插件提供的,除了用户自己可勾选之外,Agent也可以按照MCP的描述按需读取.
+#### 感知工具
+感知工具常常面临返回信息量远超 Agent 处理能力的挑战：一次搜索可能返回数万个字符，一份 PDF 可能多达上百页，直接塞入上下文既会耗尽窗口空间，又会让关键内容淹没在噪声中。通用的应对是在工具层面集成第二章介绍的上下文感知压缩——当输出超过阈值（如 10000 个字符）时，基于 Agent 当前的查询意图自动压缩。
+
+搜索类工具应该具有结构化的结果列表,方便Agent进行浏览候选,而不是一次性倾倒所有结果;读取类工具应该支持offset/limit参数,当内容超过阈值必须截断时,截断必须是显式的,说明读取了多少内容,如何读取剩余部分,千万不能设置静默截断.
+
+而多模态感知则有一个权衡: 是直接将图像交给有视觉能力的模型,还是先用OCR转成文本?前者保留布局和视觉细节但消耗更多 token，后者精简高效但可能丢失关键的空间结构.践中常按内容类型选择：纯文字内容用文本提取，布局敏感的内容（UI 界面、复杂表格、设计稿）保留图像。
+#### 执行工具
+感知工具是只读的,所以可以适当放宽安全边界,但执行工具的错误代价可能极高,所以需要极其精巧的设计.
+
+执行工具的安全需要采用多层防护:
+1. 输入验证: 检查操作的合法性,是否存在路径遍历攻击(如../../etc/passwd——攻击者通过在路径中加入 ../ 使工具跳出指定目录，访问本不应触及的系统文件).关键是快速失败——发现异常输入时立即拒绝，不尝试“智能”修正。
+2. 权限控制: 维护一个禁止命令的黑名单,强制文件操作只能访问特定的工作目录
+3. 审查机制: 引入独立模型审核现有模型的提议是否合规,理想配对是能力相近但训练偏好不同的两个模型，例如 Claude Opus 与 GPT-5 互审。
+4. 隔离和沙盒: 利用操作系统的安全机制(轻量级),利用容器隔离(隔离程度适中),利用虚拟机(级别最高),都可以限制Agent的权限边界
+
+#### 协作工具
+当任务超出单个 Agent 的能力边界时，协作工具可以让它把子任务委托给其他 Agent 或人类，再整合各方的结果。
+
+协作工具的接口可以归纳为三组原语。其一，**启动与取消**：`spawn_subagent` 创建子 Agent 并分配任务；`cancel_subagent` 在任务失去意义时（如用户改变了主意、另一个子 Agent 已经找到答案）及时终止，避免继续浪费 token。其二，**消息传递**：`send_message_to_subagent` 在子 Agent 运行期间向它发送补充指令或追问，子 Agent 也可以反向给主 Agent 发消息汇报进展或请求澄清。其三，**发现**：在一个同时运行着多个 Agent 的系统中，`list_agents` 列出当前可用的 Agent 及其职责描述和运行状态，让 Agent 找到潜在的协作者——这与 MCP 用 `tools/list` 列出可用工具是同一思路，只不过列出的是 Agent。
+
+而协作形态则可以分为三种: 阻塞调用(主Agent等待subagent执行完成),异步调用(主Agent继续执行),流式协作(subagent持续发送增量消息,适合过程本身有价值的场景)和多轮交互(子 Agent 主动询问、主 Agent 应答的对话式协作)
+#### 事件驱动的异步 Agent(待补充)
+- 相当精彩,之后重温一下
 
 
-## 大模型原理与架构
-### ch1: Transformer诞生
-#### 序列建模(Sequence Modeling)
->在深入 Transformer 的技术细节之前，有必要先理解它试图解决的根本问题：如何对序列数据进行有效建模。
+要实现事件驱动,首先就是要让系统避免轮询,而是根据新消息的到达自动触发处理链条,所有的输入/输出/思考/外部交互统一建模为事件流:
+![示意图](PixPin_2026-11-03_08-51-08.webp)
 
-序列建模（Sequence Modeling）是指让计算机理解和处理有序数据的任务。**自然语言**是最典型的序列数据——一句话中词语的排列顺序直接决定了语义。“猫追狗”和“狗追猫”使用了完全相同的词汇，但含义截然不同。
+以OpenClaw为例,其触发方式都是时间驱动的,如周期任务和定时检查的Heartbeat机制,无法在事件发生的瞬间做出响应.PineClaw(Pine AI 的 OpenClaw 插件)引入了Channel机制,建立了实时通道,从而极大降低了响应延迟.
 
-序列建模有三大难题:
-1. 变长输入: 句子的长度可以从一个词到数千个词不等,但传统的全连接网络需要输入维度固定,无法直接处理变长序列
-2. 长距离依赖: 两个词语在一段话中可能相隔很远,但却是强相关的,模型必须具有捕捉这种依赖的能力.
-3. 计算效率问题: 如果模型严格按照顺序逐个处理每个元素,那么长序列的计算时间线性增长,无法并行计算,计算效率低
+通用Agent面对的输入有着极其丰富的的语义空间,所以需要我们为其精心建模:
 
-围绕这三大根本难题，序列建模领域展开了长达几十年的探索与发展。在这段漫长的技术演进中，循环神经网络（RNN）较好地解决了变长输入问题，随后的长短期记忆网络（LSTM）在长距离依赖问题上取得了显著改善。然而，直到 Transformer 横空出世，计算效率问题才真正迎来了突破——不仅如此，它在前两个问题上也给出了更为优雅的答案。
-#### RNN与CNN
-RNN的训练依赖时间反向传播（Backpropagation Through Time，BPTT）: 将 RNN 沿时间展开为一个很深的前馈网络，然后用标准的反向传播算法计算梯度,但反向传播中每次都需要乘以一个权重矩阵,这有可能导致梯度的指数级衰减,即梯度消失问题.
+* **来源（谁）**：用户本人、联系人、陌生人、系统通知
+* **渠道（方式）**：电话语音、短信、即时消息、邮件、社交媒体、定时器触发、异步工具调用结果、命令行监控状态更新
+* **内容（什么）**：消息文本、情感色彩、紧急程度、是否需要回复
+* **上下文（背景）**：是对之前某个对话的回复还是新发起的沟通，与当前任务的关联
 
-## 智能体 Harness 工程指南
+
+以客户退款邮件为例:
+```json
+{
+  "source": {"type": "email", "sender": "client@example.com"},
+  "channel": "gmail_webhook",
+  "content": {"subject": "退款请求", "body": "订单 #12345 希望退款..."},
+  "context": {"priority": "high", "customer_tier": "vip", "related_orders": ["#12345"]}
+}
+```
+
+
+对于用户打断等异常情况,我们可以将占位符写入到tool result,如“工具正在后台执行，请优先处理新事件”,并将用户的请求置于事件队列最前方,此时LLM看到的历史消息轨迹完全合法,可以继续执行最紧急的事件.
+
+当然这只是权宜之计,因为LLM还没有在异步环境下训练过,以为每次工具调用都必然会返回结果(至少会返回异常),所以异步环境也是LLM的未来发展方向.
+#### 主动工具发现
+传统做法是把所有工具的 schema 一次性注入系统提示词，但当工具数量上千时它迅速失效：上下文被“工具说明书”塞满，模型的选择精度随之下降.
+
+有一个不错的解决方案:
+- Agent在执行过程中主动声明需要什么工具,并由工具搜索工具(tool search tool)或者带有embedding/LLM匹配的工具路由来加载需要的工具
+
+![对比图](PixPin_2026-11-03_09-58-32.webp)
+
+但是这个方案需要我们维护自己的工具索引,还是比较繁琐.更流行的思路是通过Skills的渐进式披露,即由Skill.md告诉Agent工具分别放在哪些文件夹下面.
+
+
+### ch5: Coding Agent
 
 ## Agentic Coding with OpenAI Codex CLI
 ### ch1: 介绍CodeX CLI
@@ -459,7 +527,26 @@ Cite the file and line number for every finding. Do not propose fixes
 ### ch12: Multi-Agent(待补充)
 非常高端的操作,在Goal模式内部,针对Subagent的派生设置门控和审查.但这样一来每个任务都需要单独设置门控和审查代码,非常的麻烦.
 ### ch13: 隔离与WorkTree
+对于多Agent合作环境,不可能给每个Agent都单独clone整个代码仓库,而用`git worktree`的话则可以轻松实现文件系统的隔离.
 
+### ch14: 成本管理
+计算费用
+### ch15: CI/CD集成
+### ch27: 长时间运行Agent
+Harness 是指封装智能体的所有组件：描述项目的 AGENTS.md 文件、提供确定性反馈的测试套件、限制影响范围的沙箱、验证输出的持续集成 (CI) 流水线、决定何时需要人工干预的审批策略，以及确保耗时数小时的任务在短暂故障后仍能正常运行的检查点逻辑。如果 Harness 设计良好，即使是适中的模型也能自主且高置信度地完成任务。反之，如果 Harness 设计不佳，即使是最好的模型也会束手无策。
+
+- 推荐阅读: `Code as Agent Harness`
+
+论文的核心论点是: 建立一个用于coding agent的三层框架:
+1. Interface layer: 代理如何接收指令并呈现结果,包括AGENTS.md,系统提示词,对话框和TUI
+2. Mechanism layer: 约束并赋予Agent执行操作的能力,包括sandbox,执行限制,约束模型能够执行哪些操作
+3. Multi-agent scaling layer: MCP,subagent,A2A协议都属于这个范畴
+
+文中主要是在介绍symphony这个编排框架,让Agent来领取任务,并验证代码.
+
+而我们在日常开发中也可以这么做,要求Agent强制验证CI是否通过,并解释自己的成果是否覆盖了所有要求,事实证明,确实很有用.
+
+如果要从本章中汲取一条操作原则，那就记住：**当智能体性能不佳时，应先更换系统组件，再考虑更换模型。**
 
 
 ## Python Concurrency with asyncio
@@ -572,11 +659,172 @@ asyncio.run(main())
 
 ![时间线](PixPin_2026-10-30_17-41-02.webp)
 #### tasks
-Task是对协程的封装,提供一个尽可能早地在事件循环中运行的机会,以非阻塞方式进行,意味着一旦我们创建了一个任务，就可以在任务运行的同时立即执行其他代码.这与await的阻塞调用正好相反.
+Task是对协程的封装,提供一个尽可能早地在事件循环中运行的机会,以非阻塞方式进行,意味着一旦我们创建了一个任务，就可以在任务运行的同时立即执行其他代码.这与await的阻塞调用正好相反:
+```py
+import asyncio
+from util import delay
 
+async def main():
+    sleep_for_three = asyncio.create_task(delay(3))
+    sleep_again = asyncio.create_task(delay(3))
+    sleep_once_more = asyncio.create_task(delay(3))
 
-## Learning LangChain
-### ch1: 基础知识
+    await sleep_for_three
+    await sleep_again
+    await sleep_once_more
+
+asyncio.run(main())
+```
+上述程序的总用时为3s,因为task是一个非阻塞协程
+
+任务可以随时取消,在await被取消的任务时会引入CancelledError异常,写法如下:
+```python
+import asyncio
+from asyncio import CancelledError
+from util import delay
+
+async def main():
+    long_task = asyncio.create_task(delay(10))
+    seconds_elapsed = 0
+
+    while not long_task.done():
+        print('Task not finished, checking again in a second.')
+        await asyncio.sleep(1)
+        seconds_elapsed = seconds_elapsed + 1
+        if seconds_elapsed == 5:
+            long_task.cancel()
+
+    try:
+        await long_task
+    except CancelledError:
+        print('Our task was cancelled')
+
+asyncio.run(main())
+```
+
+还可以用`wait_for`方法来显式标明timeout时间,并在超时后抛出TimeoutException:
+```python
+import asyncio
+from util import delay
+
+async def main():
+    delay_task = asyncio.create_task(delay(2))
+    try:
+        result = await asyncio.wait_for(delay_task, timeout=1)
+        print(result)
+    except asyncio.exceptions.TimeoutError:
+        print('Got a timeout!')
+        print(f'Was the task cancelled? {delay_task.cancelled()}')
+
+asyncio.run(main())
+```
+
+#### Tasks, coroutines, futures, and awaitables
+>协程和任务都可以在await表达式中使用。那么它们之间的共同点是什么？要理解这一点，我们需要了解future和awaitable。通常你不需要直接使用future，但理解它们是掌握asyncio内部机制的关键。
+
+future是一个Python对象,包含一个你期望在未来得到,但目前可能暂未获取的一个值:
+```python
+from asyncio import Future
+
+my_future = Future()
+print(f'Is my_future done? {my_future.done()}')
+
+my_future.set_result(42)
+print(f'Is my_future done? {my_future.done()}')
+print(f'What is the result of my_future? {my_future.result()}')
+
+```
+输出结果:
+```bash
+Is my_future done? False
+Is my_future done? True
+What is the result of my_future? 42
+```
+
+当我们await一个future时,意味着这样一件事: `暂停，直到future拥有一个我可以处理的值，一旦获得值，就唤醒我让我处理它`
+
+实际上，task直接继承自future。可将future理解为代表一个暂时无法获取的数值，而task则可被视为协程与future的结合体。当我们创建task时，实际是在创建一个空future并运行协程。随后，当协程以异常或结果的方式完成时，我们会设置该future的结果或异常。
+
+二者之间的共同联系是Awaitable抽象基类,这个基类定义了一个`__await__`方法,任何实现了该方法的对象都可以用于`await`表达式中,因此,所有可在`await`表达式中使用的对象统称为可等待对象.
+
+#### pitfalls和要点
+需要注意的是,如果`await`的对象本身是阻塞的,那么就不会带来任何并发执行的效果,最典型的就是使用requests库进行网络请求:
+```python
+import asyncio
+import requests
+from util import async_timed
+
+@async_timed()
+async def get_example_status() -> int:
+    return requests.get('http://www.example.com').status_code
+
+@async_timed()
+async def main():
+    task_1 = asyncio.create_task(get_example_status())
+    task_2 = asyncio.create_task(get_example_status())
+    task_3 = asyncio.create_task(get_example_status())
+    await task_1
+    await task_2
+    await task_3
+
+asyncio.run(main())
+```
+
+由于requests的阻塞问题,所以上述代码的用时就是三个请求的累加用时,所以最好换用aiohttp这样的非阻塞库.
+#### 手动创建事件循环
+我们可以通过使用`asyncio.new_event_loop`方法来创建一个事件循环，该方法将返回一个事件循环实例。通过这个实例，我们可以访问事件循环提供的所有低级方法。借助事件循环，我们可以使用一个名为`run_until_complete`的方法，它接收一个协程并运行至其完成。完成事件循环的使用后，我们需要将其关闭以释放其占用的资源。这通常应放在`finally`代码块中，以确保任何抛出的异常不会阻止我们关闭循环。利用这些概念，我们可以创建循环并运行一个asyncio应用。
+
+```python
+import asyncio
+
+async def main():
+    await asyncio.sleep(1)
+
+loop = asyncio.new_event_loop()
+try:
+    loop.run_until_complete(main())
+finally:
+    loop.close()
+```
+
+#### 开启调试模式
+默认情况下debug选项是关闭的,我们需要显式设置:
+```py
+asyncio.run(coroutine(), debug=True)
+```
+在出现一些异常情况时,该选项会很有用.
+### ch3: 首个asyncio程序
+## Test-Driven Development with Python
+
+## Databse Internals
+### ch1: 介绍
+![架构图](PixPin_2026-10-06_15-46-05.webp)
+
+大部分DBMS都是基于硬盘的,而内存数据库如Redis之所以选择Main Memory,是因为内存的访问成本相对较低,并且容易编程,因为操作系统抽象了内存管理,使我们能够以分配和释放任意大小内存块的方式来思考问题.
+
+而在磁盘中,我们需要手动管理数据引用、序列化格式、已释放的内存以及碎片等问题。
+
+不过,鉴于内存缺乏持久性,而且成本高昂,不如更容易维护且价格更低的硬盘,所以内存数据库的发展依然受到了不少限制.
+
+数据库系统可以分为传统的行式存储(将相邻行存储在连续磁盘块中)和新兴的列式存储(将相同列存储在连续磁盘块中),前者即为MySQL,Postgre等关系型数据库,后者的代表有ClickHouse,以及文件格式Apache Parquet.
+
+行存储的优点在于单个用户的数据会存储一起,不需要跨越多个磁盘块就能定位到所有数据,缺点在于执行针对非主键的条件查询时,如果不使用索引,效率极低.
+
+列存储的优点在于能够进行大规模的聚合运算,但缺点就是无法轻松定位到单个用户的所有信息.
+
+>大多数现代存储系统**不会显式地从页面中删除数据**。相反，它们使用删除标记（也称为墓碑标记），其中包含删除元数据，例如键和时间戳。被更新或删除标记覆盖的记录所占用的空间会在垃圾回收过程中被回收。垃圾回收会读取页面，将存活的（即未被覆盖的）记录写入新位置，并丢弃被覆盖的记录。
+#### 索引
+主（数据）文件上的索引称为主索引。然而，在大多数情况下，我们也可以假设主索引是基于一个主键或一组被标识为主键的键构建的。所有其他索引都称为辅助索引。
+
+二级索引**可以直接指向数据记录，也可以只存储其主键**。指向数据记录的指针可以保存指向堆文件或索引组织表的偏移量。多个二级索引可以指向同一条记录，从而允许通过不同的字段标识同一条数据记录，并通过不同的索引定位该记录。
+
+两种方法各有优缺点，最好在完整的实现框架下进行讨论。直接引用数据可以减少磁盘寻道次数，但每次记录更新或维护过程中发生重定位时，都需要更新指针，这会带来一定的开销。使用主索引形式的间接引用可以降低指针更新的开销，但会增加读取路径的开销。
+### ch2: B树
+
+### Ch3: 文件格式
+## Vibe Coding Architecture at Scale
+### ch1: The Entropy of the Prompt
+# 先放着
 ## Just Use Postgres!
 ### ch1: 介绍Postgres
 介绍了用Docker运行Postgres,以及使用psql与Postgres进行连接的方法
@@ -735,35 +983,26 @@ ORDER BY song_id, user_id;
 ### ch4: 索引
 
 
-## Databse Internals
-### ch1: 介绍
-![架构图](PixPin_2026-10-06_15-46-05.webp)
+## 大模型原理与架构
+### ch1: Transformer诞生
+#### 序列建模(Sequence Modeling)
+>在深入 Transformer 的技术细节之前，有必要先理解它试图解决的根本问题：如何对序列数据进行有效建模。
 
-大部分DBMS都是基于硬盘的,而内存数据库如Redis之所以选择Main Memory,是因为内存的访问成本相对较低,并且容易编程,因为操作系统抽象了内存管理,使我们能够以分配和释放任意大小内存块的方式来思考问题.
+序列建模（Sequence Modeling）是指让计算机理解和处理有序数据的任务。**自然语言**是最典型的序列数据——一句话中词语的排列顺序直接决定了语义。“猫追狗”和“狗追猫”使用了完全相同的词汇，但含义截然不同。
 
-而在磁盘中,我们需要手动管理数据引用、序列化格式、已释放的内存以及碎片等问题。
+序列建模有三大难题:
+1. 变长输入: 句子的长度可以从一个词到数千个词不等,但传统的全连接网络需要输入维度固定,无法直接处理变长序列
+2. 长距离依赖: 两个词语在一段话中可能相隔很远,但却是强相关的,模型必须具有捕捉这种依赖的能力.
+3. 计算效率问题: 如果模型严格按照顺序逐个处理每个元素,那么长序列的计算时间线性增长,无法并行计算,计算效率低
 
-不过,鉴于内存缺乏持久性,而且成本高昂,不如更容易维护且价格更低的硬盘,所以内存数据库的发展依然受到了不少限制.
+围绕这三大根本难题，序列建模领域展开了长达几十年的探索与发展。在这段漫长的技术演进中，循环神经网络（RNN）较好地解决了变长输入问题，随后的长短期记忆网络（LSTM）在长距离依赖问题上取得了显著改善。然而，直到 Transformer 横空出世，计算效率问题才真正迎来了突破——不仅如此，它在前两个问题上也给出了更为优雅的答案。
+#### RNN与CNN
+RNN的训练依赖时间反向传播（Backpropagation Through Time，BPTT）: 将 RNN 沿时间展开为一个很深的前馈网络，然后用标准的反向传播算法计算梯度,但反向传播中每次都需要乘以一个权重矩阵,这有可能导致梯度的指数级衰减,即梯度消失问题.
 
-数据库系统可以分为传统的行式存储(将相邻行存储在连续磁盘块中)和新兴的列式存储(将相同列存储在连续磁盘块中),前者即为MySQL,Postgre等关系型数据库,后者的代表有ClickHouse,以及文件格式Apache Parquet.
+## 智能体 Harness 工程指南
 
-行存储的优点在于单个用户的数据会存储一起,不需要跨越多个磁盘块就能定位到所有数据,缺点在于执行针对非主键的条件查询时,如果不使用索引,效率极低.
-
-列存储的优点在于能够进行大规模的聚合运算,但缺点就是无法轻松定位到单个用户的所有信息.
-
->大多数现代存储系统**不会显式地从页面中删除数据**。相反，它们使用删除标记（也称为墓碑标记），其中包含删除元数据，例如键和时间戳。被更新或删除标记覆盖的记录所占用的空间会在垃圾回收过程中被回收。垃圾回收会读取页面，将存活的（即未被覆盖的）记录写入新位置，并丢弃被覆盖的记录。
-#### 索引
-主（数据）文件上的索引称为主索引。然而，在大多数情况下，我们也可以假设主索引是基于一个主键或一组被标识为主键的键构建的。所有其他索引都称为辅助索引。
-
-二级索引**可以直接指向数据记录，也可以只存储其主键**。指向数据记录的指针可以保存指向堆文件或索引组织表的偏移量。多个二级索引可以指向同一条记录，从而允许通过不同的字段标识同一条数据记录，并通过不同的索引定位该记录。
-
-两种方法各有优缺点，最好在完整的实现框架下进行讨论。直接引用数据可以减少磁盘寻道次数，但每次记录更新或维护过程中发生重定位时，都需要更新指针，这会带来一定的开销。使用主索引形式的间接引用可以降低指针更新的开销，但会增加读取路径的开销。
-### ch2: B树
-
-### Ch3: 文件格式
-
-# 先放着
-
+## Learning LangChain
+### ch1: 基础知识
 ## Software Design for Python Programmers
 ## Site Reliability Engineering, 2nd ed
 - 超级新鲜,还没出我就在期盼了

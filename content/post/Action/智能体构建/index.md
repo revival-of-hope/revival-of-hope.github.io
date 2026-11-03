@@ -1347,7 +1347,7 @@ def test_read_main():
 创建一个客户端后,使用pytest的方式来测试对应的接口即可.
 
 用法其实很简单,创建了一个client就可以跟平常的测试文件一样来写了.
-# 智能体搭建
+# Agent雏形
 ## ch5: 使用fastapi+nextjs搭建简单智能体
 >本部分主要会使用fastapi处理deepseek api,这并不需要用到数据库来存储任何信息,所有的信息都在运行时处理.至于前端部分我会大致介绍路由操作,UI等布局细节就由组件库和AI帮我搞定了.
 
@@ -4511,7 +4511,7 @@ export default function RegisterPage() {
 2. 不支持对话组,每次对话没有一个统一的id
 3. 没有保存用户的提问信息,也没能将thinking和content分开输出
 4. 没有异常处理,也没有限制用户的使用量和调用额度.
-# 智能体优化
+# Agent优化
 ## ch11: 实现多轮对话
 
 ### API构思
@@ -9222,7 +9222,7 @@ if __name__ == "__main__":
 洋洋洒洒这么多字,我们也只是做了一个简单到不能再简单的智能体出来,既不能调用工具,也不能上传图片,简陋到了可笑的地步,如此看来,不借助框架,从零开始做Agent平台是真的非常需要综合的技术水平的,就连这么简单的Python语言开发起来都如此费劲.
 
 
-# 智能体进阶
+# Agent进阶
 ## ch17: 引入设计模式(上)
 ### 前言
 是时候引入一点设计模式了,我们之前的类封装简直是在瞎写,完全没有一点美感.职责上可以说是相当的混乱,毫不客气的说,就是一堆垃圾,不具备可维护性.😁
@@ -12206,1242 +12206,527 @@ def stream_and_save(
 
 虽然说要解耦,实际上还是无从下手的,好在前人的实践中发明了一个好东西: UoW(Unit of Work),基本原理是,repo只负责数据访问,而UoW统一管理事务,再由service调用uow来实现原子化操作.
 #### 编写uow
-首先,
+我们首先要了解的就是Python的上下文管理器,只要一个类实现了`__enter__`和`__exit__`方法,那么就可以用with语句调用它,如:
+```py
+with UnitOfWork(session) as uow:
+    user = uow.users.get_by_id(1)
+    uow.users.add(new_user)
+    uow.commit()
+```
+当异常发生时,Python会自动调用`__exit__`函数执行清理,而正常结束时则填入`uow.__exit__(None, None, None)`,不会触发清理代码.
+
+因此,我们的uow可以这么写:
+```py
+from typing import Self
+from sqlmodel import Session
+from app.infra.repo import UserRepo, ConversationRepo
+
+
+class UnitOfWork:
+    def __init__(self, session: Session) -> None:
+        self.session = session
+        self.users = UserRepo(session)
+        self.conversations = ConversationRepo(session)
+
+    def commit(self):
+        self.session.commit()
+
+    def rollback(self):
+        self.session.rollback()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.rollback()
+```
+`__exit__`中的意思是,无论是否有异常,统一rollback,是一个防呆设计.
+
+之后,在`deps.py`中组装:
+```py
+def get_user_service(session: SessionDep) -> UserService:
+    uow =UnitOfWork(session)
+    return UserService(uow)
+
+
+def get_chat_service(session: SessionDep) -> ChatService:
+    uow =UnitOfWork(session)
+    return ChatService(uow)
+
+
+UserServiceDep = Annotated[UserService, Depends(get_user_service)]
+ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
+
+```
+接下来就是彻底修改repo层和service层,确保repo层不做任何提交和回滚,全部由service执行.
 #### 全面引入uow
+由于基本文件全要改动,所以我们就用user的repo和service来做演示,其余文件的修改同理.
 
-## ch19: 全面引入测试
-
-## ch20: 联网搜索引入和MCP使用
-### 背景介绍
-目前,我们的Agent还不能叫做Agent,毕竟联网搜索都做不到呢.不过联网搜索并非有那么难实现,大致思想如下:
-1. 设置一个循环,让LLM能够自己识别是否需要搜索并决定搜索内容
-2. 先由API或者本地LLM识别用户需求,当LLM提取到需要搜索的语义时,`web_search`设置为True
-3. 如果web_search为True,则启动搜索工具,并返回需要的网页具体内容给LLM
-4. LLM处理并总结内容,结合用户上一轮的需求,得到最终结果
-
-
-#### 例子
-比如用户问：
-
->2026 年有哪些适合牙科诊所的 AI Voice Agent？
-
-LLM 不一定直接拿整句话搜索，而可能生成多个 query：
-```text
-AI voice agent dental practices
-dental AI receptionist 2026
-AI dental phone scheduling software
-dental voice AI PMS integration
-```
-而高级点的Agent可能还会做问题拆分:
-```text
-问题：哪个牙科 AI Voice Agent 最好？
-
-拆解：
-1. 有哪些主要厂商？
-2. 各自支持什么 PMS？
-3. 是否支持保险核验？
-4. 是否支持 outbound calling？
-5. 价格是多少？
-```
-
-之后就是调用搜索引擎,并清洗数据和HTML得到纯文本,再进行一轮筛选和排行:
-```text
-相关性
-
-0.96 Third Voice
-0.94 Flexbone
-0.91 Dentina
-0.87 Powervox
-0.42 SEO blog
-0.17 无关页面
-```
-最后再将问题交给LLM:
-```text
-用户问题：
-有哪些适合牙科诊所的 AI Voice Agent？
-
-搜索结果：
-
-Source 1
-Title: Third Voice
-URL: ...
-Content:
-AI voice agents that handle scheduling,
-insurance verification...
-
-Source 2
-Title: Flexbone
-URL: ...
-Content:
-AI agents answer inbound calls...
-...
-
-请基于以上资料回答用户问题，并标明出处。
-```
-
-### 搜索工具测评
-为什么我们不直接用fastapi打开baidu和google发送请求呢,想想也知道太麻烦了啊,不但需要动态适配搜索引擎的API变化,还需要一个个分别定制调用框架.
-
-而用第三方的搜索工具就没这么麻烦了,调个API就完事了,不少还自带了HTML清洗,甚至还有总结功能.
-
-
-| 服务                   |                    免费额度 | 是否持续刷新     | 大致够用程度               | 我的评价                  |
-| ---------------------- | --------------------------: | ---------------- | -------------------------- | ------------------------- |
-| **Exa**                | 注册赠送额外 $10 + 每月 $10 | ✅ 每月           | 基础搜索约 1,428 次/月     | **很推荐**                |
-| **Tavily**             |            1,000 credits/月 | ✅ 每月           | 通常约数百～1000 次搜索    | **最适合 Agent 入门**     |
-| **Jina Search/Reader** |       新 API Key 10M tokens | ⚠️ 主要是初始额度 | Search 每次至少 10k tokens | **很适合搜索+网页读取**   |
-| **SerpAPI**            |             250 searches/月 | ✅ 每月           | 250 次                     | Google/Scholar 类搜索很好 |
-| **Brave Search API**   |                       $5/月 | ✅ 每月           | Search 约 1000 次/月       | 免费但要绑卡              |
-| **SearXNG**            |     自己部署则 API 本身免费 | 无限*            | 取决于服务器/上游限制      | **真正零 API 成本**       |
-
-AI是这么说的,但我还是得亲身试一试
-#### Exa
-![注册后直接送额度](PixPin_2026-10-05_12-34-01.webp)
+**userrepo**
 ```py
-from exa_py import Exa
+from sqlmodel import select, desc, func
+from sqlalchemy.orm import selectinload
 
-exa = Exa()
-
-results = exa.search(
-    "best blog posts about vector databases",
-    contents={"highlights": True},
+from app.domain.exceptions import (
+    PasswordMatchError,
+    UserRecordNotFound,
+    UsersRecordNotFound,
 )
+from app.domain.schemas import UserRegister
+from app.models import UserRecord
+from app.core.security import verify_password, hashing_password
+from app.infra.datas import DUMMY_HASH
+from app.infra.repo import BaseRepo
 
-for result in results.results:
-    print(result.title, result.url)
+
+class UserRepo(BaseRepo):
+    def get_by_id(self, user_id: int) -> UserRecord:
+        statement = select(UserRecord).where(UserRecord.user_id == user_id)
+        userrecord = self._session.exec(statement).first()
+        if userrecord is None:
+            raise UserRecordNotFound("User Record Not Found")
+
+        return userrecord
+
+    def get_by_name(self, name: str) -> UserRecord:
+        statement = select(UserRecord).where(UserRecord.name == name)
+
+        userrecord = self._session.exec(statement).first()
+
+        if userrecord is None:
+            raise UserRecordNotFound("User Record Not Found")
+
+        return userrecord
+
+    def get_users_amount(self) -> int:
+        statement = select(func.count()).select_from(UserRecord)
+
+        amount = self._session.exec(statement).one()
+        return amount
+
+    def get_users_list(self, offset: int, limit: int) -> list[UserRecord]:
+        statement = (
+            select(UserRecord)
+            .options(selectinload(UserRecord.usage))  # type: ignore
+            .order_by(
+                desc(UserRecord.created_at),
+                desc(UserRecord.user_id),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
+
+        users = self._session.exec(statement).all()
+        return list(users)
+
+    def create_user(self, user_in: UserRegister) -> UserRecord:
+        user = UserRecord.model_validate(
+            user_in,
+            update={"hashed_password": hashing_password(user_in.password)},
+        )
+
+        self._session.add(user)
+        self._session.flush()
+
+        return user
+
+    def delete_user(self, user_id: int) -> None:
+        userrecord = self._session.get(UserRecord, user_id)
+
+        if not userrecord:
+            raise UsersRecordNotFound("Users Record Not Found")
+
+        self._session.delete(userrecord)
+
+    def verify_user(self, name: str, password: str) -> int | None:
+        try:
+            db_user = self.get_by_name(name)
+
+        except UserRecordNotFound:
+            verify_password(password, DUMMY_HASH)
+            raise
+
+        verified = verify_password(password, db_user.hashed_password)
+        if not verified:
+            raise PasswordMatchError("Password Don't Match")
+
+        return db_user.user_id
 ```
-上述代码运行后一共返回了 10 个网页结果。每个结果基本包含两部分：`网页标题 + URL`，以及一大段从网页中抽取出来的 正文/摘要内容,还是做的很不错的.
-#### Tavily
-![界面很帅](PixPin_2026-10-05_13-04-02.webp)
 
+**userservice**
 ```py
-from tavily import TavilyClient
+from app.domain.exceptions import (
+    PasswordMatchError,
+    UserCreateError,
+    UserDeleteError,
+    UserNotFound,
+    UserRecordNotFound,
+    UsersRecordNotFound,
+)
+from sqlalchemy.exc import SQLAlchemyError
+from app.services.baseservice import BaseService
+from app.domain.schemas import UserPublic, UserRegister, UsersPublic
+from app.models.mappers import mapper
 
-tavily_client = TavilyClient(api_key="tvly-YOUR_API_KEY")
-response = tavily_client.search("Who is Leo Messi?")
 
-print(response)
+class UserService(BaseService):
+    def get_by_id(self, user_id: int) -> UserPublic:
+        with self.uow as uow:
+            try:
+                userrecord = uow.users.get_by_id(user_id)
+
+            except UserRecordNotFound:
+                raise UserNotFound("User not found")
+            user = mapper(userrecord, UserPublic)
+
+        return user
+
+    def get_by_name(self, name: str) -> UserPublic:
+        with self.uow as uow:
+            try:
+                userrecord = uow.users.get_by_name(name)
+
+            except UserRecordNotFound:
+                raise UserNotFound("User not found")
+            user = mapper(userrecord, UserPublic)
+
+        return user
+
+    def get_all(self, offset: int, limit: int) -> UsersPublic:
+        with self.uow as uow:
+            users_record_list = uow.users.get_users_list(offset, limit)
+            users_amount = uow.users.get_users_amount()
+            users_public_list = [
+                mapper(userrecord, UserPublic) for userrecord in users_record_list
+            ]
+            users_public = UsersPublic(data=users_public_list, count=users_amount)
+
+        return users_public
+
+    def post(self, user_in: UserRegister) -> UserPublic:
+        with self.uow as uow:
+            try:
+                userrecord = uow.users.create_user(user_in)
+                uow.commit()
+
+            except SQLAlchemyError:
+                raise UserCreateError("Fail to create new user")
+
+            user = mapper(userrecord, UserPublic)
+
+        return user
+
+    def delete(self, user_id: int) -> None:
+        with self.uow as uow:
+            try:
+                uow.users.delete_user(user_id)
+                uow.commit()
+
+            except SQLAlchemyError:
+                raise UserDeleteError("Fail to delete user")
+            except UsersRecordNotFound:
+                raise UserNotFound("User doesn't exist")
+
+    def check(self, name: str, password: str) -> int | None:
+        with self.uow as uow:
+            try:
+                user_id = uow.users.verify_user(name, password)
+
+            except UserRecordNotFound:
+                raise UserNotFound("User doesn't exist")
+            except PasswordMatchError:
+                raise
+
+        return user_id
 ```
 
+可以发现之前的重构还是很有效果,这次我们的修改异常轻松,不需要跳转来跳转去,而且因为由uow统一管理事务,可以删掉很多不必要的异常处理.
+### 流式响应拆分
+#### 初步重构
+对于`stream_and_save`中这一块令人头疼的大块函数,要做拆分实际上很有难度,一方面必须接收流式输出,另一方面必须接收响应的最终结果才能让数据持久化,先看看原来的函数:
 ```py
-from tavily import TavilyClient
+    def stream_and_save(
+        self,
+        user_id: int,
+        conversation_id: int,
+        content: str,
+        reasoning: str,
+    ) -> Generator[dict[str, str], None, None]:
 
-tavily_client = TavilyClient(api_key="tvly-YOUR_API_KEY")
-response = tavily_client.research("What are the latest developments in AI?")
+        # 权限验证
 
-print(response)
-```
-效果也挺不错的
+        with self.uow as uow:
+            conversationrecord = uow.conversations.get_conversation(
+                conversation_id, user_id
+            )
+            if conversationrecord is None:
+                raise ConversationNotFound("Conversation not found")
 
-![支持5种调用](PixPin_2026-10-05_13-08-07.webp)
-#### SearXNG
-另外几个都大差不差,但这个SearXNG值得注意.
+            # 获取历史消息
+            history_messages = uow.conversations.get_messages_list(
+                conversation_id, user_id
+            )
+            data = [mapper(message, MessagePublic) for message in history_messages]
+            history = MessagesPublic(data=data)
 
-SearXNG来源于2014年的开源聚合搜索引擎searx,核心理念就是聚合:
-```text
-用户
- ↓
-searx
- ├── Google
- ├── Bing
- ├── DuckDuckGo
- ├── Wikipedia
- └── 其他搜索服务
- ↓
-合并结果
-```
-SearXNG帮我们封装了对多种搜索引擎的支持,直接用docker部署就可以访问端口调用API了:
+        # 创建默认Agent和流
+        client = default_agent(
+            history=history,
+            content=content,
+            reasoning=reasoning,
+        )
+        response = yield from standard_stream(client)
+        try:
+            # 存储消息
+            with self.uow as uow:
 
-1. 下载compose和env文件:
+                uow.conversations.update_usage(
+                    user_id, response.usage, MessageRole.ASSISTANT
+                )
+                uow.conversations.create_message(
+                    user_id, conversation_id, MessageRole.USER, content
+                )
+                uow.conversations.create_message(
+                    user_id,
+                    conversation_id,
+                    MessageRole.ASSISTANT,
+                    response.output_text,
+                )
+                uow.commit()
 
-```bash
-curl -fsSL -O https://raw.githubusercontent.com/searxng/searxng/master/container/docker-compose.yml -O https://raw.githubusercontent.com/searxng/searxng/master/container/.env.example
-```
-
-2. 复制环境并启动docker:
-```bash
-cp .env.example .env 
-docker compose up -d 
-```
-访问`http://localhost:8080/`即可看到效果
-
-![效果图](PixPin_2026-10-05_14-47-28.webp)
-
-看一下compose文件:
-```yml
-# Read the documentation before using the `docker-compose.yml` file:
-# https://docs.searxng.org/admin/installation-docker.html
-
-name: searxng
-
-services:
-  core:
-    container_name: searxng-core
-    image: docker.io/searxng/searxng:${SEARXNG_VERSION:-latest}
-    restart: always
-    ports:
-      - ${SEARXNG_HOST:+${SEARXNG_HOST}:}${SEARXNG_PORT:-8080}:${SEARXNG_PORT:-8080}
-    env_file: ./.env
-    volumes:
-      - ./core-config/:/etc/searxng/:Z
-      - core-data:/var/cache/searxng/
-
-  valkey:
-    container_name: searxng-valkey
-    image: docker.io/valkey/valkey:9-alpine
-    command: valkey-server --save 30 1 --loglevel warning
-    restart: always
-    volumes:
-      - valkey-data:/data/
-
-volumes:
-  core-data:
-  valkey-data:
-```
-Valkey是Redis的一个替代品,但我们目前甚至可以不用它,只用SearXNG就足够了.
-
-现在我们先修改一下bind mount的yml文件,让它支持json输出:
-```yml
-use_default_settings: true
-search:
-  formats:
-    - html
-    - json
-
-server:
-  image_proxy: true
-```
-修改后重启容器,访问`http://localhost:8080/search?q=OpenAI&format=json`即可看到格式化输出:
-
-![图片](PixPin_2026-10-05_15-00-46.webp)
-
-可以看到,SearXNG并不能深入读取网页,而是像Google搜索一样返回摘要和元信息,所以如果想要做RAG,要么再加一层爬虫来读取获得的url,要么就只能忍痛割爱了.
-
-#### ddgs
-ddgs是我意外发现的宝藏python库,部署方法很简单:
-```bash
-git clone https://github.com/deedy5/ddgs && cd ddgs
-docker-compose up --build -d
+        except ConversationRecordNotFound as e:
+            raise ConversationNotFound("Conversation not found") from e
+        except SQLAlchemyError as e:
+            raise MessageCreateError("Failed to save chat") from e
 ```
 
-不过,更强大的地方在于,它可以直接作为python库导入并使用,还不要API!
+上述代码的主要流程为:
+1. 获取历史消息
+2. 获取流式响应
+3. 根据流式响应的结果保存消息
+
+那么,直接按照这三步来做一个简单的重构:
 ```py
-from ddgs import DDGS
+    def retrieve_history_messages(self, user_id, conversation_id) -> MessagesPublic:
+        with self.uow as uow:
+            conversationrecord = uow.conversations.get_conversation(
+                conversation_id, user_id
+            )
+            if conversationrecord is None:
+                raise ConversationNotFound("Conversation not found")
 
-def web_search(query: str):
-    return DDGS().text(
-        query,
-        max_results=8,
+            # 获取历史消息
+            history_messages = uow.conversations.get_messages_list(
+                conversation_id, user_id
+            )
+            data = [mapper(message, MessagePublic) for message in history_messages]
+
+            history = MessagesPublic(data=data)
+
+        return history
+
+    def _save_message_pair(
+        self,
+        user_id: int,
+        conversation_id: int,
+        content: str,
+        output_text: str,
+        usage: TokenUsage,
+    ) -> None:
+        try:
+            with self.uow as uow:
+                conversation = uow.conversations.get_conversation(
+                    conversation_id, user_id
+                )
+
+                if conversation is None:
+                    raise ConversationNotFound("Conversation not found")
+
+                uow.conversations.update_usage(
+                    user_id,
+                    usage,
+                    MessageRole.ASSISTANT,
+                )
+                uow.conversations.create_message(
+                    user_id,
+                    conversation_id,
+                    MessageRole.USER,
+                    content,
+                )
+                uow.conversations.create_message(
+                    user_id,
+                    conversation_id,
+                    MessageRole.ASSISTANT,
+                    output_text,
+                )
+                uow.commit()
+
+        except ConversationRecordNotFound as e:
+            raise ConversationNotFound("Conversation not found") from e
+        except SQLAlchemyError as e:
+            raise MessageCreateError("Failed to save chat") from e
+
+    def stream_and_save(
+        self,
+        user_id: int,
+        conversation_id: int,
+        content: str,
+        reasoning: str,
+        history: MessagesPublic,
+    ) -> Generator[dict[str, str], None, None]:
+        # 创建默认Agent和流
+        client = default_agent(
+            history=history,
+            content=content,
+            reasoning=reasoning,
+        )
+        response = yield from standard_stream(client)
+        if response.usage is None:
+            raise MessageCreateError("Model usage missing")
+
+        self._save_message_pair(
+            user_id,
+            conversation_id,
+            content,
+            response.output_text,
+            response.usage,
+        )
+
+        yield {"type": "done", "content": ""}
+```
+- 至少函数看上去没那么长了.
+#### 重构底层
+先看看原来的设计:
+```py
+def _stream_output(
+    stream: Stream[ResponseStreamEvent],
+) -> Generator[dict[str, str], None, Response]:
+    final_response: Response | None = None
+    for event in stream:
+        # thinking字段和answer字段
+        if event.type == "response.reasoning_text.delta":
+            yield {"type": "reasoning", "content": event.delta}
+        elif event.type == "response.output_text.delta":
+            yield {"type": "answer", "content": event.delta}
+
+        # 错误处理
+        elif event.type == "error":
+            raise LLMConnetionError(event.message)
+        elif event.type == "response.failed":
+            error = event.response.error
+            if error:
+                raise LLMConnetionError(error.message)
+            else:
+                raise LLMConnetionError("Response failed")
+
+        # 完成输出
+        elif event.type == "response.completed" or event.type == "response.incomplete":
+            final_response = event.response
+
+    if not final_response:
+        raise LLMConnetionError("Reponse incomplete")
+
+    return final_response
+
+
+def standard_stream(
+    stream: Stream[ResponseStreamEvent],
+) -> Generator[dict[str, str], None, ResponsePublic]:
+    try:
+        raw_response = yield from _stream_output(stream)
+    except LLMConnetionError:
+        raise
+    usage = raw_response.usage
+    if usage is None:
+        raise LLMConnetionError("Fail to return usage")
+
+    tokenusage = TokenUsage(
+        input_tokens=usage.input_tokens,
+        output_tokens=usage.output_tokens,
+        total_tokens=usage.total_tokens,
     )
-
-results = web_search("Redis 8 new features")
-
-for r in results:
-    print(r["title"])
-    print(r["href"])
-    print(r["body"])
-```
-目前支持以下引擎:
-
-![示意图](PixPin_2026-10-05_15-08-48.webp)
-
-- 完全够用了好不好
-
-而光是这样肯定不够,ddgs还可以直接提取网页为md:
-```py
-from ddgs import DDGS
-
-ddgs = DDGS()
-
-results = ddgs.text("OpenAI Responses API", max_results=5)
-
-url = results[0]["href"]
-
-page = ddgs.extract(url)
-
-print(page["content"])
-```
-
-![效果图](PixPin_2026-10-05_15-12-13.webp)
-
-这个封装比起SearXNG可要好上太多了,要不了一两年这个库肯定能够大火特火.
-#### 总结
-综上所述,我们需要的搜索工具最好是能够根据查询自己返回全文的,尽管Exa和Tavily等平台支持智能总结,但架不住用多了要收费啊,而久负盛名的SearXNG在RAG方面的表现是最差的,毕竟只能返回元信息,还要经过第二轮的处理.
-
-因此,ddgs从中脱颖而出,轻易解决了我们的烦恼.
-
-### 接入ddgs
-#### 准备阶段
-换用Responses API后,让用户在前端手动勾选联网搜索就不对了,应该直接大手一挥说,我们这个Agent天生就有联网搜索,智能判断用户需求,不用用户自己勾选.
-
-而我们的底气就在于,如今的LLM是真的能够自己判断是否要联网搜索的,我们在后端连循环都不用写了,直接在API端就处理完毕了,先弄个demo看看效果:
-
-**线性流程**
-```py
-import json
-
-from ddgs import DDGS
-from openai import OpenAI
-
-DEEPSEEK_API_KEY = "..."
-
-MODEL = "deepseek-flash"
-BASE_URL = "https://api.deepseek.com"
-
-QUESTION = "请联网搜索 DeepSeek Responses API 最近的官方信息，并根据搜索到的网页内容做一个简短总结，附上来源。"
-
-
-def web_search(query: str):
-    ddgs = DDGS()
-
-    result = ddgs.text(
-        query,
-        max_results=1,
-    )[0]
-
-    url = result["href"]
-
-    page = ddgs.extract(
-        url,
-        fmt="text_markdown",
+    response = ResponsePublic(
+        output_text=raw_response.output_text,
+        usage=tokenusage,
     )
-
-    return {
-        "title": result.get("title", ""),
-        "url": url,
-        "snippet": result.get("body", ""),
-        "content": page.get("content", "")[:12000],
-    }
-
-
-client = OpenAI(
-    api_key=DEEPSEEK_API_KEY,
-    base_url=BASE_URL,
-)
-
-
-tool = {
-    "type": "function",
-    "name": "web_search",
-    "description": "搜索互联网并读取网页正文。需要当前或最新信息时使用。",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "query": {
-                "type": "string",
-                "description": "搜索关键词",
-            }
-        },
-        "required": ["query"],
-        "additionalProperties": False,
-    },
-}
-
-
-# 第一次请求：让模型自己决定是否搜索
-response = client.responses.create(
-    model=MODEL,
-    reasoning={"effort": "none"},
-    instructions=(
-        "如果问题需要当前或最新信息，可以自主调用 web_search。"
-        "如果使用搜索结果，请根据网页正文总结，并附上来源 URL。"
-    ),
-    input=QUESTION,
-    tools=[tool],
-    tool_choice="auto",
-)
-
-
-call = next(
-    (item for item in response.output if item.type == "function_call"),
-    None,
-)
-
-
-if call is None:
-    print("模型没有调用搜索工具。\n")
-    print(response.output_text)
-
-else:
-    print("模型自主调用了搜索工具。")
-    print("工具：", call.name)
-    print("参数：", call.arguments)
-
-    args = json.loads(call.arguments)
-
-    search_result = web_search(args["query"])
-
-    print("\n搜索结果：")
-    print("标题：", search_result["title"])
-    print("URL：", search_result["url"])
-
-    # 第二次请求：
-    # 不再提供 tools，只把工具结果交回模型进行总结
-    final = client.responses.create(
-        model=MODEL,
-        reasoning={"effort": "none"},
-        instructions=(
-            "请根据搜索工具返回的网页内容回答原问题。" "给出简短总结，并附来源 URL。"
-        ),
-        input=[
-            {
-                "role": "user",
-                "content": QUESTION,
-            },
-            {
-                "type": "function_call",
-                "call_id": call.call_id,
-                "name": call.name,
-                "arguments": call.arguments,
-            },
-            {
-                "type": "function_call_output",
-                "call_id": call.call_id,
-                "output": json.dumps(
-                    search_result,
-                    ensure_ascii=False,
-                ),
-            },
-        ],
-    )
-
-    print("\n最终总结：\n")
-    print(final.output_text)
+    return response
 ```
-
-**终端输出**
-```bash
-模型自主调用了搜索工具。
-工具： web_search
-参数： {"query": "DeepSeek Responses API 官方"}
-
-搜索结果：
-标题： Using the Responses API | DeepSeek API Docs
-URL： https://api-docs.deepseek.com/guides/responses_api/
-
-最终总结：
-
-## 总结
-```
-
-**循环流程**
+问题很多,最突出的就是类型硬编码,所以先在`chat_schema`里设计一个能够装载我们所需dict的type:
 ```py
-import json
-
-from ddgs import DDGS
-from openai import OpenAI
-
-
-DEEPSEEK_API_KEY = ""
-
-MODEL = "deepseek-flash"
-BASE_URL = "https://api.deepseek.com"
-
-QUESTION = "请联网搜索 DeepSeek Responses API 最近的官方信息，并根据搜索到的网页内容做一个简短总结，附上来源。"
-
-
-# =========================================================
-# 工具实现
-# =========================================================
-
-def web_search(query: str):
-    ddgs = DDGS()
-
-    result = ddgs.text(
-        query,
-        max_results=1,
-    )[0]
-
-    url = result["href"]
-
-    page = ddgs.extract(
-        url,
-        fmt="text_markdown",
-    )
-
-    return {
-        "title": result.get("title", ""),
-        "url": url,
-        "snippet": result.get("body", ""),
-        "content": page.get("content", "")[:12000],
-    }
-
-
-# =========================================================
-# OpenAI-compatible client
-# =========================================================
-
-client = OpenAI(
-    api_key=DEEPSEEK_API_KEY,
-    base_url=BASE_URL,
-)
-
-
-# =========================================================
-# Tool Schema
-# =========================================================
-
-tool = {
-    "type": "function",
-    "name": "web_search",
-    "description": "搜索互联网并读取网页正文。需要当前或最新信息时使用。",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "query": {
-                "type": "string",
-                "description": "搜索关键词",
-            }
-        },
-        "required": ["query"],
-        "additionalProperties": False,
-    },
-}
-
-
-# =========================================================
-# Agent
-# =========================================================
-
-history = [
-    {
-        "role": "user",
-        "content": QUESTION,
-    }
+StreamEventType = Literal[
+    "reasoning",
+    "answer",
+    "done",
+    "error",
 ]
 
-MAX_ROUNDS = 10
 
+class StreamEvent(TypedDict):
+    type: StreamEventType
+    content: str
+```
+如此一来,当我们在dict里把`reasoning`写成`reason`时,类型提示就会报错,从而保证字典的准确性.
 
-for round_number in range(MAX_ROUNDS):
-
-    print(f"\n========== 第 {round_number + 1} 轮 ==========")
-
-    response = client.responses.create(
-        model=MODEL,
-
-        # 关闭 thinking，避免还需要回传 reasoning_text
-        reasoning={
-            "effort": "none"
-        },
-
-        instructions=(
-            "你可以自主调用 web_search 搜索互联网。"
-            "如果资料不足，可以再次搜索。"
-            "当信息已经足够时，直接回答用户问题。"
-            "最终回答必须根据搜索结果进行总结，并附来源 URL。"
-        ),
-
-        input=history,
-
-        tools=[
-            tool
-        ],
-
-        tool_choice="auto",
-    )
-
-    # 找这一轮所有工具调用
-    calls = [
-        item
-        for item in response.output
-        if item.type == "function_call"
-    ]
-
-    # =====================================================
-    # 没有工具调用 → Agent 已经得到最终答案
-    # =====================================================
-
-    if not calls:
-        print("\n模型不再调用工具。")
-        print("\n最终回答：\n")
-        print(response.output_text)
-        break
-
-
-    # =====================================================
-    # 模型调用了工具
-    # =====================================================
-
-    print(f"模型调用了 {len(calls)} 个工具：")
-
-    for call in calls:
-
-        print("\n工具：", call.name)
-        print("参数：", call.arguments)
-
-        # 把模型发出的 function_call
-        # 放进历史记录
-        history.append(
-            {
-                "type": "function_call",
-                "call_id": call.call_id,
-                "name": call.name,
-                "arguments": call.arguments,
+最终的LLM流式响应处理:
+```py
+def _stream_output(
+    stream: Stream[ResponseStreamEvent],
+) -> Generator[StreamEvent, None, Response]:
+    final_response: Response | None = None
+    for event in stream:
+        # thinking字段和answer字段
+        if event.type == "response.reasoning_text.delta":
+            yield {
+                "type": "reasoning",
+                "content": event.delta,
             }
-        )
-
-        args = json.loads(
-            call.arguments
-        )
-
-
-        # =================================================
-        # 真正执行工具
-        # =================================================
-
-        if call.name == "web_search":
-
-            result = web_search(
-                args["query"]
-            )
-
-        else:
-
-            result = {
-                "error": f"未知工具：{call.name}"
+        elif event.type == "response.output_text.delta":
+            yield {
+                "type": "answer",
+                "content": event.delta,
             }
 
+        # 错误处理
+        elif event.type == "error":
+            raise LLMError(event.message)
+        elif event.type == "response.failed":
+            error = event.response.error
+            if error:
+                raise LLMError(error.message)
+            else:
+                raise LLMError("Response failed")
 
-        print("\n搜索结果：")
+        # 完成输出
+        elif event.type == "response.completed":
+            final_response = event.response
+        elif event.type == "response.incomplete":
+            details = event.response.incomplete_details
+            reason = details.reason if details else "unknown"
+            raise LLMError(f"Response incomplete: {reason}")
 
-        if "title" in result:
-            print("标题：", result["title"])
-            print("URL：", result["url"])
+    if final_response is None:
+        raise LLMError("Reponse did not complete")
 
-
-        # =================================================
-        # 把工具执行结果返回给模型
-        # =================================================
-
-        history.append(
-            {
-                "type": "function_call_output",
-                "call_id": call.call_id,
-                "output": json.dumps(
-                    result,
-                    ensure_ascii=False,
-                ),
-            }
-        )
-
-
-else:
-    print(
-        f"\nAgent 已达到最大工具调用轮数 {MAX_ROUNDS}，停止运行。"
-    )
+    return final_response
 ```
-
-要知道,如果不用LLM的话,最难的地方是提取是否需要调用搜索工具的语义啊,而现在我们直接就可以根据封装的API来调用工具了,可以说是相当简单了.
-
-现在的问题就是,如何把我们的ddgs接入agents里面了.
-### MCP Python SDK介绍
-#### 初体验
-导入:
-```bash
-uv add "mcp[cli]"
-```
-代码:
-```py
-from mcp.server import MCPServer
-
-mcp = MCPServer("Demo")
-
-
-@mcp.tool()
-def add(a: int, b: int) -> int:
-    """Add two numbers."""
-    return a + b
-
-
-@mcp.resource("greeting://{name}")
-def greeting(name: str) -> str:
-    """Greet someone by name."""
-    return f"Hello, {name}!"
-```
-
-启动MCP服务器
-```bash
-uv run mcp dev .\mcp_test.py
-```
-- mcp dev用于开发,会启动Inspector
-- mcp run命令用于正式运行,不会启动Inspector
-
-唤起页面如下:
-![网页](PixPin_2026-10-10_13-39-35_1.webp)
-
-可以执行上面的两个工具并返回结果:
-![结果](PixPin_2026-10-10_13-40-37.webp)
-#### 基本内容
-MCP库支持三种类型的接口:
-| 原语 (Primitive)      | 控制方 (Controlled by)     | 定义 (What it is)              | 示例 (Example)       |
-| :-------------------- | :------------------------- | :----------------------------- | :------------------- |
-| **Tools**（工具）     | 模型 (The model)           | 模型调用以执行操作的函数       | API 调用、数据库写入 |
-| **Resources**（资源） | 应用程序 (The application) | 宿主加载到模型上下文中的数据   | 文件内容、API 响应   |
-| **Prompts**（提示词） | 用户 (The user)            | 用户按名称调用的可复用消息模板 | 斜杠命令、菜单项     |
-
-这三者一律通过装饰器声明:
-```py
-from mcp.server import MCPServer
-
-mcp = MCPServer("Demo")
-
-
-@mcp.tool()
-def add(a: int, b: int) -> int:
-    """Add two numbers."""
-    return a + b
-
-
-@mcp.resource("greeting://{name}")
-def greeting(name: str) -> str:
-    """Greet someone by name."""
-    return f"Hello, {name}!"
-
-
-@mcp.prompt()
-def summarize(text: str) -> str:
-    """Summarize a piece of text in one sentence."""
-    return f"Summarize the following text in one sentence:\n\n{text}"
-```
-
-调用方法也很简单:
-```py
-import asyncio
-from mcp import Client
-
-
-async def main():
-    async with Client("http://127.0.0.1:8000/mcp") as client:
-        result = await client.call_tool(
-            "add",
-            {"a": 10, "b": 20},
-        )
-        print(result.structured_content)
-
-
-asyncio.run(main())
-```
-#### Server部分
-### FastMCP介绍
-#### 初体验
-导入:
-```bash
-uv add fastmcp
-```
-
-Server代码:
-```py
-from fastmcp import FastMCP
-
-mcp = FastMCP("My MCP Server")
-
-@mcp.tool
-def greet(name: str) -> str:
-    return f"Hello, {name}!"
-
-if __name__ == "__main__":
-    mcp.run()
-```
-
-启动后使用Client:
-```py
-import asyncio
-from fastmcp import Client
-
-client = Client("http://localhost:8000/mcp")
-
-async def call_tool(name: str):
-    async with client:
-        result = await client.call_tool("greet", {"name": name})
-        print(result)
-
-asyncio.run(call_tool("Ford"))
-```
-
-光是这些的话可以看到这与MCP框架没有任何区别,那还是要深入才能看到差异
-#### 服务器部分
-
-
-## ch21: 断章-接入RAG和Vector Database
-之所以叫断章,是因为小项目引入RAG的成本远大于直接输入文档的成本,而大型项目的RAG由于经费充足,完全可以调用subagent来处理文档.如此一来,RAG似乎就没有用武之地了.
-
-究其根本,是因为RAG属于LLM时代,当时的上下文窗口缺乏,RAG是为了塞入大量文档作为上下文的不得已之举.
-
-Agent时代我们能够直接调用工具,编写python代码处理文档,上下文窗口又纷纷达到了1M大小,那么又为什么还要用低效的embedding模型来生成向量并存储呢.
-
-不过早就有聪明人认识到了这点,所以引入了GraphRAG和Agentic RAG,试图挽救RAG的未来
-
-## ch22: Agent框架测评
-### 背景
-可以发现,当服务越堆越多时,我们这个项目的可维护性就越来越低,唯一的解决方法就是引入框架,将大量重复工作封装在框架背后,只关注高层的逻辑设计,如此一来,不但开发起来更加简单,也能让代码的性能更高.
-
-先看一下目前的主流框架:
-| 框架                          | 定位                      | 模型绑定                  | 强项                                                     | 定位  |
-| ----------------------------- | ------------------------- | ------------------------- | -------------------------------------------------------- | ----- |
-| **OpenAI Agents SDK**         | 轻量 Agent SDK            | OpenAI 最佳，也能接第三方 | Agent loop、tools、handoff、guardrails、tracing、sandbox | ⭐⭐⭐⭐⭐ |
-| **Pydantic AI**               | Python 通用 Agent SDK     | 很低                      | 类型安全、多模型、工具、Graph、eval、durable execution   | ⭐⭐⭐⭐⭐ |
-| **LangGraph**                 | Agent workflow/runtime    | 很低                      | 状态机、复杂流程、持久化、HITL、长任务                   | ⭐⭐⭐⭐⭐ |
-| **Google ADK 2.0**            | 企业级 Agent 开发套件     | Gemini/Google 最佳        | multi-agent、graph、A2A、GCP、context                    | ⭐⭐⭐⭐½ |
-| **Microsoft Agent Framework** | 企业 Agent + workflow     | 很低                      | Azure/.NET/Python、状态、工作流、企业集成                | ⭐⭐⭐⭐½ |
-| **Claude Agent SDK**          | Claude 原生 Agent harness | Claude                    | coding/file/shell、长任务、Claude 原生能力               | ⭐⭐⭐⭐½ |
-| **Mastra**                    | TypeScript Agent 框架     | 很低                      | TS、workflow、eval、memory、前后端整合                   | ⭐⭐⭐⭐½ |
-| **Vercel AI SDK v7**          | Web/TS AI SDK             | 很低                      | Next.js、streaming、Agent UI、ToolLoopAgent              | ⭐⭐⭐⭐½ |
-| **CrewAI**                    | 高层 Multi-Agent 框架     | 较低                      | Role/Crew/Task 抽象、快速多 Agent                        | ⭐⭐⭐⭐  |
-| **LlamaIndex**                | 数据/RAG Agent            | 低                        | RAG、知识库、数据 Agent                                  | ⭐⭐⭐⭐  |
-
-
-我们这里就拿其中几个有代表性的来做个测评,看看各自的适用情景.
-
-### [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/)
-
-#### 初体验
-导入:
-```bash
-uv add openai-agents
-```
-
-
-基本代码:
-```py
-from openai import AsyncOpenAI
-from agents import (
-    Agent,
-    Runner,
-    ModelSettings,
-    OpenAIChatCompletionsModel,
-)
-
-# 使用 OpenAI 兼容客户端连接 DeepSeek
-client = AsyncOpenAI(
-    api_key="sk",
-    base_url="https://api.deepseek.com",
-)
-
-agent = Agent(
-    name="Assistant",
-    instructions="You are a helpful assistant",
-    model=OpenAIChatCompletionsModel(
-        model="deepseek-flash",
-        openai_client=client,
-    ),
-    # 普通文本生成，关闭深度思考
-    model_settings=ModelSettings(
-        extra_body={"thinking": {"type": "disabled"}},
-    ),
-)
-
-result = Runner.run_sync(
-    agent,
-    "Write a haiku about recursion in programming.",
-)
-
-print(result.final_output)
-```
-
-工具调用:
-```py
-import os
-
-from openai import AsyncOpenAI
-from agents import (
-    Agent,
-    Runner,
-    OpenAIChatCompletionsModel,
-    set_tracing_disabled,
-)
-from agents.decorators import tool
-from dotenv import load_dotenv
-
-load_dotenv("./.env")
-API_KEY = os.getenv("API_KEY")
-
-set_tracing_disabled(True)
-
-
-@tool
-def history_fun_fact() -> str:
-    """Return a short history fact."""
-    return "Sharks are older than trees."
-
-
-# 使用 OpenAI 兼容客户端连接 DeepSeek
-client = AsyncOpenAI(
-    api_key=API_KEY,
-    base_url="https://api.deepseek.com",
-)
-
-agent = Agent(
-    name="Assistant",
-    instructions="You are a helpful assistant",
-    model=OpenAIChatCompletionsModel(
-        model="deepseek-flash",
-        openai_client=client,
-    ),
-    tools=[
-        history_fun_fact,
-    ],
-)
-
-result = Runner.run_sync(
-    agent,
-    "Tell me something surprising about ancient life on Earth.",
-)
-
-print(result.final_output)
-```
-
-光是这样肯定是远不如普通的responses API调用的,所以我们需要继续深入研究.
-#### Sandbox Agent
-##### 概念
-现代智能体在能够操作文件系统中的真实文件时效果最佳。沙箱智能体可以利用专用工具和 shell 命令搜索和操作大型文档集、编辑文件、生成制品以及运行命令。沙箱为模型提供一个持久化工作区，智能体可以使用它代您完成工作
-
-以下是从图片中提取的文字，并进行了排版美化：
-
-**SandboxAgent 仍然是 Agent。** 它保留常规的智能体接口，例如 `instructions`、`prompt`、`tools`、`handoffs`、`mcp_servers`、`model_settings`、`output_type`、安全防护措施和钩子，并且仍通过常规的 `Runner` API 运行。变化之处在于执行边界：
-
-*   **`SandboxAgent` 定义智能体本身：** 常规的智能体配置，以及 `default_manifest`、`base_instructions`、`run_as` 等沙箱专用默认值，还有文件系统工具、shell 访问、技能、记忆或压缩等能力。
-*   **`Manifest` 声明新沙箱工作区所需的初始内容和布局**，包括文件、仓库、挂载和环境。
-*   **沙箱会话是运行命令和更改文件的实时执行环境。** 会话提供的隔离程度取决于其后端和配置。
-*   **`SandboxRunConfig` 决定运行如何获取该沙箱会话**，例如直接注入会话、从序列化的沙箱会话状态重新连接，或通过沙箱客户端创建新的沙箱会话。
-*   **保存的沙箱状态和快照让后续运行能够重新连接到先前的工作**，或使用保存的内容初始化新的沙箱会话。
-
-
-#### Runner
-你可以通过 `Runner` 类运行智能体,有 3 种选择：
-
-1. **`Runner.run()`**：异步运行并返回 `RunResult`。
-2. **`Runner.run_sync()`**：同步方法，底层直接运行 `.run()`。
-3. **`Runner.run_streamed()`**：异步运行并返回 `RunResultStreaming`。它以流式传输模式调用 LLM，并在收到事件时将其流式传输给你。
-
-调用 `Runner` 方法中的任意一个时，需要传入起始智能体和输入。输入可以是：
-
-*   一个字符串（视为用户消息）；
-*   OpenAI Responses API 格式的输入项列表；或者
-*   恢复暂停的运行或因 `cancel(mode="after_turn")` 而停止的运行时使用的 `RunState`。状态还可以携带为下次恢复后的模型调用暂存的输入。
-
-随后，Runner 会运行以下循环：
-
-1.  使用当前输入调用当前智能体的 LLM。
-2.  LLM 生成输出。
-    *   a. 如果 Runner 将 LLM 输出归类为最终输出，循环结束并返回结果。
-    *   b. 如果 LLM 请求任务转移，则更新当前智能体和输入，并重新运行循环。
-    *   c. 如果 LLM 生成工具调用，则运行这些工具调用、追加结果，然后重新运行循环。
-3.  如果超过传入的 `max_turns`，则引发 `MaxTurnsExceeded` 异常。传入 `max_turns=None` 可禁用此轮次限制。
-
-
-说真的,这个封装很简单,基本的Responses API也能做的差不多,还要你来搞啊.
-
-
-#### MCP接入
-```py
-import asyncio
-
-from agents import Agent, HostedMCPTool, Runner
-
-async def main() -> None:
-    agent = Agent(
-        name="Assistant",
-        instructions="Use the DeepWiki hosted MCP server to inspect openai/openai-agents-python.",
-        tools=[
-            HostedMCPTool(
-                tool_config={
-                    "type": "mcp",
-                    "server_label": "deepwiki",
-                    "server_url": "https://mcp.deepwiki.com/mcp",
-                    "require_approval": "never",
-                }
-            )
-        ],
-    )
-
-    result = await Runner.run(
-        agent,
-        "Which language is the repository openai/openai-agents-python written in?",
-    )
-    print(result.final_output)
-
-asyncio.run(main())
-```
-
-#### 边角料知识
-1. 查看tokens耗费:
-```py
-result = await Runner.run(agent, "What's the weather in Tokyo?")
-usage = result.context_wrapper.usage
-
-print("Requests:", usage.requests)
-print("Input tokens:", usage.input_tokens)
-print("Output tokens:", usage.output_tokens)
-print("Total tokens:", usage.total_tokens)
-```
-
-2. 流式传输
-```py
-import asyncio
-from openai.types.responses import ResponseTextDeltaEvent
-from agents import Agent, Runner
-
-async def main():
-    agent = Agent(
-        name="Joker",
-        instructions="You are a helpful assistant.",
-    )
-
-    result = Runner.run_streamed(agent, input="Please tell me 5 jokes.")
-    async for event in result.stream_events():
-        if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
-            print(event.data.delta, end="", flush=True)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-#### 总结
-满足了一个Agents框架的一些基本需求,但最重要的Agents编排支持很弱,所以顶多用来做一些简单的智能体
-### [Pydantic AI](https://pydantic.dev/docs/ai/overview/)
-#### 背景
-Pydantic大家都很熟悉了,而在Agent时代,我们都需要强调LLM的标准化输出,Pydantic官方立马就意识到这不就是自己最擅长的领域吗.
-
-因此他们在24年10月就构建并开源了Pydantic AI,并在25年9月正式发布了V1版本,而今年的6月份发布了V2版本,逐渐稳定下来.
-#### 初体验
-导入:
-```bash
-uv add pydantic-ai pydantic-ai-harness
-```
-
-使用:
-```py
-from dotenv import load_dotenv
-
-from pydantic_ai import Agent
-from pydantic_ai.capabilities import LocalWorkspace, WebSearch
-from pydantic_ai_harness import Advisor, Coder
-
-load_dotenv()
-
-agent = Agent(
-    "deepseek:deepseek-v4-flash",
-    capabilities=[
-        LocalWorkspace("."),
-        Coder(),
-        WebSearch(),
-        Advisor("deepseek:deepseek-v4-pro"),
-    ],
-)
-
-agent.to_cli_sync()
-```
-哎呀妈呀,这一下子就高端起来了,直接做了个Coding Agent出来,用的代码比OpenAI Agents少个几十倍好不好,还原生支持Deepseek,我简直被感动哭了,终于不用加Adapter了.
-
-不过一个问题就是Coder不支持直接在Windows下运行,要么用WSL,要么用虚拟机,才能看到效果.
-
-
-#### 核心概念
-有五种方式可以运行agent:
-1. **`agent.run()`** — an async function which returns a `RunResult` containing a completed response.
-
-2. **`agent.run_sync()`** — a plain, synchronous function which returns a `RunResult` containing a completed response (internally, this just calls `loop.run_until_complete(self.run())`).
-
-3. **`agent.run_stream()`** — an async context manager which returns a `StreamedRunResult`, which contains methods to stream text and structured output as an async iterable.
-   
-   > `agent.run_stream_sync()` is a synchronous variation that returns a `StreamedRunResultSync` with synchronous versions of the same methods.
-
-4. **`agent.run_stream_events()`** — an async context manager which yields an async iterator over `AgentStreamEvent`s ending with an `AgentRunResultEvent` containing the final run result.
-
-5. **`agent.iter()`** — a context manager which returns an `AgentRun`, an async iterable over the nodes of the agent's underlying `Graph`.
-
-```py
-import asyncio
-from collections.abc import AsyncIterable
-from datetime import date
-
-from pydantic_ai import (
-    Agent,
-    AgentStreamEvent,
-    FinalResultEvent,
-    FunctionToolCallEvent,
-    FunctionToolResultEvent,
-    PartDeltaEvent,
-    PartStartEvent,
-    RunContext,
-    TextPartDelta,
-    ThinkingPartDelta,
-    ToolCallPartDelta,
-)
-
-weather_agent = Agent(
-    'openai:gpt-5.2',
-    instructions='Providing a weather forecast at the locations the user provides.',
-)
-
-
-@weather_agent.tool
-async def weather_forecast(
-    ctx: RunContext,
-    location: str,
-    forecast_date: date,
-) -> str:
-    return f'The forecast in {location} on {forecast_date} is 24°C and sunny.'
-
-
-output_messages: list[str] = []
-
-async def handle_event(event: AgentStreamEvent):
-    if isinstance(event, PartStartEvent):
-        output_messages.append(f'[Request] Starting part {event.index}: {event.part!r}')
-    elif isinstance(event, PartDeltaEvent):
-        if isinstance(event.delta, TextPartDelta):
-            output_messages.append(f'[Request] Part {event.index} text delta: {event.delta.content_delta!r}')
-        elif isinstance(event.delta, ThinkingPartDelta):
-            output_messages.append(f'[Request] Part {event.index} thinking delta: {event.delta.content_delta!r}')
-        elif isinstance(event.delta, ToolCallPartDelta):
-            output_messages.append(f'[Request] Part {event.index} args delta: {event.delta.args_delta}')
-    elif isinstance(event, FunctionToolCallEvent):
-        output_messages.append(
-            f'[Tools] The LLM calls tool={event.part.tool_name!r} with args={event.part.args} (tool_call_id={event.part.tool_call_id!r})'
-        )
-    elif isinstance(event, FunctionToolResultEvent):
-        output_messages.append(f'[Tools] Tool call {event.tool_call_id!r} returned => {event.part.content}')
-    elif isinstance(event, FinalResultEvent):
-        output_messages.append(f'[Result] The model starting producing a final result (tool_name={event.tool_name})')
-
-
-async def event_stream_handler(
-    ctx: RunContext,
-    event_stream: AsyncIterable[AgentStreamEvent],
-):
-    async for event in event_stream:
-        await handle_event(event)
-
-async def main():
-    user_prompt = 'What will the weather be like in Paris on Tuesday?'
-
-    async with weather_agent.run_stream(user_prompt, event_stream_handler=event_stream_handler) as run:
-        async for output in run.stream_text():
-            output_messages.append(f'[Output] {output}')
-
-
-if __name__ == '__main__':
-    asyncio.run(main())
-
-    print(output_messages)
-    
-```
-
-### [Langchain/LangGraph/DeepAgents](https://docs.langchain.com/oss/python/langgraph/overview)
-
-#### 辨析
-*   **选择 Deep Agents**：如果你需要一个“开箱即用”（batteries-included）的智能体，具备自动上下文压缩、虚拟文件系统和子智能体生成等特性。Deep Agents 构建于 LangChain 智能体之上，你也可以直接使用 LangChain 智能体。
-
-*   **选择 LangChain** (`create_agent`)：如果你需要一个高度可定制的框架（harness），以便轻松针对你的用例和数据进行量身定制。
-
-*   **选择 LangGraph**（我们的底层编排框架）：如果你有高级需求，需要将确定性工作流和智能体工作流结合起来。
-
-*   **选择 LangSmith**：用于追踪、调试和评估使用上述任何框架构建的智能体。请遵循追踪快速入门进行设置。我们建议你同时设置 LangSmith Engine，它可以监控你的追踪记录、检测问题并提出修复建议。
-
-#### Lanchain
-##### 初体验
-安装:
-```bash
-uv add langchain "langchain-deepseek"
-```
-
-代码:
-```py
-from dotenv import load_dotenv
-from langchain.agents import create_agent
-
-load_dotenv()
-
-
-def get_weather(city: str) -> str:
-    """Get weather for a given city."""
-    return f"It's always sunny in {city}!"
-
-
-agent = create_agent(
-    model="deepseek:deepseek-v4-pro",
-    tools=[get_weather],
-    system_prompt="You are a helpful assistant",
-)
-
-result = agent.invoke(
-    {"messages": [{"role": "user", "content": "What's the weather in San Francisco?"}]}
-)
-print(result["messages"][-1].content_blocks)
-```
-##### 流式输出
-```py
-from langchain.messages import AIMessage, HumanMessage
-
-
-stream = agent.stream_events(
-    {"messages": [{"role": "user", "content": "Search for AI news and summarize the findings"}]},
-    version="v3",
-)
-for snapshot in stream.values:
-    # Each snapshot contains the full state at that point
-    latest_message = snapshot["messages"][-1]
-    if latest_message.content:
-        if isinstance(latest_message, HumanMessage):
-            print(f"User: {latest_message.content}")
-        elif isinstance(latest_message, AIMessage):
-            print(f"Agent: {latest_message.content}")
-    elif latest_message.tool_calls:
-        print(f"Calling tools: {[tc['name'] for tc in latest_message.tool_calls]}")
-```
-
-##### 子智能体
-```py
-from deepagents.backends import StateBackend
-from deepagents.middleware import FilesystemMiddleware
-from deepagents.middleware.subagents import SubAgentMiddleware
-from langchain.agents import create_agent
-from langchain.agents.middleware import TodoListMiddleware
-from langchain.tools import tool
-
-
-@tool
-def search(query: str) -> str:
-    """Search for a query and return a short summary."""
-    return f"Search results for: {query}"
-
-
-backend = StateBackend()
-
-agent = create_agent(
-    model="google_genai:gemini-3.6-flash",
-    tools=[search],
-    middleware=[
-        FilesystemMiddleware(backend=backend),
-        TodoListMiddleware(),
-        SubAgentMiddleware(
-            backend=backend,
-            subagents=[
-                {
-                    "name": "researcher",
-                    "description": "Searches and returns a structured summary.",
-                    "system_prompt": "Use the search tool to research the question and summarize key points.",
-                    "tools": [search],
-                    "model": "anthropic:claude-sonnet-4-6",
-                    "middleware": [],
-                }
-            ],
-        ),
-    ],
-)
-```
-
-
-
-
-### [CrewAI](https://docs.crewai.com/)
-
 
 
 ### 总结
-现在这个情形说的好是百花齐放,说的差就是群龙无首,这么多框架,还真不太好选,只能看公司要你用什么来开发了,不过主观上还是什么热门用什么.
+纵览一下代码,你会发现我们这次重构完美实现了功能的去耦合,极大地增强了代码的可读性.那么接下来就是朝着增强代码的健壮性入手了.
+## ch19: 全面引入测试
+### 前言
+写完代码后,怎么知道写的对不对呢,最简单的方法就是跑一遍了,运行一下uvicorn,打开数据库连接,测试一下网站的CRUD功能,curl一下几个接口,查一下数据库表.整个流程一般不会超过半小时.
+
+如果这个软件你以后不再维护了,或者说本来就不是你自己写的,那么这么做并没有什么问题.
+
+但如果你是这个项目的开发者,新需求源源不断,每天都在迭代和增加新功能,你能打包票说自己不会影响到以前的代码结构嘛.如果不能保证,那是不是也要测试一遍,防止客户投诉或者上级处罚.
+
+天天干同一件事总会腻的吧,这时候你会想,怎么把这些人工测试自动化呢?
+
+而这就是编写测试代码的用处,只需要编写一次,以后部署软件时,只要测试通过,你就能保证这个软件不出错,而不用再自己慢慢curl了.
+
+### 测试漫谈
+
+
 
 
