@@ -1108,7 +1108,7 @@ func main() {
 }
 ```
 
-尽管这是出于安全和效率的考量,但请你先把文档更新好啊,文档里一堆的Traditional API残留,很混乱的好不好.
+尽管这是出于安全和效率的考量,但请你先把文档更新好啊,里面一堆的Traditional API代码残留,很混乱的好不好.
 
 #### 数据表
 ##### GORM约定
@@ -1347,6 +1347,45 @@ dsn := "postgresql://gorm:gorm@localhost:9920/gorm?sslmode=disable&TimeZone=Asia
 
 db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 ```
+#### Context机制
+一个最简单的例子如下:
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+defer cancel()
+
+users, err := gorm.G[User](db).Find(ctx)
+```
+
+之所以要显式管理Context,是因为Context可以扩展到HTTP服务器中,从而随着路由请求的结束而关闭上下文,避免长期占用连接.
+
+#### 错误处理
+```go
+ctx := context.Background()
+
+// Error handling with direct return values
+user, err := gorm.G[User](db).Where("name = ?", "jinzhu").First(ctx)
+if err != nil {
+  // Handle error...
+}
+
+// For operations that don't return a result
+err := gorm.G[User](db).Where("id = ?", 1).Delete(ctx)
+if err != nil {
+  // Handle error...
+}
+```
+
+#### 迁移
+AutoMigrate 会自动创建表、缺失的外键、约束、列和索引。
+```go
+db.AutoMigrate(&User{})
+
+db.AutoMigrate(&User{}, &Product{}, &Order{})
+
+// 创建表时添加后缀
+db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{})
+```
+
 
 ### Go项目组织风格(10/30)
 - [官方文档说明](https://go.dev/doc/modules/layout)

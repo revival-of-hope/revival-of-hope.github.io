@@ -304,368 +304,29 @@ MCP工具如今都是通过插件提供的,除了用户自己可勾选之外,Age
 
 
 ### ch5: Coding Agent
+以 Manus 为代表的通用 Agent 产品，将 Deep Research（深度调研）、Computer Use（电脑操控）和 Coding（代码生成）三大能力融合在一个系统中，凸显了一个已经被多类实践反复验证的洞察：Coding Agent 加上文件系统，是开放任务型通用 Agent 最核心的技术基础。
 
-## Agentic Coding with OpenAI Codex CLI
-### ch1: 介绍CodeX CLI
-介绍了CLI的历史和基本原理
-### ch2: 使用CodeX CLI
-几乎每个人在第一周都会犯同样的几个错误:
-1. 将其视为聊天，并且任务描述不够具体。“清理授权码”这样的任务没有给代理提供任何验证依据，因此它会自行定义“清理”的含义，并以此运行数分钟。解决方法是设置完成标准：指定文件名、所需的更改以及必须通过的测试。
-2. 打断你第一次不同意的修改。正如演示所示，第一次修改通常是一种试探。如果在智能体做出你不会做的事情时立即停止它，就会破坏使其发挥作用的测试和纠正循环。
-3. 在没有测试和 AGENTS.md 的情况下运行。没有测试，代理无法判断是否成功；没有 AGENTS.md，它无法确定要运行哪个测试命令或遵循哪些约定，因此只能靠猜测。
+为什么 Coding Agent 是核心而非其他两种？因为几乎所有高效的内容生成最终都要落到代码上。PPT 本质上是 OOXML（Office Open XML，微软推出的办公文档开放标准）格式的代码，Word 文档和 PDF 报告可通过代码生成，数据分析和可视化由 Python 脚本完成，甚至 GUI 操作中成功的浏览器操作序列也可以被固化为可复用的 RPA（机器人流程自动化，Robotic Process Automation）代码。
 
-Codex命令会激活交互式对话页面,但带上参数可以支持各种各样的功能,如codex exec
-### ch3: Prompting Codex CLI Effectively
-Four elements appear reliably in prompts that produce good results:
+Coding Agent 的 Harness 实践为所有 Agent 系统提供了可迁移的设计原则：
 
-- **Goal:** what ‘done’ looks like in one concrete sentence. Use outcome verbs: ‘add’, ‘fix’, ‘migrate’, ‘replace’.
-- **Context:** language version, framework and an analogous piece of code: ‘follow the pattern in `src/api/users.ts`'.
-- **Constraints:** what Codex CLI should not do. No new dependencies. Don't modify the database schema. Don't touch files in `src/legacy/`.
-- **Completion criteria:** a concrete, runnable check: '`GET /api/posts?page=2&limit=20` returns the correct JSON, and `npm test` exits with code 0'.
+1. **约束优先于指导**：能用代码强制的规则就不要用文档建议。Linter 规则、类型约束、CI 检查的价值远超系统提示词中“请遵循…”式的指导——前者是“做不了”，后者只是“建议别做”。
+2. **验证要自动化**：人工审查是不可扩展的瓶颈。测试套件、代码质量检查、行为监控——这些基础设施的投入回报远高于增加人力。
+3. **反馈越快越好，越结构化越好**：错误信息越详细、越接近错误发生的时刻，Agent 的纠正效率越高。第二章的 Agent 状态栏技术（详细错误信息、工具调用计数器）正是这一原则的体现。
+4. **回退要可靠**：Agent 在安全网内操作才能大胆试错。Git 分支、沙盒环境、快照机制确保任何错误都可逆。
+#### 文件编辑方案
+![示意图](PixPin_2026-11-04_17-40-33.webp)
 
-包含四个要素的提示也暗示了任务的范围。理想的任务规模是同事可以在一个下午完成的，并且任务完成前后的状态清晰可见。较小的任务会浪费结构化提示的额外工作；较大的任务应该分解成若干里程碑，或者进入计划模式。
+差异描述 + Apply Model：模型不是直接指定如何编辑文件，而是生成一份变更描述——可以是类似 git diff（即 git diff 命令输出的那种“删了哪几行、加了哪几行”的格式）的差异文本，也可以是带省略标记的代码骨架（用“此处保持不变”之类的注释跳过未修改部分）。这份描述随后交给专门的“应用模型”（Apply Model）——通常是另一个更小、更快的 LLM——负责与原文件合并、产出完整的新文件。这种分离关注点的设计让主模型专注高层代码逻辑、应用模型专注底层文本操作。
 
-一个技巧是渐进式披露Skill,Codex CLI 最初只显示名称和描述，仅在激活时加载完整指令,示例如下:
+旧字符串到新字符串（Old String → New String）：Claude Code 采用的方案。模型提供 old string（要被替换的原文）和 new string（替换后的新文本），框架执行简单的字符串查找替换。优势是可预测性和透明性——old string 在文件中存在且唯一则成功，否则失败，不存在模棱两可。代价是删除大段代码时需完整输出所有原始内容，一个字符的偏差就会匹配失败；同一代码出现多次时需提供更长的上下文来消除歧义。
+#### 代码的威力
+如果Agent只负责阅读和利用代码,而无需处理复杂的自然语言,那么无论是运行效率还是使用体验上都会大大提升.
 
->I have a skill at ~/.agents/skills/api-scaffold/SKILL.md.
-It should activate when I ask to create a new REST endpoint but NOT when I'm debugging an existing endpoint.
-### ch4: AGENTS.md
-![结构图](PixPin_2026-10-23_10-03-32.webp)
+![示例](PixPin_2026-11-04_18-20-37.webp)
 
-一些值得一开始就了解的操作细节：
-1. Codex CLI 每次运行时都会重新构建此链；编辑文件时无需清除缓存。
-2. 空文件会被静默跳过；它们不会重置或中断链。
-3. 所有已加载文件的总大小受 project_doc_max_bytes 设置的限制，默认值为 32 KiB。超过此限制的文件将被静默截断
-4. 任何级别的 .override.md 变体都优先于同一级别的普通 .md 变体。
 
-AGENTS.md 文件一开始并不大，通常只有三四行。问题在于其增长曲线。每次智能体出错时，本能反应就是添加一条指令。每次添加指令本身都是合理的，但累积起来却会造成新的问题。
-
-请对 AGENTS.md 实施以下检查：
-- 是否涉及仓库结构、架构或布局？如果是，请移除。智能体通过阅读代码来了解仓库结构。
-- 是否为通用最佳实践？如果是，请移除。这些知识已内置于模型中。
-- 是否描述了框架约定？如果是，请移除。模型已知晓这些内容。
-- 是否与你的 README 内容重叠？如果是，请移除。以免重复消耗资源（Token）。
-- 能否移至嵌套的 AGENTS.md 中？如果仅与特定子目录相关，请将其下移。
-- 能否移至 Skill（技能）中？如果仅在特定工作流中相关，应将其放入按需加载的 Skill 文件中。
-
-指令只是建议。它们决定了 Codex CLI 的运行方式，但并不能阻止它执行你意料之外的操作。信任模型的硬性规定在于审批策略和沙箱模式：这些配置选项决定了代理程序可以执行哪些操作，以及操作系统会阻止哪些操作（即使代理程序尝试执行）。
-
-### ch5: Approval Modes and Trust Boundaries
->如今，AI编程智能体生成代码的速度已比人类编写或审查的速度快出许多倍，随之而来的是一个结构性问题：下达提示词的开发者已经无法对生成的代码进行有意义的审查了。面对这一现象，**一些组织并没有将其视为需要加强代码审查的信号，反而开始把拉取请求（Pull Request）当作拖慢AI生成产出的瓶颈。**
->
->**目前行业的应对方式是叠加更多的智能体：由智能体审查员来审查智能体生成的代码，由智能体测试员来进行测试**。正如一位前 GitHub 高级工程师所言：“建立在缺陷系统之上的缺陷系统，并不会趋于完美。”对于没有机密信息的模块进行格式化处理，自动批准是没问题的。但当任务涉及医疗系统、金融平台或数以百万计的人所依赖的基础设施时，审批环节就不是瓶颈：它是最后一道防线。
-
-大多数会话都使用显式组合 `-a on-request -s workspace-write`分别对应执行敏感操作时请求Approval(全称为--ask-for-approval)和允许更改工作区文件的Sandbox(全称为--sandbox).
-
-推荐通过权限阶梯来控制Agent的权限:
-![示意图](PixPin_2026-10-24_10-20-19.webp)
-### ch6: Model Selection and Reasoning Effort
-针对具体任务设置模型强度从而节省费用
-### ch7: Context Window Management
-多轮对话中,每次对话都需要传输之前所有的对话,会让消耗的token数成指数级增长.
-
-Codex会在窗口容量到达一定程度时激活compact命令,生成对话的结构化摘要,并替换累计的历史记录,尽管是有损的,但这一操作相当重要,毕竟Tool Use非常容易引入一大堆调试信息,我们实际上只需要知道某个操作是否正常完成即可,从而可以极大地精简对话历史.
-
-compact不保留以下内容:
-* **已读取文件的完整内容**（摘要仅按文件名引用文件，但不再保留其具体内容）
-* **确切的错误信息或编译器输出**（这些内容会被转化为文字概括）
-* **工具调用和中间状态的确切顺序**
-* **任何通过对话语气或隐性假设所建立的隐含上下文**
-
-因此,**必须在上下文压缩后仍然有效的指令应该放在系统提示符或 AGENTS.md 中**，而不是放在会被上下文压缩概括得面目全非的对话中。
-
-#### 何时派生子智能体
-委托操作本身也存在开销：每次调用都需要提供指令（100 到 400 个 token），且返回的摘要会消耗父级上下文。一个粗略的衡量标准是：当子任务需要读取三四个以上的重要文件、执行多个 Shell 命令，或经历超过两次错误修复循环时，才建议进行委托。低于此阈值时，委托的开销将与直接内联执行的成本不相上下。
-
-### ch8: MCP
-MCP 赋予代理程序访问外部系统的权限
-### ch9: Hooks
-
-![Hook的流程](PixPin_2026-10-28_11-14-02.webp)
-
-Hook类似于回调函数,当某个事件触发时(如开始对话,subagent执行完毕,上下文窗口达到预设大小),自动执行该命令(可能是你配置的脚本,也可以是MCP工具).
-
-目前Codex支持12种Hook时机:
-| Hook 名称             | 触发时机                   | 典型用途               |
-| :-------------------- | :------------------------- | :--------------------- |
-| **SessionStart**      | 会话启动或恢复时           | 加载项目上下文         |
-| **SessionEnd**        | 主会话结束时               | 保存日志、清理临时文件 |
-| **UserPromptSubmit**  | 用户提交提示词时           | 检查提示词中的敏感信息 |
-| **PreToolUse**        | 工具执行前                 | 检查或拦截危险命令     |
-| **PermissionRequest** | Codex 准备请求权限时       | 自定义权限检查         |
-| **PostToolUse**       | 工具执行完成后             | 检查执行结果           |
-| **PreCompact**        | 上下文压缩前               | 保存重要上下文         |
-| **PostCompact**       | 上下文压缩后               | 恢复必要信息           |
-| **SubagentStart**     | 子智能体启动时             | 注入专属任务信息       |
-| **SubagentStop**      | 子智能体准备结束时         | 检查子任务是否完成     |
-| **Stop**              | Codex 准备结束当前轮任务时 | 验证任务结果           |
-| **Interrupt**         | 用户中断正在进行的任务时   | 记录中断状态           |
-
-我们可以在hooks.json中配置相关的hook:
-```json
-
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python -m compileall -q app",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-
-Hooks对于调试信息,追踪异常耗费,提示任务完成等情景非常有用.
-
-### ch10: Skills Ecosystem
-Codex搜寻Skills的优先级顺序如下:
-
-```bash
-$CWD/.agents/skills             # 项目级
-$CWD/../.agents/skills          # 父目录
-$REPO_ROOT/.agents/skills       # 代码库根目录
-$HOME/.agents/skills            # 用户级
-/etc/codex/skills               # 系统/管理员级
-Built-in system skills          # 最低优先级
-```
-
-
-如果你想阻止某个技能加载而不删除其目录，请在 `~/.codex/config.toml` 中添加一个条目：
-```toml
-[[skills.config]]
-name = "gh-address-comments"
-enabled = false
-```
-
->修改 config.toml 后，请重启 Codex CLI。当某个技能导致意外的隐式激活时，此方法非常有效：禁用该技能，查看其描述，并在调整后重新启用它.
-
-SKILL.md 包含两个部分，由 YAML frontmatter 分隔符分隔。开头 --- 和结尾 --- 之间的所有内容都是结构化的metadata。之后的所有内容都是 Markdown 文本，技能激活后，代理会将其作为指令读取。
-
-```markdown
----
-name: deploy-to-staging
-description: |
-  将当前服务部署到预发环境。当被要求部署、推送到预发环境、切出发布候选版本，或更新正在运行的预发服务时使用。请勿用于生产环境部署或本地测试环境。
-license: Apache-2.0
-compatibility: 需要 Docker, AWS CLI ≥ 2.x
-allowed-tools: Bash Read
-metadata:
-  author: platform-team
-  version: "2.1"
----
-## 指令
-1. 运行 `scripts/preflight.sh` 验证环境变量及 Docker 守护进程的连通性。
-2. 构建并标记 Docker 镜像：`docker build -t $SERVICE:$SHA .`
-3. 推送到 ECR：`scripts/push-ecr.sh`
-4. 更新 ECS 任务定义并注册新版本。
-5. 等待服务稳定；报告成功或失败。
-```
-
-metadata中,以下字段是必需的:
-1. name: 长度为 1 至 64 个字符。仅限小写字母、数字和连字符。必须与父目录名称完全匹配。不能有前导/尾随连字符，也不能有连续的连字符。
-2. description: 长度为 1 至 1024 个字符。每次会话开始时加载。用作路由规则：描述技能的功能以及何时使用，包括帮助代理识别相关任务的关键词。
-
-
-- 正文不宜太长,控制在500行以内,大约5000个token即可.如果指令超出该限制,最好进行拆分
-
-会话启动时,Codex会扫描每个Skill.md的metadata,
-
-#### 编写描述字段
-metadata中的description字段写法相当重要:
-```yaml
-# 太模糊 —— 会导致漏掉触发
-description: 管理部署。
-
-# 太宽泛 —— 会在不相关的任务上触发
-description: 处理任何基础设施或云端任务。
-
-# 良好编写 —— 特定的触发条件，明确的排除项
-description: |
-  将当前服务部署到预发环境。适用于要求部署、推送到预发环境、切出发布候选版本或更新正在运行的预发服务时。请勿用于生产环境部署或本地 Docker Compose 测试环境。
-```
-
-#### Plugin
-Codex将Skill和MCP集成为了Plugin.
-
-插件是一个包含`.codex-plugin/plugin.json` 的清单文件和可选组件包的目录,清单文件内支持三种组件:
-1. Skills: 在`./.skills`文件夹中声明
-2. Apps: 外部服务连接器（GitHub、Slack、Gmail、Google Drive），通过 OAuth 或 API 令牌提供经过身份验证的数据访问。
-3. MCP servers: 在`./.mcp.json`声明
-### ch11: SubAgent
-Codex自带default(默认主agent),worker(执行全新上下文的任务)和explorer(侧重于读取和探索代码库)三个Agent.
-
-Codex只会在用户明确发出请求时才会生成Subagent,例如`spawn an **explorer** to map every reference to payment_service across the repo`
-
-Agent可以在`.codex/agents/<name>.toml`中定义,有三个必填字段: name,description(何时调用),developer_instuctions(系统指令),还有一些可选字段如model(指定模型名字),sandbox_mode(指定agent权限).一个示例如下:
-```toml
-name = "migration-auditor"
-description = "Reviews SQL migration scripts for irreversibility, loc
-model = "gpt-5.4"
-model_reasoning_effort = "high"
-sandbox_mode = "read-only"
-nickname_candidates = ["Codd", "Stonebraker", "Hellerstein", "DeWitt"
-developer_instructions = """
-You audit SQL migration scripts before they are applied to a producti
-For each file you read, report findings under three headings:
-- Irreversible: DROP, RENAME, NOT NULL additions, or column type narr
-- Lock-heavy: statements that hold an exclusive lock on a large table
-- Order-sensitive: operations whose result depends on whether the mig
-Cite the file and line number for every finding. Do not propose fixes
-"""
-```
-
-当两个或多个任务可并行运行时,派生Subagent才有奇效.当您不确定两个任务是否真正独立时，请问自己：“如果员工 A 和员工 B 完成任务的顺序不同，最终结果会改变吗？” 如果会，则说明它们之间存在依赖关系。请在父任务的流程编排逻辑中明确定义这种依赖关系。
-
-### ch12: Multi-Agent(待补充)
-非常高端的操作,在Goal模式内部,针对Subagent的派生设置门控和审查.但这样一来每个任务都需要单独设置门控和审查代码,非常的麻烦.
-### ch13: 隔离与WorkTree
-对于多Agent合作环境,不可能给每个Agent都单独clone整个代码仓库,而用`git worktree`的话则可以轻松实现文件系统的隔离.
-
-### ch14: 成本管理
-计算费用
-### ch15: CI/CD集成
-我们可以在GitHub Actions中用Codex:
-```yaml
-- uses: openai/codex-action@v1
-  id: codex
-  with:
-    prompt: "Summarize what changed in this PR in three bullet points"
-    sandbox: read-only
-  env:
-    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-- name: Post summary as PR comment
-  uses: actions/github-script@v7
-  with:
-    script: |
-      await github.rest.issues.createComment({
-        issue_number: context.issue.number,
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        body: process.env.CODEX_OUTPUT
-      });
-  env:
-    CODEX_OUTPUT: ${{ steps.codex.outputs.final-message }}
-```
-
-### ch22: Backend Engineering
-示例项目:
-```text
-run-or-relax/
-├── pyproject.toml
-├── AGENTS.md
-├── .codex/
-│   ├── hooks.json
-│   # PostToolUse, Stop, UserPromptSubmit hook
-│   └── scripts/
-│       └── block-legacy-pip.sh
-├── data/
-│   ├── timetable.json
-│   # seeded departures per station
-│   └── delays.json
-│   # simulated delay feed
-├── src/departures/
-│   ├── models.py
-│   # Pydantic response models
-│   ├── timetable.py
-│   ├── verdict.py
-│   └── app.py
-└── tests/
-    ├── conftest.py
-    # load timetable + delays, compute next de
-    # the RUN/relax rule (pure function)
-    # FastAPI app and the /departures route
-    # the timetable fixture
-    ├── test_verdict.py
-    ├── test_timetable.py
-    └── test_api.py
-    # timetable + delay-feed behaviour
-```
-
-正确配置 `AGENTS.md` 是 Python 项目中最重要的配置决策。否则，Codex CLI 会做出看似合理但却错误的选择：例如，使用 `pip install` 而不是 `uv add`，使用 `python -m pytest` 而不是 `uv run pytest`，以及在项目使用 `pyproject.toml` 时，使用 `setup.cfg` 或 `.flake8`。虽然每个错误单独来看都可以修复，但累积起来会导致环境偏差。
-
-文中的示例:
-```markdown
-# AGENTS.md
-
-## Environment
-- Python package manager: uv, never use `pip` directly
-- All tool invocations must go through `uv run` (e.g., `uv run pytest`, `uv run ruff`)
-- To add a dependency: `uv add <package>`; for dev deps: `uv add --dev <package>`
-- Python version: 3.14 (see `.python-version` or `pyproject.toml`)
-
-## Testing
-- Run tests: `uv run pytest tests/ -v`
-- Run a single test file: `uv run pytest tests/test_foo.py -v`
-- Run with coverage: `uv run pytest --cov=src --cov-report=term-missing`
-- All new code must have pytest coverage, with no exceptions
-
-## Linting and formatting
-- Lint: `uv run ruff check . --fix`
-- Format: `uv run ruff format .`
-- Type check: `uv run mypy src/` (the stable default; `uv run ty check` once `ty` leaves beta and is in your dev deps)
-- Run all checks before marking a task done: lint → format → type check
-
-## Commit conventions
-- Conventional Commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
-- Do not commit `uv.lock` changes unless dependency versions were intentionally updated
-```
-
-`Run all checks before marking a task done: lint → format → type check`这句话相当关键.
-
-
-如果采用嵌套AGENTS.md,那么需要保证嵌套md专注于偏差,而不用重复完整的工具链.
-
-测试指令:
-```markdown
-## Coverage
-- Minimum coverage: 90% overall, 100% for `src/departures/verdict.py` (the rule must never regress)
-- Do not add `# pragma: no cover` without a comment explaining why
-
-## Test markers
-- @pytest.mark.unit: no I/O, runs in CI on every push
-- @pytest.mark.integration: requires Docker services, runs in CI on PR
-- @pytest.mark.slow: long-running; skip locally with `-m "not slow"`
-- Default local command: `uv run pytest -m "unit" -q`
-```
-给fastapi的指令:
-```markdown
-## FastAPI conventions
-- Route handlers must be async; use `httpx.AsyncClient` for outbound HTTP calls
-- Pydantic response models live in `src/departures/models.py` (one module per service; split into a package when it grows)
-- Dependency injection via FastAPI's `Depends()`: no global state
-- Error handling: raise `HTTPException` from route handlers; never let domain exceptions propagate
-- OpenAPI schema: keep `response_model` explicit on every route
-- Background tasks: use `BackgroundTasks`
-```
-
-这一章相当重要,指挥Agent写代码的前提是自己会写代码
-### ch23: Frontend Engineering
-
-
-### ch27: 长时间运行Agent
-Harness 是指封装智能体的所有组件：描述项目的 AGENTS.md 文件、提供确定性反馈的测试套件、限制影响范围的沙箱、验证输出的持续集成 (CI) 流水线、决定何时需要人工干预的审批策略，以及确保耗时数小时的任务在短暂故障后仍能正常运行的检查点逻辑。如果 Harness 设计良好，即使是适中的模型也能自主且高置信度地完成任务。反之，如果 Harness 设计不佳，即使是最好的模型也会束手无策。
-
-- 推荐阅读: `Code as Agent Harness`
-
-论文的核心论点是: 建立一个用于coding agent的三层框架:
-1. Interface layer: 代理如何接收指令并呈现结果,包括AGENTS.md,系统提示词,对话框和TUI
-2. Mechanism layer: 约束并赋予Agent执行操作的能力,包括sandbox,执行限制,约束模型能够执行哪些操作
-3. Multi-agent scaling layer: MCP,subagent,A2A协议都属于这个范畴
-
-文中主要是在介绍symphony这个编排框架,让Agent来领取任务,并验证代码.
-
-而我们在日常开发中也可以这么做,要求Agent强制验证CI是否通过,并解释自己的成果是否覆盖了所有要求,事实证明,确实很有用.
-
-如果要从本章中汲取一条操作原则，那就记住：**当智能体性能不佳时，应先更换系统组件，再考虑更换模型。**
+### ch6: Agent评估
 
 
 ## Python Concurrency with asyncio
@@ -914,7 +575,34 @@ asyncio.run(coroutine(), debug=True)
 在出现一些异常情况时,该选项会很有用.
 ### ch3: 首个asyncio程序
 ## Test-Driven Development with Python
+### ch1: 使用Django
+>通常，Web 开发的第一步是安装和配置 Web 框架。下载这个，安装那个，配置其他的，运行脚本……但 TDD 需要不同的思维方式。当你进行 TDD 时，你的脑子里总会有一只“测试山羊”——就像山羊一样，一心只想着测试——不停地叫着：“先测试，先测试！”
 
+在测试驱动开发（TDD）中，第一步始终相同：编写测试。
+
+首先，我们编写测试；然后运行测试，并检查它是否如预期般失败。只有这样，我们才能继续构建应用程序的部分功能。用山羊般的声音重复一遍。
+### ch2: 使用单元测试模块
+
+## Vibe Coding Architecture at Scale
+### ch1: The Entropy of the Prompt
+**AI 代码助手并不关心你的长期架构**。它只关心如何让当前的提示信息生效。这就是它的目标函数。当你让它“在结账流程中添加折扣”时，它会找到从当前代码状态到折扣生效状态的最短路径。如果这条最短路径直接穿过你花了一周时间设计的三个架构边界，助手会毫不犹豫地直接穿过这三个边界，而且不会通知你。
+
+AI编码助手就像一个熵引擎，直接指向你的代码库。每一个提示都像一股微弱的力量，在没有约束的情况下，这股力量会将系统推向能量最低的状态：最少的抽象、最少的间接层、最少的刻意连接。而这种状态往往并非架构完善的状态。
+
+这有三个原因:
+1. 模型的训练目标在于局部优化而非整体架构
+2. 最短路径偏好,模型会尽可能地少用抽象
+3. 无感知,AI不会对功能耦合的复杂代码皱眉
+
+1865年，威廉·斯坦利·杰文斯发表了《煤炭问题》一书，对英国的燃料储备进行了系统研究。他的核心发现令人不安：蒸汽机燃烧煤炭的效率越高，英国的煤炭总消耗量反而越大。效率的提升本应减少需求，结果却截然相反。单位产出成本的降低意味着生产规模的扩大，燃料总支出随之逐年攀升。杰文斯将其视为一个悖论。经济学家后来认识到，这其实是技术进步的一种结构性规律。
+
+同样的规律也作用于你的代码库。
+
+在任何大规模部署人工智能编码工具的组织中，积压工作量都没有随着速度提升而成比例减少。相反，最终会达到一种平衡状态。一旦吞吐量提高，产品发现和竞争压力就会填补这一缺口。以前人工开发成本过高的功能，在人工智能时代变得轻而易举。产品路线图也随之扩展。以前需要在三个功能中做出选择的利益相关者，现在会提出七个功能的需求。团队比以前更忙，工作范围更广，面临的问题也更棘手，因为组织已经正确地调整了目标，使其与团队的新能力相匹配。
+
+### ch2: Shift Left, Guide Right
+
+# 先放着
 ## Databse Internals
 ### ch1: 介绍
 ![架构图](PixPin_2026-10-06_15-46-05.webp)
@@ -941,9 +629,7 @@ asyncio.run(coroutine(), debug=True)
 ### ch2: B树
 
 ### Ch3: 文件格式
-## Vibe Coding Architecture at Scale
-### ch1: The Entropy of the Prompt
-# 先放着
+
 ## Just Use Postgres!
 ### ch1: 介绍Postgres
 介绍了用Docker运行Postgres,以及使用psql与Postgres进行连接的方法
@@ -19926,6 +19612,433 @@ Transformer只能向过去的输出看,而永远无法向未来看,所以这些L
 讲了RAG和提示词撰写
 ### 总结
 很遗憾,这本书刚好卡在两波潮流中间,不推荐阅读.
+## Agentic Coding with OpenAI Codex CLI
+### ch1: 介绍CodeX CLI
+介绍了CLI的历史和基本原理
+### ch2: 使用CodeX CLI
+几乎每个人在第一周都会犯同样的几个错误:
+1. 将其视为聊天，并且任务描述不够具体。“清理授权码”这样的任务没有给代理提供任何验证依据，因此它会自行定义“清理”的含义，并以此运行数分钟。解决方法是设置完成标准：指定文件名、所需的更改以及必须通过的测试。
+2. 打断你第一次不同意的修改。正如演示所示，第一次修改通常是一种试探。如果在智能体做出你不会做的事情时立即停止它，就会破坏使其发挥作用的测试和纠正循环。
+3. 在没有测试和 AGENTS.md 的情况下运行。没有测试，代理无法判断是否成功；没有 AGENTS.md，它无法确定要运行哪个测试命令或遵循哪些约定，因此只能靠猜测。
+
+Codex命令会激活交互式对话页面,但带上参数可以支持各种各样的功能,如codex exec
+### ch3: Prompting Codex CLI Effectively
+Four elements appear reliably in prompts that produce good results:
+
+- **Goal:** what ‘done’ looks like in one concrete sentence. Use outcome verbs: ‘add’, ‘fix’, ‘migrate’, ‘replace’.
+- **Context:** language version, framework and an analogous piece of code: ‘follow the pattern in `src/api/users.ts`'.
+- **Constraints:** what Codex CLI should not do. No new dependencies. Don't modify the database schema. Don't touch files in `src/legacy/`.
+- **Completion criteria:** a concrete, runnable check: '`GET /api/posts?page=2&limit=20` returns the correct JSON, and `npm test` exits with code 0'.
+
+包含四个要素的提示也暗示了任务的范围。理想的任务规模是同事可以在一个下午完成的，并且任务完成前后的状态清晰可见。较小的任务会浪费结构化提示的额外工作；较大的任务应该分解成若干里程碑，或者进入计划模式。
+
+一个技巧是渐进式披露Skill,Codex CLI 最初只显示名称和描述，仅在激活时加载完整指令,示例如下:
+
+>I have a skill at ~/.agents/skills/api-scaffold/SKILL.md.
+It should activate when I ask to create a new REST endpoint but NOT when I'm debugging an existing endpoint.
+### ch4: AGENTS.md
+![结构图](PixPin_2026-10-23_10-03-32.webp)
+
+一些值得一开始就了解的操作细节：
+1. Codex CLI 每次运行时都会重新构建此链；编辑文件时无需清除缓存。
+2. 空文件会被静默跳过；它们不会重置或中断链。
+3. 所有已加载文件的总大小受 project_doc_max_bytes 设置的限制，默认值为 32 KiB。超过此限制的文件将被静默截断
+4. 任何级别的 .override.md 变体都优先于同一级别的普通 .md 变体。
+
+AGENTS.md 文件一开始并不大，通常只有三四行。问题在于其增长曲线。每次智能体出错时，本能反应就是添加一条指令。每次添加指令本身都是合理的，但累积起来却会造成新的问题。
+
+请对 AGENTS.md 实施以下检查：
+- 是否涉及仓库结构、架构或布局？如果是，请移除。智能体通过阅读代码来了解仓库结构。
+- 是否为通用最佳实践？如果是，请移除。这些知识已内置于模型中。
+- 是否描述了框架约定？如果是，请移除。模型已知晓这些内容。
+- 是否与你的 README 内容重叠？如果是，请移除。以免重复消耗资源（Token）。
+- 能否移至嵌套的 AGENTS.md 中？如果仅与特定子目录相关，请将其下移。
+- 能否移至 Skill（技能）中？如果仅在特定工作流中相关，应将其放入按需加载的 Skill 文件中。
+
+指令只是建议。它们决定了 Codex CLI 的运行方式，但并不能阻止它执行你意料之外的操作。信任模型的硬性规定在于审批策略和沙箱模式：这些配置选项决定了代理程序可以执行哪些操作，以及操作系统会阻止哪些操作（即使代理程序尝试执行）。
+
+### ch5: Approval Modes and Trust Boundaries
+>如今，AI编程智能体生成代码的速度已比人类编写或审查的速度快出许多倍，随之而来的是一个结构性问题：下达提示词的开发者已经无法对生成的代码进行有意义的审查了。面对这一现象，**一些组织并没有将其视为需要加强代码审查的信号，反而开始把拉取请求（Pull Request）当作拖慢AI生成产出的瓶颈。**
+>
+>**目前行业的应对方式是叠加更多的智能体：由智能体审查员来审查智能体生成的代码，由智能体测试员来进行测试**。正如一位前 GitHub 高级工程师所言：“建立在缺陷系统之上的缺陷系统，并不会趋于完美。”对于没有机密信息的模块进行格式化处理，自动批准是没问题的。但当任务涉及医疗系统、金融平台或数以百万计的人所依赖的基础设施时，审批环节就不是瓶颈：它是最后一道防线。
+
+大多数会话都使用显式组合 `-a on-request -s workspace-write`分别对应执行敏感操作时请求Approval(全称为--ask-for-approval)和允许更改工作区文件的Sandbox(全称为--sandbox).
+
+推荐通过权限阶梯来控制Agent的权限:
+![示意图](PixPin_2026-10-24_10-20-19.webp)
+### ch6: Model Selection and Reasoning Effort
+针对具体任务设置模型强度从而节省费用
+### ch7: Context Window Management
+多轮对话中,每次对话都需要传输之前所有的对话,会让消耗的token数成指数级增长.
+
+Codex会在窗口容量到达一定程度时激活compact命令,生成对话的结构化摘要,并替换累计的历史记录,尽管是有损的,但这一操作相当重要,毕竟Tool Use非常容易引入一大堆调试信息,我们实际上只需要知道某个操作是否正常完成即可,从而可以极大地精简对话历史.
+
+compact不保留以下内容:
+* **已读取文件的完整内容**（摘要仅按文件名引用文件，但不再保留其具体内容）
+* **确切的错误信息或编译器输出**（这些内容会被转化为文字概括）
+* **工具调用和中间状态的确切顺序**
+* **任何通过对话语气或隐性假设所建立的隐含上下文**
+
+因此,**必须在上下文压缩后仍然有效的指令应该放在系统提示符或 AGENTS.md 中**，而不是放在会被上下文压缩概括得面目全非的对话中。
+
+#### 何时派生子智能体
+委托操作本身也存在开销：每次调用都需要提供指令（100 到 400 个 token），且返回的摘要会消耗父级上下文。一个粗略的衡量标准是：当子任务需要读取三四个以上的重要文件、执行多个 Shell 命令，或经历超过两次错误修复循环时，才建议进行委托。低于此阈值时，委托的开销将与直接内联执行的成本不相上下。
+
+### ch8: MCP
+MCP 赋予代理程序访问外部系统的权限
+### ch9: Hooks
+
+![Hook的流程](PixPin_2026-10-28_11-14-02.webp)
+
+Hook类似于回调函数,当某个事件触发时(如开始对话,subagent执行完毕,上下文窗口达到预设大小),自动执行该命令(可能是你配置的脚本,也可以是MCP工具).
+
+目前Codex支持12种Hook时机:
+| Hook 名称             | 触发时机                   | 典型用途               |
+| :-------------------- | :------------------------- | :--------------------- |
+| **SessionStart**      | 会话启动或恢复时           | 加载项目上下文         |
+| **SessionEnd**        | 主会话结束时               | 保存日志、清理临时文件 |
+| **UserPromptSubmit**  | 用户提交提示词时           | 检查提示词中的敏感信息 |
+| **PreToolUse**        | 工具执行前                 | 检查或拦截危险命令     |
+| **PermissionRequest** | Codex 准备请求权限时       | 自定义权限检查         |
+| **PostToolUse**       | 工具执行完成后             | 检查执行结果           |
+| **PreCompact**        | 上下文压缩前               | 保存重要上下文         |
+| **PostCompact**       | 上下文压缩后               | 恢复必要信息           |
+| **SubagentStart**     | 子智能体启动时             | 注入专属任务信息       |
+| **SubagentStop**      | 子智能体准备结束时         | 检查子任务是否完成     |
+| **Stop**              | Codex 准备结束当前轮任务时 | 验证任务结果           |
+| **Interrupt**         | 用户中断正在进行的任务时   | 记录中断状态           |
+
+我们可以在hooks.json中配置相关的hook:
+```json
+
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -m compileall -q app",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+
+Hooks对于调试信息,追踪异常耗费,提示任务完成等情景非常有用.
+
+### ch10: Skills Ecosystem
+Codex搜寻Skills的优先级顺序如下:
+
+```bash
+$CWD/.agents/skills             # 项目级
+$CWD/../.agents/skills          # 父目录
+$REPO_ROOT/.agents/skills       # 代码库根目录
+$HOME/.agents/skills            # 用户级
+/etc/codex/skills               # 系统/管理员级
+Built-in system skills          # 最低优先级
+```
+
+
+如果你想阻止某个技能加载而不删除其目录，请在 `~/.codex/config.toml` 中添加一个条目：
+```toml
+[[skills.config]]
+name = "gh-address-comments"
+enabled = false
+```
+
+>修改 config.toml 后，请重启 Codex CLI。当某个技能导致意外的隐式激活时，此方法非常有效：禁用该技能，查看其描述，并在调整后重新启用它.
+
+SKILL.md 包含两个部分，由 YAML frontmatter 分隔符分隔。开头 --- 和结尾 --- 之间的所有内容都是结构化的metadata。之后的所有内容都是 Markdown 文本，技能激活后，代理会将其作为指令读取。
+
+```markdown
+---
+name: deploy-to-staging
+description: |
+  将当前服务部署到预发环境。当被要求部署、推送到预发环境、切出发布候选版本，或更新正在运行的预发服务时使用。请勿用于生产环境部署或本地测试环境。
+license: Apache-2.0
+compatibility: 需要 Docker, AWS CLI ≥ 2.x
+allowed-tools: Bash Read
+metadata:
+  author: platform-team
+  version: "2.1"
+---
+## 指令
+1. 运行 `scripts/preflight.sh` 验证环境变量及 Docker 守护进程的连通性。
+2. 构建并标记 Docker 镜像：`docker build -t $SERVICE:$SHA .`
+3. 推送到 ECR：`scripts/push-ecr.sh`
+4. 更新 ECS 任务定义并注册新版本。
+5. 等待服务稳定；报告成功或失败。
+```
+
+metadata中,以下字段是必需的:
+1. name: 长度为 1 至 64 个字符。仅限小写字母、数字和连字符。必须与父目录名称完全匹配。不能有前导/尾随连字符，也不能有连续的连字符。
+2. description: 长度为 1 至 1024 个字符。每次会话开始时加载。用作路由规则：描述技能的功能以及何时使用，包括帮助代理识别相关任务的关键词。
+
+
+- 正文不宜太长,控制在500行以内,大约5000个token即可.如果指令超出该限制,最好进行拆分
+
+会话启动时,Codex会扫描每个Skill.md的metadata,
+
+#### 编写描述字段
+metadata中的description字段写法相当重要:
+```yaml
+# 太模糊 —— 会导致漏掉触发
+description: 管理部署。
+
+# 太宽泛 —— 会在不相关的任务上触发
+description: 处理任何基础设施或云端任务。
+
+# 良好编写 —— 特定的触发条件，明确的排除项
+description: |
+  将当前服务部署到预发环境。适用于要求部署、推送到预发环境、切出发布候选版本或更新正在运行的预发服务时。请勿用于生产环境部署或本地 Docker Compose 测试环境。
+```
+
+#### Plugin
+Codex将Skill和MCP集成为了Plugin.
+
+插件是一个包含`.codex-plugin/plugin.json` 的清单文件和可选组件包的目录,清单文件内支持三种组件:
+1. Skills: 在`./.skills`文件夹中声明
+2. Apps: 外部服务连接器（GitHub、Slack、Gmail、Google Drive），通过 OAuth 或 API 令牌提供经过身份验证的数据访问。
+3. MCP servers: 在`./.mcp.json`声明
+### ch11: SubAgent
+Codex自带default(默认主agent),worker(执行全新上下文的任务)和explorer(侧重于读取和探索代码库)三个Agent.
+
+Codex只会在用户明确发出请求时才会生成Subagent,例如`spawn an **explorer** to map every reference to payment_service across the repo`
+
+Agent可以在`.codex/agents/<name>.toml`中定义,有三个必填字段: name,description(何时调用),developer_instuctions(系统指令),还有一些可选字段如model(指定模型名字),sandbox_mode(指定agent权限).一个示例如下:
+```toml
+name = "migration-auditor"
+description = "Reviews SQL migration scripts for irreversibility, loc
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+nickname_candidates = ["Codd", "Stonebraker", "Hellerstein", "DeWitt"
+developer_instructions = """
+You audit SQL migration scripts before they are applied to a producti
+For each file you read, report findings under three headings:
+- Irreversible: DROP, RENAME, NOT NULL additions, or column type narr
+- Lock-heavy: statements that hold an exclusive lock on a large table
+- Order-sensitive: operations whose result depends on whether the mig
+Cite the file and line number for every finding. Do not propose fixes
+"""
+```
+
+当两个或多个任务可并行运行时,派生Subagent才有奇效.当您不确定两个任务是否真正独立时，请问自己：“如果员工 A 和员工 B 完成任务的顺序不同，最终结果会改变吗？” 如果会，则说明它们之间存在依赖关系。请在父任务的流程编排逻辑中明确定义这种依赖关系。
+
+### ch12: Multi-Agent(待补充)
+非常高端的操作,在Goal模式内部,针对Subagent的派生设置门控和审查.但这样一来每个任务都需要单独设置门控和审查代码,非常的麻烦.
+### ch13: 隔离与WorkTree
+对于多Agent合作环境,不可能给每个Agent都单独clone整个代码仓库,而用`git worktree`的话则可以轻松实现文件系统的隔离.
+
+### ch14: 成本管理
+计算费用
+### ch15: CI/CD集成
+我们可以在GitHub Actions中用Codex:
+```yaml
+- uses: openai/codex-action@v1
+  id: codex
+  with:
+    prompt: "Summarize what changed in this PR in three bullet points"
+    sandbox: read-only
+  env:
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+- name: Post summary as PR comment
+  uses: actions/github-script@v7
+  with:
+    script: |
+      await github.rest.issues.createComment({
+        issue_number: context.issue.number,
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        body: process.env.CODEX_OUTPUT
+      });
+  env:
+    CODEX_OUTPUT: ${{ steps.codex.outputs.final-message }}
+```
+
+### ch22: Backend Engineering
+示例项目:
+```text
+run-or-relax/
+├── pyproject.toml
+├── AGENTS.md
+├── .codex/
+│   ├── hooks.json
+│   # PostToolUse, Stop, UserPromptSubmit hook
+│   └── scripts/
+│       └── block-legacy-pip.sh
+├── data/
+│   ├── timetable.json
+│   # seeded departures per station
+│   └── delays.json
+│   # simulated delay feed
+├── src/departures/
+│   ├── models.py
+│   # Pydantic response models
+│   ├── timetable.py
+│   ├── verdict.py
+│   └── app.py
+└── tests/
+    ├── conftest.py
+    # load timetable + delays, compute next de
+    # the RUN/relax rule (pure function)
+    # FastAPI app and the /departures route
+    # the timetable fixture
+    ├── test_verdict.py
+    ├── test_timetable.py
+    └── test_api.py
+    # timetable + delay-feed behaviour
+```
+
+正确配置 `AGENTS.md` 是 Python 项目中最重要的配置决策。否则，Codex CLI 会做出看似合理但却错误的选择：例如，使用 `pip install` 而不是 `uv add`，使用 `python -m pytest` 而不是 `uv run pytest`，以及在项目使用 `pyproject.toml` 时，使用 `setup.cfg` 或 `.flake8`。虽然每个错误单独来看都可以修复，但累积起来会导致环境偏差。
+
+文中的示例:
+```markdown
+# AGENTS.md
+
+## Environment
+- Python package manager: uv, never use `pip` directly
+- All tool invocations must go through `uv run` (e.g., `uv run pytest`, `uv run ruff`)
+- To add a dependency: `uv add <package>`; for dev deps: `uv add --dev <package>`
+- Python version: 3.14 (see `.python-version` or `pyproject.toml`)
+
+## Testing
+- Run tests: `uv run pytest tests/ -v`
+- Run a single test file: `uv run pytest tests/test_foo.py -v`
+- Run with coverage: `uv run pytest --cov=src --cov-report=term-missing`
+- All new code must have pytest coverage, with no exceptions
+
+## Linting and formatting
+- Lint: `uv run ruff check . --fix`
+- Format: `uv run ruff format .`
+- Type check: `uv run mypy src/` (the stable default; `uv run ty check` once `ty` leaves beta and is in your dev deps)
+- Run all checks before marking a task done: lint → format → type check
+
+## Commit conventions
+- Conventional Commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
+- Do not commit `uv.lock` changes unless dependency versions were intentionally updated
+```
+
+`Run all checks before marking a task done: lint → format → type check`这句话相当关键.
+
+
+如果采用嵌套AGENTS.md,那么需要保证嵌套md专注于偏差,而不用重复完整的工具链.
+
+测试指令:
+```markdown
+## Coverage
+- Minimum coverage: 90% overall, 100% for `src/departures/verdict.py` (the rule must never regress)
+- Do not add `# pragma: no cover` without a comment explaining why
+
+## Test markers
+- @pytest.mark.unit: no I/O, runs in CI on every push
+- @pytest.mark.integration: requires Docker services, runs in CI on PR
+- @pytest.mark.slow: long-running; skip locally with `-m "not slow"`
+- Default local command: `uv run pytest -m "unit" -q`
+```
+给fastapi的指令:
+```markdown
+## FastAPI conventions
+- Route handlers must be async; use `httpx.AsyncClient` for outbound HTTP calls
+- Pydantic response models live in `src/departures/models.py` (one module per service; split into a package when it grows)
+- Dependency injection via FastAPI's `Depends()`: no global state
+- Error handling: raise `HTTPException` from route handlers; never let domain exceptions propagate
+- OpenAPI schema: keep `response_model` explicit on every route
+- Background tasks: use `BackgroundTasks`
+```
+
+这一章相当重要,指挥Agent写代码的前提是自己会写代码
+### ch23: Frontend Engineering
+**AGENTS.md**
+```markdown
+# AGENTS.md — Frontend (React/TypeScript)
+
+## Stack
+- React 19 with TypeScript strict mode
+- Next.js 15 (App Router), built as a static export (`output: "export"`): the board ships as static assets, with no server runtime
+- Tailwind CSS v4
+- shadcn/ui for component primitives
+- Vitest + Testing Library for unit/integration tests
+- Playwright for browser automation and visual verification
+- pnpm (never npm install or yarn)
+
+## Backend
+- The Chapter 22 FastAPI service exposes `GET /departures`; the board calls it directly from the browser
+- Base URL: `NEXT_PUBLIC_DEPARTURES_API_URL`, defaulting to `http://localhost:8000`
+- Calls are cross-origin, so the backend must send CORS headers for them
+
+## Commands
+- `pnpm dev` — development server (port 3000)
+- `pnpm test` — Vitest unit tests
+- `pnpm test:e2e` — Playwright end-to-end tests
+- `pnpm build` — production build
+- `pnpm lint` — ESLint + Prettier check
+- `pnpm tsc --noEmit` — TypeScript type check
+
+## Architecture
+- `/app` — Next.js App Router pages (static export, no server runtime)
+- `/components/ui` — shadcn/ui primitives (regenerate with CLI, never edit directly)
+- `/components` — application components
+- `/lib` — utilities and data fetching (calls the backend API directly)
+- `/tests` — Vitest unit tests
+- `/e2e` — Playwright tests
+
+## Component conventions
+- Functional components only (no class components)
+- Do NOT add useMemo/useCallback by default; trust the React Compiler
+- Use `startTransition` for non-urgent state updates
+- Prefer server components; use `"use client"` only when interactivity requires it
+- shadcn/ui components install via `pnpm dlx shadcn@latest add <component>`
+- Named exports only (no default exports from component files)
+
+## TypeScript
+- Strict mode is on — no `any`, no `@ts-ignore`
+- Use `satisfies` for type narrowing rather than casting
+- All API response shapes must have explicit types
+
+## Constraints
+- Never modify files in `/components/ui` directly
+- Never add `console.log` to production code
+- Tailwind utility classes only — no inline styles, no CSS-in-JS
+
+## Completion criteria
+- `pnpm build` passes with no errors
+- `pnpm test` all pass
+- `pnpm tsc --noEmit` reports zero errors
+```
+
+### ch24: Infrastructure as Code
+关键在于，基础设施并非应用程序代码，这种差异会改变你与智能体的协作方式。核心问题在于影响范围。一行糟糕的应用程序代码只会导致测试失败；而一行糟糕的基础设施代码则可能导致生产环境瘫痪，甚至删除它原本应该承载的内容。因此，智能体的角色范围缩小了：它负责规划、起草和提出方案，而由人类负责审核和实施。本章的其余部分将重点讨论如何确保智能体始终停留在“提出方案”这一侧，以及随之而来的挑战：虚构资源、未经审核的变更成本，以及维持这条边界的安全配置。
+
+- 主要讲的Terraform.
+
+
+
+### ch27: 长时间运行Agent
+Harness 是指封装智能体的所有组件：描述项目的 AGENTS.md 文件、提供确定性反馈的测试套件、限制影响范围的沙箱、验证输出的持续集成 (CI) 流水线、决定何时需要人工干预的审批策略，以及确保耗时数小时的任务在短暂故障后仍能正常运行的检查点逻辑。如果 Harness 设计良好，即使是适中的模型也能自主且高置信度地完成任务。反之，如果 Harness 设计不佳，即使是最好的模型也会束手无策。
+
+- 推荐阅读: `Code as Agent Harness`
+
+论文的核心论点是: 建立一个用于coding agent的三层框架:
+1. Interface layer: 代理如何接收指令并呈现结果,包括AGENTS.md,系统提示词,对话框和TUI
+2. Mechanism layer: 约束并赋予Agent执行操作的能力,包括sandbox,执行限制,约束模型能够执行哪些操作
+3. Multi-agent scaling layer: MCP,subagent,A2A协议都属于这个范畴
+
+文中主要是在介绍symphony这个编排框架,让Agent来领取任务,并验证代码.
+
+而我们在日常开发中也可以这么做,要求Agent强制验证CI是否通过,并解释自己的成果是否覆盖了所有要求,事实证明,确实很有用.
+
+如果要从本章中汲取一条操作原则，那就记住：**当智能体性能不佳时，应先更换系统组件，再考虑更换模型。**
+
+### 总结
+酣畅淋漓的阅读,读之前我真不知道Codex竟然还有这么多功能.
 
 # 高级
 
