@@ -9,7 +9,7 @@ flowchart LR
     A[项目介绍] --> B[源码阅读] --> C[总结]
 ```
 
-## 全栈及大型项目
+## 应用类
 ### full-stack-fastapi-template
 - (9/11): 最近心烦意乱,就来看看带我走入编程世界的奠基项目了
 ```bash
@@ -541,11 +541,8 @@ broker=redis://redis:6379/2
 如今该文件仍旧由这四个核心类组成,但已经膨胀到了两千多行,光是Item一个类就达到了可怕的六百多行.如果还想重构,不说不可能,但不是一两个人就能办到的.
 
 仔细一看,就是在原来的类上加了一堆新方法,并且加了不少辅助类和函数,却没有想过彻底去拆分解耦.
-### Prefect
-#### 介绍
->Prefect is a workflow orchestration framework for building data pipelines in Python.
 
-## 基础类
+## 底层类
 ### [Redis](https://github.com/redis/redis)
 要是一来就冲着最新版本去那还是太高看自己了,所以退而求其次,找个10年前的3.0版本的就行了.
 ![示意图](PixPin_2026-07-31_11-55-09.webp)
@@ -570,6 +567,7 @@ git clone --branch 3.0 https://github.com/python/cpython.git --depth 1
 ```bash
 git clone --branch release/1.0 --depth 1 https://github.com/FFmpeg/FFmpeg.git
 ```
+
 ## ML与Agent
 ### [AgentGPT](https://github.com/reworkd/AgentGPT)
 刚开始看到的时候以为和我的项目撞车了,但后来发现完全不是这样,有以下缺点:
@@ -624,22 +622,7 @@ async def get_user_tools() -> ToolsResponse:
     return ToolsResponse(tools=formatted_tools)
 ```
 混乱的架构与难以解耦的代码,希望这种事情不要发生在我负责的项目里.
-### [WebUI](https://github.com/open-webui/open-webui)
-![示意图](PixPin_2026-09-17_14-35-00.webp)
-
-- 无论怎么看都不太好维护吧,这与项目的150kStar数量完全不匹配.
 
 
 
-## Games
-### [Zdoom](https://zdoom.org/index)
-由于GZdoom是手搓的引擎,所以源码不太是正常人能看懂的,这种离谱的硬编码应该很难在现代工程中看到了吧:
 
-![示意图](PixPin_2026-08-03_13-30-03.webp)
-
-尽管代码量不是太离谱,但架构实在是太混乱了:
-![代码量](PixPin_2026-08-03_13-31-06.webp)
-### [Pypvz](https://github.com/wszqkzqk/pypvz)
-- [项目根本来源](https://github.com/marblexu/PythonPlantsVsZombies)
-
-非常有意思的Pvz版本,推荐所有初学python/pygame的人都拿这个项目来练练手,不过这个架构实在是太难看了,如果有时间的话我或许会帮忙重构一下.
