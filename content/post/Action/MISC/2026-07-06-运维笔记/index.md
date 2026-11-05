@@ -254,7 +254,7 @@ POSIX涵盖以下内容:
 
 
 ### Berkeley Socket(BSD Socket)
-它在 1983 年发布的 4.2BSD Unix 中出现，为 Unix 系统提供了一套广泛使用的 TCP/IP 网络编程接口。其核心思想是：使用 Socket（套接字）作为通信端点，让应用程序通过统一的函数与操作系统网络协议栈交互。BSD Socket在01年被纳入到POSIX标准中.
+它在 1983 年发布的 4.2BSD Unix 中出现，为 Unix 系统提供了一套广泛使用的 TCP/IP 网络编程接口。其核心思想是：使用 Socket（套接字）作为通信端点，让应用程序通过统一的函数与操作系统网络协议栈交互。BSD Socket在01年被纳入到POSIX标准中,因此也被称为POSIX Socket.
 
 典型的几个操作函数如下:
 | 函数                | 作用               |
@@ -378,7 +378,8 @@ docker exec -it linux-lab bash
 效果杠杠的好不好!
 
 
-
+## Socket编程
+了解
 # CI/CD
 ## GitHub Actions
 ### 介绍

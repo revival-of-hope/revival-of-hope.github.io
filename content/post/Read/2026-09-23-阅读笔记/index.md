@@ -586,7 +586,8 @@ finally:
 asyncio.run(coroutine(), debug=True)
 ```
 在出现一些异常情况时,该选项会很有用.
-### ch3: 首个asyncio程序
+### ch4: Concurrent web requests
+
 
 ## Test-Driven Development with Python
 ### ch1: 使用Django
@@ -595,9 +596,39 @@ asyncio.run(coroutine(), debug=True)
 在测试驱动开发（TDD）中，第一步始终相同：编写测试。
 
 首先，我们编写测试；然后运行测试，并检查它是否如预期般失败。只有这样，我们才能继续构建应用程序的部分功能。用山羊般的声音重复一遍。
-### ch2: 使用单元测试模块
+### ch2&&ch3: 单元测试与功能测试
+功能测试(Functional test,也称End to End test,或者Acceptance test)从高层的用户体验指导我们进行开发,而单元测试(unittest)从代码层面指导开发.
+
+TDD的工作流程如下:
+1. 编写功能测试
+2. 一旦功能测试失败,就开始编写单元测试来定义代码的具体行为,目标是每一行代码至少要经过一个单元测试的验证
+3. 一旦单元测试失败,就编写尽可能少的代码来让单元测试通过
+4. 重新运行功能测试,通过后就可以继续编写一些新的测试来循环开发.
+
+![双循环](PixPin_2026-11-05_13-27-06.webp)
+
+### ch5: 测试数据库
 
 
+
+
+
+
+## Python Testing with pytest, 2nd Edition
+### ch1: 介绍
+以下是命名规则的简要概述，用于确保你的测试代码能被pytest识别：
+* 测试文件的命名应为 `test_<something>.py` 或 `<something>_test.py`。
+* 测试方法和函数的命名应为 `test_<something>`。
+* 测试类的命名应为 `Test<Something>`。
+
+pytest测试有以下几种结果:
+* **PASSED (.)** — 测试运行成功。
+* **FAILED (F)** — 测试未能成功运行。
+* **SKIPPED (s)** — 测试被跳过。可通过使用 `@pytest.mark.skip()` 或 `@pytest.mark.skipif()` 装饰器指示 pytest 跳过测试。
+* **XFAIL (x)** — 测试预期会失败，实际运行也确实失败了。可通过 `@pytest.mark.xfail()` 装饰器告知 pytest 某个测试预期会失败。
+* **XPASS (X)** — 测试被标记为预期失败（xfail），但实际运行并通过。
+* **ERROR (E)** — 异常发生在装置（fixture）或钩子（hook）函数的执行过程中，而非测试函数的执行过程中。
+### ch3: Fixtures
 
 
 

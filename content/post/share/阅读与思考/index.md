@@ -939,8 +939,8 @@ PTC（Programmatic Tool Calling）是解决这个问题的一个好方法,大意
 虽然新闻总有渲染或者夸张的地方,但看完了只有一种无力感,局势比起以往还要严峻,那些在Agent浪潮之前进去的初级工程师该怎么办呢,我们这两年的应届生又该怎么办呢.
 
 不过道理很明显,现在是热点,那么过几年就不是热点了,所谓树大招风,当供过于求的时候,竞争就会额外残酷.所以,当所有人都回过神来的时候,才是真正的地狱难度,由此来看,目前甚至还不是低谷.但未来究竟如何,我不知道,怎么会真有能料事如神的人呢.
-### 每日阅读(11/3)
-由此重启每日阅读,如果当天有什么特别值得读的文章或者有一个大致的主题,则会重新起标题,否则就叫每日阅读了
+### 11/3
+由此重启每日阅读,如果当天有什么特别值得读的文章或者有一个大致的主题,则会重新起标题,否则就直接写发布日期了
 #### 面经
 - [面经来历](https://www.nowcoder.com/feed/main/detail/6a10cb34c9554bb995ac8f49ab13b981)
 
@@ -964,6 +964,142 @@ A公司尽可能地让Git完成这些复杂的工作(如shallow clones, sparse c
 Monorepo(Monolithic Repository，单体代码仓库)是一种代码管理方式：将多个项目、服务或软件包的代码统一存放在同一个 Git 仓库中。常见Python包和中型项目的开发都是这种架构
 
 与之相对的是Multi-repo,即每个项目使用单独的Git仓库,如Spotify就使用了数千个Git仓库.
+### 11/5
+#### 面经
+- [面经合集](https://jckling.github.io/2022/05/20/Notes/23%20%E5%B1%8A%E6%9A%91%E6%9C%9F%E5%AE%9E%E4%B9%A0%E9%9D%A2%E8%AF%95%E6%80%BB%E7%BB%93/index.html?utm_source=chatgpt.com)
+
+盲点:
+1. 语言
+   1. 装饰器的实现方式
+   2. 如何打包和发布Python
+2. 数据库
+   1. MySQL 数据库隔离级别，分别解决哪些问题
+3. 中间件/容器/API
+   1. RabbitMQ有几种模式
+   2. 什么是云原生,有哪些内容
+   3. Nginx 反向代理，正向代理，如何实现高并发
+
+#### 技术文章
+- [Harness design for long-running application development](https://www.anthropic.com/research/harness-design-long-running-apps)
+
+其实我觉得,不存在长时间运行任务的必要吧,如果你将任务目标切的够精准,每次只做必要的修改,给出明确的边界,就可以极大缩短完成单个目标的时间,这样逐个阶段完成是最不容易出错的,除非你非要许愿编程,幻想一步到位,也不想想自己给的要求合不合理.
+
+>举个例子，我让模型为一家荷兰艺术博物馆设计网站。到了第九次迭代，它生成了一个简洁的深色主题首页，页面内容是虚构的博物馆。页面视觉效果不错，但基本符合我的预期。然而，到了第十次迭代，它彻底放弃了之前的设计思路，将网站重新构想成一个空间体验：一个3D房间，房间内铺设着用CSS透视渲染的方格地板，艺术品以自由形式悬挂在墙上，展厅之间的导航不再是滚动或点击，而是通过门来切换。这种创造性的飞跃，是我之前从未在单次迭代的模型中见过的。
+
+- 尽管如此,这种设计也是早就有的,所以还是照抄,并没有原创性.
+
+作者要求 Planner 侧重：
+
+* 产品背景和目标。
+* 功能范围与用户故事。
+* 高层技术设计。
+* 产品需要具备的能力。
+
+但是刻意避免让 Planner 提前决定每一个实现细节。
+
+原因在于：如果 Planner 在早期制定了错误的底层方案，后续 Generator 可能机械地遵循这些错误决策。
+
+#### 新技术
+我们在vscode开发时经常能看到`.devcontainer`这个文件夹,它的全名是`Development Containers`,并不是指开发了一种新的容器格式,而就是和Docker一样的普通容器,但多了对开发环境的一些支持,可以加入一些开发工具相关的依赖.
+
+换句话说,Docker容器用于部署,DevContainer容器用于开发.
+
+例如,Python官方的相关配置如下:
+```json
+{
+    "image": "ghcr.io/python/devcontainer:latest",
+    "onCreateCommand": [
+        // Install common tooling.
+        "dnf",
+        "install",
+        "-y",
+        // For umask fix below.
+        "/usr/bin/setfacl"
+    ],
+    "updateContentCommand": {
+        // Using the shell for `nproc` usage.
+        "python": "./configure --config-cache --with-pydebug && make -s -j `nproc`",
+        "docs": [
+            "make",
+            "--directory",
+            "Doc",
+            "venv",
+            "html"
+        ]
+    },
+    "postCreateCommand": {
+        // https://github.com/orgs/community/discussions/26026
+        "umask fix: workspace": ["sudo", "setfacl", "-bnR", "."],
+        "umask fix: /tmp": ["sudo", "setfacl", "-bnR", "/tmp"]
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                // Highlighting for Parser/Python.asdl.
+                "brettcannon.zephyr-asdl",
+                // Highlighting for configure.ac.
+                "maelvalais.autoconf",
+                // C auto-complete.
+                "ms-vscode.cpptools",
+                // To view HTML build of docs.
+                "ms-vscode.live-server",
+                // Python auto-complete.
+                "ms-python.python"
+            ],
+            "settings": {
+                "C_Cpp.default.compilerPath": "/usr/bin/clang",
+                "C_Cpp.default.cStandard": "c11",
+                "C_Cpp.default.defines": [
+                    "CONFIG_64",
+                    "Py_BUILD_CORE"
+                ],
+                "C_Cpp.default.includePath": [
+                    "${workspaceFolder}/*",
+                    "${workspaceFolder}/Include/**"
+                ],
+                // https://github.com/microsoft/vscode-cpptools/issues/10732
+                "C_Cpp.errorSquiggles": "disabled",
+                "editor.insertSpaces": true,
+                "editor.rulers": [
+                    80
+                ],
+                "editor.tabSize": 4,
+                "editor.trimAutoWhitespace": true,
+                "files.associations": {
+                    "*.h": "c"
+                },
+                "files.encoding": "utf8",
+                "files.eol": "\n",
+                "files.insertFinalNewline": true,
+                "files.trimTrailingWhitespace": true,
+                "python.analysis.diagnosticSeverityOverrides": {
+                    // Complains about shadowing the stdlib w/ the stdlib.
+                    "reportShadowedImports": "none",
+                    // Doesn't like _frozen_importlib.
+                    "reportMissingImports": "none"
+                },
+                "python.analysis.extraPaths": [
+                    "Lib"
+                ],
+                "python.defaultInterpreterPath": "./python",
+                "[restructuredtext]": {
+                    "editor.tabSize": 3
+                }
+            }
+        }
+    }
+}
+```
+不仅声明了开发环境镜像,重点在于特地说明和统一了Vscode配置,从而保证到了一台新的机器上无需重新配置就能着手开发.
+
+### 11/6
+#### 面经
+#### 技术文章
+#### 新技术
+### 11/7
+#### 面经
+#### 技术文章
+#### 新技术
 
 # 思考
 
@@ -1650,7 +1786,12 @@ Client负责提要求,Server负责完成要求;Client负责发送消息,Server�
 
 
 ### 近期的安排(11/5)
-考虑了一下,之后的重心还是放在项目上,争取从项目入手,根据项目需求来学习技术,并穿插在学习笔记中
+1. 考虑了一下,之后的重心还是放在项目上,争取从项目入手,根据项目需求来学习技术,并穿插在学习笔记中,或许可以称之为项目驱动学习(Project-Driven Learning,简称PDL),基本逻辑如下: 
+   1. 你有一个要学习的大方向,无论是技术栈(如Fastapi,Gin,Redis),还是新语言(如Go),抑或是开发方式(如TDD),架构模式(如Layer Architecture)
+   2. 利用AI搜索恰好用了这门技术编写的对应优秀项目/优秀书籍(一定不能找AI生成项目,也不能直接让AI生成模板,否则白搭),如果搜不到,不太可能,除非你的技术真有那么小众,那么想必你也已经是对该领域比较熟悉的开发者了,基本知识全都掌握了,也没必要用到这个学习方法了.
+   3. 如果是项目就详细阅读源码,哪里不懂查哪里,并尝试复刻和仿写(当然不能直接抄),最终目标是实现一个基本功能相同,代码架构类似的项目出来;如果是书籍配套项目,那么你就有福了,直接跟着书学习即可.
+   4. 等你真把这个项目做出来了,你会发现,自己也就已经懂了.
+2. 另一个打算是,大篇幅的思考(如总结,变故),以后还是单立一篇文章出来,毕竟这才是Blog原本的模样,也方便我来写作,而这里就只会放一些碎片的思考了.
 # 文章分享
 ## 技术文章
 ### [cpp构造与析构](https://blog.csdn.net/2501_91275995/article/details/156042381)
