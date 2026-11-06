@@ -604,6 +604,100 @@ asyncio.run(coroutine(), debug=True)
 在出现一些异常情况时,该选项会很有用.
 ### ch4: Concurrent web requests
 如果要启用`async with`,需要在类中定义`__aenter__`和`__aexit__`块,从而可以支持异步代码的自动清理
+
+asyncio.gather 返回一个可等待对象。在 await 表达式中使用它，**会暂停直至传入的所有可等待对象均完成**。当所有传入对象完成后，asyncio.gather 将返回包含已完成结果的列表。
+
+```py
+import asyncio
+from util import delay
+
+async def main():
+  results = await asyncio.gather(delay(3), delay(1))
+  print(results)
+
+asyncio.run(main())
+```
+
+值得注意的是,返回结果是[3,1]而非我们认为根据完成速度达成的[1,3],原因在于gather有一种特殊的future实现方式.
+
+虽然 asyncio.gather 适用于许多情况，但它有一个缺点：在所有可等待对象完成之前，不允许访问任何结果。如果我们希望结果一产生就进行处理，这就是个问题。如果有一些可等待对象能快速完成，而另一些则需要较长时间，这个问题也会凸显，因为 gather 会等待所有操作结束。这可能导致应用程序响应变慢。
+
+一个方法就是使用`as_completed`方法来取代gather:
+```python
+import asyncio
+import aiohttp
+from aiohttp import ClientSession
+from chapter_04 import fetch_status
+
+async def main():
+    async with aiohttp.ClientSession() as session:
+        fetchers = [fetch_status(session, 'https://www.example.com', 1),
+                    fetch_status(session, 'https://www.example.com', 1),
+                    fetch_status(session, 'https://www.example.com', 10)]
+
+        for finished_task in asyncio.as_completed(fetchers):
+            print(await finished_task)
+
+asyncio.run(main())
+```
+`as_completed`方法还可以用`timeout`参数设置超时时间,一旦任务的执行时间达到timeout值,就会抛出TimeoutException异常,但是已经创建的任务会继续在后台执行,无法关闭.
+
+为了实现更精细的掌控,asyncio提供了wait方法:
+
+```python
+import asyncio
+import aiohttp
+from aiohttp import ClientSession
+from util import async_timed
+from chapter_04 import fetch_status
+
+@async_timed()
+async def main():
+    async with aiohttp.ClientSession() as session:
+        fetchers = \
+            [asyncio.create_task(fetch_status(session, 'https://example.com')),
+             asyncio.create_task(fetch_status(session, 'https://example.com'))]
+            
+        done, pending = await asyncio.wait(fetchers)
+        
+        print(f'Done task count: {len(done)}')
+        print(f'Pending task count: {len(pending)}')
+        
+        for done_task in done:
+            result = await done_task
+            print(result)
+
+asyncio.run(main())
+```
+没有任何额外参数的wait与gather的作用相同,要想有点不同,需要加上`return_when=asyncio.FIRST_EXCEPTION`,或者修改一下结构:
+```python
+async def main():
+    async with aiohttp.ClientSession() as session:
+        url = 'https://www.example.com'
+        pending = [asyncio.create_task(fetch_status(session, url)),
+                   asyncio.create_task(fetch_status(session, url)),
+                   asyncio.create_task(fetch_status(session, url))]
+                   
+        while pending:
+            done, pending = await asyncio.wait(pending,
+                                               return_when=asyncio.FIRST_COMPLETED)
+            print(f'Done task count: {len(done)}')
+            print(f'Pending task count: {len(pending)}')
+            
+            for done_task in done:
+                print(await done_task)
+
+asyncio.run(main())
+```
+### ch5: Non-blocking database drivers
+假设我们有一个包含两个连接的连接池。再假设我们有三个协程，每个都执行一个查询任务。我们将这三个协程作为任务并发运行。按照这种连接池设置，前两个尝试执行查询的协程会获取两个可用连接并开始运行查询。在此期间，第三个协程将等待连接变为可用状态。当前两个协程中任意一个完成查询后，它会释放连接并返还给连接池。这使第三个协程能够获取该连接并开始执行查询。
+![示意图](PixPin_2026-11-06_15-40-52.webp)
+
+### ch6: CPU密集型任务
+
+
+
+
 ## Apache Kafka in Action
 ### ch1: 介绍
 >Kafka 是一个强大、开源、分布式的流式处理平台，它从根本上改变了组织处理数据流的方式。Kafka 的核心功能是持久化、分布式地记录组织的所有数据事件。
