@@ -603,8 +603,22 @@ asyncio.run(coroutine(), debug=True)
 ```
 在出现一些异常情况时,该选项会很有用.
 ### ch4: Concurrent web requests
+如果要启用`async with`,需要在类中定义`__aenter__`和`__aexit__`块,从而可以支持异步代码的自动清理
+## Apache Kafka in Action
+### ch1: 介绍
+>Kafka 是一个强大、开源、分布式的流式处理平台，它从根本上改变了组织处理数据流的方式。Kafka 的核心功能是持久化、分布式地记录组织的所有数据事件。
+
+![架构](PixPin_2026-10-19_10-24-40.webp)
 
 
+### ch2: 入门
+![本书用例](PixPin_2026-10-19_10-29-37.webp)
+
+Kafka 默认保留数据七天，但我们也可以设置不删除数据,与go中的channel还是不一样的.
+
+我们已成功完成第一个 Kafka 用例，该用例涉及 Kafka 的数据读写操作。首先，我们使用 kafka-topics.sh 命令行工具创建了一个名为 products.prices.changelog 的主题，用于存储所有产品的价格变动。接下来，我们使用 kafka-console-producer.sh 命令将数据写入该主题，捕获价格更新。随后，我们使用 kafka-console-consumer.sh 命令读取并显示这些数据。此外，我们还通过使用多个生产者并行生产数据并使用多个消费者同时读取数据，进一步探索了 Kafka 的用法。通过在 kafka-console-consumer.sh 中使用 --from-beginning 标志，我们访问了历史数据。通过这个过程，我们熟悉了如何使用 Kafka 的命令行工具进行数据读写操作。
+### ch3: Kafka topic and messages
+Kafka topics就像是数据库中的表,可以有多个Partition,类似于数据库的备份
 ## Test-Driven Development with Python
 ### ch1: 使用Django
 >通常，Web 开发的第一步是安装和配置 Web 框架。下载这个，安装那个，配置其他的，运行脚本……但 TDD 需要不同的思维方式。当你进行 TDD 时，你的脑子里总会有一只“测试山羊”——就像山羊一样，一心只想着测试——不停地叫着：“先测试，先测试！”
@@ -1558,21 +1572,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --topic test-topi
 ### 总结
 了解到这里就基本足够了,后面就是一些琐碎的配置环节了.
 
-## Apache Kafka in Action
-### ch1: 介绍
->Kafka 是一个强大、开源、分布式的流式处理平台，它从根本上改变了组织处理数据流的方式。Kafka 的核心功能是持久化、分布式地记录组织的所有数据事件。
 
-![架构](PixPin_2026-10-19_10-24-40.webp)
-
-
-### ch2: 入门
-![本书用例](PixPin_2026-10-19_10-29-37.webp)
-
-Kafka 默认保留数据七天，但我们也可以设置不删除数据,与go中的channel还是不一样的.
-
-我们已成功完成第一个 Kafka 用例，该用例涉及 Kafka 的数据读写操作。首先，我们使用 kafka-topics.sh 命令行工具创建了一个名为 products.prices.changelog 的主题，用于存储所有产品的价格变动。接下来，我们使用 kafka-console-producer.sh 命令将数据写入该主题，捕获价格更新。随后，我们使用 kafka-console-consumer.sh 命令读取并显示这些数据。此外，我们还通过使用多个生产者并行生产数据并使用多个消费者同时读取数据，进一步探索了 Kafka 的用法。通过在 kafka-console-consumer.sh 中使用 --from-beginning 标志，我们访问了历史数据。通过这个过程，我们熟悉了如何使用 Kafka 的命令行工具进行数据读写操作。
-### ch3: Kafka topic and messages
-Kafka topics就像是数据库中的表,可以有多个Partition,类似于数据库的备份
 ## Vision Language Models
 - 出版于2026年，出版商：O'Reilly，作者：Merve Noyan。
 
