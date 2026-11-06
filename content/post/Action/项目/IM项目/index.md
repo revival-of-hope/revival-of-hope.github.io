@@ -172,3 +172,266 @@ cityNameAttempt2 = r.get("city")    # Retrieved from cache
 ```
 
 ## ch2: confluent-kafka学习
+
+## ch3: 相关项目学习
+当我们想要从零开始搭建一个新领域项目时,往往是无从下手的,原因很简单,你见都没见过相关代码,怎么可能突然就会写了呢,所以,我们需要先找一下相关的领域项目,学习前人的设计经验.
+
+### 小型项目1
+- [仓库](https://github.com/notarious2/fastapi-chat)
+
+技术栈选型:
+* FastAPI, Websockets, Pydantic 2
+* Postgres (asyncpg), async Redis (PubSub and Cache)
+* SQLAlchemy 2
+
+技术选型是非常对我胃口的,现在来具体分析一下.
+
+一般来说,看一个python后端项目,我倾向于先看`main.py`,再看models,再看api,再看crud,最后看测试和配置,让我们按照这个流程来走一遍.
+#### main.py
+```py
+import logging
+
+import redis.asyncio as aioredis
+import sentry_sdk
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi_limiter import FastAPILimiter
+from fastapi_pagination import add_pagination
+from sqladmin import Admin
+
+from src.admin.admin import admin_models
+from src.admin.authentication_backend import authentication_backend
+from src.config import LOGGING_CONFIG, settings
+from src.database import engine, redis_pool
+from src.routers import routers
+
+
+logger = logging.getLogger(__name__)
+
+
+app = FastAPI()
+app.mount("/static", StaticFiles(directory="src/static"), name="static")
+
+admin = Admin(app, engine, authentication_backend=authentication_backend)
+
+for router in routers:
+    app.include_router(router)
+
+
+allowed_origins = settings.ALLOWED_ORIGINS.split(",")
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+add_pagination(app)
+
+
+@app.on_event("startup")
+async def startup():
+    logger.info("Application is started")
+    redis = aioredis.Redis(connection_pool=redis_pool)
+    await FastAPILimiter.init(redis)
+
+
+# Error displayed on shutdown (will be fixed in later versions): https://github.com/python/cpython/issues/109538
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("Application is closed")
+
+
+# register admin models
+for model in admin_models:
+    admin.add_view(model)
+```
+看到了好几个没见过的库和fastapi方法:
+1. `app.mount("/static")`: 挂载静态文件,从`static`路由访问,如`src/static/logo.png`对应`http://localhost:8000/static/logo.png`
+   1. 不过只要有前端的话,这个方法就没必要用了
+2. `from sqladmin import Admin`: 在FastAPI项目中快速创建一个Web管理后台,支持CRUD,直接通过ORM和session创建,绕过Service层
+   1. 顶多用到小项目中,这完全是代码架构的破坏利器
+3. `from fastapi_limiter import FastAPILimiter`: fastapi限流器,毕竟官方不支持限流,所以只好用第三方库了
+   1. 不过现在这库的api改了,所以原代码中的写法也需要改
+4. `@app.on_event("startup")`: `on_event`方法已经启用,现在统一用lifespan了.lifespan是fastapi应用的生命周期管理器,负责应用启动和关闭时需要执行的操作,基本用法如下:
+
+```py
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 应用启动时执行
+    print("Application starting...")
+
+    yield
+
+    # 应用关闭时执行
+    print("Application shutting down...")
+
+
+app = FastAPI(lifespan=lifespan)
+```
+
+这非常适合于需要显式关闭数据库连接的情况:
+```py
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    redis = Redis.from_url(REDIS_URL)
+    app.state.redis = redis
+
+    try:
+        await redis.ping()
+        yield
+    finally:
+        # Shutdown
+        await redis.aclose()
+        await engine.dispose()
+```
+
+#### models.py
+
+```py
+import enum
+import uuid
+from datetime import datetime
+from typing import Any, List
+
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, String, Table
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from src.database import BaseModel, RemoveBaseFieldsMixin, metadata
+
+
+class ChatType(enum.Enum):
+    DIRECT = "direct"
+    GROUP = "group"
+
+
+chat_participant = Table(
+    "chat_participant",
+    metadata,
+    Column("user_id", ForeignKey("user.id"), primary_key=True),
+    Column("chat_id", ForeignKey("chat.id"), primary_key=True),
+)
+
+
+class User(BaseModel):
+    __tablename__ = "user"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    guid: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True, default=uuid.uuid4)
+    password: Mapped[str] = mapped_column(String(128))
+    username: Mapped[str] = mapped_column(String(150), unique=True)
+    first_name: Mapped[str] = mapped_column(String(150), default="")
+    last_name: Mapped[str] = mapped_column(String(150), default="")
+    email: Mapped[str] = mapped_column(String(254), unique=True)
+    last_login: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
+    user_image: Mapped[str] = mapped_column(String(1048), nullable=True)
+    settings: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}")
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)  # redefine is_deleted column for index
+
+    chats: Mapped[List["Chat"]] = relationship(secondary=chat_participant, back_populates="users")
+    messages: Mapped[List["Message"]] = relationship(back_populates="user")
+    read_statuses: Mapped[List["ReadStatus"]] = relationship(back_populates="user")
+
+    def __str__(self):
+        return f"{self.username}"
+
+    # Indexes
+
+    __table_args__ = (
+        Index("idx_user_on_email_username", "email", "username", postgresql_concurrently=True),
+        Index(
+            "idx_user_partial_on_email_not_deleted",
+            "email",
+            "is_deleted",
+            postgresql_concurrently=True,
+            postgresql_where=(is_deleted.is_(False)),
+        ),
+    )
+
+
+class Chat(BaseModel):
+    __tablename__ = "chat"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    guid: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4)
+    chat_type: Mapped[str] = mapped_column(Enum(ChatType, inherit_schema=True))
+
+    users: Mapped[List["User"]] = relationship(secondary=chat_participant, back_populates="chats")
+    messages: Mapped[List["Message"]] = relationship(back_populates="chat", cascade="all,delete")
+    read_statuses: Mapped[List["ReadStatus"]] = relationship(back_populates="chat", cascade="all,delete")
+
+    def __str__(self):
+        return f"{self.chat_type.value.title()} {self.guid}"
+
+    __table_args__ = (
+        Index("idx_chat_on_is_deleted_chat_type", "is_deleted", "chat_type", postgresql_concurrently=True),
+        Index("idx_chat_on_guid", "guid", postgresql_concurrently=True),
+    )
+
+
+class MessageType(enum.Enum):
+    TEXT = "text"
+    FILE = "file"
+
+
+class Message(BaseModel):
+    __tablename__ = "message"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    guid: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4)
+    message_type: Mapped[str] = mapped_column(Enum(MessageType, inherit_schema=True), default=MessageType.TEXT)
+    content: Mapped[str] = mapped_column(String(5000))
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    chat_id: Mapped[int] = mapped_column(ForeignKey("chat.id"))
+
+    file_name: Mapped[str] = mapped_column(String(50), nullable=True)
+    file_path: Mapped[str] = mapped_column(String(1000), nullable=True)
+
+    chat: Mapped["Chat"] = relationship(back_populates="messages")
+    user: Mapped["User"] = relationship(back_populates="messages")
+
+    def __str__(self):
+        return f"{self.content}"
+
+    __table_args__ = (
+        Index("idx_message_on_chat_id", "chat_id", postgresql_concurrently=True),
+        Index("idx_message_on_user_id", "user_id", postgresql_concurrently=True),
+        Index("idx_message_on_user_id_chat_id", "chat_id", "user_id", postgresql_concurrently=True),
+    )
+
+
+class ReadStatus(RemoveBaseFieldsMixin, BaseModel):
+    __tablename__ = "read_status"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    last_read_message_id: Mapped[int] = mapped_column(nullable=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    chat_id: Mapped[int] = mapped_column(ForeignKey("chat.id"))
+
+    # to display unread messages for a user in different chats
+    chat: Mapped["Chat"] = relationship(back_populates="read_statuses")
+    user: Mapped["User"] = relationship(back_populates="read_statuses")
+
+    def __str__(self):
+        return f"User: {self.user_id}, Message: {self.last_read_message_id}"
+
+    __table_args__ = (
+        Index("idx_read_status_on_chat_id", "chat_id", postgresql_concurrently=True),
+        Index("idx_read_status_on_user_id", "user_id", postgresql_concurrently=True),
+    )
+```
+>用sqlalchemy写的,我看着不太习惯,但由于老项目都是用的它,所以还是勉强自己看下去.
+
+
+

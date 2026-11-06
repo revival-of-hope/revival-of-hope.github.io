@@ -1094,9 +1094,120 @@ Monorepo(Monolithic Repository，单体代码仓库)是一种代码管理方式�
 
 ### 11/6
 #### 面经
+- [社招面经](https://jiekun.dev/posts/2023-interviews/)
+
+盲点:
+1. 数据库与架构:
+   1. 索引下推和索引失效的场景
+   2. 定义 Redis 跳跃表的结构，再实现一版它的插入方法
+   3. 能说一下 LevelDB 的存储结构吗？
+   4. 在主从模式和 Redis Cluster 中分布式锁会有什么问题？
+   5. 迁移过程中双读双写具体是什么样的方案？
+   6. 短链接唯一 ID 设计这块挑战是什么？
+   7. LSM-Tree 有很多实现，能不能用 B+ Tree 作为其中的一种方案呢？用 B+ Tree 代替原来的 SSTable 有什么好处呢？
+   8. Metrics 的数据模型有了解吗？
+   9. LSM-Tree 和 B+ Tree 的本质区别是什么呢？
+2. 语言
+   1. Go 里面使用 Map 时应注意问题和数据结构？
+   2. Map 扩容是怎么做的？Map 的 panic 能被 recover 掉吗？了解 panic 和 recover 的机制吗？
+   3. Map 怎么知道自己处于竞争状态？是 Go 编码实现的还是底层硬件实现的？
+   4. 并发使用 Map 除了加锁还有什么其他方案吗？
+   5. Golang 标准库中 map 的底层数据结构是什么样子的？
+   6. channel 被 close 操作之后进行读和写会有什么问题？
+   7. Golang map Rehash 的策略是怎样的？什么时机会发生 Rehash？Rehash 具体会影响什么？哈希结果会受到什么影响？
+   8. sync.Map Store() 如何保持缓存层和底层 Map 数据是相同的? 是不是每次执行修改都需要去加锁？
+   9. channel 底层数据结构是怎样的，尝试用结构体来表述一下？
+
+代码题:
+```go
+func main() {
+	fmt.Println(test1())
+	fmt.Println(test2())
+	fmt.Println(test3())
+	fmt.Println(test4())
+
+	return
+}
+
+func test1() (v int) {
+	defer fmt.Println(v)
+	return v
+}
+
+func test2() (v int) {
+	defer func() {
+		fmt.Println(v)
+	}()
+	return 3
+}
+
+func test3() (v int) {
+	defer fmt.Println(v)
+	v = 3
+	return 4
+}
+
+func test4() (v int) {
+	defer func(n int) {
+		fmt.Println(n)
+	}(v)
+	return 5
+}
+```
+问输出结果.
+#### 技术文章
+- [Best practices for Claude Code](https://code.claude.com/docs/en/best-practices#explore-first-then-plan-then-code)
+
+>Get more out of Claude Code: tell Claude **what it can’t see**, **give it a check to run**, and e**nforce the rules that can’t have exceptions**.
+
+如果你对一次对话不满意,一般是这几种情况:
+1. Claude做了一些与你预期不符的事情,主要原因是你没提供足够的背景信息
+2. Claude表示自己做完了,但实际没有昨晚,那是因为你没有给他提供检查完成工作的步骤
+3. Claude做了一些绝对禁止的事情,那是因为你没有在指令中强调该禁令
+4. Claude花了太多时间/对话轮次做出一个项目,这需要你更改一下模型强度
+
+
+| 不要这么说         | 试着这么说                                                                                                         |
+| :----------------- | :----------------------------------------------------------------------------------------------------------------- |
+| “修复登录 bug”     | “用户反馈会话超时后登录失败。检查 `src/auth/` 中的 token 刷新逻辑，编写一个能复现该问题的失败测试，然后再进行修复” |
+| “添加一个日历组件” | “参照 `HotDogWidget.php` 中的模式，构建一个日历组件，允许用户选择月份并在年份之间翻页。不要引入新的库”             |
+
+文章中所有谈到的操作都比较基础,但都很有效.
+
+这篇文章一个最大的槽点就是,认为Claude是全知全能的,如果有问题,那就是你自己的问题😅
+
+#### 新技术
+USENIX Association 是成立于 1975 年的非营利计算机技术协会，以推动计算机系统研究、工程实践和技术交流为目标。是计算机系统领域最重要的学术会议入口之一，尤其适合学习操作系统、分布式系统、数据库与存储、计算机网络、网络安全和系统工程。
+
+| 会议                | 研究方向               | 典型研究内容                                       |
+| :------------------ | :--------------------- | :------------------------------------------------- |
+| **OSDI**            | 操作系统与系统软件     | 操作系统、分布式存储、资源调度、云计算、系统可靠性 |
+| **NSDI**            | 网络与分布式系统       | 分布式一致性、RPC、网络协议、集群调度、数据中心    |
+| **FAST**            | 文件系统与存储         | LSM-Tree、SSD、KV 存储、持久化、缓存、文件系统     |
+| **USENIX Security** | 计算机安全             | 系统安全、漏洞挖掘、隐私保护、软件安全、AI 安全    |
+| **SREcon**          | 站点可靠性工程         | 可观测性、故障排查、服务稳定性、生产运维           |
+| **SOUPS**           | 可用安全与隐私         | 人机交互、用户安全行为、隐私体验                   |
+| **SAIS**            | 安全的 Agentic AI 系统 | AI Agent 的安全、可信性与系统设计                  |
+
+USENIX 最值得关注的特点是开放获取（Open Access）：
+- 论文 PDF 和会议论文集免费阅读。
+- 已发布的演讲视频、Slides 通常也可免费查看
+
+
+>现在看对我来说还是太早了
+### 11/7
+#### 面经
 #### 技术文章
 #### 新技术
-### 11/7
+### 11/8
+#### 面经
+#### 技术文章
+#### 新技术
+### 11/9
+#### 面经
+#### 技术文章
+#### 新技术
+### 11/10
 #### 面经
 #### 技术文章
 #### 新技术
