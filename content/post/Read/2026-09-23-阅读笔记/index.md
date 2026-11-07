@@ -374,6 +374,48 @@ SFT数据的来历:
 #### 单轮到多轮
 
 
+
+## Build a Large Language Model
+### ch1: 理解LLM
+对LLM的基本介绍
+### ch2: 文本处理
+
+## Apache Kafka in Action
+### ch1: 介绍
+>Kafka 是一个强大、开源、分布式的流式处理平台，它从根本上改变了组织处理数据流的方式。Kafka 的核心功能是持久化、分布式地记录组织的所有数据事件。
+
+![架构](PixPin_2026-10-19_10-24-40.webp)
+
+
+### ch2: 入门
+![本书用例](PixPin_2026-10-19_10-29-37.webp)
+
+Kafka 默认保留数据七天，但我们也可以设置不删除数据,与go中的channel还是不一样的.
+
+我们已成功完成第一个 Kafka 用例，该用例涉及 Kafka 的数据读写操作。首先，我们使用 kafka-topics.sh 命令行工具创建了一个名为 products.prices.changelog 的主题，用于存储所有产品的价格变动。接下来，我们使用 kafka-console-producer.sh 命令将数据写入该主题，捕获价格更新。随后，我们使用 kafka-console-consumer.sh 命令读取并显示这些数据。此外，我们还通过使用多个生产者并行生产数据并使用多个消费者同时读取数据，进一步探索了 Kafka 的用法。通过在 kafka-console-consumer.sh 中使用 --from-beginning 标志，我们访问了历史数据。通过这个过程，我们熟悉了如何使用 Kafka 的命令行工具进行数据读写操作。
+### ch3: Kafka topic and messages
+Kafka topics就像是数据库中的表,可以有多个Partition,类似于数据库的备份
+
+## Python Testing with pytest, 2nd Edition
+### ch1: 介绍
+以下是命名规则的简要概述，用于确保你的测试代码能被pytest识别：
+* 测试文件的命名应为 `test_<something>.py` 或 `<something>_test.py`。
+* 测试方法和函数的命名应为 `test_<something>`。
+* 测试类的命名应为 `Test<Something>`。
+
+pytest测试有以下几种结果:
+* **PASSED (.)** — 测试运行成功。
+* **FAILED (F)** — 测试未能成功运行。
+* **SKIPPED (s)** — 测试被跳过。可通过使用 `@pytest.mark.skip()` 或 `@pytest.mark.skipif()` 装饰器指示 pytest 跳过测试。
+* **XFAIL (x)** — 测试预期会失败，实际运行也确实失败了。可通过 `@pytest.mark.xfail()` 装饰器告知 pytest 某个测试预期会失败。
+* **XPASS (X)** — 测试被标记为预期失败（xfail），但实际运行并通过。
+* **ERROR (E)** — 异常发生在装置（fixture）或钩子（hook）函数的执行过程中，而非测试函数的执行过程中。
+### ch3: Fixtures
+
+
+
+
+# 先放着
 ## Python Concurrency with asyncio
 ### ch1: 认识asyncio
 虽然asyncio的名称可能让我们认为这个库仅适用于I/O操作，但它通过支持多线程和多进程的互操作功能，也能处理其他类型的操作。借助这种互操作性，我们可以将async和await语法用于线程和进程，使这些工作流程更易于理解。这意味着这个库不仅适用于基于I/O的并发操作，还可以用于CPU密集型代码。
@@ -709,72 +751,84 @@ asyncio.run(main())
 假设我们有一个包含两个连接的连接池。再假设我们有三个协程，每个都执行一个查询任务。我们将这三个协程作为任务并发运行。按照这种连接池设置，前两个尝试执行查询的协程会获取两个可用连接并开始运行查询。在此期间，第三个协程将等待连接变为可用状态。当前两个协程中任意一个完成查询后，它会释放连接并返还给连接池。这使第三个协程能够获取该连接并开始执行查询。
 ![示意图](PixPin_2026-11-06_15-40-52.webp)
 
-### ch6: CPU密集型任务
+### ch6: CPU密集型任务(待补充,暂时用不到,反正也记不住)
 >asyncio 提供了与 Python 多进程库交互的 API。这使我们能够使用 async await 语法以及多进程下的 asyncio API。通过这种方式，即使在处理 CPU 密集型代码时，也能享受 asyncio 库的优势。
 
+单纯的多进程调度比较麻烦:
+```python
+import time
+from multiprocessing import Process
 
+def count(count_to: int) -> int:
+    start = time.time()
+    counter = 0
+    while counter < count_to:
+        counter = counter + 1
+    end = time.time()
+    print(f'Finished counting to {count_to} in {end-start}')
+    return counter
 
+if __name__ == "__main__":
+    start_time = time.time()
+    
+    to_one_hundred_million = Process(target=count, args=(100000000,))
+    to_two_hundred_million = Process(target=count, args=(200000000,))
 
-## Apache Kafka in Action
-### ch1: 介绍
->Kafka 是一个强大、开源、分布式的流式处理平台，它从根本上改变了组织处理数据流的方式。Kafka 的核心功能是持久化、分布式地记录组织的所有数据事件。
+    to_one_hundred_million.start()
+    to_two_hundred_million.start()
 
-![架构](PixPin_2026-10-19_10-24-40.webp)
+    to_one_hundred_million.join()
+    to_two_hundred_million.join()
 
+    end_time = time.time()
+    print(f'Completed in {end_time-start_time}')
+```
 
-### ch2: 入门
-![本书用例](PixPin_2026-10-19_10-29-37.webp)
+- start()：启动子进程，让子进程开始执行任务。
+- join()：等待指定子进程结束，再继续执行当前进程后面的代码。
 
-Kafka 默认保留数据七天，但我们也可以设置不删除数据,与go中的channel还是不一样的.
+也就是说,start负责启动,而join不会阻塞已经启动的子进程,只会阻塞主进程,直到子进程执行完毕.
+#### 进程池
+进程池不需要我们显式join进程,而是通过apply方法启动:
+```python
+from multiprocessing import Pool
 
-我们已成功完成第一个 Kafka 用例，该用例涉及 Kafka 的数据读写操作。首先，我们使用 kafka-topics.sh 命令行工具创建了一个名为 products.prices.changelog 的主题，用于存储所有产品的价格变动。接下来，我们使用 kafka-console-producer.sh 命令将数据写入该主题，捕获价格更新。随后，我们使用 kafka-console-consumer.sh 命令读取并显示这些数据。此外，我们还通过使用多个生产者并行生产数据并使用多个消费者同时读取数据，进一步探索了 Kafka 的用法。通过在 kafka-console-consumer.sh 中使用 --from-beginning 标志，我们访问了历史数据。通过这个过程，我们熟悉了如何使用 Kafka 的命令行工具进行数据读写操作。
-### ch3: Kafka topic and messages
-Kafka topics就像是数据库中的表,可以有多个Partition,类似于数据库的备份
-## Test-Driven Development with Python
-### ch1: 使用Django
->通常，Web 开发的第一步是安装和配置 Web 框架。下载这个，安装那个，配置其他的，运行脚本……但 TDD 需要不同的思维方式。当你进行 TDD 时，你的脑子里总会有一只“测试山羊”——就像山羊一样，一心只想着测试——不停地叫着：“先测试，先测试！”
+def say_hello(name: str) -> str:
+    return f'Hi there, {name}'
 
-在测试驱动开发（TDD）中，第一步始终相同：编写测试。
+if __name__ == "__main__":
+    with Pool() as process_pool:
+        hi_jeff = process_pool.apply(say_hello, args=('Jeff',))
+        hi_john = process_pool.apply(say_hello, args=('John',))
+        print(hi_jeff)
+        print(hi_john)
+```
 
-首先，我们编写测试；然后运行测试，并检查它是否如预期般失败。只有这样，我们才能继续构建应用程序的部分功能。用山羊般的声音重复一遍。
-### ch2&&ch3: 单元测试与功能测试
-功能测试(Functional test,也称End to End test,或者Acceptance test)从高层的用户体验指导我们进行开发,而单元测试(unittest)从代码层面指导开发.
+apply的问题在于它是同步调用,要想异步执行,就要换成`apply_async`方法,但它的问题在于,即便某个任务完成了,但如果用时更长的任务置于该任务上方串行调用,那么也会发生阻塞,不能做到随去随用.解决方法就是用ProcessPoolExecutor
+#### ProcessPoolExecutor
+```python
+import time
+from concurrent.futures import ProcessPoolExecutor
 
-TDD的工作流程如下:
-1. 编写功能测试
-2. 一旦功能测试失败,就开始编写单元测试来定义代码的具体行为,目标是每一行代码至少要经过一个单元测试的验证
-3. 一旦单元测试失败,就编写尽可能少的代码来让单元测试通过
-4. 重新运行功能测试,通过后就可以继续编写一些新的测试来循环开发.
+def count(count_to: int) -> int:
+    start = time.time()
+    counter = 0
+    while counter < count_to:
+        counter = counter + 1
+    end = time.time()
+    print(f'Finished counting to {count_to} in {end - start}')
+    return counter
 
-![双循环](PixPin_2026-11-05_13-27-06.webp)
+if __name__ == "__main__":
+    with ProcessPoolExecutor() as process_pool:
+        numbers = [1, 3, 5, 22, 100000000]
+        for result in process_pool.map(count, numbers):
+            print(result)
+```
 
-### ch5: 测试数据库
-
-
-
-
-
-
-## Python Testing with pytest, 2nd Edition
-### ch1: 介绍
-以下是命名规则的简要概述，用于确保你的测试代码能被pytest识别：
-* 测试文件的命名应为 `test_<something>.py` 或 `<something>_test.py`。
-* 测试方法和函数的命名应为 `test_<something>`。
-* 测试类的命名应为 `Test<Something>`。
-
-pytest测试有以下几种结果:
-* **PASSED (.)** — 测试运行成功。
-* **FAILED (F)** — 测试未能成功运行。
-* **SKIPPED (s)** — 测试被跳过。可通过使用 `@pytest.mark.skip()` 或 `@pytest.mark.skipif()` 装饰器指示 pytest 跳过测试。
-* **XFAIL (x)** — 测试预期会失败，实际运行也确实失败了。可通过 `@pytest.mark.xfail()` 装饰器告知 pytest 某个测试预期会失败。
-* **XPASS (X)** — 测试被标记为预期失败（xfail），但实际运行并通过。
-* **ERROR (E)** — 异常发生在装置（fixture）或钩子（hook）函数的执行过程中，而非测试函数的执行过程中。
-### ch3: Fixtures
-
-
-
-
-# 先放着
+ProcessPoolExecutor的问题在于,它对任务是按照numbers列表的顺序调用的,如果100000是第一个数字,那么就必须等到该数字打印完成后才能打印其他早就完成的数字,这显然不如`asyncio.as_completed`
+### ch8: Streams(待补充)
+使用Socket编程太烧心了,所以asyncio构建了网络流的抽象层,封装了Socket的复杂细节.
 ## Databse Internals
 ### ch1: 介绍
 ![架构图](PixPin_2026-10-06_15-46-05.webp)
@@ -1899,6 +1953,34 @@ public class CreateUser
 ### ch9: 通信模式
 ### 总结
 一旦你发现一本书无论如何都看不懂的时候,就应该过段时间再来看.
+## Test-Driven Development with Python
+### ch1: 使用Django
+>通常，Web 开发的第一步是安装和配置 Web 框架。下载这个，安装那个，配置其他的，运行脚本……但 TDD 需要不同的思维方式。当你进行 TDD 时，你的脑子里总会有一只“测试山羊”——就像山羊一样，一心只想着测试——不停地叫着：“先测试，先测试！”
+
+在测试驱动开发（TDD）中，第一步始终相同：编写测试。
+
+首先，我们编写测试；然后运行测试，并检查它是否如预期般失败。只有这样，我们才能继续构建应用程序的部分功能。用山羊般的声音重复一遍。
+### ch2&&ch3: 单元测试与功能测试
+功能测试(Functional test,也称End to End test,或者Acceptance test)从高层的用户体验指导我们进行开发,而单元测试(unittest)从代码层面指导开发.
+
+TDD的工作流程如下:
+1. 编写功能测试
+2. 一旦功能测试失败,就开始编写单元测试来定义代码的具体行为,目标是每一行代码至少要经过一个单元测试的验证
+3. 一旦单元测试失败,就编写尽可能少的代码来让单元测试通过
+4. 重新运行功能测试,通过后就可以继续编写一些新的测试来循环开发.
+
+![双循环](PixPin_2026-11-05_13-27-06.webp)
+
+### ch5: 测试数据库
+
+### 总结
+>偷工减料、跳过一些测试总是更容易。而且，这种做法在心理上尤其难以接受，因为回报与你投入的时间点完全脱节。你现在花时间编写的测试不会立即见效；它只有在很久以后才会发挥作用——也许是几个月后，当你重构代码时，它能避免引入 bug；或者，当你升级依赖项时，它能发现回归问题。又或许，它会以难以衡量的方式回报你，比如鼓励你编写设计更完善的代码，但你却会说服自己，即使没有测试，你也能写出同样优雅的代码。
+
+>不过，有一点需要记住：拖得越久，就越难。另一点是，就像温水煮青蛙的故事一样，痛苦只会逐渐显现，你可能要等到错过了最佳的转换时机才会察觉。而且，转换的时机永远不会很方便。就像技术债务一样，面对更紧迫的优先事项，转换总是难以找到合理的理由。
+
+或许以后我会再来看,但不是现在.
+
+
 
 # 基础
 ## A Philosophy of Software Design, 2nd Edition

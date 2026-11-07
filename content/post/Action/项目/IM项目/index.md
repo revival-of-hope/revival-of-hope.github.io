@@ -433,5 +433,345 @@ class ReadStatus(RemoveBaseFieldsMixin, BaseModel):
 ```
 >用sqlalchemy写的,我看着不太习惯,但由于老项目都是用的它,所以还是勉强自己看下去.
 
+有以下要点:
+1. 数据库同时设置id和guid,guid用于对外暴露,而id用于数据库索引,从而保证应用不会暴露数据库的细节
+2. 总计是有User,Chat,Message,ReadStatus四张表,非常符合一个标准的聊天系统设计
+3. 第四张表的设计很合理,记录的是单次对话中每个用户读到的最后一条消息,从而避免所有消息都要加上已读/未读统计(这很容易引发大批量更新,数据库吃不消).
 
+#### routers
+有一下几个router:
+```py
+from src.authentication.router import auth_router
+from src.chat.router import chat_router
+from src.contact.router import contact_router
+from src.registration.router import account_router
+from src.settings.router import settings_router
+from src.websocket.router import websocket_router
+```
+尽管是个人设计,但还是把这些router都包装到一个文件夹里更好.
+
+整体设计是每个路由都有一个专门的service(即crud)和schema,但就这个项目的规模来看,其实不太有必要,毕竟只在文件里放一个函数还是有点别扭的.
+
+##### contact
+```py
+@contact_router.get("/users/", summary="Get all users")
+async def get_contacts_view(
+    db_session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user),
+    cache: aioredis.Redis = Depends(get_cache),
+    cache_enabled: bool = Depends(get_cache_setting),
+):
+    cache_key = f"{current_user.guid}_all_users"
+
+    if cache_enabled:
+        # return cached users list if key exists
+        if cached_all_users := await cache.get(cache_key):
+            logging.info("Cache: Users")
+            return json.loads(cached_all_users)
+
+    users: list[User] = await get_all_users(db_session, current_user=current_user)
+
+    response = GetUsersResponseSchema.model_validate(users, from_attributes=True)
+
+    if cache_enabled:
+        await cache.set(cache_key, response.model_dump_json(), ex=settings.REDIS_CACHE_EXPIRATION_SECONDS)
+
+    return response
+```
+这里的缓存需要重点理解:
+1. 第一次是没有缓存的,所以在获取用户列表后,需要特定指明`cache.set`,并指明缓存过期时间
+2. 之后读取用户时,如果缓存没有失效,那么就读取缓存
+3. 不过由于没有设置缓存更新,所以即便用户列表有更新,我们仍然读到老数据,这就会是一个重大的设计失误.除非我们在其他地方设置了缓存更新,而这个项目也的确是这么设计的.
+
+
+
+##### registration
+```py
+@account_router.post("/register/", summary="Register user")
+async def register_user(
+    background_tasks: BackgroundTasks,
+    db_session: AsyncSession = Depends(get_async_session),
+    cache: aioredis.Redis = Depends(get_cache),
+    user_schema: UserRegisterSchema = Depends(UserRegisterSchema),
+):
+    # check if user with username or email already exists
+    if await get_user_by_email_or_username(db_session, email=user_schema.email, username=user_schema.username):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="User with provided credentials already exists"
+        )
+
+    try:
+        user: User = await create_user(db_session, user_schema=user_schema)
+        # background_task is executed after the response is sent to the client.
+        # this allows to save an image without affecting the user experience.
+        if uploaded_image := user_schema.uploaded_image:
+            image_saver = ImageSaver(db_session, user=user)
+            background_tasks.add_task(image_saver.save_user_image, user, uploaded_image)
+
+    except Exception as excinfo:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{excinfo}")
+    else:
+        # clear cache for all users
+        await clear_cache_for_all_users(cache)
+        return "User has been successfully created"
+```
+
+- 每次新用户注册时就撤销所有缓存
+
+##### chat
+核心文件,看一下路由设计:
+```py
+@chat_router.post("/chat/direct/", summary="Create a direct chat", response_model=DisplayDirectChatSchema)
+async def create_direct_chat_view(
+    create_direct_chat_schema: CreateDirectChatSchema,
+    db_session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user),
+):
+    # check if another user (recipient) exists
+    recipient_user_guid = create_direct_chat_schema.recipient_user_guid
+    recipient_user: User | None = await get_user_by_guid(db_session, user_guid=recipient_user_guid)
+
+    # TODO: must check that recipient user is not the same as initiator
+    if not recipient_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"There is no recipient user with provided guid [{recipient_user_guid}]",
+        )
+
+    if await direct_chat_exists(db_session, current_user=current_user, recipient_user=recipient_user):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=f"Chat with recipient user exists [{recipient_user_guid}]"
+        )
+
+    # Check if the data is already in the cache
+    chat: Chat = await create_direct_chat(db_session, initiator_user=current_user, recipient_user=recipient_user)
+
+    return chat
+
+
+@chat_router.get("/chat/{chat_guid}/messages/", summary="Get user's chat messages")
+async def get_user_messages_in_chat(
+    chat_guid: UUID,
+    size: Annotated[int | None, Query(gt=0, lt=200)] = 20,
+    db_session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user),
+    cache: aioredis.Redis = Depends(get_cache),
+    cache_enabled: bool = Depends(get_cache_setting),
+):
+    chat: Chat | None = await get_chat_by_guid(db_session, chat_guid=chat_guid)
+
+    if not chat:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat with provided guid does not exist")
+
+    # determine the number of unread messages
+    unread_messages_count: int = await get_unread_messages_count(db_session, user_id=current_user.id, chat=chat)
+
+    # get larger of provided messages size or unread messages
+    size: int = max(size, unread_messages_count)
+
+    # determine cache key
+    cache_key: str = f"messages_{chat_guid}_{size}"
+
+    if cache_enabled:
+        # return cached chat messages if key exists
+        if cached_chat_messages := await cache.get(cache_key):
+            logger.info("Cache: Messages")
+            return json.loads(cached_chat_messages)
+
+    if current_user not in chat.users:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You don't have access to this chat")
+
+    messages, has_more_messages, last_read_message = await get_chat_messages(
+        db_session, user_id=current_user.id, chat=chat, size=size
+    )
+    response = GetMessagesSchema(
+        messages=messages,
+        has_more_messages=has_more_messages,
+    )
+    if last_read_message:
+        response.last_read_message = last_read_message
+
+    if cache_enabled:
+        # Store the chat in the cache with a TTL
+        await cache.set(cache_key, response.model_dump_json(), ex=settings.REDIS_CACHE_EXPIRATION_SECONDS)
+
+    return response
+
+
+# TODO: when to clear the cache?
+@chat_router.get("/chats/direct/", summary="Get user's direct chats")
+async def get_user_chats_view(
+    db_session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user),
+    cache: aioredis.Redis = Depends(get_cache),
+    cache_enabled: bool = Depends(get_cache_setting),
+):
+    # return cached direct chats if key exists
+    cache_key = f"direct_chats_{current_user.guid}"
+    if cached_direct_chats := await cache.get(cache_key):
+        logger.info("Cache: Chats")
+        return json.loads(cached_direct_chats)
+
+    chats: list[Chat] = await get_user_direct_chats(db_session, current_user=current_user)
+
+    chats_with_new_messages_count: list[GetDirectChatSchema] = await get_new_messages_per_chat(
+        db_session, chats, current_user
+    )
+
+    # calculate total unread messages count for all user's chats
+    total_unread_messages_count = sum(direct_chat.new_messages_count for direct_chat in chats_with_new_messages_count)
+
+    response = GetDirectChatsSchema(
+        chats=chats_with_new_messages_count, total_unread_messages_count=total_unread_messages_count
+    )
+
+    if cache_enabled:
+        # Store response in the cache with a TTL
+        await cache.set(cache_key, response.model_dump_json(), ex=settings.REDIS_CACHE_EXPIRATION_SECONDS)
+
+    return response
+
+
+@chat_router.delete("/chats/direct/{chat_guid}/", summary="Delete user's chat", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_direct_chat_view(
+    chat_guid: UUID,
+    db_session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user),
+    cache: aioredis.Redis = Depends(get_cache),
+    cache_enabled: bool = Depends(get_cache_setting),
+):
+    chat: Chat | None = await get_chat_by_guid(db_session, chat_guid=chat_guid)
+
+    if not chat or current_user not in chat.users:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat with provided guid is not found")
+
+    await db_session.delete(chat)
+    await db_session.commit()
+
+    if cache_enabled:
+        for user in chat.users:
+            await clear_cache_for_get_direct_chats(cache=cache, user=user)
+
+
+@chat_router.get(
+    "/chat/{chat_guid}/messages/old/{message_guid}/",
+    summary="Get user's historical chat messages",
+)
+async def get_older_messages(
+    chat_guid: UUID,
+    message_guid: UUID,
+    limit: Annotated[int | None, Query(gt=0, lt=200)] = 10,
+    db_session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user),
+):
+    chat: Chat | None = await get_chat_by_guid(db_session, chat_guid=chat_guid)
+
+    if not chat:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat with provided guid is not found")
+
+    if current_user not in chat.users:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You don't have access to this chat")
+
+    message: Message | None = await get_active_message_by_guid_and_chat(
+        db_session, chat_id=chat.id, message_guid=message_guid
+    )
+
+    if not message:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message with provided guid is not found")
+
+    old_messages, has_more_messages = await get_older_chat_messages(
+        db_session, chat=chat, user_id=current_user.id, created_at=message.created_at, limit=limit
+    )
+    return GetOldMessagesSchema(messages=old_messages, has_more_messages=has_more_messages)
+```
+
+1. post:`/chat/direct/`
+   1. 首先是获取私聊对象用户
+   2. 然后检查该私聊是否已经存在
+   3. 创建私聊,更新对话成员和阅读状态
+   4. 最后直接返回整个数据库表就不对了,最好专门再写一个schema
+2. get:`/chat/{chat_guid}/messages/`
+   1. 首先是根据uuid获取对话
+   2. 接着是统计未读消息,如果未读消息有几千几万条,那显然不能也照样返回计数,这有两种方法处理,原样取回所有消息后用最大限额截断计数,或者原样取回所有消息后不截断
+   3. 获取对话消息的函数非常有意思,我们来全面剖析一下:
+
+```py
+async def get_chat_messages(
+    db_session: AsyncSession, *, user_id: int, chat: Chat, size: int
+) -> tuple[list[Chat], bool, Message | None]:
+    query = (
+        select(Message)
+        .where(and_(Message.chat_id == chat.id, Message.is_deleted.is_(False)))
+        .order_by(Message.created_at.desc())
+        .limit(size + 1)
+        .options(selectinload(Message.user), selectinload(Message.chat))
+    )
+    result = await db_session.execute(query)
+    messages: list[Message] = result.scalars().all()
+    # check if there are more messages
+    has_more_messages = len(messages) > size
+    messages = messages[:size]
+
+    # assuming only two read statuses
+    # Initialize variables to prevent NameError
+    my_last_read_message_id = None
+    other_user_last_read_message_id = None
+
+    # Loop through chat.read_statuses and assign the read message IDs
+    for read_status in chat.read_statuses:
+        if read_status.user_id != user_id:
+            other_user_last_read_message_id = read_status.last_read_message_id
+        else:
+            my_last_read_message_id = read_status.last_read_message_id
+
+    # If no value is assigned, you could choose to set a default value
+    # or handle this case accordingly (e.g., using a placeholder)
+    if my_last_read_message_id is None:
+        my_last_read_message_id = 0  # Or some other default value
+
+    if other_user_last_read_message_id is None:
+        other_user_last_read_message_id = 0  # Or some other default value
+
+    # Retrieve the last read message for the other user
+    last_read_message = await db_session.get(Message, other_user_last_read_message_id)
+
+    # Construct GetMessageSchema list
+    get_message_schemas = [
+        GetMessageSchema(
+            message_guid=message.guid,
+            content=message.content,
+            created_at=message.created_at,
+            chat_guid=message.chat.guid,
+            user_guid=message.user.guid,
+            is_read=message.id
+            <= (other_user_last_read_message_id if message.user.id == user_id else my_last_read_message_id),
+        )
+        for message in messages
+    ]
+
+    return get_message_schemas, has_more_messages, last_read_message
+```
+
+这里最巧妙的一个设计就是`.limit(size + 1)`,如果是我亲手写出来的,那我做梦都能笑醒.
+
+原理如下:
+1. 故意获取比size大一的消息列表
+2. 如果发现这个消息列表的长度>size,也就是为size+1,说明之后还有消息
+3. 但这次我们只需要返回size大小的消息即可,并标记之后还有消息要读取
+
+你看,我们只需要多查一条数据,就能得到这么多隐含信息,实在是太天才了.
+
+另一个重点在于这是一个私聊对话,因为需要判断已读状态(毕竟群聊的话也就无从谈起已读了),所以需要区分自己的已读消息和对方的未读消息,原代码的列表表达式实在是太难懂了,拆分出来是这样的:
+
+```py
+for message in messages:
+    is_my_message = message.user_id == user_id
+
+    if is_my_message:
+        # 自己发的消息：判断对方是否已读
+        is_read = message.id <= other_user_last_read_message_id
+    else:
+        # 对方发的消息：判断自己是否已读
+        is_read = message.id <= my_last_read_message_id
+```
 

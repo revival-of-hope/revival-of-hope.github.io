@@ -868,10 +868,7 @@ PTC（Programmatic Tool Calling）是解决这个问题的一个好方法,大意
 在 agent loop 中，Agent 实现完成的一条轨迹对应的编码成的token，最终总是会撑破上下文的，为了避免这个问题，我们还需要实现一个上下文压缩的工具 compact，但是需要注意的是，这个工具不应该被 Agent 主动调用，因为我们必须 100% 保证，当上下文即将撑满时，必须采用 compact 进行压缩。因此，在绝大部分 harness 中，compact 会被设计为一次系统事件。每次大模型调用结束后，harness 系统都会检查一次当前上下文的占用情况，当上下文达到 80% 时（举个例子，也可以是75%，但是 80% 用得比较多），自动压缩上下文并替换下一次开始时发送给LLM的轨迹。
 
 在很多的 agent 产品中，compact 也会成为和 create-skill 一样的系统内置 skill 方便用户直接手动触发上下文压缩。比如在 codex 中，输入 /compact 就会主动触发上下文压缩。
-### 从零开始构建Go项目(10/9)
-- [来源](https://robinlg.com/blog/golang/project/1/)
-### AI Infra教程(10/20)
-- [来源](https://kirigaya.cn/blog/article?seq=384)
+
 ### Agent的边界(10/21)
 看了[这篇文章](https://kirigaya.cn/blog/article?seq=396),对agent的认识又有所改观,文中认为由于LLM在RL阶段对编写代码能力的度量只在于能否通过单元测试,而不在乎具体的软件架构,因此AI目前是不可能写出架构优美符合要求的大规模软件的.
 
@@ -1197,8 +1194,128 @@ USENIX 最值得关注的特点是开放获取（Open Access）：
 >现在看对我来说还是太早了
 ### 11/7
 #### 面经
+- [25面经](https://www.nowcoder.com/discuss/832657601983688704)
+
+1. 虽然字节没笔试，但是每次面试都像是在笔试，并且不喜欢出热100里面的，虽然有些题并不是很难，但是要你尽可能时间空间复杂度都最低来解决，二面的时候有个题，本来想着用两个栈解决的，后面改成了一个栈解决，但是他还不满意，说不用栈能不能解决，我说了一下整体思路，但没时间手撕了，后面就挂了。
+2. 阿里，这位更是重量级，hc少，bar高。整个暑期+秋招，根本约不到面试，要么笔试完没消息，大多都是简历挂，听说是要双9，或者本硕有一个是23所里面的，尤其淘天，阿里云，这俩简直就是只招超人。
+3. 学历厂也越来越不好使了，典型的就是今年的华为，比亚迪，在往年是出了名的学历厂，用来保底的。但是身边有不少朋友双9被华为挂了，比亚迪更是面试都不给。未来或许也只会有过之而无不及，所以大家提前做好准备吧。
+4. 秋招如果base地没要求的话，选北京你会多很多面试机会。
+5. 实习你拿很多offer未必意味着你秋招也能拿很多offer，因为暑期和秋招难度不是一个量级的，有可能你暑期拿到offer的公司，秋招你连简历都筛不过去。
+
+
+- [23秋招](https://www.ruanx.net/job-hunting-record/)
+
+1. 每天的流程大概如下：10:10 出发去公司吃早饭。我住在八方城 6 栋，公司在 9 栋，直线距离 200m，五分钟通勤。吃完早饭之后坐到工位，大约是 10:30。工作到 12:00 吃午饭，14:00 上班。正式员工一般晚上工作到 21:30（我则是 18:00 吃完晚饭就走），也就是说，正式员工每天上班时间是 10:30 - 21:30，共计 11h
+   1. 其实这个下班时间非常不正常,但好像大家都习以为常了😅
+
 #### 技术文章
+- [Harness Engineering](https://arxiv.org/html/2609.00006)
+  - 这可能是今年最值得读的一篇Agent工程论文了,分量也非常重,适合静心下来读.
+
+>An agent is a **model** plus a **harness**: the runtime that couples an LLM to the world through a loop, tools, context management, safety controls, orchestration, and extension surfaces
+
+- Harness engineering, named as a discipline in early 2026, is the design and evolution of that runtime. 
+
+该论文剖析了Claude Code,Codex,Gemini CLI,Aider,Hermes,Pi,OpenCode等11个Harness框架,总结出了29种反复出现的设计模式.
+
+值得一提的是,这些Harness没有一个用到了通用的Agent框架(如Langchain,AutoGen),也没有Harness使用embedding,而是通过grep,glob等工具来检索.
+
+在如今,上下文管理成为了核心的基础设施,而工具调用和文件编辑的工程细节也十分重要,安全策略也必须在Harness层强制实施.
+##### 具体内容
+
+这11个Harness都实现了ReAct的变体模式,但复杂性和状态管理都有极大的不同,不过都可以抽象为这个循环:
+```py
+
+def run(task):
+    messages = [
+        {"role": "user", "content": task}
+    ]
+
+    while True:
+        response = model.generate(
+            messages=messages,
+            tools=tools
+        )
+        messages.append(response)
+
+        if not response.tool_calls:
+            return response.content
+
+        for call in response.tool_calls:
+            result = execute_tool(call)
+            messages.append(make_tool_result(call, result))
+```
+
+这种Loop有三种模式:
+| 类型                             | 原理                       | 代表                              |
+| :------------------------------- | :------------------------- | :-------------------------------- |
+| **Iterative Action–Observation** | 模型与工具交替运行         | Codex、Claude Code、Gemini CLI 等 |
+| **Reflection-Augmented**         | 在执行循环中增加检查与修正 | Aider                             |
+| **Coordinator–Worker**           | 父 Agent 协调多个子 Agent  | Claude Code、Codex 等             |
+
+Harness按照模型适配接口可以分为以下两种:
+- Provider-Native Harness，例如 Codex、Claude Code：深度适配特定模型，能够使用厂商专属能力。
+- Multi-Provider Harness，例如 Pi、OpenCode：通过自己维护的协议适配层兼容多个模型供应商。
+
+作者的重要发现是：多模型架构并非注定失去所有底层优化。只要开发者愿意承担额外的适配代码，也可以支持精细的缓存、推理和流处理功能
+
+不同Harness对工具的设计差别很大,如最重要的文件编辑工具,Claude Code用的是唯一文本匹配策略,而Codex用的是结构化补丁.
+
+不同Harness的工具系统更是截然不同,看一下这个图谱:
+![图谱](PixPin_2026-11-07_22-51-39.webp)
+
+Hermes集成了69个内置工具,而Pi则只有7个工具,其余全部作为扩展.
+
+论文将多 Agent 实现归纳为六种模式：
+| 模式                         | 含义                          | 代表系统                |
+| :--------------------------- | :---------------------------- | :---------------------- |
+| **Single Agent**             | 单个 Agent 执行任务           | Aider、Mini-SWE-Agent   |
+| **Sequential Delegation**    | 串行委派子任务                | Mistral Vibe            |
+| **Parallel Child Sessions**  | 多个子会话并行                | OpenHands、OpenCode     |
+| **Hierarchical Thread Tree** | 父子线程树与任务管理          | Codex                   |
+| **Recursive Composition**    | 子 Agent 可以递归生成子 Agent | Claude Code             |
+| **Registry + Protocol**      | 注册中心与跨进程接口          | Gemini CLI、OpenClaw 等 |
+
+事实上,Framework和Harness的边界正在模糊:
+| 方向                    | 例子                                       | 本质                                  |
+| :---------------------- | :----------------------------------------- | :------------------------------------ |
+| **Harness → Framework** | Claude Agent SDK、Codex SDK、OpenHands SDK | 将成熟 Agent Runtime 封装为可调用的库 |
+| **Framework → Harness** | LangChain Deep Agents、Pydantic AI Harness | 由通用框架提供开箱即用的 Agent 运行时 |
+
+
 #### 新技术
+- CNCF
+
+CNCF(Cloud Native Computing Foundation,云原生计算基金会)是全球云原生生态中的扛把子开源组织,于2015年在Linux Foundation下成立,内有国歌委员会,最重要的是TOC（Technical Oversight Committee，技术监督委员会）,负责批准项目进入 CNCF、评估项目成熟度、协调项目之间的关系，以及维护整体技术方向,但具体实现还是由项目维护者自己实现的.
+
+CNCF旗下的项目有三个等级: Sandbox、Incubating、Graduated,目前,CNCF有152个Sandbox项目,38个孵化项目,41个毕业项目.
+
+| 等级                   | 主要特点                                             | 对企业使用者意味着什么           |
+| :--------------------- | :--------------------------------------------------- | :------------------------------- |
+| **Sandbox（沙箱）**    | 早期探索，接口和架构可能快速变化                     | 适合实验、验证新技术             |
+| **Incubating（孵化）** | 有真实用户和一定社区基础，逐步完善稳定性             | 可以评估生产使用，但需要严格审查 |
+| **Graduated（毕业）**  | 成熟治理、广泛采用、生产实践与安全能力得到较充分验证 | 通常是更稳健的技术选择           |
+| **Archived（归档）**   | 活跃度下降、维护不足或不再受到基金会支持             | 应检查维护情况与替代方案         |
+
+旗下最具代表性的项目有:
+
+| 技术领域         | 代表项目      | 主要解决什么问题                     |
+| :--------------- | :------------ | :----------------------------------- |
+| **容器编排**     | Kubernetes    | 部署、调度、扩容和管理容器工作负载   |
+| **容器运行时**   | containerd    | 管理容器生命周期                     |
+| **分布式协调**   | etcd          | 使用 Raft 提供一致性的键值存储       |
+| **服务发现**     | CoreDNS       | DNS 解析和服务发现                   |
+| **网络**         | Cilium        | 基于 eBPF 的容器网络、安全与可观测性 |
+| **服务代理**     | Envoy Proxy   | L4/L7 流量代理、负载均衡             |
+| **服务网格**     | Istio         | 微服务流量、安全策略与通信治理       |
+| **监控**         | Prometheus    | 时间序列指标、查询和告警             |
+| **可观测性**     | OpenTelemetry | 标准化采集 Metrics、Logs、Traces     |
+| **包管理**       | Helm          | 管理 Kubernetes 应用部署包           |
+| **GitOps**       | Argo CD、Flux | 让集群状态持续与 Git 声明保持一致    |
+| **自动扩缩容**   | KEDA          | 根据事件、消息队列等指标调整实例数量 |
+| **容器镜像仓库** | Harbor        | 存储、扫描和管理容器镜像             |
+
+CNCF下还有一个旗舰的技术会议KubeCon + CloudNativeCon,可以购买门票现场参加.
 ### 11/8
 #### 面经
 #### 技术文章
@@ -1903,6 +2020,21 @@ Client负责提要求,Server负责完成要求;Client负责发送消息,Server�
    3. 如果是项目就详细阅读源码,哪里不懂查哪里,并尝试复刻和仿写(当然不能直接抄),最终目标是实现一个基本功能相同,代码架构类似的项目出来;如果是书籍配套项目,那么你就有福了,直接跟着书学习即可.
    4. 等你真把这个项目做出来了,你会发现,自己也就已经懂了.
 2. 另一个打算是,大篇幅的思考(如总结,变故),以后还是单立一篇文章出来,毕竟这才是Blog原本的模样,也方便我来写作,而这里就只会放一些碎片的思考了.
+### Agent的可能(11/7)
+这段时间我一直在考量Agent的实际效能和未来,可以从这几个维度来看:
+1. 推广潜力
+   1. 学术研究可以不断推进,但问题在于,硬件和基础设施跟不上啊,如果还是走大数据中心的路子,那么随着上下文窗口的扩大,所需要的算力规模也会不断扩大,这势必挤压到我们原本的生活空间
+   2. 另一方面,大多数领域是不会那么轻易地就让Agent来接管的,舆论会将Agent的缺陷无限放大,只要你目前还不是全能的许愿机,那么就一定会有纰漏,只要出现一次生产事故,那么整个信任链条就会彻底崩坏
+2. 发展潜力
+   1. Agent能不能做到能力随着时间线性增长,能不能适应复杂多变的任务环境,能不能真正地适配机器智能领域(如军事和民用),这些都要打个问号
+   2. 只要Agent还需要我们事无巨细地提供上下文,写AGENTS.md,写SKILL,明确禁令和界限,那就意味着它永远不会是一个真正的智能体,不具备自我探索与发现的能力,无法体会隐含信息,那么也就不可能胜任真正的复杂生产任务
+3. 影响
+   1. 由于软件工程是最贴近Agent前沿的,所以目前受到的影响是最深的,但是还不能说是伤筋动骨的程度
+   2. 初级工程师的招聘位置确实是在减少,固然可以说是Agent提效,但另一方面却是公司的问题,不愿意花时间培养新人,一味索要高级工程师,只不过Agent给了他们一个借口而已.
+   3. Agent最适用的领域就是单流程的科研和繁琐的文书处理,总有一天,我们在填政务表单时能够直接语音输入或者扫描图片输入,并自动填补所有代填项,并且没有任何差错.不过真到了那一步,我们还需要自己填写政务表单吗,更有可能是有一个整合的通用平台,能够处理所有的基本政务事项,做到真正的一网通办.
+   4. 再比如科研领域,如果说你的研究流程是下载数据/做数据实验/跑仪器->数据分析->绘图画表格->分析与公式提取->总结->发表论文,那么很疑惑为什么这个活儿不能交给Agent干,人只要负责提出Idea就行了,而Agent跑出来的结果全都归功于你自己即可.
+
+
 # 文章分享
 ## 技术文章
 ### [cpp构造与析构](https://blog.csdn.net/2501_91275995/article/details/156042381)
