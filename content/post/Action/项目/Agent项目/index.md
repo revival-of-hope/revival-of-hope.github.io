@@ -1,10 +1,10 @@
 ---
 title: "Agent项目"
 date: 2026-11-06T08:41:42+08:00
-description: 第二个项目
+description: 项目2-a
 image: 137455166_p0-『adieu』.webp
 tags: 
-    - 调研
+    - PDL
 math: 
 draft: true
 ---

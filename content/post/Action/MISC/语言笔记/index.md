@@ -42,42 +42,65 @@ image: 45243652_p0-楽園の素敵な巫女.webp
 
 - 最后一个Typst我一开始是很看好的,现在的热度也确实起来了,希望能够早日取代Latex,简直不是人写的.不过话说回来我又用不到.
 
+### 斜杠(Slash)和反斜杠(Backslash)
+* `/`：**正斜杠 (Forward Slash)**，主要用于 Linux、macOS 文件路径、URL、Docker 路径，以及命令行选项等。
+* `\`：**反斜杠 (Backslash)**，主要用于 Windows 文件路径、编程语言转义、Bash/Dockerfile等的换行。
 
+简单来说,无脑用`/`,只有Windows,转义,换行要考虑用`\`.
+
+### GitHub Flavored Markdown,GFM
+- [参考文章](https://github.com/guodongxiaren/README)
+
+值得一提的是hugo也内置了对GFM的支持,感兴趣的博主可以在里面测试一下.
+#### Alerts
+```md
+> [!NOTE]
+> 这是一个提示信息
+
+> [!TIP]
+> 这是一个技巧提示
+
+> [!IMPORTANT]
+> 这是重要信息
+
+> [!WARNING]
+> 这是警告信息
+
+> [!CAUTION]
+> 这是危险警告
+```
+![图示](PixPin_2026-07-31_16-14-52.webp)
+
+在hugo上的效果如下:
+> [!NOTE]
+> 这是一个提示信息
+
+> [!TIP]
+> 这是一个技巧提示
+
+> [!IMPORTANT]
+> 这是重要信息
+
+> [!WARNING]
+> 这是警告信息
+
+> [!CAUTION]
+> 这是危险警告
+#### diff
+其语法与代码高亮类似，只是在三个反引号后面写diff，
+并且其内容中，可以用 `+ `开头表示新增，`- `开头表示删除。
+另外还有有 `!`和`#`的语法。
+
+```diff
++ 人闲桂花落，
+- 夜静春山空。
+! 月出惊山鸟，
+# 时鸣春涧中。
+```
 ### 各门语言中导入机制的处理(待补充)
 一开始以为导入不就是将文件插入过来合并到一起嘛,后来发现除了C/Cpp之外,其他语言的做法都不是这样
-#### 总表
-| 语言/机制                | 本质                                              | 是否文本复制 |
-| ------------------------ | ------------------------------------------------- | ------------ |
-| C/C++ `#include`         | 预处理器把头文件文本插入当前文件                  | **是**       |
-| C++20 `import` / Modules | 导入已编译模块接口                                | **否**       |
-| Go `import`              | 导入 package，编译器读取包的导出信息，最后链接    | **否**       |
-| Java `import`            | 主要用于名字解析；类由 classpath/module path 找到 | **否**       |
-| Python `import`          | 运行时加载并执行模块，然后缓存到 `sys.modules`    | **否**       |
-| Rust `use`               | 把名字引入当前作用域                              | **否**       |
-| JavaScript ES `import`   | 建立模块依赖和绑定，由模块加载器处理              | **否**       |
+### 正则表达式
 
-#### Go
-```go
-import "fmt"
-```
-将fmt包的接口导入进来并进行链接,并在运行程序时完成包的初始化
-#### Java
-```java
-import java.util.List;
-
-List<String> names;
-```
-Java中的导入只是简写而已,我们完全可以写`java.util.List<String> names;`,所以
-#### Rust
-```rs
-use foo::Bar;
-```
-将模块引入当前作用域.
-#### python
-```py
-import sys
-```
-执行导入文件中所有没被包裹在主函数标记`if __name__ == "__main__":`中的所有独立非函数块代码,
 ## Python
 ### 搭建GPU环境(26/1)
 先在nvidia官网下载cuda13.0,然后根据这个toml运行uv sync即可:

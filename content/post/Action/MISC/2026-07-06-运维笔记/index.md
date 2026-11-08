@@ -747,62 +747,8 @@ React Native由Facebook于15年发布的多平台(除了Linux)打包框架.
 ### Flutter
 支持全平台,但需要专门学习dart语言,实际上是一个更难用的Javascript
 
-# 杂项
-## 斜杠(Slash)和反斜杠(Backslash)
-* `/`：**正斜杠 (Forward Slash)**，主要用于 Linux、macOS 文件路径、URL、Docker 路径，以及命令行选项等。
-* `\`：**反斜杠 (Backslash)**，主要用于 Windows 文件路径、编程语言转义、Bash/Dockerfile等的换行。
 
-简单来说,无脑用`/`,只有Windows,转义,换行要考虑用`\`.
 
-## GitHub Flavored Markdown,GFM
-- [参考文章](https://github.com/guodongxiaren/README)
-
-值得一提的是hugo也内置了对GFM的支持,感兴趣的博主可以在里面测试一下.
-### Alerts
-```md
-> [!NOTE]
-> 这是一个提示信息
-
-> [!TIP]
-> 这是一个技巧提示
-
-> [!IMPORTANT]
-> 这是重要信息
-
-> [!WARNING]
-> 这是警告信息
-
-> [!CAUTION]
-> 这是危险警告
-```
-![图示](PixPin_2026-07-31_16-14-52.webp)
-
-在hugo上的效果如下:
-> [!NOTE]
-> 这是一个提示信息
-
-> [!TIP]
-> 这是一个技巧提示
-
-> [!IMPORTANT]
-> 这是重要信息
-
-> [!WARNING]
-> 这是警告信息
-
-> [!CAUTION]
-> 这是危险警告
-### diff
-其语法与代码高亮类似，只是在三个反引号后面写diff，
-并且其内容中，可以用 `+ `开头表示新增，`- `开头表示删除。
-另外还有有 `!`和`#`的语法。
-
-```diff
-+ 人闲桂花落，
-- 夜静春山空。
-! 月出惊山鸟，
-# 时鸣春涧中。
-```
 
 # 个人实践
 ## 个人项目部署

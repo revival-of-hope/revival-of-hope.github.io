@@ -1,10 +1,10 @@
 ---
 title: "IM项目"
 date: 2026-11-06T09:20:50+08:00
-description: 
+description: 项目2-b
 image: 122308550_p0-无题.webp
 tags: 
-    - 调研
+    - PDL
 math: 
 draft: true
 ---

@@ -378,13 +378,50 @@ SFT数据的来历:
 
 ![奖励密度](PixPin_2026-11-08_11-05-26.webp)
 
+#### 学习工具调用
+工具 RL 还有一个绕不开的工程细节：**对环境反馈的 token 做损失屏蔽（loss masking）**。一条工具调用轨迹里既有模型自己生成的 token（思考、工具调用参数），也有环境返回的 token（代码解释器的输出、搜索结果、客服的回话）。后者不是策略生成的、而是环境给定的——如果把它们也计入策略梯度，模型就会被训练去“预测沙盒会输出什么”，这既偏离了优化目标，又会让训练变得不稳定。标准做法是在计算损失时把环境反馈 token 屏蔽掉，只对模型自己生成的 token 回传梯度。这正是 ReTool 的核心技术点之一（对 `<interpreter>` 标签内的反馈 token 屏蔽梯度），也是 Search-R1 所说的“对检索到的 token 做屏蔽以稳定训练”，veRL、AWorld 等主流训练框架都内置了这一机制。
 
+### ch8: Agent的持续进化
+今天的 Agent 面临一个鲜明的能力悖论：它可以零样本解决从未见过的复杂任务，却可能在处理了一万次相似任务之后，第二天仍然犯下第一天的错误。**能否自主从经验中学习，正在成为 Agent 从“会完成任务”走向“能够可靠工作”的关键能力，也是下一代模型的核心研究课题。** 然而，目前模型本身的持续学习能力仍远远不够。
+
+原因在于，部署后的模型并不会因为一次推理自动改变参数。第二章讨论的上下文学习、状态维护和压缩，能让 Agent 在**当前任务内**适应；但上下文结束后，这种变化不会自然进入下一次任务。把对话存进记忆也不等于学会了新的行为：原始轨迹可能很长，其中既有有效策略，也有偶然成功、错误归因和不可信输入。
+
+然而,我们不可能为单个用户定制模型,也不能用每次API调用的数据来学习,所以需要将该能力内置于Harness中.
+
+![示意图](PixPin_2026-11-08_12-04-22.webp)
+
+就我来看,只要LLM训练还是无状态的,记忆能力就不可能内化,那么光靠Harness还是独木难支的,不具备生产价值.
+### ch9: 多模态
 
 
 ## Build a Large Language Model
 ### ch1: 理解LLM
 对LLM的基本介绍
 ### ch2: 文本处理
+如果采用一个词对应一个id的方式的话,映射方法如下:
+1. 根据语料库建立映射表
+2. 处理新文本时,已经遇到的词可以被映射为向量,未知词则被映射为`<|unk|>`,并增加一个标记文本结束的`<|endoftext|>`,类似于EOS标记.
+   1. 根据LLM的不同,我们还会按需添加:`BOS`(beginning of sentence),`EOS`(end of sentence),`PAD`(padding)等特殊标记
+
+文中还介绍了tiktoken库,其应用了GPT-2,GPT-3所用的BPE(Byte Pair Encoding)分词器,词汇量总计为50257,可以处理任何未知词,关键在于在不在词汇表里的词分解为更小的子词,甚至是单个字符:
+
+![示例](PixPin_2026-11-08_12-54-31.webp)
+#### 滑动窗口构建训练数据
+鉴于GPT模型是逐词预测的,所以我们可以构造一个差额为1的双数组,通过滑动窗口构建训练数据:
+```py
+context_size = 999
+
+for i in range(1, context_size+1):
+  context = enc_sample[:i]
+  desired = enc_sample[i]
+  print(context, "---->", desired)
+
+# [290] ----> 4920
+# [290, 4920] ----> 2241
+```
+#### 转成embedding
+
+
 
 ## Apache Kafka in Action
 ### ch1: 介绍
@@ -399,8 +436,91 @@ SFT数据的来历:
 Kafka 默认保留数据七天，但我们也可以设置不删除数据,与go中的channel还是不一样的.
 
 我们已成功完成第一个 Kafka 用例，该用例涉及 Kafka 的数据读写操作。首先，我们使用 kafka-topics.sh 命令行工具创建了一个名为 products.prices.changelog 的主题，用于存储所有产品的价格变动。接下来，我们使用 kafka-console-producer.sh 命令将数据写入该主题，捕获价格更新。随后，我们使用 kafka-console-consumer.sh 命令读取并显示这些数据。此外，我们还通过使用多个生产者并行生产数据并使用多个消费者同时读取数据，进一步探索了 Kafka 的用法。通过在 kafka-console-consumer.sh 中使用 --from-beginning 标志，我们访问了历史数据。通过这个过程，我们熟悉了如何使用 Kafka 的命令行工具进行数据读写操作。
+
+### 补充: compose部署+ui管理
+```yml
+services:
+  kafka:
+    image: apache/kafka:4.1.2
+    container_name: kafka
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNAL://:9094,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9094,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: 1
+
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka-ui
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9094
+    depends_on:
+      - kafka
+```
+
+![ui界面](PixPin_2026-11-08_15-45-07.webp)
+
+看了ui图就能明白,kafka集群只负责创建broker,topic和partition.而producer和consumer通过broker进行信息传输.
+
 ### ch3: Kafka topic and messages
 Kafka topics就像是数据库中的表,可以有多个Partition,类似于数据库的备份
+
+
+![kafka结构图](PixPin_2026-11-08_15-42-33.webp)
+
+比如我创建了3个broker,然后只创建了一个topic,这个topic有两个partition,每个partition有两个副本,那么这总共有4个partition,需要有两个Leader:
+![示意图](PixPin_2026-11-08_15-54-50.webp)
+
+Broker1是Partition0的Leader,Broker2是Partition1的Follower,而Broker3是Partition1的Leader,是Partition0的Follower.
+
+- 当 Producer 向 Partition 1 发送新消息时，消息首先写入 Broker 1 上的 Leader 副本。
+- Broker 3 随后从 Leader 拉取新消息，复制到自己的本地日志中。
+
+换句话说:
+* 一个 Partition 在同一时刻只能有一个 Leader。
+* 一个 Broker 可以是多个 Partition 的 Leader，也可以同时是其他 Partition 的 Follower。
+* 不同 Topic 的 Partition 也可以由同一个 Broker 担任 Leader。
+
+
+一般来说,partition的分布是由kafka来将负载均匀分配的.例如,我们再加一个partition的话,结构就会变成这样:
+
+![示意图](PixPin_2026-11-08_16-02-18.webp)
+
+Leader负责接收和发送消息,而Follower负责实现数据冗余,在Leader故障后接管.
+#### messages
+Kafka 对数据类型没有限制，这意味着它内部只处理byte序列,具有高度的灵活性.
+
+唯一需要记住的是，Kafka 针对处理大量小消息进行了优化。消息的最大大小被限制为 1 MB。虽然我们可以调整这个值，但应该避免这样做，因为过大的消息会严重影响性能和资源使用。那么，大量小消息究竟意味着什么呢？极端情况下，这意味着像 LinkedIn 这样的公司在 2019 年每天使用 Kafka 处理大约 7 万亿条消息（不是 70 亿条）。需要注意的是，LinkedIn 当时并非只有一个 Kafka 集群，而是大约 100 个 Kafka 集群。即使是规模较小的部署也能让我们快速处理大量消息。
+
+### ch4: Kafka 作为分布式日志
+#### logs
+日志是一个事件列表,支持两个操作:
+1. 写入: 新条目被添加到列表末尾
+2. 读取: 可以从某个特定条目开始读取,通常会一直读到末尾.
+
+而kafka会根据消息传入顺序自动编号,非常适合存取无穷无尽的日志条目
+
 
 ## Python Testing with pytest, 2nd Edition
 ### ch1: 介绍
@@ -417,6 +537,53 @@ pytest测试有以下几种结果:
 * **XPASS (X)** — 测试被标记为预期失败（xfail），但实际运行并通过。
 * **ERROR (E)** — 异常发生在装置（fixture）或钩子（hook）函数的执行过程中，而非测试函数的执行过程中。
 ### ch3: Fixtures
+只要我们将fixture修饰的函数名字作为测试函数的参数,就会在测试运行时自动解析并注入到测试函数中.
+
+如果定义在`conftest.py`中,就会作用于所在目录及子目录中,而不需要额外import声明,如果定义在普通测试文件中,则需要额外import声明才能生效.
+
+对于数据库这种需要在函数关闭后再显式清理的依赖,我们需要在fixture里设置yield:
+```python
+@pytest.fixture()
+def cards_db():
+    with TemporaryDirectory() as db_dir:
+        db_path = Path(db_dir)
+        db = cards.CardsDB(db_path)
+        yield db
+        db.close()
+```
+yield之前的代码被称为`setup`,在测试开始前执行,yield之后的代码被称为`teardown`,在测试完成后强制执行.
+
+用法也很简单:
+```python
+def test_two(cards_db):
+    cards_db.add_card(cards.Card("first"))
+    cards_db.add_card(cards.Card("second"))
+    assert cards_db.count() == 2
+```
+
+#### 作用域
+fixture的默认作呕功能与是函数级,这意味着每一个需要该fixture运行的测试用例都会先执行其设置部分。同样地，每个测试结束后都会执行拆卸部分。
+
+而如果我们将scope切换为module级的话,那么该fixture只会在该模块中被启动和销毁一次.从而避免反复建立连接又销毁的问题.
+
+除此之外,还有package级别和session级别,作用域是不断扩大的.
+
+#### autouse
+如果我们希望fixture不需要在参数中显式声明,默认在作用域中执行的话,则可以声明`autouse=True,`.
+
+```python
+@pytest.fixture(autouse=True)
+def footer_function_scope():
+    """Report test durations after each function."""
+    start = time.time()
+    yield
+    stop = time.time()
+    delta = stop - start
+    print("\ntest duration : {:0.3} seconds".format(delta))
+```
+### ch3: 内置fixtures
+
+
 
 
 
