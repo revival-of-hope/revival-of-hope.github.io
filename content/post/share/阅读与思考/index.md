@@ -1316,10 +1316,271 @@ CNCF旗下的项目有三个等级: Sandbox、Incubating、Graduated,目前,CNCF
 | **容器镜像仓库** | Harbor        | 存储、扫描和管理容器镜像             |
 
 CNCF下还有一个旗舰的技术会议KubeCon + CloudNativeCon,可以购买门票现场参加.
-### 11/8
-#### 面经
-#### 技术文章
-#### 新技术
+### 美国顶尖课程(11/8)
+尽管我一向认为项目和书籍搭配是最好的学习方式,但不可否认国外的部分课程是相当优秀的,是真的在传授工程经验,而且,大多数课程都有专门的配套网站,并无私地向全世界分享学习资料,相比之下,国内能做到这种程度的教师寥寥无几,不超过一手之数,做的好不好还另说.
+
+#### 完整列举
+1. **Stanford University**：LLM、Agent、AI Infra、分布式系统
+   - CS 111：Operating Systems Principles【本科】
+     - 进程、线程、文件系统、同步、虚拟内存
+   - CS 144：Introduction to Computer Networking【本科】
+     - TCP/IP、网络协议、传输控制、网络实现
+   - CS 149：Parallel Computing【本科】
+     - 并行编程、GPU、性能优化
+   - CS 221：Artificial Intelligence: Principles and Techniques【研究生】
+     - 搜索算法、规划、逻辑推理、概率模型
+   - CS 224N：Natural Language Processing with Deep Learning【研究生】
+     - Transformer、语言模型、NLP、LLM
+   - CS 224V：Agentic AI【研究生】
+     - RAG、Agent 规划、知识推理、长期任务
+   - CS 229：Machine Learning【研究生】
+     - 机器学习算法、优化、概率建模
+   - CS 234：Reinforcement Learning【研究生】
+     - MDP、Bellman Equation、Q-Learning、策略梯度
+   - CS 244B：Distributed Systems【研究生】
+     - 分布式一致性、复制、容错、系统设计
+   - CS 329A：Self Improving AI Agents【研究生】
+     - Agent 自我改进、测试时计算、搜索、验证
+   - CS 329Z：Engineering AI Agents【研究生】
+     - Agent Loop、Tool Use、RAG、Memory、Agent Evaluation
+   - CS 336：Language Modeling from Scratch【研究生】
+     - Tokenizer、Transformer、预训练、GPU 优化、推理
+   - CS 349D：AI Inference Infrastructure【研究生】
+     - vLLM、SGLang、KV Cache、Speculative Decoding、PD 分离
+   - CS 229S：Systems for Machine Learning【研究生】
+     - ML 系统、计算优化、分布式训练、模型服务
+
+2. **MIT**：操作系统、分布式系统、软件设计、系统性能
+   - 6.1020：Software Construction【本科】
+     - TDD、软件测试、抽象数据类型、设计模式、并发
+   - 6.1040：Software Design【本科】
+     - 系统设计、Web 应用、模块化、LLM 辅助开发
+   - 6.1060：Software Performance Engineering【本科】
+     - Cache、性能分析、向量化、并行优化
+   - 6.1100：Computer Language Engineering【本科】
+     - 编程语言实现、编译器、语言运行时
+   - 6.1220：Design and Analysis of Algorithms【本科】
+     - 算法设计、复杂度、图算法
+   - 6.1800：Computer Systems Engineering【本科】
+     - 系统抽象、容错、可靠性、性能、安全
+   - 6.1810：Operating System Engineering【本科】
+     - xv6、内核、虚拟内存、线程、文件系统
+   - 6.3900：Introduction to Machine Learning【本科】
+     - 回归、分类、神经网络、机器学习基础
+   - 6.5830：Database Systems【研究生】
+     - 数据库引擎、事务、索引、查询优化、恢复
+   - 6.5840：Distributed Computer Systems Engineering【研究生】
+     - Raft、RPC、容错、分布式 KV Store
+   - 6.5850：Principles of Computer Systems【研究生】
+     - 分布式协议、并发算法、系统验证
+   - 6.5860：Datacenter Computing【研究生】
+     - 数据中心、资源调度、云基础设施
+   - 6.5250：Distributed Algorithms【研究生】
+     - 分布式算法、通信复杂度、故障模型
+   - 6.7920：Reinforcement Learning: Foundations and Methods【研究生】
+     - MDP、动态规划、强化学习算法
+
+3. **Carnegie Mellon University（CMU）**：软件工程、计算机系统、AI 编程、LLM Infra
+   - 15-213：Introduction to Computer Systems【本科】
+     - CS:APP、内存、汇编、缓存、并发、系统性能
+   - 15-410：Operating System Design and Implementation【本科】
+     - 操作系统内核、线程、虚拟内存、文件系统
+   - 15-411：Compiler Design【本科】
+     - 编译器、优化、寄存器分配、代码生成
+   - 15-418：Parallel Computer Architecture and Programming【本科】
+     - GPU、并行算法、计算架构
+   - 15-440：Distributed Systems【本科】
+     - RPC、分布式存储、一致性、容错
+   - 15-445：Database Systems【本科】
+     - BusTub、索引、缓冲池、执行引擎、事务
+   - 17-214：Principles of Software Construction【本科】
+     - 软件设计、抽象、测试、模块化
+   - 17-313：Foundations of Software Engineering【本科】
+     - 软件架构、需求、质量保证、团队开发
+   - 17-316：AI Tools for Software Development【本科】
+     - Coding Agents、AI 代码审查、测试、生产力评估
+   - 17-335：Software Architectures【本科】
+     - 架构风格、模块设计、质量属性
+   - 17-437：Web Application Development with AI【本科】
+     - AI 辅助全栈开发、Web、测试、部署
+   - 17-445：Machine Learning in Production【本科】
+     - MLOps、模型部署、监控、生产系统
+   - 17-446：DevOps and Continuous Integration【本科】
+     - CI/CD、自动化构建、持续集成
+   - 11-868：Large Language Model Systems【研究生】
+     - LLM 系统、推理优化、大规模模型基础设施
+
+4. **UC Berkeley**：分布式系统、强化学习、LLM Agent、系统基础设施
+   - CS 61A：Structure and Interpretation of Computer Programs【本科】
+     - 编程抽象、递归、解释器
+   - CS 61B：Data Structures【本科】
+     - 数据结构、算法、软件组织
+   - CS 61C：Great Ideas in Computer Architecture【本科】
+     - 计算机架构、内存、并行计算
+   - CS 162：Operating Systems and System Programming【本科】
+     - 线程、进程、调度、内存管理、并发
+   - CS 164：Programming Languages and Compilers【本科】
+     - 编译器、语言设计、语义分析
+   - CS 168：Introduction to the Internet: Architecture and Protocols【本科】
+     - Internet 架构、路由、TCP/IP
+   - CS 169A：Introduction to Software Engineering【本科】
+     - Agile、TDD、BDD、SaaS、重构
+   - CS 186：Introduction to Database Systems【本科】
+     - 索引、事务、查询优化、数据库实现
+   - CS 188：Introduction to Artificial Intelligence【本科】
+     - A*、MCTS、搜索、概率推理、智能体
+   - CS 189：Introduction to Machine Learning【本科】
+     - ML 算法、优化、神经网络
+   - CS 262A：Advanced Topics in Computer Systems【研究生】
+     - 高级系统、分布式系统论文研究
+   - CS 285：Deep Reinforcement Learning【研究生】
+     - Policy Gradient、Actor-Critic、Model-Based RL
+   - CS 194/294-196：Large Language Model Agents【本科/研究生】
+     - LLM Agent、规划、工具调用、Agent Workflow
+   - CS 194/294-280：Advanced Large Language Model Agents【本科/研究生】
+     - Agentic Reasoning、搜索、代码生成、Agent 后训练
+
+5. **Georgia Tech**：软件工程、软件架构、云计算、AI、分布式
+   - CS 1332：Data Structures and Algorithms【本科】
+     - 数据结构、算法
+   - CS 2200：Systems and Networks【本科】
+     - 操作系统基础、计算机组成、网络
+   - CS 3210：Design of Operating Systems【本科】
+     - 内核设计、系统调用、并发
+   - CS 3600：Introduction to Artificial Intelligence【本科】
+     - 搜索、规划、概率推理
+   - CS 6200：Graduate Introduction to Operating Systems【研究生】
+     - 进程、线程、同步、操作系统实现
+   - CS 6210：Advanced Operating Systems【研究生】
+     - 分布式 OS、并行系统、性能
+   - CS 6211：System Design for Cloud Computing【研究生】
+     - 云计算系统、服务架构、分布式基础设施
+   - CS 6300：Software Development Process【研究生】
+     - 软件工程流程、Agile、测试、质量控制
+   - CS 6310：Software Architecture and Design【研究生】
+     - 软件架构、模块设计、架构模式
+   - CS 6340：Software Analysis and Testing【研究生】
+     - 静态分析、动态分析、自动测试
+   - CS 6400：Database Systems Concepts and Design【研究生】
+     - SQL、数据库设计、事务、查询处理
+   - CS 6601：Artificial Intelligence【研究生】
+     - 搜索、规划、概率推理、AI 算法
+   - CS 7210：Distributed Computing【研究生】
+     - 分布式算法、逻辑时钟、故障模型
+   - CS 7642：Reinforcement Learning and Decision Making【研究生】
+     - MDP、RL、多智能体决策
+   - CS 7652：Large Language Models【研究生】
+     - LLM 预训练、后训练、微调、模型效率
+
+6. **Cornell University**：分布式计算、软件工程、数据库、LLM Systems
+   - CS 3110：Functional Programming and Data Structures【本科】
+     - 函数式编程、类型系统、软件设计
+   - CS 3410：Computer System Organization and Programming【本科】
+     - 计算机组成、内存、系统编程
+   - CS 3780：Introduction to Machine Learning【本科】
+     - ML 基础、训练、泛化
+   - CS 4410：Operating Systems【本科】
+     - 进程、同步、虚拟内存、文件系统
+   - CS 4450：Introduction to Computer Networks【本科】
+     - TCP/IP、网络协议、网络架构
+   - CS 4740：Natural Language Processing【本科】
+     - NLP、语言建模、文本处理
+   - CS 4787：Principles of Large-Scale Machine Learning Systems【本科】
+     - 分布式训练、SGD、量化、模型压缩
+   - CS 4789：Introduction to Reinforcement Learning【本科层级课程】
+     - MDP、价值函数、强化学习
+   - CS 5150：Software Engineering【本科高年级/研究生】
+     - 软件开发、CI/CD、代码审查、团队项目
+   - CS 5154：Software Testing【本科高年级/研究生】
+     - 测试生成、回归测试、程序分析
+   - CS 5414：Distributed Computing Principles【本科高年级/研究生】
+     - Consensus、复制、Quorum、分布式算法
+   - CS 5470：Systems for Large-Scale ML【本科高年级/研究生】
+     - 大模型分布式训练、推理、多 GPU 系统
+   - CS 5744：Language Modeling【研究生】
+     - 语言模型、训练、推理、评估
+   - CS 6158：Software Engineering in the Era of Machine Learning【研究生】
+     - AI for SE、LLM 软件工程、测试与程序分析
+
+7. **Princeton University**：系统设计、分布式系统、算法、AI
+   - COS 217：Introduction to Programming Systems【本科】
+     - C、系统编程、软件工具、内存管理
+   - COS 226：Algorithms and Data Structures【本科】
+     - 数据结构、图算法、复杂度
+   - COS 240：Reasoning and Computation【本科】
+     - 离散数学、逻辑、计算理论
+   - COS 316：Principles of Computer System Design【本科】
+     - 系统架构、抽象、性能、可靠性
+   - COS 324：Introduction to Machine Learning【本科】
+     - 机器学习、神经网络、概率模型
+   - COS 326：Functional Programming and Formal Methods【本科】
+     - 函数式编程、程序正确性、形式化方法
+   - COS 333：Advanced Programming Techniques【本科】
+     - 软件工程、综合编程、大型项目
+   - COS 417：Operating Systems【本科】
+     - 操作系统、线程、进程、虚拟内存
+   - COS 418：Distributed Systems【本科】
+     - RPC、一致性、容错、分布式存储
+   - COS 423：Theory of Algorithms【本科】
+     - 高级算法、数据结构、NP 完全性
+   - COS 435：Introduction to Reinforcement Learning【本科】
+     - MDP、强化学习、决策算法
+   - COS 445：Networks, Economics, and Computing【本科】
+     - 博弈论、网络、分布式决策
+   - COS 461：Computer Networks【本科】
+     - Internet 协议、路由、网络安全
+   - COS 484：Natural Language Processing【本科】
+     - NLP、语言模型、自然语言理解
+
+8. **Harvard University**：计算机系统、AI Agent、LLM Infra、机器学习
+   - CS 50：Introduction to Computer Science【本科】
+     - C、Python、SQL、Web、计算机基础
+   - CS 61：Systems Programming and Machine Organization【本科】
+     - C/C++、内存、并发、系统编程
+   - CS 1450：Networking at Scale【本科】
+     - 网络系统、可扩展性、网络协议
+   - CS 1520：Programming Languages【本科】
+     - 编程语言、类型系统、语言设计
+   - CS 1610：Operating Systems【本科】
+     - OS、进程、同步、资源管理
+   - CS 1650：Data Systems【本科】
+     - 数据系统、数据库、存储
+   - CS 1810：Machine Learning【本科】
+     - 机器学习算法、优化、统计学习
+   - CS 1820：Planning and Learning Methods in AI【本科】
+     - AI 搜索、规划、智能体学习
+   - CS 2620：Distributed Computing【研究生】
+     - 分布式协议、一致性、复制、容错
+   - CS 2640：Modern Computer Storage Systems【研究生】
+     - SSD、文件系统、分布式存储、缓存
+   - CS 2680：Modern AI Systems: Agents and System Optimizations【研究生】
+     - Coding Agent、Harness、KV Cache、SGLang、LLM Serving
+   - CS 2824：Foundations of Reinforcement Learning【研究生】
+     - 强化学习理论、策略优化、序列决策
+   - CS 2850：Deep Learning【研究生】
+     - 深度学习、神经网络、优化
+   - CS 2882：AI Agents and Multiagent Systems【研究生】
+     - 自主智能体、多智能体协作、LLM Agent
+
+
+#### 推荐课程
+怎么说都不可能逐个学完吧,就算不看讲义,十倍速放视频,我想也要看个好几年.所以我让AI筛选了一下,并由我根据喜好敲定了几个值得一学的工程课程.
+
+- 如果想要速通AI相关课程的话,这里有一个AI讲义合集[网站](https://hqhq1025.github.io/ai-course-notes/)
+
+| 优先级 | 学校 / 课程                                    | 核心价值                           | 推荐程度 |
+| :----- | :--------------------------------------------- | :--------------------------------- | :------- |
+| 1      | MIT 6.1020 — Software Construction             | 测试、抽象、模块设计、可靠代码     | 必读     |
+| 2      | Harvard CS 2680 — Modern AI Systems            | Coding Agent、Harness、模型服务    | 必读     |
+| 3      | Stanford CS 329Z — Engineering AI Agents       | Agent Loop、工具调用、RAG、评估    | 必读     |
+| 4      | CMU 15-445 — Database Systems                  | 索引、事务、并发、存储引擎         | 强烈推荐 |
+| 5      | MIT 6.5840 — Distributed Systems               | Raft、RPC、容错、分布式 KV         | 强烈推荐 |
+| 6      | CMU 17-316 — AI Tools for Software Development | AI 编码、代码审查、测试            | 强烈推荐 |
+| 7      | MIT 6.1040 — Software Design                   | 大型软件系统设计、模块化、Web 项目 | 推荐     |
+
+其中最令我惊艳的是CS2680,直接开始教Agent Infra和Harness,并且所有作业都需要用Claude Code完成,这真是大开眼界,真正的大学教学不过如此吧.
+
+
 ### 11/9
 #### 面经
 #### 技术文章
