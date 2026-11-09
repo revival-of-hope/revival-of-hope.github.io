@@ -448,9 +448,137 @@ from src.registration.router import account_router
 from src.settings.router import settings_router
 from src.websocket.router import websocket_router
 ```
+即:
+* `src.authentication`
+* `src.chat`: 核心
+* `src.contact`
+* `src.registration`
+* `src.settings`: 过于简单,跳过
+* `src.websocket`: 核心
+
+
+
 尽管是个人设计,但还是把这些router都包装到一个文件夹里更好.
 
 整体设计是每个路由都有一个专门的service(即crud)和schema,但就这个项目的规模来看,其实不太有必要,毕竟只在文件里放一个函数还是有点别扭的.
+##### authentication
+1. 用户填写表单后签发access_token和refresh_token,并通过`set_cookie`方法显式指明浏览器用cookie保存两个token:
+```py
+
+@auth_router.post(
+    "/login/",
+    dependencies=[
+        Depends(RateLimiter(times=50, hours=24)),  # keep lower of result on top
+        Depends(RateLimiter(times=10, minutes=1)),
+    ],
+    summary="Create access and refresh tokens for a user",
+)
+async def login(
+    response: Response,
+    background_tasks: BackgroundTasks,
+    db_session: AsyncSession = Depends(get_async_session),
+    form_data: OAuth2PasswordRequestForm = Depends(),
+):
+    login_identifier, password = form_data.username.lower(), form_data.password
+    user: User | None = await authenticate_user(
+        db_session=db_session, login_identifier=login_identifier, password=password
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect email/username or password",
+        )
+
+    # create token based on login identifier instead of static username/email
+    access_token: str = create_access_token(login_identifier)
+    refresh_token: str = create_refresh_token(login_identifier)
+
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        samesite="none",
+        secure=True,
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        samesite="none",
+        secure=True,
+    )
+
+    # update last login date
+    background_tasks.add_task(update_user_last_login, db_session, user=user)
+
+    login_response = UserLoginResponseSchema.model_validate(user)
+    return login_response
+```
+2. 用户通过Google登录后同样签发token,如果用户已经存在则更新登录时间,如果不存在则根据用户邮箱创建用户(这也是很多网站Google登录免注册的基本原理)
+```py
+@auth_router.post(
+    "/google-login/",
+    dependencies=[
+        Depends(RateLimiter(times=50, hours=24)),  # keep lower of result on top
+        Depends(RateLimiter(times=10, minutes=1)),
+    ],
+    summary="Login with Google oauth2",
+)
+async def login_with_google(
+    response: Response,
+    google_login_schema: GoogleLoginSchema,
+    background_tasks: BackgroundTasks,
+    db_session: AsyncSession = Depends(get_async_session),
+):
+    google_access_token: str = google_login_schema.access_token
+    user_info: dict[str, str] | None = await verify_google_token(google_access_token)
+
+    if not user_info:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not verify Google credentials",
+        )
+
+    # email field is case insensitive, db holds only lower case representation
+    email: str = user_info.get("email", "").lower()
+    if not email:
+        HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Email was not provided"
+        )
+
+    if not (user := await get_user_by_email(db_session, email=email)):
+        user: User = await create_user_from_google_credentials(db_session, **user_info)
+
+    else:
+        # update last login for existing user
+        background_tasks.add_task(update_user_last_login, db_session, user=user)
+
+    access_token: str = create_access_token(email)
+    refresh_token: str = create_refresh_token(email)
+
+    # Send access and refresh tokens in HTTP only cookies
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        samesite="none",
+        secure=True,
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        samesite="none",
+        secure=True,
+    )
+
+    login_response = UserLoginResponseSchema.model_validate(user)
+    return login_response
+```
+3. 根据refresh_token来获取新的access_token,并重新设置cookie
+4. 用户自己logout,移除两种cookie
+
 
 ##### contact
 ```py
@@ -774,4 +902,15 @@ for message in messages:
         # 对方发的消息：判断自己是否已读
         is_read = message.id <= my_last_read_message_id
 ```
+3. get:`chats/direct/`
+   1. 获取该用户所有的对话列表
+   2. 获取每个对话的该用户未读消息
+   3. 合并成response并缓存
+   4. 问题在于,如果这么操作,即便有上百个未读对话,只要用户读了其中一个对话,那么就需要清除缓存,这还不如不设置缓存,更何况代码中根本就没考虑清除缓存的问题
+4. delete:`/chats/direct/{chat_guid}/`
+   1. 单方面删除对话,比较糟糕的设计,但如果是即时聊天,貌似也还说的过去
+5. get:`/chat/{chat_guid}/messages/old/{message_guid}/`
+   1. 获取历史消息,属于冗余设计
+#### websocket设计
+
 

@@ -1581,9 +1581,70 @@ CNCF下还有一个旗舰的技术会议KubeCon + CloudNativeCon,可以购买门
 其中最令我惊艳的是CS2680,直接开始教Agent Infra和Harness,并且所有作业都需要用Claude Code完成,这真是大开眼界,真正的大学教学不过如此吧.
 
 
-### 11/9
-#### 面经
-#### 技术文章
+### 学习专题(11/9)
+#### [银行卡交易剖析](https://blog.ch3nyang.top/post/%E4%BA%A4%E6%98%93%E6%A8%A1%E5%9E%8B/)
+
+银行卡交易由四方模型(Four-party Model)组成:
+* **持卡人（Cardholder）**：库克，使用银行卡支付货款。
+* **商户（Merchant）**：沃尔玛，提供商品并接受银行卡付款。
+* **发卡机构（Issuer）**：向库克发行信用卡，管理他的账户和信用额度，决定是否批准这笔消费。
+* **收单机构（Acquirer）**：为沃尔玛提供银行卡受理服务，把交易提交出去，并按约定向商户支付货款。它可以与沃尔玛日常存款账户所在的银行不同。
+
+Card Network(如Visa,万事达,银联)负责将发卡机构和收单机构连接到一起,从而避免了收单机构需要逐个对接发卡机构,开发接口的烦恼.
+
+![结构图](PixPin_2026-11-09_14-48-59.webp)
+
+![代表角色](PixPin_2026-11-09_14-51-52.webp)
+
+检查流程:
+```mermaid
+sequenceDiagram
+    autonumber
+    participant CH as 库克
+    participant PO as POS 终端
+    participant AC as 收单侧
+    participant NW as Visa
+    participant IS as 发卡侧
+
+    CH->>PO: 拍卡购买<br>29.99 美元的充电头
+    PO->>AC: 发送金额、商户<br>及卡片数据
+    AC->>NW: 提交授权请求
+    NW->>IS: 路由至对应发卡侧
+    IS->>IS: 验证凭证<br>检查账户、额度与风险
+    IS-->>NW: 批准本次消费
+    NW-->>AC: 返回批准结果
+    AC-->>PO: 通知授权获批
+    PO-->>CH: 显示结果<br>完成收银
+```
+
+#### 论文1
+- [Hybrid Computer Use](https://arxiv.org/html/2610.41432v1)
+
+简直是瞌睡遇上枕头,我正好奇Computer Use的前沿实践,微软就在10月30号发了这篇论文.
+
+本文提出我们可以通过三种通道来实现Computer Use,简称为HCU,并在OSWorld2.0种取得了目前的最高分:
+
+![示意图](PixPin_2026-11-09_11-36-00.webp)
+
+这三个通道是:
+* **Programmatic（程序化通道）**：调用 Shell、Python 等工具直接操作文件、数据和程序。
+* **Semantic（语义通道）**：通过 Accessibility Tree 读取和操作 UI 控件。
+* **Visual（视觉通道）**：通过截图、鼠标和键盘处理无法通过结构化接口完成的任务。
+
+最核心的创新点在于Accessibility Tree(AX),鉴于操作系统本身就知道屏幕上任何一个窗口的组件结构(不然也渲染不了画面),主流操作系统都支持通过辅助功能接口读取这些信息,用于无障碍阅读,HCU可以通过这些接口获取到AX信息,这非常类似于DOM解析:
+```text
+window "Save As" [ref=w1]
+  textbox "File name" [ref=r11]
+    value: "report.pdf"
+  button "Cancel" [ref=r12]
+  button "Save" [ref=r13]
+    enabled: true
+```
+
+但具体的操作主要还是通过普通的截图执行的,ux只是帮助辅助理解,类似于LLM对话中RAG的作用.
+
+至于提升嘛,还是很有限的,没有特别的令人震撼,这反过来说明想靠不断截图来实现Computer Use的渠道还是有不少限制的.
+
 #### 新技术
 ### 11/10
 #### 面经

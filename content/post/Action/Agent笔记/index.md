@@ -883,7 +883,7 @@ Codex桌面端的话,以前好像是要手机号注册的,所以我就一直没�
 ![启动图](PixPin_2026-09-19_14-45-16.webp)
 
 
-## Hermes Agent
+## Hermes
 今年2月推出的新Coding工具,一开始只支持CLI交互,后来新增了Desktop端
 ```bash
 ollama launch hermes

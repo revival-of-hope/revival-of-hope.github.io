@@ -392,6 +392,22 @@ SFT数据的来历:
 
 就我来看,只要LLM训练还是无状态的,记忆能力就不可能内化,那么光靠Harness还是独木难支的,不具备生产价值.
 ### ch9: 多模态
+>先划定本章的边界。静态的图像与文档理解——看一张截图、读一幅图表、解析一份 PDF——已经作为感知工具自然融入了前面各章的 Agent 实践：对今天的多模态大模型来说，这类“一次输入、一次理解”的任务已相对成熟，不需要专门的架构设计。本章聚焦的是另一类问题：实时性把多模态问题变难的三个场景——**语音对话、GUI 操作、机器人控制**。
+
+要理清语音 Agent 的技术演进，一个清晰的坐标系是 OpenAI 在 2026 年发布 GPT-Live 时给出的三分法——它恰好对应了 ChatGPT 语音自身走过的三代架构：
+
+1. **级联（Cascaded）**：把语音识别（ASR）、大语言模型（LLM）、语音合成（TTS）三个模型串成一条流水线，一棒接一棒。最早的 ChatGPT Voice 就是这样，它第一次让人能“对话”前沿模型，但信息在模型间传递时会丢失，回应缓慢而生硬。
+2. **端到端全模态（Omni）**：用单一模型直接“听音频、想回复、说出来”，把三段合一，延迟更低、韵律与情感等非文字信息得以保留。但它仍然假设“轮流说话”——模型要等用户停顿才开口，而轮次切换靠静音来判断，稍一停顿或有背景噪音就可能被误判为“说完了”，在不该插话时插话。ChatGPT 的高级语音模式（Advanced Voice Mode）就属于这一代；OpenAI 把它称作“轮次式语音模型（turn-based）”，工业界更常按模型能力称之为“全模态（Omni）”模型（如 Qwen3-Omni），两个名字指的是同一类东西。
+3. **全双工 / 交互式（Full-Duplex / Interactive）**：模型边听边说，同时处理输入与输出，每秒做许多次“该说、该听、该停、该打断、还是该调用工具”的决策，彻底取消了“轮流”这个假设。2024 年 Kyutai 的 Moshi 是研究先声，2026 年 OpenAI 的 GPT-Live 把它带到了 1.5 亿用户的规模。
+
+非常值得看的一章,多模态的探索路程十分有趣,而且是真的有工程意义的.
+
+本章的三个场景（语音、Computer Use、机器人）都面临“感知-思考-行动”循环的延迟问题，都朝着快慢思考并行化的方向演进。在语音场景中，这表现为“说错了再纠正”；在 Computer Use 场景中，这表现为“先点再看”；在机器人场景中，这表现为“走一步看一步”。如何保证这些基于快思考的行动不会导致无法挽回的后果？
+- 无法保证!
+
+### ch10: 多Agent
+
+
 
 
 ## Build a Large Language Model
@@ -420,6 +436,26 @@ for i in range(1, context_size+1):
 # [290, 4920] ----> 2241
 ```
 #### 转成embedding
+假设我们的embedding维度是三维,那么我们先根据id来一个随机映射:
+![示意图](PixPin_2026-11-09_11-56-48.webp)
+
+至于为什么随机映射,是因为后面还要通过训练来修改embedding的值.
+
+>理论上,我们可以把ID看成是多为的one-hot编码,然后再与embedding矩阵相乘.
+
+问题在于,如果单纯做ID映射,对于相同的单词,无论在什么位置出现,得到的embedding数组都是相同的,这显然不符合我们做NLP的要求,所以需要注入额外的位置信息.
+
+实现的方法就是给每个映射的embedding再加上一个相对位置嵌入(根据前面token的相对位置设置的向量)或者绝对位置嵌入(根据自己的绝对位置设置的向量),二者合成得到输给LLM的`Input Embeddings`.
+
+原始的Transformer模型采用的是绝对位置编码,而现代LLM采用RoPE方法,即相对位置编码.
+
+绝对位置嵌入有两种设置方式:
+1. 随机初始化,再通过训练学习
+2. 固定为正弦位置编码,Transformer用的就是这个.
+
+### ch2: Attention
+
+
 
 
 
@@ -520,6 +556,62 @@ Kafka 对数据类型没有限制，这意味着它内部只处理byte序列,具
 2. 读取: 可以从某个特定条目开始读取,通常会一直读到末尾.
 
 而kafka会根据消息传入顺序自动编号,非常适合存取无穷无尽的日志条目
+#### 分布式原理
+>当我们对系统进行垂直扩展时，我们会得到更强大的系统。例如，我们不再使用配备 8 个 CPU 核心和 16 GB 内存的数据库服务器，而是使用配备 64 个 CPU 核心和 256 GB 内存的服务器，希望获得更好的性能。这是一种提升系统性能的简便方法，并且在短期内效果显著。然而，可靠性却并未得到改善。大多数情况下，当我们用更强大的服务器替换旧服务器时，故障概率并不会显著降低。
+
+如果我们对一个topic设置多个partition,那么kafka就会自动将传输到topic的消息负载均衡到各个partition上,如此一来,读取的时候就可能出现顺序问题.
+
+一个顺序机制是key,我们可以显式设置让consumer传输消息时带上key,同时还可以自定义采用的`key`分隔符,挑选partition的方式是通过hash(key)的方式实现的:
+```bash
+# 首先像上面那样创建主题 products.prices.changelog.multi-partitions-keys
+$ kafka-console-producer.sh \
+    --topic products.prices.changelog.multi-partitions-keys \
+    --property parse.key=true \
+    --property key.separator=":" \
+    --bootstrap-server localhost:9092
+> coffee pads:10
+> cola:2
+> cola:1
+> energy drink:3
+> coffee pads:11
+> coffee pads:12
+> energy drink:4
+> coffee pads:10
+# 按 Ctrl-D 取消
+```
+由此一来,有相同key的消息就会被传输到相同的partition,从而保证相同partition中的消息是有序的:
+```bash
+$ kafka-console-consumer.sh \
+    --from-beginning \
+    --topic products.prices.changelog.multi-partitions-keys \
+    --property print.key=true \
+    --property key.separator=":" \
+    --bootstrap-server localhost:9092
+coffee pads:10
+cola:2
+cola:1
+coffee pads:11
+coffee pads:12
+coffee pads:10
+energy drink:3
+energy drink:4
+# 按 Ctrl-C 取消
+Processed a total of 8 messages
+```
+
+这特别适用于用户个人消息的传输,也就是说每个用户的消息都对应了一个独特的key,并能够存储在一个partition中,保证时间顺序.
+
+>现在我们可以将这些分区分发给不同的代理，从而平衡代理之间的负载。生产者独立决定哪些数据应该分发到哪些分区。如果不使用键，生产者会以轮询的方式将数据分发到各个分区，即先分发到分区 0，然后是分区 1，依此类推。如果使用键，则会将消息分发到各个分区，使得具有相同键的消息最终位于同一个分区。
+#### 消费者组: 消费者的水平扩展
+在一个消费组中,一个partition只能被最多一个消费者读取,但一个消费者能够读取多个分区.
+#### kafka的组成部分
+- 协调集群(Coordination cluster): 持续监控集群的当前状态，并检查所有代理是否仍然可达且运行正常。作为这项任务的一部分，它还管理所有活动代理的列表，并负责向集群添加新代理和从中移除现有代理。
+  - 使用Raft或者Paxos共识算法,目前kafka使用的协调集群为KRaft
+- Broker: 负责接收,存储和发送消息
+- Clients: 包括生产者和消费者,指的是连接到集群的任何外部应用程序
+### ch5: Reliability
+
+
 
 
 ## Python Testing with pytest, 2nd Edition
@@ -581,12 +673,47 @@ def footer_function_scope():
     delta = stop - start
     print("\ntest duration : {:0.3} seconds".format(delta))
 ```
-### ch3: 内置fixtures
+### ch4: 内置fixtures
+pytest 的内置 Fixture 不需要显式 import，直接在测试函数的参数中声明即可:
+```py
+def test_example(tmp_path, capsys, monkeypatch):
+    # tmp_path：创建临时目录
+    file = tmp_path / "test.txt"
+    file.write_text("hello")
+
+    # capsys：捕获标准输出
+    print("hello")
+    captured = capsys.readouterr()
+    assert captured.out == "hello\n"
+
+    # monkeypatch：临时修改属性、环境变量等
+    monkeypatch.setenv("DEBUG", "true")
+```
+### ch5: Parametrization
+参数化测试指的是为测试函数添加参数，并向测试传入多组参数，从而生成新的测试用例。
+
+比较高级,直接跳过
+### ch8: 配置文件
+
+## 深入理解 AI Infra
+- 姊妹书,大佬为了我们这些菜鸟真的是操碎了心.
 
 
 
 
 
+### 前言
+这部分非常值得一看,前沿的科研人物早就站在浪潮之上,而我们只是跟在后面拾取牙慧罢了.
+
+>不必等到熟悉所有层次才开始阅读。做系统研究和工程实践时，我一直需要围绕具体问题，学习相邻层次的知识。遇到陌生的概念，可以先抓住它要解决的问题，再回来看实现细节。
+
+- 看似很简单的一句话,实际上我却是深有体会.
+### ch1: AI Infra介绍
+![六层架构图](PixPin_2026-11-09_12-23-37.webp)
+
+
+
+## Reinforcement Learning from Human Feedback
 
 # 先放着
 ## Python Concurrency with asyncio

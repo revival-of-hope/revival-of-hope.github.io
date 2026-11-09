@@ -254,6 +254,41 @@ flowchart TB
 
 
 # 面试要点
+## 流程图
+```mermaid
+
+flowchart TD
+    A(["开始求职"]) --> B["简历投递 / 内推"]
+    B --> C{"是否需要笔试？"}
+    C -->|是| D["笔试"]
+    C -->|否| E
+    D --> E
+
+    subgraph TECH["技术面试 · 多轮"]
+        direction TB
+        E["技术一面"] --> F["技术二面 / 三面"]
+        F --> G["算法题 · 技术题 · 项目深挖"]
+        G --> H["反问环节"]
+    end
+
+    H --> I["HR 面试"]
+    I --> J["Offer Call / 谈薪"]
+    J --> K(["正式 Offer"])
+
+    classDef start fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#14532d
+    classDef stage fill:#f0fdf4,stroke:#22c55e,stroke-width:1.5px,color:#166534
+    classDef decision fill:#fefce8,stroke:#84cc16,stroke-width:1.5px,color:#365314
+    classDef finish fill:#15803d,stroke:#166534,stroke-width:2px,color:#ffffff
+
+    class A start
+    class B,D,E,F,G,H,I,J stage
+    class C decision
+    class K finish
+
+    style TECH fill:#f0fdf4,stroke:#86efac,stroke-width:2px,color:#166534
+    linkStyle default stroke:#16a34a,stroke-width:2px
+```
+
 ## 面试投递环节
 ### 简历编写
 事实上,写简历是最能考验一个人的技术储备的环节,每当你摸不透自己的技术水平时,就去写个简历,立马就能对自己的无能而无地自容.
@@ -292,21 +327,35 @@ flowchart TB
 
 * 当然有认识的学长学姐更好,但正常来说不会这么凑巧吧...
 
-## 准备面试
 
-不管怎样,投递了简历之后就要开始准备面试了,面试中的问题大致有四种:
-
-1. 算法题
-2. 技术题
-   1. 通常会拷打你简历上自己写的项目,所以不要吹过头了
-3. 生活相关的提问
-   1. 拖时长用的
-4. 反问环节
-   1. 拖时长用的
-## 陷阱-面评
+### 陷阱-面评
 需要注意的是,每一轮面试结束后，面试官不是只点“通过/不通过”，还会在公司招聘系统里留下结构化评分和文字评价,这被称为**面评**(即面试评价)
 
 >面试官在评价你的简历的时候是可以看得到你投递了别的岗位的，也可以看到别的面试官对你的简历评价的，你仔细想想，本来一个面试官想给你面试机会的，但一看下面有个面试官的评价“资历平平，简历毫无亮点”，多多少少还是会受到影响。正确的做法应该是：选择与自己适配度的两三个岗位，数量不宜多，把最适合自己的优先投递。 
+## 笔试
+
+1. 技术岗常规设置笔试（8 家）
+- 阿里巴巴
+- 美团
+- 百度
+- 拼多多
+- 华为
+- 携程
+- 哔哩哔哩
+- 网易
+
+2. 部分岗位笔试 / 灵活安排（7 家）
+- 字节跳动
+- 腾讯
+- 蚂蚁集团
+- 京东
+- 快手
+- 滴滴
+
+
+
+
+
 
 ## 算法题
 
