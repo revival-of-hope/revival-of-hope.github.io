@@ -1581,7 +1581,7 @@ CNCF下还有一个旗舰的技术会议KubeCon + CloudNativeCon,可以购买门
 其中最令我惊艳的是CS2680,直接开始教Agent Infra和Harness,并且所有作业都需要用Claude Code完成,这真是大开眼界,真正的大学教学不过如此吧.
 
 
-### 学习专题(11/9)
+### 好文(11/9)
 #### [银行卡交易剖析](https://blog.ch3nyang.top/post/%E4%BA%A4%E6%98%93%E6%A8%A1%E5%9E%8B/)
 
 银行卡交易由四方模型(Four-party Model)组成:
@@ -1617,6 +1617,8 @@ sequenceDiagram
     PO-->>CH: 显示结果<br>完成收银
 ```
 
+相当相当之复杂.
+
 #### 论文1
 - [Hybrid Computer Use](https://arxiv.org/html/2610.41432v1)
 
@@ -1646,10 +1648,11 @@ window "Save As" [ref=w1]
 至于提升嘛,还是很有限的,没有特别的令人震撼,这反过来说明想靠不断截图来实现Computer Use的渠道还是有不少限制的.
 
 #### 新技术
-### 11/10
-#### 面经
-#### 技术文章
-#### 新技术
+### 好文(11/10)
+#### 蒋老师的博文
+- [来源](https://jyywiki.cn/Letter.md)
+
+劝退确实是劝退,但如果看清了这一点还考虑去读研的人,自然是有自己的考量和苦衷的.
 
 # 思考
 
