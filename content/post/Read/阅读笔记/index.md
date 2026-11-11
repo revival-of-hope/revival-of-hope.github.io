@@ -7,42 +7,6 @@ math: true
 ---
 
 # 阅读中
-## 深入理解 AI Infra
-- 姊妹书,大佬为了我们这些菜鸟真的是操碎了心.
-
-
-
-
-
-### 前言
-这部分非常值得一看,前沿的科研人物早就站在浪潮之上,而我们只是跟在后面拾取牙慧罢了.
-
->不必等到熟悉所有层次才开始阅读。做系统研究和工程实践时，我一直需要围绕具体问题，学习相邻层次的知识。遇到陌生的概念，可以先抓住它要解决的问题，再回来看实现细节。
-
-- 看似很简单的一句话,实际上我却是深有体会.
-### ch1: AI Infra介绍
-![六层架构图](PixPin_2026-11-09_12-23-37.webp)
-
-![请求处理过程](PixPin_2026-11-10_10-40-38.webp)
-
-1. 应用通过API传入上下文给模型服务入口
-2. 入口核验访问权限和请求内容后,将请求交给某个模型实例(可以是一张卡,也可以分布在多张卡上)
-3. 文本先被转换为token,实例调度器将传入该实例的请求编入队列中,并等待模型处理
-4. CPU负责向GPU提交这一次的计算任务,GPU执行正式的推理
-5. 模型先处理用户输入(这被称为prefill),然后逐步生成新token(这被称为decode),其中生成的KV cache可供后续位置的注意力计算使用.
-6. 产生的token经输出处理转换为文字,流式返回应用.
-
-模型权重是计算中需要反复使用的数据,需要在实例启动时或者模型切换时从存储中加载,并持续存放在显存中(称为驻留),可供多次请求使用.生成时,GPU计算单元从显存中读取当前层的权重和上下文状态,完成运算后再交给下一层,在多卡实例中,我们还需要把一张卡算出的中间结果交给其他卡
-
-先介绍一组贯穿全书的真实模型。DeepSeek V4 和 V4.1 Flash 提供了一条可以持续追踪的线索。V4 已经通过上下文压缩与稀疏访问改变存储和读取需求，V4.1 Flash 则进一步重新划分模型内部的职责。传统的 decoder-only（仅解码器）模型通常让输入 token 经过完整主干，逐层建立生成所需的状态；V4.1 Flash 采用**因果编码器—解码器（Causal Encoder-Decoder，CED）架构**，由编码器形成上下文表示，解码器从这些表示取得全局信息。大量输入 token 因此无需经过解码器主体的计算；生成新 token 时，模型仍依次经过编码器与解码器。输入与输出的执行路径并不对称，模型因此能针对 Agent 输入多、输出相对少的负载重新安排计算投入。
-### ch2: 模型架构
-#### 计算图
-![层间依赖](PixPin_2026-11-11_09-30-28.webp)
-
-在prefill阶段,由于上一层的所有状态已知(指的是所有的输入都已经确定了),所以可以并行计算同一层中的所有token;而在decode阶段,由于每一个token都需要注意前面的所有token,所以只能串行执行.
-
-换句话说,堆叠层之间必须串行,同一层之间在输入阶段可以并行处理.
-
 
 ## Build a Large Language Model
 ### ch1: 理解LLM
@@ -88,10 +52,53 @@ for i in range(1, context_size+1):
 2. 固定为正弦位置编码,Transformer用的就是这个.
 
 ### ch3: Attention
+#### 简化表示
+输入token中的一个token对其他每个token分配的注意力分数,是通过将两个token的embedding矩阵相乘得到的.
 
+得到的注意力分数既有可能是负数,也有可能相当巨大,所以我们要进行归一化处理,简单一点的话,就是直接算一个分数占所有分数的比例了,这就是注意力权重:
 
+![示意图](PixPin_2026-11-11_10-07-03.webp)
 
+- 实践中用的则是softmax函数
 
+最终,与单个token相关的上下文向量(context vector)即为所有的embedding与相应的注意力权重相乘,并将所有向量相加后的结果.
+
+![示意图](PixPin_2026-11-11_10-13-11.webp)
+
+如此一来,我们可以先将所有的注意力权重计算出来:
+
+![权重矩阵](PixPin_2026-11-11_10-15-12.webp)
+
+然后计算出所有的上下文向量即可,这就是self-attention的简化版本
+#### 复杂表示
+原始Transformer采用的机制为缩放点积注意力,与简化表示的区别并没有那么大.
+
+该注意力机制引入了三个可训练的维度相同的权重矩阵:Q,K,V,分别用于将embedding的token映射到查询,键和值向量上,记为query,key,value向量.
+
+首先是随机初始化三个权重矩阵,并将对应token的embedding与这三个矩阵相乘得到Q,K,V对应的向量.
+
+我们先计算第二个token的query与所有token的key向量的点积结果,得到query对key的注意力分数:
+![示意图](PixPin_2026-11-11_10-32-55.webp)
+
+归一化处理时,我们将分数除以key向量维度的平方根(如10000维对应除以100)来进行**缩放**,再通过softmax得到注意力权重.
+
+原因如下:
+![示意图](PixPin_2026-11-11_10-42-38.webp)
+
+最终,我们将所有的value向量和注意力权重相乘后相加,就得到了上下文向量.
+
+![诠释图](PixPin_2026-11-11_10-50-02.webp)
+
+#### 隐藏之后的token
+鉴于LLM的输出不需要考虑未来的token,所以我们需要屏蔽在当前词之后的token,将原来的矩阵变成下三角形状:
+![示意图](PixPin_2026-11-11_10-53-17.webp)
+
+方法很简单,将注意力分数矩阵的上三角清零后,重新计算下三角部分的注意力权重并归一化即可.
+
+另一个方法则是将上三角置为负无穷,然后应用softmax,效果是一样的.
+
+对于得到的注意力权重矩阵,我们可以先用dropout方法对部分注意力权重置零,减少训练期间的过拟合,这被称为**causal attention**.
+#### multi-head attention
 
 ## Apache Kafka in Action
 ### ch1: 介绍
@@ -244,95 +251,56 @@ Processed a total of 8 messages
 - Broker: 负责接收,存储和发送消息
 - Clients: 包括生产者和消费者,指的是连接到集群的任何外部应用程序
 ### ch5: Reliability
+#### Acknowledgments(ACK)
+鉴于网络协议不能确保数据传输或者解析成功,所以Kafka使用了自己的ACK机制,确保Broker收到了Producer发送的数据.
 
+kafka有三种ACK配置:
+![示意图](PixPin_2026-11-11_12-32-01.webp)
 
+- 注意：设置 acks=-1 等同于 acks=all。
 
+一个权衡在于,如果设置`acks=0`,那么消息只会被发送一次,至多持久化一次,但如果设置`acks=-1`,那么如果消息成功持久化,但由于网络问题,ACK未返回到Producer的话,就会触发retry机制,导致消息重复发送,这是一个非常严重的问题.
 
-## Python Testing with pytest, 2nd Edition
-### ch1: 介绍
-以下是命名规则的简要概述，用于确保你的测试代码能被pytest识别：
-* 测试文件的命名应为 `test_<something>.py` 或 `<something>_test.py`。
-* 测试方法和函数的命名应为 `test_<something>`。
-* 测试类的命名应为 `Test<Something>`。
+好在Kafka支持给Producer加上幂等性参数: `enable.idempotence=true`,如果重复发送消息,那么Broker就会检查到消息冲突,并只重发ACK而不实际存储.
 
-pytest测试有以下几种结果:
-* **PASSED (.)** — 测试运行成功。
-* **FAILED (F)** — 测试未能成功运行。
-* **SKIPPED (s)** — 测试被跳过。可通过使用 `@pytest.mark.skip()` 或 `@pytest.mark.skipif()` 装饰器指示 pytest 跳过测试。
-* **XFAIL (x)** — 测试预期会失败，实际运行也确实失败了。可通过 `@pytest.mark.xfail()` 装饰器告知 pytest 某个测试预期会失败。
-* **XPASS (X)** — 测试被标记为预期失败（xfail），但实际运行并通过。
-* **ERROR (E)** — 异常发生在装置（fixture）或钩子（hook）函数的执行过程中，而非测试函数的执行过程中。
-### ch3: Fixtures
-只要我们将fixture修饰的函数名字作为测试函数的参数,就会在测试运行时自动解析并注入到测试函数中.
-
-如果定义在`conftest.py`中,就会作用于所在目录及子目录中,而不需要额外import声明,如果定义在普通测试文件中,则需要额外import声明才能生效.
-
-对于数据库这种需要在函数关闭后再显式清理的依赖,我们需要在fixture里设置yield:
+#### Transactions
+kafka支持在传输中开启事务:
 ```python
-@pytest.fixture()
-def cards_db():
-    with TemporaryDirectory() as db_dir:
-        db_path = Path(db_dir)
-        db = cards.CardsDB(db_path)
-        yield db
-        db.close()
+from confluent_kafka import Producer
+
+producer = Producer({
+    'bootstrap.servers': 'localhost:9092',
+    'acks': 'all',
+    'enable.idempotence': True,
+    'partitioner': 'murmur2_random',
+    'transactional.id': 'transaction-1'
+})
+
+producer.init_transactions()
+producer.begin_transaction()
+
+producer.produce("customer.balance",
+                 key="bob", value="-10")
+producer.produce("customer.balance",
+                 key="alice", value="+10")
+
+producer.commit_transaction()
 ```
-yield之前的代码被称为`setup`,在测试开始前执行,yield之后的代码被称为`teardown`,在测试完成后强制执行.
+### ch6: 性能
 
-用法也很简单:
-```python
-def test_two(cards_db):
-    cards_db.add_card(cards.Card("first"))
-    cards_db.add_card(cards.Card("second"))
-    assert cards_db.count() == 2
-```
 
-#### 作用域
-fixture的默认作呕功能与是函数级,这意味着每一个需要该fixture运行的测试用例都会先执行其设置部分。同样地，每个测试结束后都会执行拆卸部分。
 
-而如果我们将scope切换为module级的话,那么该fixture只会在该模块中被启动和销毁一次.从而避免反复建立连接又销毁的问题.
 
-除此之外,还有package级别和session级别,作用域是不断扩大的.
 
-#### autouse
-如果我们希望fixture不需要在参数中显式声明,默认在作用域中执行的话,则可以声明`autouse=True,`.
 
-```python
-@pytest.fixture(autouse=True)
-def footer_function_scope():
-    """Report test durations after each function."""
-    start = time.time()
-    yield
-    stop = time.time()
-    delta = stop - start
-    print("\ntest duration : {:0.3} seconds".format(delta))
-```
-### ch4: 内置fixtures
-pytest 的内置 Fixture 不需要显式 import，直接在测试函数的参数中声明即可:
-```py
-def test_example(tmp_path, capsys, monkeypatch):
-    # tmp_path：创建临时目录
-    file = tmp_path / "test.txt"
-    file.write_text("hello")
 
-    # capsys：捕获标准输出
-    print("hello")
-    captured = capsys.readouterr()
-    assert captured.out == "hello\n"
-
-    # monkeypatch：临时修改属性、环境变量等
-    monkeypatch.setenv("DEBUG", "true")
-```
-### ch5: Parametrization
-参数化测试指的是为测试函数添加参数，并向测试传入多组参数，从而生成新的测试用例。
-
-比较高级,直接跳过
-### ch8: 配置文件
 
 
 ## Reinforcement Learning from Human Feedback
+### 前言
+>人工智能领域存在一个几乎无人公开讨论的鸿沟：那就是那些领先的封闭实验室所掌握的知识与公开记录的知识之间的差距。某种技术在少数营利性机构中成为标准做法，并在论文的“方法”部分获得一个段落的描述。实施该技术的实践者们随后便转向其他领域。一年后，其他地方的团队花费四个月的时间重复了原本只需一个下午就能解释清楚的内容。没有人记录下来，因为这并非任何人的职责。
+### ch1: 介绍
 
-# 先放着
 
 ## Python Concurrency with asyncio
 ### ch1: 认识asyncio
@@ -747,6 +715,55 @@ if __name__ == "__main__":
 ProcessPoolExecutor的问题在于,它对任务是按照numbers列表的顺序调用的,如果100000是第一个数字,那么就必须等到该数字打印完成后才能打印其他早就完成的数字,这显然不如`asyncio.as_completed`
 ### ch8: Streams(待补充)
 使用Socket编程太烧心了,所以asyncio构建了网络流的抽象层,封装了Socket的复杂细节.
+### ch9: Web应用程序
+
+# 先放着
+## 深入理解 AI Infra
+- 姊妹书,大佬为了我们这些菜鸟真的是操碎了心.
+
+
+
+
+
+### 前言
+这部分非常值得一看,前沿的科研人物早就站在浪潮之上,而我们只是跟在后面拾取牙慧罢了.
+
+>不必等到熟悉所有层次才开始阅读。做系统研究和工程实践时，我一直需要围绕具体问题，学习相邻层次的知识。遇到陌生的概念，可以先抓住它要解决的问题，再回来看实现细节。
+
+- 看似很简单的一句话,实际上我却是深有体会.
+### ch1: AI Infra介绍
+![六层架构图](PixPin_2026-11-09_12-23-37.webp)
+
+![请求处理过程](PixPin_2026-11-10_10-40-38.webp)
+
+1. 应用通过API传入上下文给模型服务入口
+2. 入口核验访问权限和请求内容后,将请求交给某个模型实例(可以是一张卡,也可以分布在多张卡上)
+3. 文本先被转换为token,实例调度器将传入该实例的请求编入队列中,并等待模型处理
+4. CPU负责向GPU提交这一次的计算任务,GPU执行正式的推理
+5. 模型先处理用户输入(这被称为prefill),然后逐步生成新token(这被称为decode),其中生成的KV cache可供后续位置的注意力计算使用.
+6. 产生的token经输出处理转换为文字,流式返回应用.
+
+模型权重是计算中需要反复使用的数据,需要在实例启动时或者模型切换时从存储中加载,并持续存放在显存中(称为驻留),可供多次请求使用.生成时,GPU计算单元从显存中读取当前层的权重和上下文状态,完成运算后再交给下一层,在多卡实例中,我们还需要把一张卡算出的中间结果交给其他卡
+
+先介绍一组贯穿全书的真实模型。DeepSeek V4 和 V4.1 Flash 提供了一条可以持续追踪的线索。V4 已经通过上下文压缩与稀疏访问改变存储和读取需求，V4.1 Flash 则进一步重新划分模型内部的职责。传统的 decoder-only（仅解码器）模型通常让输入 token 经过完整主干，逐层建立生成所需的状态；V4.1 Flash 采用**因果编码器—解码器（Causal Encoder-Decoder，CED）架构**，由编码器形成上下文表示，解码器从这些表示取得全局信息。大量输入 token 因此无需经过解码器主体的计算；生成新 token 时，模型仍依次经过编码器与解码器。输入与输出的执行路径并不对称，模型因此能针对 Agent 输入多、输出相对少的负载重新安排计算投入。
+### ch2: 模型架构
+#### 计算图
+![层间依赖](PixPin_2026-11-11_09-30-28.webp)
+
+在prefill阶段,由于上一层的所有状态已知(指的是所有的输入都已经确定了),所以可以并行计算同一层中的所有token;而在decode阶段,由于每一个token都需要注意前面的所有token,所以只能串行执行.
+
+换句话说,堆叠层之间必须串行,同一层之间在输入阶段可以并行处理.
+
+
+先把一个计算节点展开。设本次对 \(m\) 个输入 token 执行投影，每个 token 用包含 \(k\) 个特征的向量表示。把这些向量逐行排成输入矩阵 \(X\)，就得到 \(m\) 行、\(k\) 列的矩阵。设输出宽度为 \(n\)，则有：
+
+\[
+ X \in \mathbb{R}^{m \times k}, \qquad W \in \mathbb{R}^{k \times n}, \qquad Y = XW \in \mathbb{R}^{m \times n}. 
+\]
+
+输入的token数量翻倍,运算量翻倍,但权重矩阵保持不变;输出的矩阵宽度翻倍,权重数量和运算量都翻倍.
+
+
 ## Databse Internals
 ### ch1: 介绍
 ![架构图](PixPin_2026-10-06_15-46-05.webp)
@@ -1901,8 +1918,94 @@ TDD的工作流程如下:
 
 
 # 基础
+## Python Testing with pytest, 2nd Edition
+### ch1: 介绍
+以下是命名规则的简要概述，用于确保你的测试代码能被pytest识别：
+* 测试文件的命名应为 `test_<something>.py` 或 `<something>_test.py`。
+* 测试方法和函数的命名应为 `test_<something>`。
+* 测试类的命名应为 `Test<Something>`。
+
+pytest测试有以下几种结果:
+* **PASSED (.)** — 测试运行成功。
+* **FAILED (F)** — 测试未能成功运行。
+* **SKIPPED (s)** — 测试被跳过。可通过使用 `@pytest.mark.skip()` 或 `@pytest.mark.skipif()` 装饰器指示 pytest 跳过测试。
+* **XFAIL (x)** — 测试预期会失败，实际运行也确实失败了。可通过 `@pytest.mark.xfail()` 装饰器告知 pytest 某个测试预期会失败。
+* **XPASS (X)** — 测试被标记为预期失败（xfail），但实际运行并通过。
+* **ERROR (E)** — 异常发生在装置（fixture）或钩子（hook）函数的执行过程中，而非测试函数的执行过程中。
+### ch3: Fixtures
+只要我们将fixture修饰的函数名字作为测试函数的参数,就会在测试运行时自动解析并注入到测试函数中.
+
+如果定义在`conftest.py`中,就会作用于所在目录及子目录中,而不需要额外import声明,如果定义在普通测试文件中,则需要额外import声明才能生效.
+
+对于数据库这种需要在函数关闭后再显式清理的依赖,我们需要在fixture里设置yield:
+```python
+@pytest.fixture()
+def cards_db():
+    with TemporaryDirectory() as db_dir:
+        db_path = Path(db_dir)
+        db = cards.CardsDB(db_path)
+        yield db
+        db.close()
+```
+yield之前的代码被称为`setup`,在测试开始前执行,yield之后的代码被称为`teardown`,在测试完成后强制执行.
+
+用法也很简单:
+```python
+def test_two(cards_db):
+    cards_db.add_card(cards.Card("first"))
+    cards_db.add_card(cards.Card("second"))
+    assert cards_db.count() == 2
+```
+
+#### 作用域
+fixture的默认作呕功能与是函数级,这意味着每一个需要该fixture运行的测试用例都会先执行其设置部分。同样地，每个测试结束后都会执行拆卸部分。
+
+而如果我们将scope切换为module级的话,那么该fixture只会在该模块中被启动和销毁一次.从而避免反复建立连接又销毁的问题.
+
+除此之外,还有package级别和session级别,作用域是不断扩大的.
+
+#### autouse
+如果我们希望fixture不需要在参数中显式声明,默认在作用域中执行的话,则可以声明`autouse=True,`.
+
+```python
+@pytest.fixture(autouse=True)
+def footer_function_scope():
+    """Report test durations after each function."""
+    start = time.time()
+    yield
+    stop = time.time()
+    delta = stop - start
+    print("\ntest duration : {:0.3} seconds".format(delta))
+```
+### ch4: 内置fixtures
+pytest 的内置 Fixture 不需要显式 import，直接在测试函数的参数中声明即可:
+```py
+def test_example(tmp_path, capsys, monkeypatch):
+    # tmp_path：创建临时目录
+    file = tmp_path / "test.txt"
+    file.write_text("hello")
+
+    # capsys：捕获标准输出
+    print("hello")
+    captured = capsys.readouterr()
+    assert captured.out == "hello\n"
+
+    # monkeypatch：临时修改属性、环境变量等
+    monkeypatch.setenv("DEBUG", "true")
+```
+### ch5: Parametrization
+参数化测试指的是为测试函数添加参数，并向测试传入多组参数，从而生成新的测试用例。
+
+比较高级,直接跳过
+### ch9: 覆盖率
+Coverage.py 是首选的 Python 代码覆盖率测量工具。而 pytest-cov 是一个常用的 pytest 插件，常与 coverage.py 配合使用，可简化为命令行操作。还可以生成HTML报告
+
+![官网澄清](PixPin_2026-11-11_13-20-34.webp)
+### 总结
+讲的很不错,但日常用只看前三章就足够了
 ## A Philosophy of Software Design, 2nd Edition
 ### 总结
+不值一看
 ## Docker Deep Dive
 ### ch1-4: 介绍
 >尽管开发 Windows 容器投入了大量精力，但几乎所有容器都是Linux 容器。这是因为 Linux 容器体积更小、速度更快，而且 Linux 拥有更丰富的工具。
@@ -17202,9 +17305,6 @@ x86 处理器的机器指令大体上可由五大部分组成:
 - [中文翻译版链接](https://zyb0408.github.io/gitbooks/onjava8/)
 
 # Agent
-
-
-
 ## AI Engineering Building Applications with Foundation Models
 - 出版于2025年，出版商：O'Reilly，作者：Chip Huyen。
 

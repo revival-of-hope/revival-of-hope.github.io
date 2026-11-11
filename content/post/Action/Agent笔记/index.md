@@ -130,7 +130,7 @@ if __name__ == "__main__":
 
 # Agent框架
 
-
+## 概览
 | 框架                                                                                              | 抽象程度 | 支持的开发语言                       | 模型绑定程度 | 强项                                          | 热门程度         |
 | ------------------------------------------------------------------------------------------------- | -------- | ------------------------------------ | ------------ | --------------------------------------------- | ---------------- |
 | [LangChain](https://docs.langchain.com/?utm_source=chatgpt.com)                                   | 中高     | Python、TypeScript                   | 低           | Agent 开发、工具集成、模型适配、生态丰富      | 极高             |
@@ -609,7 +609,54 @@ agent = create_agent(
 
 
 # Agent tools
-## 搜索工具测评
+## 概览
+Agent目前还不是许愿机,所以需要我们为它量身定做skill,帮它搜集和熟悉工具,换句话说,工具做的到的,Agent一般能做到,没有工具能用的领域,Agent也做不到.
+
+程序员的日常任务其实就那么多,写文档,写代码,处理数据,运维操作,Agent目前除了不能帮我们开会以外,其他方面的能力都是可圈可点的:
+
+1. **PPT（演示文稿）**
+   1. `python-pptx` / `PptxGenJS`：创建、读取、修改 PPT，处理文字、图片、图表和幻灯片布局。
+   2. `网络搜索 / 图片生成 API`：检索资料、获取图片素材、生成插图。
+   3. `LibreOffice` / `PyMuPDF`：渲染幻灯片、转换 PDF、检查排版效果。
+
+2. **Word（文档）**
+   1. `python-docx` / `docxtpl`：创建、编辑 Word 文档，实现格式控制和模板填充。
+   2. `Pandoc`：Markdown、HTML、DOCX 等格式转换。
+   3. `LibreOffice` / `PyMuPDF`：转换 PDF、检查分页与排版效果。
+
+3. **Excel（电子表格）**
+   1. `openpyxl` / `XlsxWriter`：创建、读取和修改 Excel，操作公式、样式、图表。
+   2. `pandas` / `polars`：数据清洗、统计、合并和分析。
+   3. `matplotlib` / `plotly`：生成数据可视化图表。
+
+4. **Coding（编程开发）**
+   1. `Git` / `GitHub CLI`：版本管理、代码差异检查、提交代码、创建 PR。
+   2. `ripgrep` / `tree-sitter` / `LSP`：代码检索、语法解析、符号定位和引用分析。
+   3. `pytest` / `Ruff` / `Playwright`：自动化测试、静态检查、浏览器端到端测试。
+
+5. **DevOps（部署与运维）**
+   1. `Docker` / `Docker Compose`：构建镜像、管理容器和本地服务环境。
+   2. `Kubernetes` / `Helm` / `Terraform`：应用部署、集群管理和基础设施自动化。
+   3. `GitHub Actions` / `Prometheus` / `Grafana`：CI/CD、运行监控、故障排查。
+
+6. **PDF（文档阅读与处理）**
+   1. `PyMuPDF` / `pypdf`：读取、编辑、合并、拆分和渲染 PDF。
+   2. `pdfplumber` / `Docling`：提取文字、表格和结构化内容。
+   3. `OCRmyPDF` / `Tesseract`：扫描版 PDF 的 OCR 文字识别。
+
+7. **Computer Use（计算机操作）**
+   1. `Playwright`：浏览器自动化，完成网页导航、点击、表单填写和文件下载。
+   2. `PyAutoGUI` / `pynput`：桌面 GUI 自动化，控制鼠标和键盘。
+   3. `截图与视觉模型 API`：识别屏幕内容、定位 UI 元素，根据视觉反馈执行操作。
+
+事实上可以发现,Agent的几个核心工具不外乎是这么几个:
+1. 联网搜索
+2. 文件处理: 包括md,docx,xlsx,ppt,pdf,latex和代码文件
+3. 文件搜索: 本质上是MCP接口,简单的glob或者grep
+
+至于剩下的部分,就靠LLM本身的思考能力和Harness赋予的Memory,Loop,Sandbox等机制来处理即可.
+## 联网搜索
+### 搜索工具测评
 为什么我们不直接用curl打开baidu和google发送请求呢,想想也知道太麻烦了啊,不但需要动态适配搜索引擎的API变化,还需要一个个分别定制调用框架.而用第三方的搜索工具就没这么麻烦了,调个API就完事了,不少还自带了HTML清洗,甚至还有总结功能.
 
 - 当然,最方便的还是用LLM提供的搜索接口
@@ -624,7 +671,7 @@ agent = create_agent(
 | **SearXNG**            |     自己部署则 API 本身免费 | 无限*            | 取决于服务器/上游限制      | **真正零 API 成本**       |
 
 AI是这么说的,但我还是得亲身试一试
-### Exa
+#### Exa
 ![注册后直接送额度](PixPin_2026-10-05_12-34-01.webp)
 ```py
 from exa_py import Exa
@@ -640,7 +687,7 @@ for result in results.results:
     print(result.title, result.url)
 ```
 上述代码运行后一共返回了 10 个网页结果。每个结果基本包含两部分：`网页标题 + URL`，以及一大段从网页中抽取出来的 正文/摘要内容,还是做的很不错的.
-### Tavily
+#### Tavily
 ![界面很帅](PixPin_2026-10-05_13-04-02.webp)
 
 ```py
@@ -663,7 +710,7 @@ print(response)
 效果也挺不错的
 
 ![支持5种调用](PixPin_2026-10-05_13-08-07.webp)
-### SearXNG
+#### SearXNG
 另外几个都大差不差,但这个SearXNG值得注意.
 
 SearXNG来源于2014年的开源聚合搜索引擎searx,核心理念就是聚合:
@@ -746,7 +793,7 @@ server:
 
 可以看到,SearXNG并不能深入读取网页,而是像Google搜索一样返回摘要和元信息,所以如果想要做RAG,要么再加一层爬虫来读取获得的url,要么就只能忍痛割爱了.
 
-### ddgs
+#### ddgs
 ddgs是我意外发现的宝藏python库,部署方法很简单:
 ```bash
 git clone https://github.com/deedy5/ddgs && cd ddgs
@@ -835,7 +882,8 @@ curl http://localhost:11434/api/chat \
 例如命令`ollama launch opencode`可以启动opencode并通过opencode调用通过ollama下载的模型.
 
 
-## 主流Harness一览
+## 主流Harness
+### 概览
 | 名称                                                                                              | 开发语言                 | 开源情况                                  | 发布时间                        | 热门程度                   |
 | ------------------------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------- | ------------------------------- | -------------------------- |
 | [Claude Code](https://code.claude.com/docs/en/overview?utm_source=chatgpt.com)                    | TypeScript（核心实现）   | 闭源                                      | 2025-02                         | 极高                       |
@@ -866,11 +914,11 @@ curl http://localhost:11434/api/chat \
 | [Kimi Code CLI](https://github.com/MoonshotAI/kimi-code?utm_source=chatgpt.com)                   | TypeScript               | 开源（MIT）                               | 2026-05（新版）                 | 中高                       |
 
 
-## Claude Code
+### Claude Code
 ![官网](PixPin_2026-09-19_14-08-29.webp)
 
 由于需要手机号注册,我至今都没有体验过呢...
-## Codex 
+### Codex 
 Codex目前是有两种方式访问的,一个是ChatGPT桌面版,一个就是Codex CLI了.
 
 Codex CLI的下载脚本如下:
@@ -883,7 +931,7 @@ Codex桌面端的话,以前好像是要手机号注册的,所以我就一直没�
 ![启动图](PixPin_2026-09-19_14-45-16.webp)
 
 
-## Hermes
+### Hermes
 今年2月推出的新Coding工具,一开始只支持CLI交互,后来新增了Desktop端
 ```bash
 ollama launch hermes
@@ -895,7 +943,7 @@ ollama launch hermes
 
 ![效果图](PixPin_2026-09-19_15-26-51.webp)
 
-## DeepSeek Harness
+### DeepSeek Harness
 ```bash
 ollama launch dsh
 ```

@@ -164,64 +164,7 @@ CUDA version: 13.0
 
 uv彻底终结了比赛,并让python的学习变得异常轻松.
 
-### fastapi文档高级要点(9/28)
-#### 中间件
->“中间件”是一个函数，它会在每个特定的路径操作处理每个请求之前运行，也会在返回每个响应之前运行
 
-```py
-import time
-
-from fastapi import FastAPI, Request
-
-app = FastAPI()
-
-
-@app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    start_time = time.perf_counter()
-    response = await call_next(request)
-    process_time = time.perf_counter() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
-```
-这个函数会在每一次HTTP请求到达client时自动运行,用于添加响应头.
-
-而中间件实际上也只有`http`这个粒度,顶多根据方法来筛选:
-```py
-@app.middleware("http")
-async def middleware(request: Request, call_next):
-    if request.method == "POST":
-        print("POST 请求")
-
-    return await call_next(request)
-```
-所以用处基本约等于没有.
-
-#### 后台任务
-我们可以定义在返回响应后运行的后台任务,这对需要在请求之后执行的操作很有用，但客户端不必在接收响应之前等待操作完成,例如:
-1. 执行操作后发送的电子邮件通知：
-   1. 由于连接到电子邮件服务器并发送电子邮件往往很“慢”（几秒钟），你可以立即返回响应并在后台发送电子邮件通知。
-2. 处理数据：
-   1. 例如，假设你收到的文件必须经过一个缓慢的过程，你可以返回一个"Accepted"(HTTP 202)响应并在后台处理它。
-
-```py
-from fastapi import BackgroundTasks, FastAPI
-
-app = FastAPI()
-
-
-def write_notification(email: str, message=""):
-    with open("log.txt", mode="w") as email_file:
-        content = f"notification for {email}: {message}"
-        email_file.write(content)
-
-
-@app.post("/send-notification/{email}")
-async def send_notification(email: str, background_tasks: BackgroundTasks):
-    background_tasks.add_task(write_notification, email, message="some notification")
-    return {"message": "Notification sent in the background"}
-```
-很明显,这个类只适合一些基础场景,稍微复杂一点的话就要用消息队列来搞了.
 ### PEP介绍
 - [PEP1](https://peps.python.org/pep-0001/)
 
@@ -935,10 +878,65 @@ def get_users() -> UserScores:
     ...
 ```
 
-### GIL历史(待补充)
-- [PEP703](https://peps.python.org/pep-0703/)
+### FastAPI速通(11/11)
+#### 速览
+```py
+from fastapi import FastAPI
+
+app = FastAPI()
 
 
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int, q: str | None = None):
+    return {"item_id": item_id, "q": q}
+```
+真的,fastapi的全部精华就在上面了,装饰器注解HTTP方法和路由,函数参数处理路径参数和请求体内容,函数内部返回响应体.如此朴实无华,展现了Python的最大魅力.
+
+#### 进阶要点
+##### async def与def
+在fastapi中,用def定义一个路由函数时,它会将其加入到**外部线程池**中并等待处理结果,而不会直接调用(若直接调用则会阻塞服务器).
+
+这同样适用于`Depends`等外部注入的依赖甚至是子依赖,只要是def定义的,都会被运行在外部线程池中,从而从根上避免阻塞.
+
+另一方面,如果定义了`async def`,则会将当前任务加入到事件循环中,那么必须要用`await`等待耗时操作的结果,否则就会阻塞.
+##### lifespan
+**示例**
+```py
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+
+
+def fake_answer_to_everything_ml_model(x: float):
+    return x * 42
+
+
+ml_models = {}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Load the ML model
+    ml_models["answer_to_everything"] = fake_answer_to_everything_ml_model
+    yield
+    # Clean up the ML models and release the resources
+    ml_models.clear()
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/predict")
+async def predict(x: float):
+    result = ml_models["answer_to_everything"](x)
+    return {"result": result}
+```
+yield之前的部分会在应用启动之前执行,yield之后的部分会在应用完成后执行,和pytest的fixture设置一样.
 ## Golang
 ### Gin速通(10/30)
 #### r和c

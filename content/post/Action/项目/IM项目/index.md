@@ -171,7 +171,6 @@ cityNameAttempt1 = r.get("city")    # Retrieved from Redis server and cached
 cityNameAttempt2 = r.get("city")    # Retrieved from cache
 ```
 
-## ch2: confluent-kafka学习
 
 ## ch3: 相关项目学习
 当我们想要从零开始搭建一个新领域项目时,往往是无从下手的,原因很简单,你见都没见过相关代码,怎么可能突然就会写了呢,所以,我们需要先找一下相关的领域项目,学习前人的设计经验.
