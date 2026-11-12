@@ -171,7 +171,7 @@ cityNameAttempt1 = r.get("city")    # Retrieved from Redis server and cached
 cityNameAttempt2 = r.get("city")    # Retrieved from cache
 ```
 
-
+## ch2: kafka相关学习
 ## ch3: 相关项目学习
 当我们想要从零开始搭建一个新领域项目时,往往是无从下手的,原因很简单,你见都没见过相关代码,怎么可能突然就会写了呢,所以,我们需要先找一下相关的领域项目,学习前人的设计经验.
 
@@ -911,5 +911,125 @@ for message in messages:
 5. get:`/chat/{chat_guid}/messages/old/{message_guid}/`
    1. 获取历史消息,属于冗余设计
 #### websocket设计
+##### 背景
+首先要搞懂一个问题,即时聊天(IM)是做什么的,IM一般有三个能力:
+1. 实时消息传递
+2. 离线消息处理(服务端保存消息,用户上线后推送消息)
+3. 双向交互(不需要另一方允许)
+
+如微信,QQ,Telegram都属于典型的IM软件.而这些软件中最重要的设计就是消息模型,其中最常用的就是Redis的Pub/Sub(发布/订阅)机制
+
+P2P没什么好说的,但对于常见的群聊来说,发消息的人需要确保能够将消息发送到其他群友的手机上,那么就可以借助Redis的Channel模型,Redis的Channel与Go不太一样,可以由一个发布者注册Channel,并由多个订阅者接收该Channel.
+
+而我们之所以需要加入Websocket,是为了解决实时问题,Channel不会将数据持久化,相当于即用即毁,但单次HTTP连接只能做到提取消息并存储到某个地方,只有Websocket才能做到一边提取消息一边发送消息,实现双方即时的交互.
+
+##### manager设计
+RedisPubSubManager设计:
+```py
+from uuid import UUID
+
+import redis.asyncio as aioredis
+
+from src.database import redis_pool
 
 
+class RedisPubSubManager:
+    def __init__(self):
+        self.pubsub = None
+
+    async def _get_redis_connection(self) -> aioredis.Redis:
+        return aioredis.Redis(connection_pool=redis_pool)
+
+    async def connect(self):
+        self.redis_connection = await self._get_redis_connection()
+        self.pubsub = self.redis_connection.pubsub()
+
+    async def subscribe(self, chat_guid: UUID) -> aioredis.Redis:
+        await self.pubsub.subscribe(chat_guid)
+        return self.pubsub
+
+    async def unsubscribe(self, chat_guid: UUID):
+        await self.pubsub.unsubscribe(chat_guid)
+
+    async def publish(self, chat_guid: UUID, message: str):
+        await self.redis_connection.publish(chat_guid, message)
+
+    async def disconnect(self):
+        await self.redis_connection.close()
+```
+
+1. connect: 注册pubsub
+2. subscribe: 订阅某个群聊/P2P
+3. publish: 发布消息到某个群聊/P2P
+4. disconnect: 关闭连接.
+
+一个比较严重的问题就是,没有考虑到改写为with模型,从而丧失了不少可读性.
+
+WebSocketManager设计:
+```py
+class WebSocketManager:
+    def __init__(self):
+        self.handlers: dict = {}
+        self.chats: dict = {}  # stores user WebSocket connections by chat {"chat_guid": {ws1, ws2}, ...}
+        self.pubsub_client = RedisPubSubManager()
+        self.user_guid_to_websocket: dict = {}  # stores user_guid: {ws1, ws2} combinations
+
+    def handler(self, message_type):
+        def decorator(func):
+            self.handlers[message_type] = func
+            return func
+
+        return decorator
+
+    async def connect_socket(self, websocket: WebSocket):
+        await websocket.accept()
+
+    async def add_user_socket_connection(self, user_guid: str, websocket: WebSocket):
+        self.user_guid_to_websocket.setdefault(user_guid, set()).add(websocket)
+
+    async def add_user_to_chat(self, chat_guid: str, websocket: WebSocket):
+        if chat_guid in self.chats:
+            self.chats[chat_guid].add(websocket)
+        else:
+            self.chats[chat_guid] = {websocket}
+            await self.pubsub_client.connect()
+            pubsub_subscriber = await self.pubsub_client.subscribe(chat_guid)
+            asyncio.create_task(self._pubsub_data_reader(pubsub_subscriber))
+
+    async def broadcast_to_chat(self, chat_guid: str, message: str | dict) -> None:
+        if isinstance(message, dict):
+            message = json.dumps(message)
+        await self.pubsub_client.publish(chat_guid, message)
+
+    async def remove_user_from_chat(self, chat_guid: str, websocket: WebSocket) -> None:
+        self.chats[chat_guid].remove(websocket)
+        if len(self.chats[chat_guid]) == 0:
+            del self.chats[chat_guid]
+            logger.info("Removing user from PubSub channel {chat_guid}")
+            await self.pubsub_client.unsubscribe(chat_guid)
+
+    async def remove_user_guid_to_websocket(self, user_guid: str, websocket: WebSocket):
+        if user_guid in self.user_guid_to_websocket:
+            self.user_guid_to_websocket.get(user_guid).remove(websocket)
+
+    # https://github.com/redis/redis-py/issues/2523
+    async def _pubsub_data_reader(self, pubsub_subscriber):
+        try:
+            while True:
+                message = await pubsub_subscriber.get_message(ignore_subscribe_messages=True)
+                if message is not None:
+                    chat_guid = message["channel"].decode("utf-8")
+                    sockets = self.chats.get(chat_guid)
+                    if sockets:
+                        for socket in sockets:
+                            data = message["data"].decode("utf-8")
+                            await socket.send_text(data)
+        except Exception as exc:
+            logger.exception(f"Exception occurred: {exc}")
+
+    async def send_error(self, message: str, websocket: WebSocket):
+        await websocket.send_json({"status": "error", "message": message})
+```
+
+1. handler装饰器: 用于将消息交给对应的处理函数
+2. 

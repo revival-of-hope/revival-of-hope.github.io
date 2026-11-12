@@ -1,5 +1,5 @@
 ---
-title: "Agent项目"
+title: "Go复刻对话项目"
 date: 2026-11-06T08:41:42+08:00
 description: 项目2-a
 image: 137455166_p0-『adieu』.webp
@@ -10,104 +10,88 @@ draft: true
 ---
 >[!NOTE]
 >
->目标: 使用Eino开发出一个,根据要求能够智能查找目标GitHub仓库,分析仓库功能得到分析文档,并git clone其中最重要仓库的简易Agent.计划是渲染一个本地网页出来,不需要用户管理,API_KEY内置.
+>目标: 复刻之前的Python栈LLM对话项目,采用Gorm+Gin+Postgres,看情况添加功能.
 
-## ch0: 前言
-1. 为什么用Eino?
-   1. 我需要锻炼Go能力,而Eino是为数不多的Go Agent框架,同时也是测试一下这个字节框架的潜力
-2. 市面上已经有DeepWiki,DeepGit这样的成熟产品了,那你为什么还做?
-   1. 我做这个主要是出于学习目的,有成熟产品反而就有能够模仿与借鉴的例子了.
+## ch1: 项目学习
+- [项目链接](https://github.com/Caknoooo/go-gin-clean-starter)
 
+该项目的选型为Gin+Gorm+Postgres
 
-## ch1: Eino基础
-### 初印象
-下载官方示例代码:
-```bash
-git clone https://github.com/cloudwego/eino-examples.git
-```
-看一下hello-world:
+Go项目怎么看我确实不太会,但还是先看cmd,再看一下modules里的据说是clean architecure的具体架构.
+### main.go
 ```go
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
 	"os"
 
-	"github.com/cloudwego/eino/adk"
-	"github.com/cloudwego/eino/schema"
+	"github.com/Caknoooo/go-gin-clean-starter/middlewares"
+	"github.com/Caknoooo/go-gin-clean-starter/modules/auth"
+	"github.com/Caknoooo/go-gin-clean-starter/modules/user"
+	"github.com/Caknoooo/go-gin-clean-starter/providers"
+	"github.com/Caknoooo/go-gin-clean-starter/script"
+	"github.com/samber/do"
 
-	"github.com/cloudwego/eino-ext/components/model/openai"
+	"github.com/common-nighthawk/go-figure"
+	"github.com/gin-gonic/gin"
 )
 
-func main() {
-	ctx := context.Background()
-
-	// 初始化模型
-	model, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
-		APIKey:  os.Getenv("OPENAI_API_KEY"),
-		Model:   os.Getenv("OPENAI_MODEL"),
-		BaseURL: os.Getenv("OPENAI_BASE_URL"),
-		ByAzure: func() bool {
-			return os.Getenv("OPENAI_BY_AZURE") == "true"
-		}(),
-	})
-	if err != nil {
-		log.Fatal(err)
+func args(injector *do.Injector) bool {
+	if len(os.Args) > 1 {
+		flag := script.Commands(injector)
+		return flag
 	}
 
-	// 创建 ChatModelAgent
-	agent, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
-		Name:        "hello_agent",
-		Description: "A friendly greeting assistant",
-		Instruction: "You are a friendly assistant. Please respond to the user in a warm tone.",
-		Model:       model,
-	})
-	if err != nil {
-		log.Fatal(err)
+	return true
+}
+
+func run(server *gin.Engine) {
+	server.Static("/assets", "./assets")
+
+	port := os.Getenv("GOLANG_PORT")
+	if port == "" {
+		port = "8888"
 	}
 
-	// 创建 Runner
-	runner := adk.NewRunner(ctx, adk.RunnerConfig{
-		Agent:           agent,
-		EnableStreaming: true,
-	})
-
-	// 执行对话
-	input := []adk.Message{
-		schema.UserMessage("Hello, please introduce yourself."),
+	var serve string
+	if os.Getenv("APP_ENV") == "localhost" {
+		serve = "0.0.0.0:" + port
+	} else {
+		serve = ":" + port
 	}
 
-	events := runner.Run(ctx, input)
-	for {
-		event, ok := events.Next()
-		if !ok {
-			break
-		}
+	myFigure := figure.NewColorFigure("Caknoo", "", "green", true)
+	myFigure.Print()
 
-		if event.Err != nil {
-			log.Printf("错误: %v", event.Err)
-			break
-		}
-
-		if msg, err := event.Output.MessageOutput.GetMessage(); err == nil {
-			fmt.Printf("Agent: %s\n", msg.Content)
-		}
+	if err := server.Run(serve); err != nil {
+		log.Fatalf("error running server: %v", err)
 	}
 }
+
+func main() {
+	var (
+		injector = do.New()
+	)
+
+	providers.RegisterDependencies(injector)
+
+	if !args(injector) {
+		return
+	}
+
+	server := gin.Default()
+	server.Use(middlewares.CORSMiddleware())
+
+	// Register module routes
+	user.RegisterRoutes(server, injector)
+	auth.RegisterRoutes(server, injector)
+
+	run(server)
+}
 ```
-创建Agent之后,再调用runner并输入用户消息,即可开始流式对话,并且是ReAct模式的.`events.Next()`不断遍历Agent输出,直到Agent输出完毕.
+这个参数注入留待最后解决,看一下主函数,注册了gin服务器后,注入了user和auth两个路由,并最终启动.
+### user部分
+先看路由:
 
-不过示例代码的一个问题在于,这里开启了Stream,但循环中却是获取的单次消息.
-
-查了一下API,发现如果这样的话就是直接关闭Stream,拼接完字符串后完整输出.
-
-
-
-### 核心概念
-1. Component: 组件,基础单元,如调用LLM的`ChatModel`,封装工具的`Tool`,检索知识库的`Retriever`.
-2. `Compose`: 编排组件,支持Chain,Graph,Workflow三种抽象
-3. `Flow`: 对常用编排的封装,如RaAct Agent或者Host Multi-Agent,如今较少用
-4. ADK: 高层框架,是Flow的上位替代.最重要的两个模块就是Agent,ChatModelAgent
-
+## ch2: User模块实现

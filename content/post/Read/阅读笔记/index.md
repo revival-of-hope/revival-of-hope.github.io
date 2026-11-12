@@ -89,16 +89,68 @@ for i in range(1, context_size+1):
 
 ![诠释图](PixPin_2026-11-11_10-50-02.webp)
 
-#### 隐藏之后的token
+#### masked attention
 鉴于LLM的输出不需要考虑未来的token,所以我们需要屏蔽在当前词之后的token,将原来的矩阵变成下三角形状:
 ![示意图](PixPin_2026-11-11_10-53-17.webp)
 
-方法很简单,将注意力分数矩阵的上三角清零后,重新计算下三角部分的注意力权重并归一化即可.
+方法很简单,将注意力分数矩阵的上三角清零后,重新计算下三角部分的注意力权重并归一化即可.这就得到了**masked attention**.
 
 另一个方法则是将上三角置为负无穷,然后应用softmax,效果是一样的.
 
 对于得到的注意力权重矩阵,我们可以先用dropout方法对部分注意力权重置零,减少训练期间的过拟合,这被称为**causal attention**.
 #### multi-head attention
+Multi-head Attention由多个Single-head Attention组成,换句话说,每个子Attention模块都有自己的权重,只在输出时对多个子Attention的结果进行汇总:
+![示意图](PixPin_2026-11-12_09-55-32.webp)
+
+这在直观上表现为多组平行的Q,K,V向量和多组上下文向量.
+### ch4: 实现GPT模型
+#### 架构设计
+![架构设计图](PixPin_2026-11-12_10-24-21.webp)
+
+#### Normalization层
+对每个token的embedding进行归一化处理,将均值统一为0,方差统一为1,从而避免参数过大给训练带来影响.
+#### GELU激活的前馈网络
+GELU是ReLU的进阶版,能够提供更优的训练效果:
+![公式](PixPin_2026-11-12_10-28-46.webp)
+
+![对比](PixPin_2026-11-12_10-29-29.webp)
+
+![训练过程](PixPin_2026-11-12_10-33-24.webp)
+
+#### Adding shortcut connections
+shortcut用于在反向传播中缓解梯度消失的问题,这也被称为残差连接:
+![shortcut 示意图](PixPin_2026-11-12_10-42-00.webp)
+
+```python
+class ExampleDeepNeuralNetwork(nn.Module):
+    def __init__(self, layer_sizes, use_shortcut):
+        super().__init__()
+        self.use_shortcut = use_shortcut
+        self.layers = nn.ModuleList([
+            nn.Sequential(nn.Linear(layer_sizes[0], layer_sizes[1]),
+                          GELU()),
+            nn.Sequential(nn.Linear(layer_sizes[1], layer_sizes[2]),
+                          GELU()),
+            nn.Sequential(nn.Linear(layer_sizes[2], layer_sizes[3]),
+                          GELU()),
+            nn.Sequential(nn.Linear(layer_sizes[3], layer_sizes[4]),
+                          GELU()),
+            nn.Sequential(nn.Linear(layer_sizes[4], layer_sizes[5]),
+                          GELU())
+        ])
+
+    def forward(self, x):
+        for layer in self.layers:
+            layer_output = layer(x)
+            if self.use_shortcut and x.shape == layer_output.shape:
+                x = x + layer_output
+            else:
+                x = layer_output
+        return x
+```
+#### 实现Transformer模块
+
+
 
 ## Apache Kafka in Action
 ### ch1: 介绍
