@@ -150,6 +150,19 @@ class ExampleDeepNeuralNetwork(nn.Module):
 ```
 #### 实现Transformer模块
 
+![示意图](PixPin_2026-11-13_08-06-23.webp)
+
+#### GPT模型实现
+GPT采用了权重绑定(weight tying),即输入token的映射矩阵和输出logits的映射矩阵为同一个权重矩阵,均为(50257x768)维,从而可以降低模型的整体内存占用.
+
+不过,现代LLM倾向于使用独立的权重矩阵,从而可以获得更好的训练效果.
+
+通过计算 GPTModel 对象中 1.63 亿个参数的内存需求，并假设每个参数都是一个 32 位浮点数，占用 4 个字节，我们发现模型的总大小为 621.83 MB，这表明即使是相对较小的 LLM 也需要相对较大的存储容量。
+#### 输出文本
+GPT会对每一个输入的token都生成对下一个token的**预测**,那么我们只需要提取输入文本的最后一行对应的50257x1维向量,用softmax处理后即可得到最终的token概率,选取概率最大的token即可,并将其作为下一轮的输入.
+
+- 我们还可以设置一个上下文窗口大小,确保LLM的输出不会超出这些token数量.
+### ch5: Pretraining on unlabeled data
 
 
 ## Apache Kafka in Action
@@ -339,435 +352,106 @@ producer.produce("customer.balance",
 producer.commit_transaction()
 ```
 ### ch6: 性能
+一些配置上的细节
+### ch7: 集群管理
+![示意图](PixPin_2026-11-12_11-51-47.webp)
 
+我们建议使用三到五个 controller 节点以提高可靠性，并至少配备三个broker。（四个 controller 与三个 controller 相比并无优势，因为我们仍然只能弥补一个 controller 的故障。）
 
+KRaft和Zookeeper负责从Broker中选举唯一的Active Controller,Controller负责管理Partition和Broker.
 
+### ch8: 生成和保存消息
+#### Producer
+![发送消息](PixPin_2026-11-13_13-34-43.webp)
 
+当设置ack=0时,由于不需要重发消息,所以消息进入buffer后即可批量发送,占用时间短,当设置ack=1或者-1时,由于需要确认ack到达后才能判断是否要重发消息,所以消息会一直占据缓冲区,有导致缓冲区耗尽的风险.
 
+#### Broker
+![流程](PixPin_2026-11-13_14-10-41.webp)
 
+1. broker接收producer的消息,放入请求队列中
+2. 将消息写入到文件系统中,由操作系统确保持久化
+3. 确认满足ack条件后,发送ack给producer
+#### 数据和文件结构
+kafka在创建新主题时,首先会在元数据文件中注册该主题,然后会为topic的每个分区单独创建一个子目录,而消息则存在扩展名为`.log`的文件中.
 
+分区本身又可以划分为多个segment(当分区存放的消息长度超过阈值时或者达到一定时间时自动创建新段,阈值默认为1GiB和7天),segment是存放日志文件和索引文件的最小单元:
 
+![示意图](PixPin_2026-11-13_14-24-38.webp)
+
+如果要删除topic,kafka会先将topic所在的文件夹标记为待删除,并在1分钟后永久删除.
+
+#### Replication(待补充)
+为了避免某些特别慢的副本拖累acks=all时的ack返回,kafka定义了一个In-Sync Replicas(ISR),表示能够跟上Leader Partition的对应Partition集合,如果Follower在最大延迟时间内(如30s)未能处理掉Leader的在某个阈值前的所有消息,那么就将该Partition从ISR中移除.
+
+如果某个Partition不再响应heartbeat信号,那么也立即将它从ISR中移除.
+
+- 只有ISR中的Partition才有资格被选为Leader
+
+高水位线(High Watermark,HWM)是ISR中所有副本已经消费消息的位置,
+
+- 比较繁琐,日后用到再看
+
+### ch9: Consuming messages
 
 ## Reinforcement Learning from Human Feedback
 ### 前言
 >人工智能领域存在一个几乎无人公开讨论的鸿沟：那就是那些领先的封闭实验室所掌握的知识与公开记录的知识之间的差距。某种技术在少数营利性机构中成为标准做法，并在论文的“方法”部分获得一个段落的描述。实施该技术的实践者们随后便转向其他领域。一年后，其他地方的团队花费四个月的时间重复了原本只需一个下午就能解释清楚的内容。没有人记录下来，因为这并非任何人的职责。
 ### ch1: 介绍
+![训练过程](PixPin_2026-11-12_12-05-58.webp)
 
+post-training可以总结为三个阶段:
+1. SFT/IFT(Instruction fine-tuning / supervised fine-tuning): 教授格式规范
+2. PreFT(Preference fine-tuning): 如RLHF等方法可以让LLM更加贴近某些偏好和语言风格
+3. RLVR(Reinforcement learning with verifiable rewards): 通过进一步的强化学习训练来提高在某个垂直领域的性能
 
-## Python Concurrency with asyncio
-### ch1: 认识asyncio
-虽然asyncio的名称可能让我们认为这个库仅适用于I/O操作，但它通过支持多线程和多进程的互操作功能，也能处理其他类型的操作。借助这种互操作性，我们可以将async和await语法用于线程和进程，使这些工作流程更易于理解。这意味着这个库不仅适用于基于I/O的并发操作，还可以用于CPU密集型代码。
+RLHF分为三步:
+1. 展示高质量的问答格式数据,让训练模型学习
+2. 建立一个独立于训练模型的奖励模型,该模型能够捕捉特定的人类偏好,对输入的文本质量进行评分,用于给训练模型提供奖励信号
+3. 输入一组问题,让训练模型输出多个答案,奖励模型对这些答案进行排序,从而反馈到训练模型的参数上
+### ch2: RLHF历史
+![时间线](PixPin_2026-11-12_12-38-46.webp)
 
-在Python编程领域，CPU密集型操作通常指代计算与代码处理过程，例如计算圆周率数字或遍历字典内容并应用业务逻辑。而I/O密集型操作则多见于等待网络传输或其他输入输出设备响应的场景，比如向网络服务器发送请求，或读取本地硬盘中的文件。
-#### 并发与并行
-并发(concurrency)指的是两个任务可以交错/并排执行,即具有**顺序无关性**,或者说,**彼此独立**.如: 我们不必等到完成第一个蛋糕才开始为第二个蛋糕进行准备工作。我们可以先做好一份蛋糕糊放进立式搅拌机，趁它搅拌完成前开始准备第二份蛋糕糊。在这种模式下，我们正在同时切换处理不同的任务。这种任务间的切换行为——比如在烤箱预热时做其他事、穿梭于两种蛋糕的制作之间——正是并发行为的体现。
+### ch3: Training overview
 
-并行(parallelism)指的是两个任务正在同时发生,**即并排执行这件事已经发生了**.以烘焙蛋糕为例，假设我们有一位助手的帮助：在此场景下，我将制作第一块蛋糕，而第二位烘焙师则同时制作第二块蛋糕。两人同时搅拌面糊就是典型的并行计算，因为我们实现了两个独立任务的并发执行。
 
-#### multitask
-- preemptive multitasking(抢占式多任务): 通过时间切片机制,由**操作系统**在后台主动切换任务
-- cooperative multitasking:(协作性多任务): 在应用程序中显式编排任务,在某些时间点允许其他任务插入进来执行.
 
-asyncio用协作性多任务来实现并发,即用`async/await`显式标记某些任务是可以被中断的.
-#### 进程、线程、多线程以及多进程
-- 进程是一个应用程序运行实例，拥有其他应用程序无法访问的独立内存空间
-- 线程是轻量级进程,**不像进程那样拥有独立内存，而是共享创建它们的进程的内存空间。**线程与创建它们的进程相关联。每个进程至少会有一个关联线程，通常称为主线程。进程还可以创建其他线程，它们常被称为工作线程或后台线程。这些线程能与主线程并发执行其他任务。与进程类似，线程可以在多核CPU上并行运行，操作系统也能通过时间片轮转在它们之间进行切换。当运行普通Python应用程序时，我们会创建一个进程以及用于运行该Python应用的主线程。
 
+## 即时消息技术剖析与实战
+### ch0
+其实，除了QQ和微信外，陌陌、抖音等直播业务为主的App也都深度用到了IM相关的技术。
 
->多线程并非实现并发的唯一方式；我们还可以创建多个进程来同时完成工作，这被称为多进程。在多进程中，父进程会创建一个或多个由其管理的子进程，随后可以将任务分配给这些子进程处理。
-#### GIL
->全局解释器锁（简称GIL，发音为"gill"）是Python社区中备受争议的话题。简而言之，GIL**阻止单个Python进程在任意时刻执行超过一条Python字节码指令**。这意味着即使机器拥有多核心并开启多线程，一个Python进程同时也只能有一个线程在运行Python代码。在当前多核CPU普及的时代，这给希望利用多线程提升应用程序性能的Python开发者带来了重大挑战。
+比如在线学习软件中的“实时在线白板”，导航打车软件中的“实时位置共享”，以及和我们生活密切相关的智能家居的“远程控制”，也都会通过IM技术来提升人和人、人和物的实时互动性。
 
-asyncio利用I/O操作会释放全局解释器锁（GIL）这一特性，即使仅靠单线程也能实现并发.
+我觉得可以这么理解：**包括聊天、直播、在线客服、物联网等这些业务领域在内，所有需要“实时互动”“高实时性”的场景，都需要、也应该用到IM技术。**
 
-使用asyncio时，我们会创建名为协程的对象。可以将协程理解为**轻量级线程的执行体**。就像多线程环境下每个线程可同时进行独立的I/O操作一样，多个协程也能协同并行运行。在等待I/O型协程完成任务的同时，我们仍可执行其他Python代码，从而实现并发。需要特别注意的是，**asyncio并未绕过GIL的限制，我们依然受其制约**。若遇到CPU密集型任务，仍需借助多进程方案来实现并发执行（可通过asyncio自身实现），否则将导致应用程序性能问题。
+![示意图](PixPin_2026-11-13_09-14-25.webp)
+### ch1: 架构
+![架构图](PixPin_2026-11-13_09-20-06.webp)
 
-#### How single-threaded concurrency works
-通信的底层都是通过socket实现的,默认情况下,socket是阻塞的,这意味着我们在发送请求之后,只要数据尚未传输完成,我们的应用就会停止运行其他任务.
+了让用户在App未打开时，或者在后台运行时，也能接收到新消息，我们会将消息给到第三方外部接口服务，来通过手机操作系统自身的公共连接服务来进行操作系统级的“消息推送”，通过这种方式下发的消息一般会在手机的“通知栏”对用户进行提醒和展示。
 
-但我们可以将socket配置为非阻塞的,那么就能实现并行处理多项事务,而不用再空等数据传输回来,只需要由操作系统主动通知我们传输完成即可.
+这种最常用的第三方系统推送服务有苹果手机自带的APNs（Apple Push Notification service）服务、安卓手机内置的谷歌公司的GCM（Google Cloud Messaging）服务等。
 
-在后台，这一功能由几个不同的事件通知系统执行，具体取决于我们运行的操作系统。asyncio的抽象程度足够高，以至于它能够根据我们操作系统所支持的不同通知系统进行切换。以下是一些特定操作系统使用的事件通知系统：
-1. linux: epoll
-2. MacOS: kqueue
-3. Windows: IOCP
+但GCM服务在国内无法使用，为此很多国内手机厂商在各自手机系统中，也提供类似的公共系统推送服务，如小米、华为、OPPO、vivo等手机厂商都有相应的SDK提供支持。
 
-#### How an event loop works
-事件循环是所有asyncio应用程序的核心。事件循环是许多系统中相当常见的设计模式，且已存在相当长的时间。如果你曾在浏览器中使用JavaScript发起异步网络请求，实际上就已经在事件循环上创建了一个任务。Windows图形用户界面应用在底层使用所谓的消息循环，作为处理键盘输入等事件的主要机制，同时仍允许UI进行绘制。
+### ch2: 收发架构
+![设计图](PixPin_2026-11-13_09-34-44.webp)
 
-在asyncio中，事件循环维护的是一个任务队列而非消息队列。任务是对协程的封装。当协程在执行时遇到I/O密集型操作，它会暂停执行，允许事件循环运行其他无需等待I/O操作完成的任务。
 
-### ch2: asyncio basics
-#### Coroutines
->将协程想象成一个普通的Python函数，但它具备一个超能力：当遇到可能需要较长时间才能完成的操作时，可以暂停自身的执行。待那个耗时操作完成后，我们就能“唤醒”暂停的协程，继续执行该协程中的剩余代码。在等待暂停操作完成期间，我们可以运行其它代码。这种在等待过程中并行执行其它代码的能力，便是应用程序实现并发的体现。
+## Readings in Database Systems,5th edition
+### 前言
+我们既选择了数据库早期文献中的经典传统论文，也选择了近年来对事务处理、查询处理、高级分析、Web 数据和语言设计等领域产生重大影响的论文。每章都附有简短导读，介绍相关论文并说明选取它们的原因。
+### ch1: background
+介绍了HDFS,data lake,列式存储等新领域
+### ch2: 传统的RDBMS
+介绍了数据库原型System R,数据库新秀Postgres和分区数据库Gamma,都是相当重要的论文.
 
-`async`关键字让我们定义协程；而`await`关键字则允许我们在执行耗时操作时暂停协程。
 
-```python
-async def coroutine_add_one(number: int) -> int:
-    return number + 1
+## The Internals of PostgreSQL
+- [英文原版](https://www.interdb.jp/pg/index.html)
+- [中文翻译](https://pgint.vonng.com/)
 
-def add_one(number: int) -> int:
-    return number + 1
-
-function_result = add_one(1)
-coroutine_result = coroutine_add_one(1)
-print(f'Function result is {function_result} and the type is {type(function_result)}')
-print(f'Coroutine result is {coroutine_result} and the type is {type(coroutine_result)}')
-
-#Method result is 2 and the type is <class 'int'>
-#Coroutine result is <coroutine object coroutine_add_one at 0x1071d6040> and the type
-#is <class 'coroutine'>
-```
-当我们调用常规的 add_one 函数时，它会立即执行并返回预期的整数值。然而，当调用 coroutine_add_one 时，我们的协程代码完全没有被执行，而是返回了一个协程对象。
-
-也就是说协程不会在直接调用时执行,而是创建了一个需要事件循环主动激活的协程对象,比如我们可以引入`asyncio.run`执行器:
-```python
-import asyncio
-
-async def coroutine_add_one(number: int) -> int:
-    return number + 1
-
-result = asyncio.run(coroutine_add_one(1))
-print(result)
-```
-asyncio.run在此场景中执行了几项关键操作。首先，它创建了一个全新事件。成功创建事件后，它会接收我们传入的任何协程并运行至完成，随后返回执行结果。该函数还会在主协程运行结束后清理残存运行状态。待所有任务完成，它将关闭并终止事件循环。
-
-
-要暂停执行，我们使用 await 关键字。await 关键字后面通常跟随着对一个协程的调用（更具体地说，是一个被称为可等待对象的对象，它并不总是协程；我们将在本章后面了解关于可等待对象的更多内容）。
-
-![执行图](PixPin_2026-10-30_17-34-16.webp)
-#### asyncio.sleep
-我们可以使用 `asyncio.sleep` 使协程在指定秒数内"休眠"——这会暂停协程一段给定的时间，模拟调用数据库或Web API时可能出现的长时间运行状态。
-
-asyncio.sleep 本身是一个协程，因此必须使用 await 关键字与其搭配使用。若直接单独调用，则会返回一个协程对象。
-
-```python
-import asyncio
-from util import delay
-
-async def add_one(number: int) -> int:
-    return number + 1
-
-async def hello_world_message() -> str:
-    await delay(1)
-    return 'Hello World!'
-
-async def main() -> None:
-    message = await hello_world_message()  
-    one_plus_one = await add_one(1)
-    print(one_plus_one)
-    print(message)
-
-asyncio.run(main())
-```
-
-![时间线](PixPin_2026-10-30_17-41-02.webp)
-#### tasks
-Task是对协程的封装,提供一个尽可能早地在事件循环中运行的机会,以非阻塞方式进行,意味着一旦我们创建了一个任务，就可以在任务运行的同时立即执行其他代码.这与await的阻塞调用正好相反:
-```py
-import asyncio
-from util import delay
-
-async def main():
-    sleep_for_three = asyncio.create_task(delay(3))
-    sleep_again = asyncio.create_task(delay(3))
-    sleep_once_more = asyncio.create_task(delay(3))
-
-    await sleep_for_three
-    await sleep_again
-    await sleep_once_more
-
-asyncio.run(main())
-```
-上述程序的总用时为3s,因为task是一个非阻塞协程
-
-任务可以随时取消,在await被取消的任务时会引入CancelledError异常,写法如下:
-```python
-import asyncio
-from asyncio import CancelledError
-from util import delay
-
-async def main():
-    long_task = asyncio.create_task(delay(10))
-    seconds_elapsed = 0
-
-    while not long_task.done():
-        print('Task not finished, checking again in a second.')
-        await asyncio.sleep(1)
-        seconds_elapsed = seconds_elapsed + 1
-        if seconds_elapsed == 5:
-            long_task.cancel()
-
-    try:
-        await long_task
-    except CancelledError:
-        print('Our task was cancelled')
-
-asyncio.run(main())
-```
-
-还可以用`wait_for`方法来显式标明timeout时间,并在超时后抛出TimeoutException:
-```python
-import asyncio
-from util import delay
-
-async def main():
-    delay_task = asyncio.create_task(delay(2))
-    try:
-        result = await asyncio.wait_for(delay_task, timeout=1)
-        print(result)
-    except asyncio.exceptions.TimeoutError:
-        print('Got a timeout!')
-        print(f'Was the task cancelled? {delay_task.cancelled()}')
-
-asyncio.run(main())
-```
-
-#### Tasks, coroutines, futures, and awaitables
->协程和任务都可以在await表达式中使用。那么它们之间的共同点是什么？要理解这一点，我们需要了解future和awaitable。通常你不需要直接使用future，但理解它们是掌握asyncio内部机制的关键。
-
-future是一个Python对象,包含一个你期望在未来得到,但目前可能暂未获取的一个值:
-```python
-from asyncio import Future
-
-my_future = Future()
-print(f'Is my_future done? {my_future.done()}')
-
-my_future.set_result(42)
-print(f'Is my_future done? {my_future.done()}')
-print(f'What is the result of my_future? {my_future.result()}')
-
-```
-输出结果:
-```bash
-Is my_future done? False
-Is my_future done? True
-What is the result of my_future? 42
-```
-
-当我们await一个future时,意味着这样一件事: `暂停，直到future拥有一个我可以处理的值，一旦获得值，就唤醒我让我处理它`
-
-实际上，task直接继承自future。可将future理解为代表一个暂时无法获取的数值，而task则可被视为协程与future的结合体。当我们创建task时，实际是在创建一个空future并运行协程。随后，当协程以异常或结果的方式完成时，我们会设置该future的结果或异常。
-
-二者之间的共同联系是Awaitable抽象基类,这个基类定义了一个`__await__`方法,任何实现了该方法的对象都可以用于`await`表达式中,因此,所有可在`await`表达式中使用的对象统称为可等待对象.
-
-#### pitfalls和要点
-需要注意的是,如果`await`的对象本身是阻塞的,那么就不会带来任何并发执行的效果,最典型的就是使用requests库进行网络请求:
-```python
-import asyncio
-import requests
-from util import async_timed
-
-@async_timed()
-async def get_example_status() -> int:
-    return requests.get('http://www.example.com').status_code
-
-@async_timed()
-async def main():
-    task_1 = asyncio.create_task(get_example_status())
-    task_2 = asyncio.create_task(get_example_status())
-    task_3 = asyncio.create_task(get_example_status())
-    await task_1
-    await task_2
-    await task_3
-
-asyncio.run(main())
-```
-
-由于requests的阻塞问题,所以上述代码的用时就是三个请求的累加用时,所以最好换用aiohttp这样的非阻塞库.
-#### 手动创建事件循环
-我们可以通过使用`asyncio.new_event_loop`方法来创建一个事件循环，该方法将返回一个事件循环实例。通过这个实例，我们可以访问事件循环提供的所有低级方法。借助事件循环，我们可以使用一个名为`run_until_complete`的方法，它接收一个协程并运行至其完成。完成事件循环的使用后，我们需要将其关闭以释放其占用的资源。这通常应放在`finally`代码块中，以确保任何抛出的异常不会阻止我们关闭循环。利用这些概念，我们可以创建循环并运行一个asyncio应用。
-
-```python
-import asyncio
-
-async def main():
-    await asyncio.sleep(1)
-
-loop = asyncio.new_event_loop()
-try:
-    loop.run_until_complete(main())
-finally:
-    loop.close()
-```
-
-#### 开启调试模式
-默认情况下debug选项是关闭的,我们需要显式设置:
-```py
-asyncio.run(coroutine(), debug=True)
-```
-在出现一些异常情况时,该选项会很有用.
-### ch4: Concurrent web requests
-如果要启用`async with`,需要在类中定义`__aenter__`和`__aexit__`块,从而可以支持异步代码的自动清理
-
-asyncio.gather 返回一个可等待对象。在 await 表达式中使用它，**会暂停直至传入的所有可等待对象均完成**。当所有传入对象完成后，asyncio.gather 将返回包含已完成结果的列表。
-
-```py
-import asyncio
-from util import delay
-
-async def main():
-  results = await asyncio.gather(delay(3), delay(1))
-  print(results)
-
-asyncio.run(main())
-```
-
-值得注意的是,返回结果是[3,1]而非我们认为根据完成速度达成的[1,3],原因在于gather有一种特殊的future实现方式.
-
-虽然 asyncio.gather 适用于许多情况，但它有一个缺点：在所有可等待对象完成之前，不允许访问任何结果。如果我们希望结果一产生就进行处理，这就是个问题。如果有一些可等待对象能快速完成，而另一些则需要较长时间，这个问题也会凸显，因为 gather 会等待所有操作结束。这可能导致应用程序响应变慢。
-
-一个方法就是使用`as_completed`方法来取代gather:
-```python
-import asyncio
-import aiohttp
-from aiohttp import ClientSession
-from chapter_04 import fetch_status
-
-async def main():
-    async with aiohttp.ClientSession() as session:
-        fetchers = [fetch_status(session, 'https://www.example.com', 1),
-                    fetch_status(session, 'https://www.example.com', 1),
-                    fetch_status(session, 'https://www.example.com', 10)]
-
-        for finished_task in asyncio.as_completed(fetchers):
-            print(await finished_task)
-
-asyncio.run(main())
-```
-`as_completed`方法还可以用`timeout`参数设置超时时间,一旦任务的执行时间达到timeout值,就会抛出TimeoutException异常,但是已经创建的任务会继续在后台执行,无法关闭.
-
-为了实现更精细的掌控,asyncio提供了wait方法:
-
-```python
-import asyncio
-import aiohttp
-from aiohttp import ClientSession
-from util import async_timed
-from chapter_04 import fetch_status
-
-@async_timed()
-async def main():
-    async with aiohttp.ClientSession() as session:
-        fetchers = \
-            [asyncio.create_task(fetch_status(session, 'https://example.com')),
-             asyncio.create_task(fetch_status(session, 'https://example.com'))]
-            
-        done, pending = await asyncio.wait(fetchers)
-        
-        print(f'Done task count: {len(done)}')
-        print(f'Pending task count: {len(pending)}')
-        
-        for done_task in done:
-            result = await done_task
-            print(result)
-
-asyncio.run(main())
-```
-没有任何额外参数的wait与gather的作用相同,要想有点不同,需要加上`return_when=asyncio.FIRST_EXCEPTION`,或者修改一下结构:
-```python
-async def main():
-    async with aiohttp.ClientSession() as session:
-        url = 'https://www.example.com'
-        pending = [asyncio.create_task(fetch_status(session, url)),
-                   asyncio.create_task(fetch_status(session, url)),
-                   asyncio.create_task(fetch_status(session, url))]
-                   
-        while pending:
-            done, pending = await asyncio.wait(pending,
-                                               return_when=asyncio.FIRST_COMPLETED)
-            print(f'Done task count: {len(done)}')
-            print(f'Pending task count: {len(pending)}')
-            
-            for done_task in done:
-                print(await done_task)
-
-asyncio.run(main())
-```
-### ch5: Non-blocking database drivers
-假设我们有一个包含两个连接的连接池。再假设我们有三个协程，每个都执行一个查询任务。我们将这三个协程作为任务并发运行。按照这种连接池设置，前两个尝试执行查询的协程会获取两个可用连接并开始运行查询。在此期间，第三个协程将等待连接变为可用状态。当前两个协程中任意一个完成查询后，它会释放连接并返还给连接池。这使第三个协程能够获取该连接并开始执行查询。
-![示意图](PixPin_2026-11-06_15-40-52.webp)
-
-### ch6: CPU密集型任务(待补充,暂时用不到,反正也记不住)
->asyncio 提供了与 Python 多进程库交互的 API。这使我们能够使用 async await 语法以及多进程下的 asyncio API。通过这种方式，即使在处理 CPU 密集型代码时，也能享受 asyncio 库的优势。
-
-单纯的多进程调度比较麻烦:
-```python
-import time
-from multiprocessing import Process
-
-def count(count_to: int) -> int:
-    start = time.time()
-    counter = 0
-    while counter < count_to:
-        counter = counter + 1
-    end = time.time()
-    print(f'Finished counting to {count_to} in {end-start}')
-    return counter
-
-if __name__ == "__main__":
-    start_time = time.time()
-    
-    to_one_hundred_million = Process(target=count, args=(100000000,))
-    to_two_hundred_million = Process(target=count, args=(200000000,))
-
-    to_one_hundred_million.start()
-    to_two_hundred_million.start()
-
-    to_one_hundred_million.join()
-    to_two_hundred_million.join()
-
-    end_time = time.time()
-    print(f'Completed in {end_time-start_time}')
-```
-
-- start()：启动子进程，让子进程开始执行任务。
-- join()：等待指定子进程结束，再继续执行当前进程后面的代码。
-
-也就是说,start负责启动,而join不会阻塞已经启动的子进程,只会阻塞主进程,直到子进程执行完毕.
-#### 进程池
-进程池不需要我们显式join进程,而是通过apply方法启动:
-```python
-from multiprocessing import Pool
-
-def say_hello(name: str) -> str:
-    return f'Hi there, {name}'
-
-if __name__ == "__main__":
-    with Pool() as process_pool:
-        hi_jeff = process_pool.apply(say_hello, args=('Jeff',))
-        hi_john = process_pool.apply(say_hello, args=('John',))
-        print(hi_jeff)
-        print(hi_john)
-```
-
-apply的问题在于它是同步调用,要想异步执行,就要换成`apply_async`方法,但它的问题在于,即便某个任务完成了,但如果用时更长的任务置于该任务上方串行调用,那么也会发生阻塞,不能做到随去随用.解决方法就是用ProcessPoolExecutor
-#### ProcessPoolExecutor
-```python
-import time
-from concurrent.futures import ProcessPoolExecutor
-
-def count(count_to: int) -> int:
-    start = time.time()
-    counter = 0
-    while counter < count_to:
-        counter = counter + 1
-    end = time.time()
-    print(f'Finished counting to {count_to} in {end - start}')
-    return counter
-
-if __name__ == "__main__":
-    with ProcessPoolExecutor() as process_pool:
-        numbers = [1, 3, 5, 22, 100000000]
-        for result in process_pool.map(count, numbers):
-            print(result)
-```
-
-ProcessPoolExecutor的问题在于,它对任务是按照numbers列表的顺序调用的,如果100000是第一个数字,那么就必须等到该数字打印完成后才能打印其他早就完成的数字,这显然不如`asyncio.as_completed`
-### ch8: Streams(待补充)
-使用Socket编程太烧心了,所以asyncio构建了网络流的抽象层,封装了Socket的复杂细节.
-### ch9: Web应用程序
 
 # 先放着
 ## 深入理解 AI Infra
@@ -1970,6 +1654,429 @@ TDD的工作流程如下:
 
 
 # 基础
+## Python Concurrency with asyncio
+### ch1: 认识asyncio
+虽然asyncio的名称可能让我们认为这个库仅适用于I/O操作，但它通过支持多线程和多进程的互操作功能，也能处理其他类型的操作。借助这种互操作性，我们可以将async和await语法用于线程和进程，使这些工作流程更易于理解。这意味着这个库不仅适用于基于I/O的并发操作，还可以用于CPU密集型代码。
+
+在Python编程领域，CPU密集型操作通常指代计算与代码处理过程，例如计算圆周率数字或遍历字典内容并应用业务逻辑。而I/O密集型操作则多见于等待网络传输或其他输入输出设备响应的场景，比如向网络服务器发送请求，或读取本地硬盘中的文件。
+#### 并发与并行
+并发(concurrency)指的是两个任务可以交错/并排执行,即具有**顺序无关性**,或者说,**彼此独立**.如: 我们不必等到完成第一个蛋糕才开始为第二个蛋糕进行准备工作。我们可以先做好一份蛋糕糊放进立式搅拌机，趁它搅拌完成前开始准备第二份蛋糕糊。在这种模式下，我们正在同时切换处理不同的任务。这种任务间的切换行为——比如在烤箱预热时做其他事、穿梭于两种蛋糕的制作之间——正是并发行为的体现。
+
+并行(parallelism)指的是两个任务正在同时发生,**即并排执行这件事已经发生了**.以烘焙蛋糕为例，假设我们有一位助手的帮助：在此场景下，我将制作第一块蛋糕，而第二位烘焙师则同时制作第二块蛋糕。两人同时搅拌面糊就是典型的并行计算，因为我们实现了两个独立任务的并发执行。
+
+#### multitask
+- preemptive multitasking(抢占式多任务): 通过时间切片机制,由**操作系统**在后台主动切换任务
+- cooperative multitasking:(协作性多任务): 在应用程序中显式编排任务,在某些时间点允许其他任务插入进来执行.
+
+asyncio用协作性多任务来实现并发,即用`async/await`显式标记某些任务是可以被中断的.
+#### 进程、线程、多线程以及多进程
+- 进程是一个应用程序运行实例，拥有其他应用程序无法访问的独立内存空间
+- 线程是轻量级进程,**不像进程那样拥有独立内存，而是共享创建它们的进程的内存空间。**线程与创建它们的进程相关联。每个进程至少会有一个关联线程，通常称为主线程。进程还可以创建其他线程，它们常被称为工作线程或后台线程。这些线程能与主线程并发执行其他任务。与进程类似，线程可以在多核CPU上并行运行，操作系统也能通过时间片轮转在它们之间进行切换。当运行普通Python应用程序时，我们会创建一个进程以及用于运行该Python应用的主线程。
+
+
+>多线程并非实现并发的唯一方式；我们还可以创建多个进程来同时完成工作，这被称为多进程。在多进程中，父进程会创建一个或多个由其管理的子进程，随后可以将任务分配给这些子进程处理。
+#### GIL
+>全局解释器锁（简称GIL，发音为"gill"）是Python社区中备受争议的话题。简而言之，GIL**阻止单个Python进程在任意时刻执行超过一条Python字节码指令**。这意味着即使机器拥有多核心并开启多线程，一个Python进程同时也只能有一个线程在运行Python代码。在当前多核CPU普及的时代，这给希望利用多线程提升应用程序性能的Python开发者带来了重大挑战。
+
+asyncio利用I/O操作会释放全局解释器锁（GIL）这一特性，即使仅靠单线程也能实现并发.
+
+使用asyncio时，我们会创建名为协程的对象。可以将协程理解为**轻量级线程的执行体**。就像多线程环境下每个线程可同时进行独立的I/O操作一样，多个协程也能协同并行运行。在等待I/O型协程完成任务的同时，我们仍可执行其他Python代码，从而实现并发。需要特别注意的是，**asyncio并未绕过GIL的限制，我们依然受其制约**。若遇到CPU密集型任务，仍需借助多进程方案来实现并发执行（可通过asyncio自身实现），否则将导致应用程序性能问题。
+
+#### How single-threaded concurrency works
+通信的底层都是通过socket实现的,默认情况下,socket是阻塞的,这意味着我们在发送请求之后,只要数据尚未传输完成,我们的应用就会停止运行其他任务.
+
+但我们可以将socket配置为非阻塞的,那么就能实现并行处理多项事务,而不用再空等数据传输回来,只需要由操作系统主动通知我们传输完成即可.
+
+在后台，这一功能由几个不同的事件通知系统执行，具体取决于我们运行的操作系统。asyncio的抽象程度足够高，以至于它能够根据我们操作系统所支持的不同通知系统进行切换。以下是一些特定操作系统使用的事件通知系统：
+1. linux: epoll
+2. MacOS: kqueue
+3. Windows: IOCP
+
+#### How an event loop works
+事件循环是所有asyncio应用程序的核心。事件循环是许多系统中相当常见的设计模式，且已存在相当长的时间。如果你曾在浏览器中使用JavaScript发起异步网络请求，实际上就已经在事件循环上创建了一个任务。Windows图形用户界面应用在底层使用所谓的消息循环，作为处理键盘输入等事件的主要机制，同时仍允许UI进行绘制。
+
+在asyncio中，事件循环维护的是一个任务队列而非消息队列。任务是对协程的封装。当协程在执行时遇到I/O密集型操作，它会暂停执行，允许事件循环运行其他无需等待I/O操作完成的任务。
+
+### ch2: asyncio basics
+#### Coroutines
+>将协程想象成一个普通的Python函数，但它具备一个超能力：当遇到可能需要较长时间才能完成的操作时，可以暂停自身的执行。待那个耗时操作完成后，我们就能“唤醒”暂停的协程，继续执行该协程中的剩余代码。在等待暂停操作完成期间，我们可以运行其它代码。这种在等待过程中并行执行其它代码的能力，便是应用程序实现并发的体现。
+
+`async`关键字让我们定义协程；而`await`关键字则允许我们在执行耗时操作时暂停协程。
+
+```python
+async def coroutine_add_one(number: int) -> int:
+    return number + 1
+
+def add_one(number: int) -> int:
+    return number + 1
+
+function_result = add_one(1)
+coroutine_result = coroutine_add_one(1)
+print(f'Function result is {function_result} and the type is {type(function_result)}')
+print(f'Coroutine result is {coroutine_result} and the type is {type(coroutine_result)}')
+
+#Method result is 2 and the type is <class 'int'>
+#Coroutine result is <coroutine object coroutine_add_one at 0x1071d6040> and the type
+#is <class 'coroutine'>
+```
+当我们调用常规的 add_one 函数时，它会立即执行并返回预期的整数值。然而，当调用 coroutine_add_one 时，我们的协程代码完全没有被执行，而是返回了一个协程对象。
+
+也就是说协程不会在直接调用时执行,而是创建了一个需要事件循环主动激活的协程对象,比如我们可以引入`asyncio.run`执行器:
+```python
+import asyncio
+
+async def coroutine_add_one(number: int) -> int:
+    return number + 1
+
+result = asyncio.run(coroutine_add_one(1))
+print(result)
+```
+asyncio.run在此场景中执行了几项关键操作。首先，它创建了一个全新事件。成功创建事件后，它会接收我们传入的任何协程并运行至完成，随后返回执行结果。该函数还会在主协程运行结束后清理残存运行状态。待所有任务完成，它将关闭并终止事件循环。
+
+
+要暂停执行，我们使用 await 关键字。await 关键字后面通常跟随着对一个协程的调用（更具体地说，是一个被称为可等待对象的对象，它并不总是协程；我们将在本章后面了解关于可等待对象的更多内容）。
+
+![执行图](PixPin_2026-10-30_17-34-16.webp)
+#### asyncio.sleep
+我们可以使用 `asyncio.sleep` 使协程在指定秒数内"休眠"——这会暂停协程一段给定的时间，模拟调用数据库或Web API时可能出现的长时间运行状态。
+
+asyncio.sleep 本身是一个协程，因此必须使用 await 关键字与其搭配使用。若直接单独调用，则会返回一个协程对象。
+
+```python
+import asyncio
+from util import delay
+
+async def add_one(number: int) -> int:
+    return number + 1
+
+async def hello_world_message() -> str:
+    await delay(1)
+    return 'Hello World!'
+
+async def main() -> None:
+    message = await hello_world_message()  
+    one_plus_one = await add_one(1)
+    print(one_plus_one)
+    print(message)
+
+asyncio.run(main())
+```
+
+![时间线](PixPin_2026-10-30_17-41-02.webp)
+#### tasks
+Task是对协程的封装,提供一个尽可能早地在事件循环中运行的机会,以非阻塞方式进行,意味着一旦我们创建了一个任务，就可以在任务运行的同时立即执行其他代码.这与await的阻塞调用正好相反:
+```py
+import asyncio
+from util import delay
+
+async def main():
+    sleep_for_three = asyncio.create_task(delay(3))
+    sleep_again = asyncio.create_task(delay(3))
+    sleep_once_more = asyncio.create_task(delay(3))
+
+    await sleep_for_three
+    await sleep_again
+    await sleep_once_more
+
+asyncio.run(main())
+```
+上述程序的总用时为3s,因为task是一个非阻塞协程
+
+任务可以随时取消,在await被取消的任务时会引入CancelledError异常,写法如下:
+```python
+import asyncio
+from asyncio import CancelledError
+from util import delay
+
+async def main():
+    long_task = asyncio.create_task(delay(10))
+    seconds_elapsed = 0
+
+    while not long_task.done():
+        print('Task not finished, checking again in a second.')
+        await asyncio.sleep(1)
+        seconds_elapsed = seconds_elapsed + 1
+        if seconds_elapsed == 5:
+            long_task.cancel()
+
+    try:
+        await long_task
+    except CancelledError:
+        print('Our task was cancelled')
+
+asyncio.run(main())
+```
+
+还可以用`wait_for`方法来显式标明timeout时间,并在超时后抛出TimeoutException:
+```python
+import asyncio
+from util import delay
+
+async def main():
+    delay_task = asyncio.create_task(delay(2))
+    try:
+        result = await asyncio.wait_for(delay_task, timeout=1)
+        print(result)
+    except asyncio.exceptions.TimeoutError:
+        print('Got a timeout!')
+        print(f'Was the task cancelled? {delay_task.cancelled()}')
+
+asyncio.run(main())
+```
+
+#### Tasks, coroutines, futures, and awaitables
+>协程和任务都可以在await表达式中使用。那么它们之间的共同点是什么？要理解这一点，我们需要了解future和awaitable。通常你不需要直接使用future，但理解它们是掌握asyncio内部机制的关键。
+
+future是一个Python对象,包含一个你期望在未来得到,但目前可能暂未获取的一个值:
+```python
+from asyncio import Future
+
+my_future = Future()
+print(f'Is my_future done? {my_future.done()}')
+
+my_future.set_result(42)
+print(f'Is my_future done? {my_future.done()}')
+print(f'What is the result of my_future? {my_future.result()}')
+
+```
+输出结果:
+```bash
+Is my_future done? False
+Is my_future done? True
+What is the result of my_future? 42
+```
+
+当我们await一个future时,意味着这样一件事: `暂停，直到future拥有一个我可以处理的值，一旦获得值，就唤醒我让我处理它`
+
+实际上，task直接继承自future。可将future理解为代表一个暂时无法获取的数值，而task则可被视为协程与future的结合体。当我们创建task时，实际是在创建一个空future并运行协程。随后，当协程以异常或结果的方式完成时，我们会设置该future的结果或异常。
+
+二者之间的共同联系是Awaitable抽象基类,这个基类定义了一个`__await__`方法,任何实现了该方法的对象都可以用于`await`表达式中,因此,所有可在`await`表达式中使用的对象统称为可等待对象.
+
+#### pitfalls和要点
+需要注意的是,如果`await`的对象本身是阻塞的,那么就不会带来任何并发执行的效果,最典型的就是使用requests库进行网络请求:
+```python
+import asyncio
+import requests
+from util import async_timed
+
+@async_timed()
+async def get_example_status() -> int:
+    return requests.get('http://www.example.com').status_code
+
+@async_timed()
+async def main():
+    task_1 = asyncio.create_task(get_example_status())
+    task_2 = asyncio.create_task(get_example_status())
+    task_3 = asyncio.create_task(get_example_status())
+    await task_1
+    await task_2
+    await task_3
+
+asyncio.run(main())
+```
+
+由于requests的阻塞问题,所以上述代码的用时就是三个请求的累加用时,所以最好换用aiohttp这样的非阻塞库.
+#### 手动创建事件循环
+我们可以通过使用`asyncio.new_event_loop`方法来创建一个事件循环，该方法将返回一个事件循环实例。通过这个实例，我们可以访问事件循环提供的所有低级方法。借助事件循环，我们可以使用一个名为`run_until_complete`的方法，它接收一个协程并运行至其完成。完成事件循环的使用后，我们需要将其关闭以释放其占用的资源。这通常应放在`finally`代码块中，以确保任何抛出的异常不会阻止我们关闭循环。利用这些概念，我们可以创建循环并运行一个asyncio应用。
+
+```python
+import asyncio
+
+async def main():
+    await asyncio.sleep(1)
+
+loop = asyncio.new_event_loop()
+try:
+    loop.run_until_complete(main())
+finally:
+    loop.close()
+```
+
+#### 开启调试模式
+默认情况下debug选项是关闭的,我们需要显式设置:
+```py
+asyncio.run(coroutine(), debug=True)
+```
+在出现一些异常情况时,该选项会很有用.
+### ch4: Concurrent web requests
+如果要启用`async with`,需要在类中定义`__aenter__`和`__aexit__`块,从而可以支持异步代码的自动清理
+
+asyncio.gather 返回一个可等待对象。在 await 表达式中使用它，**会暂停直至传入的所有可等待对象均完成**。当所有传入对象完成后，asyncio.gather 将返回包含已完成结果的列表。
+
+```py
+import asyncio
+from util import delay
+
+async def main():
+  results = await asyncio.gather(delay(3), delay(1))
+  print(results)
+
+asyncio.run(main())
+```
+
+值得注意的是,返回结果是[3,1]而非我们认为根据完成速度达成的[1,3],原因在于gather有一种特殊的future实现方式.
+
+虽然 asyncio.gather 适用于许多情况，但它有一个缺点：在所有可等待对象完成之前，不允许访问任何结果。如果我们希望结果一产生就进行处理，这就是个问题。如果有一些可等待对象能快速完成，而另一些则需要较长时间，这个问题也会凸显，因为 gather 会等待所有操作结束。这可能导致应用程序响应变慢。
+
+一个方法就是使用`as_completed`方法来取代gather:
+```python
+import asyncio
+import aiohttp
+from aiohttp import ClientSession
+from chapter_04 import fetch_status
+
+async def main():
+    async with aiohttp.ClientSession() as session:
+        fetchers = [fetch_status(session, 'https://www.example.com', 1),
+                    fetch_status(session, 'https://www.example.com', 1),
+                    fetch_status(session, 'https://www.example.com', 10)]
+
+        for finished_task in asyncio.as_completed(fetchers):
+            print(await finished_task)
+
+asyncio.run(main())
+```
+`as_completed`方法还可以用`timeout`参数设置超时时间,一旦任务的执行时间达到timeout值,就会抛出TimeoutException异常,但是已经创建的任务会继续在后台执行,无法关闭.
+
+为了实现更精细的掌控,asyncio提供了wait方法:
+
+```python
+import asyncio
+import aiohttp
+from aiohttp import ClientSession
+from util import async_timed
+from chapter_04 import fetch_status
+
+@async_timed()
+async def main():
+    async with aiohttp.ClientSession() as session:
+        fetchers = \
+            [asyncio.create_task(fetch_status(session, 'https://example.com')),
+             asyncio.create_task(fetch_status(session, 'https://example.com'))]
+            
+        done, pending = await asyncio.wait(fetchers)
+        
+        print(f'Done task count: {len(done)}')
+        print(f'Pending task count: {len(pending)}')
+        
+        for done_task in done:
+            result = await done_task
+            print(result)
+
+asyncio.run(main())
+```
+没有任何额外参数的wait与gather的作用相同,要想有点不同,需要加上`return_when=asyncio.FIRST_EXCEPTION`,或者修改一下结构:
+```python
+async def main():
+    async with aiohttp.ClientSession() as session:
+        url = 'https://www.example.com'
+        pending = [asyncio.create_task(fetch_status(session, url)),
+                   asyncio.create_task(fetch_status(session, url)),
+                   asyncio.create_task(fetch_status(session, url))]
+                   
+        while pending:
+            done, pending = await asyncio.wait(pending,
+                                               return_when=asyncio.FIRST_COMPLETED)
+            print(f'Done task count: {len(done)}')
+            print(f'Pending task count: {len(pending)}')
+            
+            for done_task in done:
+                print(await done_task)
+
+asyncio.run(main())
+```
+### ch5: Non-blocking database drivers
+假设我们有一个包含两个连接的连接池。再假设我们有三个协程，每个都执行一个查询任务。我们将这三个协程作为任务并发运行。按照这种连接池设置，前两个尝试执行查询的协程会获取两个可用连接并开始运行查询。在此期间，第三个协程将等待连接变为可用状态。当前两个协程中任意一个完成查询后，它会释放连接并返还给连接池。这使第三个协程能够获取该连接并开始执行查询。
+![示意图](PixPin_2026-11-06_15-40-52.webp)
+
+### ch6: CPU密集型任务(待补充)
+>asyncio 提供了与 Python 多进程库交互的 API。这使我们能够使用 async await 语法以及多进程下的 asyncio API。通过这种方式，即使在处理 CPU 密集型代码时，也能享受 asyncio 库的优势。
+
+单纯的多进程调度比较麻烦:
+```python
+import time
+from multiprocessing import Process
+
+def count(count_to: int) -> int:
+    start = time.time()
+    counter = 0
+    while counter < count_to:
+        counter = counter + 1
+    end = time.time()
+    print(f'Finished counting to {count_to} in {end-start}')
+    return counter
+
+if __name__ == "__main__":
+    start_time = time.time()
+    
+    to_one_hundred_million = Process(target=count, args=(100000000,))
+    to_two_hundred_million = Process(target=count, args=(200000000,))
+
+    to_one_hundred_million.start()
+    to_two_hundred_million.start()
+
+    to_one_hundred_million.join()
+    to_two_hundred_million.join()
+
+    end_time = time.time()
+    print(f'Completed in {end_time-start_time}')
+```
+
+- start()：启动子进程，让子进程开始执行任务。
+- join()：等待指定子进程结束，再继续执行当前进程后面的代码。
+
+也就是说,start负责启动,而join不会阻塞已经启动的子进程,只会阻塞主进程,直到子进程执行完毕.
+#### 进程池
+进程池不需要我们显式join进程,而是通过apply方法启动:
+```python
+from multiprocessing import Pool
+
+def say_hello(name: str) -> str:
+    return f'Hi there, {name}'
+
+if __name__ == "__main__":
+    with Pool() as process_pool:
+        hi_jeff = process_pool.apply(say_hello, args=('Jeff',))
+        hi_john = process_pool.apply(say_hello, args=('John',))
+        print(hi_jeff)
+        print(hi_john)
+```
+
+apply的问题在于它是同步调用,要想异步执行,就要换成`apply_async`方法,但它的问题在于,即便某个任务完成了,但如果用时更长的任务置于该任务上方串行调用,那么也会发生阻塞,不能做到随去随用.解决方法就是用ProcessPoolExecutor
+#### ProcessPoolExecutor
+```python
+import time
+from concurrent.futures import ProcessPoolExecutor
+
+def count(count_to: int) -> int:
+    start = time.time()
+    counter = 0
+    while counter < count_to:
+        counter = counter + 1
+    end = time.time()
+    print(f'Finished counting to {count_to} in {end - start}')
+    return counter
+
+if __name__ == "__main__":
+    with ProcessPoolExecutor() as process_pool:
+        numbers = [1, 3, 5, 22, 100000000]
+        for result in process_pool.map(count, numbers):
+            print(result)
+```
+
+ProcessPoolExecutor的问题在于,它对任务是按照numbers列表的顺序调用的,如果100000是第一个数字,那么就必须等到该数字打印完成后才能打印其他早就完成的数字,这显然不如`asyncio.as_completed`
+### ch8: Streams(待补充)
+使用Socket编程太烧心了,所以asyncio构建了网络流的抽象层,封装了Socket的复杂细节.
+### ch9: Web应用程序
+#### Websocket开发
+![示意图](PixPin_2026-11-12_13-10-36.webp)
+
+我们的计划是在内存中维护所有已连接的客户端 WebSocket 的列表。当新客户端连接时，将其添加到列表中，并向列表中的所有客户端发送更新后的用户数量。当客户端断开连接时，将其从列表中移除，并通知其他客户端用户数的变更。同时增加基本错误处理：若发送消息时发生异常，则将该客户端从列表中移除。
+### ch10: Microservices
+用aiohttp搭后端服务,相当烧心.
+### 总结
+前面两章相当不错,后面就按需读吧
+
 ## Python Testing with pytest, 2nd Edition
 ### ch1: 介绍
 以下是命名规则的简要概述，用于确保你的测试代码能被pytest识别：
@@ -12957,97 +13064,6 @@ MySQL采用B+树索引,叶子节点中存储了页号,行号等定位信息,Inno
 ## Nginx应用与运维实战
 - 出版于2020年，作者：王小东。
 - 不推荐,抓不住重点
-
-## NGINX Cookbook
-
-- 不推荐,抓不住重点
-
-### 配置命令
-
-#### 拆分nginx
-使用 include 指令来引用配置文件、目录或掩码：
-
-```yml
-http {
-  include conf.d/compression.conf;
-  include ssl_config/*.conf
-}
-```
->通过使用 include 语句，您可以保持 NGINX 配置清晰简洁。您可以对配置进行逻辑分组，以避免配置文件达到数百行。
-
-#### 负载均衡
-
-##### HTTP
-在 NGINX 的 HTTP 模块内使用 upstream 代码块对 HTTP 服务器实施负载均衡：
-
-```nginx
-upstream backend {
-    server 10.10.12.45:80 weight=1;
-    server app.example.com:80 weight=2;
-    server spare.example.com:80 backup;
-}
-server {
-    location / {
-        proxy_pass http://backend;
-    }
-}
-```
->HTTP 的 upstream 模块控制着 HTTP 请求负载均衡。该模块定义了一个目标池,每个上游目标都通过 server 指令在上游池中进行定义
-
-##### TCP
-在 NGINX 的 stream 模块内使用 upstream 代码块对 TCP 服务器实施负载均衡：
-
-在 `/etc/nginx/nginx.conf` 配置文件中：
-
-```nginx
-user nginx;
-worker_processes auto;
-pid /run/nginx.pid;
-
-stream {
-    include /etc/nginx/stream.conf.d/*.conf;
-}
-
-```
-
-名为 `/etc/nginx/stream.conf.d/mysql_reads.conf` 的文件可能包含以下配置：
-
-```nginx
-stream {
-    upstream mysql_read {
-        server read1.example.com:3306 weight=5;
-        server read2.example.com:3306;
-        server 10.10.12.34:3306 backup;
-    }
-
-    server {
-        listen 3306;
-        proxy_pass mysql_read;
-    }
-}
-```
->http 和 stream 上下文之间的主要区别在于它们在 OSI 模型的不同层上运行。http 上下文在应用层（七层）运行，stream 在传输层（四层）运行。这并不意味着 stream 上下文不能通过一些巧妙的脚本获得应用感知能力，而是说 http 上下文是专门为了完全理解 HTTP 协议而设计的，stream 上下文默认情况下只能对数据包进行路由和负载均衡。
-
-##### UDP
-在 NGINX 的 stream 模块内使用 upstream 代码块（定义为 udp）对 UDP 服务器实施负载均衡:
-
-```nginx
-stream {
-    upstream ntp {
-        server ntp1.example.com:123 weight=2;
-        server ntp2.example.com:123;
-    }
-
-    server {
-        listen 123 udp;
-        proxy_pass ntp;
-    }
-}
-
-```
-
-### 总结
-受不了了,这本书一直在给Nginx Plus打广告,而且讲的一点也不完全.
 
 ## NGINX HTTP Server
 
