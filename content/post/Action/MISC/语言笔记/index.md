@@ -937,6 +937,19 @@ async def predict(x: float):
     return {"result": result}
 ```
 yield之前的部分会在应用启动之前执行,yield之后的部分会在应用完成后执行,和pytest的fixture设置一样.
+### wsgiref(11/13)
+#### 项目介绍和结构
+
+* **util**：杂项实用函数和包装器
+* **headers**：管理响应头
+* **handlers**：服务器/网关实现的基础类
+* **simple_server**：一个支持 WSGI 的简单 BaseHTTPServer
+* **validate**：位于应用程序和服务器之间的验证包装器，用于检测两者的错误
+* **types**：用于静态类型检查的 WSGI 相关类型集合
+
+该官方库介绍了一个简易WSGI服务器的搭建过程.先看一下最重要的`simple_server.py`库
+#### simple_server.py
+
 ## Golang
 ### Gin速通(10/30)
 #### r和c

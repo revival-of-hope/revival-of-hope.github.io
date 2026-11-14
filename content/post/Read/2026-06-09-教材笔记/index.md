@@ -2488,7 +2488,11 @@ c(v1, v3)
 
 # 软件工程
 ## Software Engineering - A Practitioner’s Approach,9ed
-### ch1:
+### ch1: 软件与软件工程
+![软件开发五步图](PixPin_2026-11-13_16-36-18.webp)
+
+### ch2: Process Models
+
 
 # 编译原理
 ## Compilers Principles Techniques and Tools(2nd Edition)
