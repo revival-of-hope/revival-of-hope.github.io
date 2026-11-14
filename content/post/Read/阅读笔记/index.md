@@ -208,6 +208,54 @@ targets = torch.tensor([
 #### 文本生成策略
 如果我们每次输出token都是选取概率最高的,那么对于相同的输入token,多次运行都会得到相同的输出token序列.
 
+有两种策略可以改变生成文本的单调性:
+1. Temperature scaling(温度缩放): 我们通常使用argmax函数直接获取概率最大的token,但也可以用multinomial函数按照logits的概率实际选取token(也就是等概率采样)
+   1. 如果将得到的logits除以一个大于0的数,这被成为温度(temperature),就可以对token的概率进行缩放
+   2. 因为最终归一化logits是用的softmax,要做指数运算,当温度大于1时,token的概率分布会更加分散,当温度小于1时,token的概率分布则会更加集中.
+
+![示意图](PixPin_2026-11-14_20-18-15.webp)
+
+2. Top-k sampling(Top-k采样): 简单使用multinomial的话有极低概率会出现错误或者毫无意义的输出,所以更好的方法是只在概率最高的前k个token中进行采样,将所有未被选中的logits替换为-inf即可.
+### ch6: Fine-tuning for classification
+- 到这里,其实我们的模型已经基本完成了预训练,剩下的则属于后训练了.
+
+>指令微调虽然用途更广泛，但需要更大的数据集和更强大的计算资源才能开发出能够胜任各种任务的模型。相比之下，分类微调所需的数据和计算能力较少，但其应用范围仅限于模型训练时所针对的特定类别。
+
+![架构](PixPin_2026-11-14_20-39-06.webp)
+
+
+#### 数据集处理
+本章采用一个垃圾邮件识别的分类微调,只有ham和spam两种类别,所以词表只需要两个token_id: 0和1.
+
+接着我们将数据集分成三部分,70%用于训练,10%用于验证,20%用于测试.验证在训练过程中进行,而测试则在训练结束后进行,这是二者的区别.
+
+鉴于数据集中每条数据的长度不一,如果不统一就不能进行批量训练,而只能逐条数据训练,对此,我们有两种选择:
+* 将所有消息截断为数据集或批次中最短消息的长度。
+* 将所有消息填充到数据集或批次中最长消息的长度。
+
+问题在于第一种方法会丢失信息,极有可能影响模型性能,所以还是采用第二种方法.
+
+![示意图](PixPin_2026-11-14_20-49-33.webp)
+#### 替换输出层为classification head
+
+![示意图](PixPin_2026-11-14_21-08-39.webp)
+
+由于我们使用的是预训练模型，因此无需对所有模型层进行微调。在基于神经网络的语言模型中，底层通常捕捉适用于各种任务和数据集的基本语言结构和语义。因此，只需微调最后几层（即靠近输出层的层），这些层更侧重于细微的语言模式和特定任务的特征，通常就足以使模型适应新的任务。
+
+对于我们这个任务,需要解释一下为什么只需要获取最后一个输入token的输出即可,原因在于我们是用casual attention训练的,只有最后一个token能够获取文本的所有信息.
+
+#### 损失函数
+对于我们这个分类任务,最终只会输出一个二维向量,我们同样可以用softmax归一化处理后获取id0和id1的概率,但由于输出值越大概率就越高,所以用argmax即可得到最终的输出.
+
+我们依旧采用交叉熵损失作为损失函数,但只需要激活最后一层的Transformer块即可.
+
+
+
+
+
+#### Supervised Fine-tuning
+### ch7: Instruction Fine-tuning
+
 ## Apache Kafka in Action
 ### ch1: 介绍
 >Kafka 是一个强大、开源、分布式的流式处理平台，它从根本上改变了组织处理数据流的方式。Kafka 的核心功能是持久化、分布式地记录组织的所有数据事件。
@@ -352,7 +400,13 @@ Processed a total of 8 messages
 
 >现在我们可以将这些分区分发给不同的代理，从而平衡代理之间的负载。生产者独立决定哪些数据应该分发到哪些分区。如果不使用键，生产者会以轮询的方式将数据分发到各个分区，即先分发到分区 0，然后是分区 1，依此类推。如果使用键，则会将消息分发到各个分区，使得具有相同键的消息最终位于同一个分区。
 #### 消费者组: 消费者的水平扩展
-在一个消费组中,一个partition只能被最多一个消费者读取,但一个消费者能够读取多个分区.
+在一个消费者组中,一个partition只能被最多一个消费者读取,但一个消费者能够读取多个分区.
+
+消费者组通过内置的分配器来决定哪个分区由哪个消费者消费,我们可以设定不同的策略:
+![设置](PixPin_2026-11-14_22-26-59.webp)
+
+![Round Robin Assignor](PixPin_2026-11-14_22-28-13.webp)
+
 #### kafka的组成部分
 - 协调集群(Coordination cluster): 持续监控集群的当前状态，并检查所有代理是否仍然可达且运行正常。作为这项任务的一部分，它还管理所有活动代理的列表，并负责向集群添加新代理和从中移除现有代理。
   - 使用Raft或者Paxos共识算法,目前kafka使用的协调集群为KRaft
@@ -436,6 +490,21 @@ kafka在创建新主题时,首先会在元数据文件中注册该主题,然后�
 - 比较繁琐,日后用到再看
 
 ### ch9: Consuming messages
+默认情况下，kafka-console-consumer.sh 从分区末尾开始读取，而 --from-beginning 标志则从分区开头读取。Kafka 库使用相同的默认设置。当我们启动一个消费者时，它会从读取最新的消息开始。要从分区开头开始读取，我们需要将配置选项 auto.offset.reset 设置为 earliest（默认值为 latest）。
+
+到目前为止，我们一直认为消费者会从分区领导者那里获取消息。这种说法并不完全正确，因为自 Kafka Improvement Proposal 392 起，消费者可以从最近的副本中消费消息。
+
+kafka通过rack参数获知哪个副本距离consumer最近,rack指的是服务器的物理或者逻辑分组,从而能够更加精细的调控consumer的消费.
+
+在传统的消息传递系统中，系统本身会管理哪些消息发送给哪些消费者。然而，在 Kafka 中，消费者需要负责跟踪来自各个分区的消息。这意味着消费者必须记录哪些消息已经读取，哪些消息尚未读取。在 Kafka 中，这是通过offset来实现的。
+
+生成一条消息时,它会被分配唯一的offset,第一条为0,第二条为1,以此类推,即便某些消息被删除,其他消息的offset也保持不变.
+
+但对于消费者来说,我们希望保持服务的无状态性,而不需要主动存储消息的offset,否则一旦服务重启,就需要迁移offset数据.我们可以通过创建一个额外的offset表存在数据库里面,但终归比较麻烦.
+
+好在消费者组记录了每个分区还有多少未读消息,称为lag(延迟),所以我们可以借此获知offset.
+
+### ch10: 清理消息
 
 ## Reinforcement Learning from Human Feedback
 ### 前言
@@ -456,6 +525,63 @@ RLHF分为三步:
 ![时间线](PixPin_2026-11-12_12-38-46.webp)
 
 ### ch3: Training overview
+>本章将对基于人类反馈的强化学习（RLHF）训练进行简要概述，本书后续章节将深入探讨其具体细节。RLHF虽然优化的是一个简单的损失函数，但它涉及按顺序训练多个不同的AI模型，然后将它们连接起来进行复杂的在线优化。
+
+核心的RL公式:
+\[
+p_\pi(\tau)=
+\rho_0(s_0)
+\prod_{t=0}^{T-1}
+\pi(a_t\mid s_t)
+p(s_{t+1}\mid s_t,a_t)
+\]
+
+1. \[\pi(a_t\mid s_t)\]
+   1. 策略概率,表示在当前状态s_t下,agent选择动作a_t的概率
+2. \[p(s_{t+1}\mid s_t,a_t)\]
+   1. 状态转移概率,表示在状态s_t下执行动作a_t后,环境转移到状态s_t+1的概率
+3. \(\rho_0(s_0)\)
+   1. 初始状态为s_0的概率
+4. \(\tau\)
+   1. 表示一条完整的轨迹,即从状态s_0一直到状态s_99这样的
+5. T
+   1. 该轨迹长度所需要的时间步数
+
+连起来看就很好理解了,这条公式是在计算,我们从初始状态s_0开始,不断执行动作a_0,a_1,将状态转换为s_1,s_2,并最终达到最终目标状态的概率,因此才要逐状态计算概率乘积.
+
+![示意图](PixPin_2026-11-14_22-54-00.webp)
+
+那么假设经过了T个时间步长,我们需要用以下公式来训练Agent:
+
+\[
+\max_{\pi}
+\mathbb{E}_{\tau\sim p_{\pi}}
+\left[
+\sum_{t=0}^{T-1}\gamma^t r(s_t,a_t)
+\right]
+\]
+
+1. \(r(s_t,a_t)\)
+   1. 当前状态采取当前动作获得的奖励
+2. \[\mathbb E_{\tau\sim p_\pi}[\cdots]\]
+   1. 由于相同的策略未必会产生相同的轨迹(通常是因为环境的随机性),所以我们需要计算按照当前策略能够获得的平均奖励
+3. \[\sum_{t=0}^{T-1}r(s_t,a_t)\]
+   1. 我们需要考量每一个时间步带来的影响,所以需要累加奖励
+4. \(\gamma\)
+   1. 折扣因子(通常设置为0-1之间),用于调整不同时间步奖励的权重,当时间步越长,对奖励的折扣就越大,从而让Agent能够重视近期奖励,并且保证任务的收益一定能够收敛而不发散
+
+因此,我们需要寻找一个最优的策略pi,能够让这个奖励和的期望最大,从而让Agent能够遵循特定的轨迹移动.
+
+![标准RL回路](PixPin_2026-11-14_23-05-32.webp)
+
+而RLHF与标准的RL有许多不太一样的地方:
+1. 奖励函数变成了奖励模型,从而增加了实现的复杂性,因为在标准RL中,奖励被视为环境中的静态元素,训练时无法更改
+2. 没有折扣因子,即设置为1,因为时间步长不应该影响各个位置token的重要性.
+
+![RLHF环路](PixPin_2026-11-14_23-11-23.webp)
+
+### ch4: IFT
+
 
 
 
@@ -482,13 +608,6 @@ RLHF分为三步:
 ![设计图](PixPin_2026-11-13_09-34-44.webp)
 
 
-## Readings in Database Systems,5th edition
-### 前言
-我们既选择了数据库早期文献中的经典传统论文，也选择了近年来对事务处理、查询处理、高级分析、Web 数据和语言设计等领域产生重大影响的论文。每章都附有简短导读，介绍相关论文并说明选取它们的原因。
-### ch1: background
-介绍了HDFS,data lake,列式存储等新领域
-### ch2: 传统的RDBMS
-介绍了数据库原型System R,数据库新秀Postgres和分区数据库Gamma,都是相当重要的论文.
 
 
 ## The Internals of PostgreSQL
@@ -1353,103 +1472,6 @@ flowchart TB
 
 一个很好的想法是,如果我们把API调用也看作是事件,那么所有的服务和业务就都可以通过消息总线传输了,不再需要区分内部事件还是外部事件.
 
-## Kafka: The Definitive Guide,2nd edition
-- 出版于2021年（第2版），出版商：O'Reilly，作者：Gwen Shapira。
-
-### 介绍
-- Kafka由Linkedin在09年研发出来,并在11年捐献给Apache基金会,所以又叫Apache Kafka.
-
->I thought that since Kafka was a system optimized for writing,
-using a writer’s name would make sense.
-
-I had taken a lot of lit classes in college and liked Franz Kafka.
-
-Plus the name sounded cool for an open source project.
-
-Kafka中的数据单位称为消息(messages)。如果你有数据库背景，可以将此视为类似行或记录的概念。对Kafka而言，消息本质上就是一个字节数组，因此其中包含的数据对Kafka没有特定格式或含义。消息可以附带一个可选的元数据片段，称为键,可以辅助消息写入kafka中.
-
-- Kafka传输的消息格式一般为紧凑的Apache Avro而不是可读性强的Json
-- Kafka中的消息按照topic进行分类(类似于文件系统中的文件夹),每个topic可以有多个partition(分区),消息以追加形式写入分区中,按照顺序从头到尾读取.
-- 不同服务器可以存储一个分区的多个副本,从而保障数据安全.
-- stream表示消息传输时的数据流.
-
-Kafka clients是Kafka server的使用者,有两种基本类型: producers and consumers.
-- 单个Kafka server被称为Broker(代理),它从生产者处接受消息并存储,并响应消费者的服务请求.
-- 多个Broker组成一个cluster(代理集群),Broker中自动选举一个Controller作为管理员.
-
-消息保留了一定时间(例如7天)或者分区达到特定的容量大小就会自动进行删除,这是Kafka的独特之处,简化了其他消息队列系统中复杂的数据库管理方式.
-
-### 补充: docker启动kafka
-由于这本书出版于2021年,当时kafka版本为2.8.0,底层用的还是ZooKeeper,而现在Kafka更新到了4.3.1版本,底层全面换成了KRaft,所以书中的安装指南基本没有任何作用了.
-
-- [原因](https://spoud-io.medium.com/embracing-the-future-of-kafka-why-its-time-to-migrate-from-zookeeper-to-kraft-f1a5225ac48a)
-
-要想跨平台使用Kafka,显然只能让Docker来干活儿了,自然,我是不知道怎么写kafka的compose文档的,看一下
-[官方](https://hub.docker.com/r/apache/kafka)推荐的单节点写法:
-
-```yml
-services:
-  broker:
-    image: apache/kafka:latest
-    container_name: broker
-    ports:
-      - 9092:9092
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://localhost:9092,CONTROLLER://localhost:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_NUM_PARTITIONS: 3
-```
-考虑到我们只是测试使用,所以就不需要绑定到数据卷上了,kafka,启动!
-
-```bash
-docker compose up -d 
-```
-启动成功后,首先运行以下命令创建topic:
-
-```bash
-docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --create --topic test-topic --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
-```
-在该终端启动producer:
-
-```bash
-docker exec -it kafka /opt/kafka/bin/kafka-console-producer.sh --topic test-topic --bootstrap-server localhost:9092
-```
-
-另开一个终端启动consumer:
-
-```bash
-docker exec -it kafka /opt/kafka/bin/kafka-console-consumer.sh --topic test-topic --from-beginning --bootstrap-server localhost:9092
-```
-
-在producer这边随意发送消息,都可以在consumer那边接收到并输出:
-
-![效果图](PixPin_2026-07-27_10-52-43.webp)
-
-效果很不错!
-
-- 上述命令中的第一行完全相同,因为都要用到kafka随安装自带的CLI工具.
-
-### 生产者
-首先配置`bootstrap.servers`等参数来初始化Producer,接着构建一个ProducerRecord对象,该对象对应所有kafka能发送的信息(纯文本,Json字符串,key-value对,数据表),最终由producer发送给kafka的client.
-
-### 消费者
->消费者数量超过topic中的分区数量是毫无意义的——部分消费者将处于空闲状态
-
-![示意图](PixPin_2026-07-29_10-10-08.webp)
-
-创建消费者的过程与创建生产者没有太大的区别,同样需要先配置servers等属性,并分配特定的消费者组id,再通过订阅(subscribe)方法来接受特定的topic下的消息.
-
-### 总结
-了解到这里就基本足够了,后面就是一些琐碎的配置环节了.
 
 
 ## Vision Language Models
@@ -1560,113 +1582,19 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 ### ch2: 观察者模式(Observer Pattern)
 
 
-## Learning Domain-Driven Design(待补充)
-- 出版于2021年，出版商：O'Reilly，作者：Vlad Khononov。
-### ch1: Analyzing Business Domains
-讲了一些关于Domain的基本知识
-### ch2: 发现领域知识
-和专业领域人员探讨,找到通用语言.
 
-假设我们正在开发一个广告活动管理系统。请考虑以下陈述：
 
-* 广告宣传活动可以展示不同的创意素材。
-* 只有当广告系列中至少有一个广告位处于激活状态时，该广告系列才能发布。
-* 销售佣金在交易获得批准后进行结算。
 
-另一方面，以下陈述严格来说是技术性的，因此不符合通用语言的概念：
-
-* 广告 iframe 会显示一个 HTML 文件。
-* 只有当活动广告位表中至少有一条关联记录时，该广告活动才能发布。
-* 销售佣金是根据交易记录和已批准销售表中的相关记录计算的。
-
-可以看到,专业领域人员是看不懂技术名词的,我们需要精确实行二者间的转换.
-
-这一点值得重申：**一个有用的模型并非现实世界的复制品**。相反，模型的目的是为了解决问题，它只需提供足以实现该目的的信息。或者，正如统计学家乔治·博克斯所说：
-
-> **“所有模型都是错误的，但有些是有用的。”**
-
-### ch3&&ch4: 管理领域复杂性
-为了确保项目成功，至关重要的是开发一种所有利益相关者（从软件工程师到领域专家）都能使用的通用语言进行沟通。这种语言应该反映领域专家对业务领域内部运作和基本原理的理解。但如果领域专家对某个技术名词的定义也要通过上下文才能精准判断时,我们就要引入Bounded Context
-### ch5: 实现简单业务逻辑
-当我在领域驱动设计课程中介绍事务脚本模式时，学生们常常会皱起眉头，甚至有人会问：“这值得我们花时间吗？我们来这里难道不是为了学习更高级的模式和技术吗？”
-
-关键在于，事务脚本模式是你后续将要学习的更高级业务逻辑实现模式的基础。此外，尽管它看似简单，却也是最容易出错的模式。**我曾参与排查和修复的大量生产环境问题，最终或多或少都归结为系统业务逻辑的事务行为实现有误。**
-
-对于本地事务,我们写一个commit+rollback模式即可:
-```csharp
-public void Execute(Guid userId, DateTime visitedOn)
-{
-    try
-    {
-        _db.StartTransaction();
-        _db.Execute(@"UPDATE Users SET last_visit=@p1
-                       WHERE user_id=@p2",
-                    visitedOn, userId);
-        _db.Execute(@"INSERT INTO VisitsLog(user_id, visit_date)
-                       VALUES(@p1, @p2)",
-                    userId, visitedOn);
-        _db.Commit();
-    }
-    catch
-    {
-        _db.Rollback();
-        throw;
-    }
-}
-```
-但如果是分布式事务,就需要将消息发布到消息总线:
-```csharp
-public class LogVisit
-{
-    // ...
-
-    public void Execute(Guid userId, DateTime visitedOn)
-    {
-        _db.Execute("UPDATE Users SET last_visit=@p1 WHERE user_id=@p2",
-            visitedOn, userId);
-        _messageBus.Publish("VISITS_TOPIC",
-            new { UserId = userId, VisitDate = visitedOn });
-    }
-}
-```
-就算执行时出错,由于没能将消息发送到消息总线,所以也就无法恢复数据
-
-事务脚本模式的主要优势在于其简洁性。它引入的抽象层级极少，从而最大限度地降低了运行时性能和业务逻辑理解方面的开销。然而，这种简洁性也是该模式的缺点。业务逻辑越复杂，就越容易在事务之间出现重复，进而导致行为不一致——当重复的代码失去同步时。因此，事务脚本模式绝不应用于核心子域，因为它无法应对核心子域业务逻辑的高度复杂性。
-
-另一种方法则是使用Active Record,用于实现简单的CRUD,即模型自己负责持久化和业务逻辑:
-```csharp
-public class CreateUser
-{
-    // ...
-
-    public void Execute(UserDetails userDetails)
-    {
-        try
-        {
-            _db.StartTransaction();
-            var user = new User();
-            user.Name = userDetails.Name;
-            user.Email = userDetails.Email;
-            user.Save();
-            _db.Commit();
-        }
-        catch
-        {
-            _db.Rollback();
-            throw;
-        }
-    }
-}
-```
-### ch6: 处理复杂业务逻辑
-额这一章真的没看明白在讲什么
-### ch7: 时间建模
-加入事件溯源模型,即追踪某个人物各个状态的演变过程(如普通用户申请成为管理员,不代表普通用户时期的数据就不重要了)
-### ch8: 架构模式
-讲了几个常用的架构
-### ch9: 通信模式
-### 总结
-一旦你发现一本书无论如何都看不懂的时候,就应该过段时间再来看.
+## Readings in Database Systems,5th edition(待补充)
+### 前言
+我们既选择了数据库早期文献中的经典传统论文，也选择了近年来对事务处理、查询处理、高级分析、Web 数据和语言设计等领域产生重大影响的论文。每章都附有简短导读，介绍相关论文并说明选取它们的原因。
+### ch1: background
+介绍了HDFS,data lake,列式存储等新领域
+### ch2: 传统的RDBMS
+介绍了数据库原型System R,数据库新秀Postgres和分区数据库Gamma,都是相当重要的论文.
+### 
+很值得看,但现在看还是有点早了
+# 基础
 ## Test-Driven Development with Python
 ### ch1: 使用Django
 >通常，Web 开发的第一步是安装和配置 Web 框架。下载这个，安装那个，配置其他的，运行脚本……但 TDD 需要不同的思维方式。当你进行 TDD 时，你的脑子里总会有一只“测试山羊”——就像山羊一样，一心只想着测试——不停地叫着：“先测试，先测试！”
@@ -1693,10 +1621,12 @@ TDD的工作流程如下:
 >不过，有一点需要记住：拖得越久，就越难。另一点是，就像温水煮青蛙的故事一样，痛苦只会逐渐显现，你可能要等到错过了最佳的转换时机才会察觉。而且，转换的时机永远不会很方便。就像技术债务一样，面对更紧迫的优先事项，转换总是难以找到合理的理由。
 
 或许以后我会再来看,但不是现在.
+## Kafka: The Definitive Guide,2nd edition
+- 出版于2021年（第2版），出版商：O'Reilly，作者：Gwen Shapira。
 
+### 总结
+不如Apache Kafka in Action远甚
 
-
-# 基础
 ## Python Concurrency with asyncio
 ### ch1: 认识asyncio
 虽然asyncio的名称可能让我们认为这个库仅适用于I/O操作，但它通过支持多线程和多进程的互操作功能，也能处理其他类型的操作。借助这种互操作性，我们可以将async和await语法用于线程和进程，使这些工作流程更易于理解。这意味着这个库不仅适用于基于I/O的并发操作，还可以用于CPU密集型代码。
@@ -21276,3 +21206,110 @@ API 网关提供了用户认证、请求速率限制和超时/重试等横向需
 
 ### 总结
 实际上就是面向管理岗的,也没什么看头其实,没有一点实战环节
+## Learning Domain-Driven Design(待补充)
+- 出版于2021年，出版商：O'Reilly，作者：Vlad Khononov。
+### ch1: Analyzing Business Domains
+讲了一些关于Domain的基本知识
+### ch2: 发现领域知识
+和专业领域人员探讨,找到通用语言.
+
+假设我们正在开发一个广告活动管理系统。请考虑以下陈述：
+
+* 广告宣传活动可以展示不同的创意素材。
+* 只有当广告系列中至少有一个广告位处于激活状态时，该广告系列才能发布。
+* 销售佣金在交易获得批准后进行结算。
+
+另一方面，以下陈述严格来说是技术性的，因此不符合通用语言的概念：
+
+* 广告 iframe 会显示一个 HTML 文件。
+* 只有当活动广告位表中至少有一条关联记录时，该广告活动才能发布。
+* 销售佣金是根据交易记录和已批准销售表中的相关记录计算的。
+
+可以看到,专业领域人员是看不懂技术名词的,我们需要精确实行二者间的转换.
+
+这一点值得重申：**一个有用的模型并非现实世界的复制品**。相反，模型的目的是为了解决问题，它只需提供足以实现该目的的信息。或者，正如统计学家乔治·博克斯所说：
+
+> **“所有模型都是错误的，但有些是有用的。”**
+
+### ch3&&ch4: 管理领域复杂性
+为了确保项目成功，至关重要的是开发一种所有利益相关者（从软件工程师到领域专家）都能使用的通用语言进行沟通。这种语言应该反映领域专家对业务领域内部运作和基本原理的理解。但如果领域专家对某个技术名词的定义也要通过上下文才能精准判断时,我们就要引入Bounded Context
+### ch5: 实现简单业务逻辑
+当我在领域驱动设计课程中介绍事务脚本模式时，学生们常常会皱起眉头，甚至有人会问：“这值得我们花时间吗？我们来这里难道不是为了学习更高级的模式和技术吗？”
+
+关键在于，事务脚本模式是你后续将要学习的更高级业务逻辑实现模式的基础。此外，尽管它看似简单，却也是最容易出错的模式。**我曾参与排查和修复的大量生产环境问题，最终或多或少都归结为系统业务逻辑的事务行为实现有误。**
+
+对于本地事务,我们写一个commit+rollback模式即可:
+```csharp
+public void Execute(Guid userId, DateTime visitedOn)
+{
+    try
+    {
+        _db.StartTransaction();
+        _db.Execute(@"UPDATE Users SET last_visit=@p1
+                       WHERE user_id=@p2",
+                    visitedOn, userId);
+        _db.Execute(@"INSERT INTO VisitsLog(user_id, visit_date)
+                       VALUES(@p1, @p2)",
+                    userId, visitedOn);
+        _db.Commit();
+    }
+    catch
+    {
+        _db.Rollback();
+        throw;
+    }
+}
+```
+但如果是分布式事务,就需要将消息发布到消息总线:
+```csharp
+public class LogVisit
+{
+    // ...
+
+    public void Execute(Guid userId, DateTime visitedOn)
+    {
+        _db.Execute("UPDATE Users SET last_visit=@p1 WHERE user_id=@p2",
+            visitedOn, userId);
+        _messageBus.Publish("VISITS_TOPIC",
+            new { UserId = userId, VisitDate = visitedOn });
+    }
+}
+```
+就算执行时出错,由于没能将消息发送到消息总线,所以也就无法恢复数据
+
+事务脚本模式的主要优势在于其简洁性。它引入的抽象层级极少，从而最大限度地降低了运行时性能和业务逻辑理解方面的开销。然而，这种简洁性也是该模式的缺点。业务逻辑越复杂，就越容易在事务之间出现重复，进而导致行为不一致——当重复的代码失去同步时。因此，事务脚本模式绝不应用于核心子域，因为它无法应对核心子域业务逻辑的高度复杂性。
+
+另一种方法则是使用Active Record,用于实现简单的CRUD,即模型自己负责持久化和业务逻辑:
+```csharp
+public class CreateUser
+{
+    // ...
+
+    public void Execute(UserDetails userDetails)
+    {
+        try
+        {
+            _db.StartTransaction();
+            var user = new User();
+            user.Name = userDetails.Name;
+            user.Email = userDetails.Email;
+            user.Save();
+            _db.Commit();
+        }
+        catch
+        {
+            _db.Rollback();
+            throw;
+        }
+    }
+}
+```
+### ch6: 处理复杂业务逻辑
+额这一章真的没看明白在讲什么
+### ch7: 时间建模
+加入事件溯源模型,即追踪某个人物各个状态的演变过程(如普通用户申请成为管理员,不代表普通用户时期的数据就不重要了)
+### ch8: 架构模式
+讲了几个常用的架构
+### ch9: 通信模式
+### 总结
+一旦你发现一本书无论如何都看不懂的时候,就应该过段时间再来看.
