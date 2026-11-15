@@ -8,254 +8,6 @@ math: true
 
 # 阅读中
 
-## Build a Large Language Model
-### ch1: 理解LLM
-对LLM的基本介绍
-### ch2: 文本处理
-如果采用一个词对应一个id的方式的话,映射方法如下:
-1. 根据语料库建立映射表
-2. 处理新文本时,已经遇到的词可以被映射为向量,未知词则被映射为`<|unk|>`,并增加一个标记文本结束的`<|endoftext|>`,类似于EOS标记.
-   1. 根据LLM的不同,我们还会按需添加:`BOS`(beginning of sentence),`EOS`(end of sentence),`PAD`(padding)等特殊标记
-
-文中还介绍了tiktoken库,其应用了GPT-2,GPT-3所用的BPE(Byte Pair Encoding)分词器,词汇量总计为50257,可以处理任何未知词,关键在于在不在词汇表里的词分解为更小的子词,甚至是单个字符:
-
-![示例](PixPin_2026-11-08_12-54-31.webp)
-#### 滑动窗口构建训练数据
-鉴于GPT模型是逐词预测的,所以我们可以构造一个差额为1的双数组,通过滑动窗口构建训练数据:
-```py
-context_size = 999
-
-for i in range(1, context_size+1):
-  context = enc_sample[:i]
-  desired = enc_sample[i]
-  print(context, "---->", desired)
-
-# [290] ----> 4920
-# [290, 4920] ----> 2241
-```
-#### 转成embedding
-假设我们的embedding维度是三维,那么我们先根据id来一个随机映射:
-![示意图](PixPin_2026-11-09_11-56-48.webp)
-
-至于为什么随机映射,是因为后面还要通过训练来修改embedding的值.
-
->理论上,我们可以把ID看成是多为的one-hot编码,然后再与embedding矩阵相乘.
-
-问题在于,如果单纯做ID映射,对于相同的单词,无论在什么位置出现,得到的embedding数组都是相同的,这显然不符合我们做NLP的要求,所以需要注入额外的位置信息.
-
-实现的方法就是给每个映射的embedding再加上一个相对位置嵌入(根据前面token的相对位置设置的向量)或者绝对位置嵌入(根据自己的绝对位置设置的向量),二者合成得到输给LLM的`Input Embeddings`.
-
-原始的Transformer模型采用的是绝对位置编码,而现代LLM采用RoPE方法,即相对位置编码.
-
-绝对位置嵌入有两种设置方式:
-1. 随机初始化,再通过训练学习
-2. 固定为正弦位置编码,Transformer用的就是这个.
-
-### ch3: Attention
-#### 简化表示
-输入token中的一个token对其他每个token分配的注意力分数,是通过将两个token的embedding矩阵相乘得到的.
-
-得到的注意力分数既有可能是负数,也有可能相当巨大,所以我们要进行归一化处理,简单一点的话,就是直接算一个分数占所有分数的比例了,这就是注意力权重:
-
-![示意图](PixPin_2026-11-11_10-07-03.webp)
-
-- 实践中用的则是softmax函数
-
-最终,与单个token相关的上下文向量(context vector)即为所有的embedding与相应的注意力权重相乘,并将所有向量相加后的结果.
-
-![示意图](PixPin_2026-11-11_10-13-11.webp)
-
-如此一来,我们可以先将所有的注意力权重计算出来:
-
-![权重矩阵](PixPin_2026-11-11_10-15-12.webp)
-
-然后计算出所有的上下文向量即可,这就是self-attention的简化版本
-#### 复杂表示
-原始Transformer采用的机制为缩放点积注意力,与简化表示的区别并没有那么大.
-
-该注意力机制引入了三个可训练的维度相同的权重矩阵:Q,K,V,分别用于将embedding的token映射到查询,键和值向量上,记为query,key,value向量.
-
-首先是随机初始化三个权重矩阵,并将对应token的embedding与这三个矩阵相乘得到Q,K,V对应的向量.
-
-我们先计算第二个token的query与所有token的key向量的点积结果,得到query对key的注意力分数:
-![示意图](PixPin_2026-11-11_10-32-55.webp)
-
-归一化处理时,我们将分数除以key向量维度的平方根(如10000维对应除以100)来进行**缩放**,再通过softmax得到注意力权重.
-
-原因如下:
-![示意图](PixPin_2026-11-11_10-42-38.webp)
-
-最终,我们将所有的value向量和注意力权重相乘后相加,就得到了上下文向量.
-
-![诠释图](PixPin_2026-11-11_10-50-02.webp)
-
-#### masked attention
-鉴于LLM的输出不需要考虑未来的token,所以我们需要屏蔽在当前词之后的token,将原来的矩阵变成下三角形状:
-![示意图](PixPin_2026-11-11_10-53-17.webp)
-
-方法很简单,将注意力分数矩阵的上三角清零后,重新计算下三角部分的注意力权重并归一化即可.这就得到了**masked attention**.
-
-另一个方法则是将上三角置为负无穷,然后应用softmax,效果是一样的.
-
-对于得到的注意力权重矩阵,我们可以先用dropout方法对部分注意力权重置零,减少训练期间的过拟合,这被称为**causal attention**.
-#### multi-head attention
-Multi-head Attention由多个Single-head Attention组成,换句话说,每个子Attention模块都有自己的权重,只在输出时对多个子Attention的结果进行汇总:
-![示意图](PixPin_2026-11-12_09-55-32.webp)
-
-这在直观上表现为多组平行的Q,K,V向量和多组上下文向量.
-### ch4: 实现GPT模型
-#### 架构设计
-![架构设计图](PixPin_2026-11-12_10-24-21.webp)
-
-#### Normalization层
-对每个token的embedding进行归一化处理,将均值统一为0,方差统一为1,从而避免参数过大给训练带来影响.
-#### GELU激活的前馈网络
-GELU是ReLU的进阶版,能够提供更优的训练效果:
-![公式](PixPin_2026-11-12_10-28-46.webp)
-
-![对比](PixPin_2026-11-12_10-29-29.webp)
-
-![训练过程](PixPin_2026-11-12_10-33-24.webp)
-
-#### Adding shortcut connections
-shortcut用于在反向传播中缓解梯度消失的问题,这也被称为残差连接:
-![shortcut 示意图](PixPin_2026-11-12_10-42-00.webp)
-
-```python
-class ExampleDeepNeuralNetwork(nn.Module):
-    def __init__(self, layer_sizes, use_shortcut):
-        super().__init__()
-        self.use_shortcut = use_shortcut
-        self.layers = nn.ModuleList([
-            nn.Sequential(nn.Linear(layer_sizes[0], layer_sizes[1]),
-                          GELU()),
-            nn.Sequential(nn.Linear(layer_sizes[1], layer_sizes[2]),
-                          GELU()),
-            nn.Sequential(nn.Linear(layer_sizes[2], layer_sizes[3]),
-                          GELU()),
-            nn.Sequential(nn.Linear(layer_sizes[3], layer_sizes[4]),
-                          GELU()),
-            nn.Sequential(nn.Linear(layer_sizes[4], layer_sizes[5]),
-                          GELU())
-        ])
-
-    def forward(self, x):
-        for layer in self.layers:
-            layer_output = layer(x)
-            if self.use_shortcut and x.shape == layer_output.shape:
-                x = x + layer_output
-            else:
-                x = layer_output
-        return x
-```
-#### 实现Transformer模块
-
-![示意图](PixPin_2026-11-13_08-06-23.webp)
-
-#### GPT模型实现
-GPT采用了权重绑定(weight tying),即输入token的映射矩阵和输出logits的映射矩阵为同一个权重矩阵,均为(50257x768)维,从而可以降低模型的整体内存占用.
-
-不过,现代LLM倾向于使用独立的权重矩阵,从而可以获得更好的训练效果.
-
-通过计算 GPTModel 对象中 1.63 亿个参数的内存需求，并假设每个参数都是一个 32 位浮点数，占用 4 个字节，我们发现模型的总大小为 621.83 MB，这表明即使是相对较小的 LLM 也需要相对较大的存储容量。
-#### 输出文本
-GPT会对每一个输入的token都生成对下一个token的**预测**,那么我们只需要提取输入文本的最后一行对应的50257x1维向量,用softmax处理后即可得到最终的token概率,选取概率最大的token即可,并将其作为下一轮的输入.
-
-- 我们还可以设置一个上下文窗口大小,确保LLM的输出不会超出这些token数量.
-### ch5: Pretraining on unlabeled data
-#### 评估
-为了让LLM输出可读文本,我们需要定义一个输出目标,从而能够评估模型的质量:
-```python
-import torch
-
-inputs = torch.tensor([
-    [16833, 3626, 6100],  # ["every effort moves",
-    [40, 1107, 588]       #  "I really like"]
-])
-
-targets = torch.tensor([
-    [3626, 6100, 345],    # [" effort moves you",
-    [1107, 588, 11311]    #  " really like chocolate"]
-])
-```
-很显然,我们应该让target仅仅针对输入值向前移动一位,否则的话LLM是无法根据上下文来学习的.
-
-模型的训练目标为: 尽可能让target对应token_id的概率最大化.
-
-但对于一句话来说,如果我们要依次预测多个token,那么就需要计算概率乘积以判断输出文本的质量,但这样一来会让数值变得过小,影响训练,所以可以转换成对数后相加得到多个token的概率和.
-
-对于概率和,显然句子越长,那么概率和就会相对越大,直接拿来计算loss的话,就会对训练产生显著的影响,但我们更希望是提升单个token的预测质量,所以需要对概率和取均值,即除以待预测的token数量.
-
-对于log来说,如果真数趋近于1,那么对数值就趋近于0,因此,我们需要让算出来的平均对数概率(average log probability score)尽可能接近0.
-
-但在深度学习中,惯例是要对平均对数概率取反的,即让负平均对数概率趋近于0.
-
-所以,我们最终的loss函数就是这个负平均对数概率,一个简易方法就是用torch的`cross_entropy`一键算出负平均对数概率.
-
-为了加快训练速度,我们通常会将一批数据(epoch)同时输入进去训练,计算总的loss函数.
-
-另外,我们需要将训练的数据集分成彼此不相关的两部分:
-1. train数据: 用于实际训练
-2. value数据: 用于评估模型效果
-
-#### 训练
-我们设置一个循环次数,并在循环中不断计算训练数据的损失函数,用损失函数来进行反向传播更新参数矩阵.
-
-- 在训练时启动dropout,但在评估和实际推理时都应该关闭dropout
-
-![过拟合问题](PixPin_2026-11-14_13-27-21.webp)
-
-#### 文本生成策略
-如果我们每次输出token都是选取概率最高的,那么对于相同的输入token,多次运行都会得到相同的输出token序列.
-
-有两种策略可以改变生成文本的单调性:
-1. Temperature scaling(温度缩放): 我们通常使用argmax函数直接获取概率最大的token,但也可以用multinomial函数按照logits的概率实际选取token(也就是等概率采样)
-   1. 如果将得到的logits除以一个大于0的数,这被成为温度(temperature),就可以对token的概率进行缩放
-   2. 因为最终归一化logits是用的softmax,要做指数运算,当温度大于1时,token的概率分布会更加分散,当温度小于1时,token的概率分布则会更加集中.
-
-![示意图](PixPin_2026-11-14_20-18-15.webp)
-
-2. Top-k sampling(Top-k采样): 简单使用multinomial的话有极低概率会出现错误或者毫无意义的输出,所以更好的方法是只在概率最高的前k个token中进行采样,将所有未被选中的logits替换为-inf即可.
-### ch6: Fine-tuning for classification
-- 到这里,其实我们的模型已经基本完成了预训练,剩下的则属于后训练了.
-
->指令微调虽然用途更广泛，但需要更大的数据集和更强大的计算资源才能开发出能够胜任各种任务的模型。相比之下，分类微调所需的数据和计算能力较少，但其应用范围仅限于模型训练时所针对的特定类别。
-
-![架构](PixPin_2026-11-14_20-39-06.webp)
-
-
-#### 数据集处理
-本章采用一个垃圾邮件识别的分类微调,只有ham和spam两种类别,所以词表只需要两个token_id: 0和1.
-
-接着我们将数据集分成三部分,70%用于训练,10%用于验证,20%用于测试.验证在训练过程中进行,而测试则在训练结束后进行,这是二者的区别.
-
-鉴于数据集中每条数据的长度不一,如果不统一就不能进行批量训练,而只能逐条数据训练,对此,我们有两种选择:
-* 将所有消息截断为数据集或批次中最短消息的长度。
-* 将所有消息填充到数据集或批次中最长消息的长度。
-
-问题在于第一种方法会丢失信息,极有可能影响模型性能,所以还是采用第二种方法.
-
-![示意图](PixPin_2026-11-14_20-49-33.webp)
-#### 替换输出层为classification head
-
-![示意图](PixPin_2026-11-14_21-08-39.webp)
-
-由于我们使用的是预训练模型，因此无需对所有模型层进行微调。在基于神经网络的语言模型中，底层通常捕捉适用于各种任务和数据集的基本语言结构和语义。因此，只需微调最后几层（即靠近输出层的层），这些层更侧重于细微的语言模式和特定任务的特征，通常就足以使模型适应新的任务。
-
-对于我们这个任务,需要解释一下为什么只需要获取最后一个输入token的输出即可,原因在于我们是用casual attention训练的,只有最后一个token能够获取文本的所有信息.
-
-#### 损失函数
-对于我们这个分类任务,最终只会输出一个二维向量,我们同样可以用softmax归一化处理后获取id0和id1的概率,但由于输出值越大概率就越高,所以用argmax即可得到最终的输出.
-
-我们依旧采用交叉熵损失作为损失函数,但只需要激活最后一层的Transformer块即可.
-
-
-
-
-
-#### Supervised Fine-tuning
-### ch7: Instruction Fine-tuning
-
 ## Apache Kafka in Action
 ### ch1: 介绍
 >Kafka 是一个强大、开源、分布式的流式处理平台，它从根本上改变了组织处理数据流的方式。Kafka 的核心功能是持久化、分布式地记录组织的所有数据事件。
@@ -505,6 +257,11 @@ kafka通过rack参数获知哪个副本距离consumer最近,rack指的是服务�
 好在消费者组记录了每个分区还有多少未读消息,称为lag(延迟),所以我们可以借此获知offset.
 
 ### ch10: 清理消息
+#### 删除策略
+Kafka有两种删除策略:
+1. log retention: 基于时间或者空间删除,删除所有达到一定年龄(即在特定时间之前生成)的消息
+2. log compaction: 基于key清理旧数据,即删除过时的key-value对,只保留最新的有效记录
+
 
 ## Reinforcement Learning from Human Feedback
 ### 前言
@@ -584,29 +341,7 @@ p(s_{t+1}\mid s_t,a_t)
 
 
 
-
-
-## 即时消息技术剖析与实战
-### ch0
-其实，除了QQ和微信外，陌陌、抖音等直播业务为主的App也都深度用到了IM相关的技术。
-
-比如在线学习软件中的“实时在线白板”，导航打车软件中的“实时位置共享”，以及和我们生活密切相关的智能家居的“远程控制”，也都会通过IM技术来提升人和人、人和物的实时互动性。
-
-我觉得可以这么理解：**包括聊天、直播、在线客服、物联网等这些业务领域在内，所有需要“实时互动”“高实时性”的场景，都需要、也应该用到IM技术。**
-
-![示意图](PixPin_2026-11-13_09-14-25.webp)
-### ch1: 架构
-![架构图](PixPin_2026-11-13_09-20-06.webp)
-
-了让用户在App未打开时，或者在后台运行时，也能接收到新消息，我们会将消息给到第三方外部接口服务，来通过手机操作系统自身的公共连接服务来进行操作系统级的“消息推送”，通过这种方式下发的消息一般会在手机的“通知栏”对用户进行提醒和展示。
-
-这种最常用的第三方系统推送服务有苹果手机自带的APNs（Apple Push Notification service）服务、安卓手机内置的谷歌公司的GCM（Google Cloud Messaging）服务等。
-
-但GCM服务在国内无法使用，为此很多国内手机厂商在各自手机系统中，也提供类似的公共系统推送服务，如小米、华为、OPPO、vivo等手机厂商都有相应的SDK提供支持。
-
-### ch2: 收发架构
-![设计图](PixPin_2026-11-13_09-34-44.webp)
-
+## Build an AI Agent 
 
 
 
@@ -1595,6 +1330,46 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 ### 
 很值得看,但现在看还是有点早了
 # 基础
+## 即时消息技术剖析与实战
+### ch0
+其实，除了QQ和微信外，陌陌、抖音等直播业务为主的App也都深度用到了IM相关的技术。
+
+比如在线学习软件中的“实时在线白板”，导航打车软件中的“实时位置共享”，以及和我们生活密切相关的智能家居的“远程控制”，也都会通过IM技术来提升人和人、人和物的实时互动性。
+
+我觉得可以这么理解：**包括聊天、直播、在线客服、物联网等这些业务领域在内，所有需要“实时互动”“高实时性”的场景，都需要、也应该用到IM技术。**
+
+![示意图](PixPin_2026-11-13_09-14-25.webp)
+### ch1: 架构
+![架构图](PixPin_2026-11-13_09-20-06.webp)
+
+了让用户在App未打开时，或者在后台运行时，也能接收到新消息，我们会将消息给到第三方外部接口服务，来通过手机操作系统自身的公共连接服务来进行操作系统级的“消息推送”，通过这种方式下发的消息一般会在手机的“通知栏”对用户进行提醒和展示。
+
+这种最常用的第三方系统推送服务有苹果手机自带的APNs（Apple Push Notification service）服务、安卓手机内置的谷歌公司的GCM（Google Cloud Messaging）服务等。
+
+但GCM服务在国内无法使用，为此很多国内手机厂商在各自手机系统中，也提供类似的公共系统推送服务，如小米、华为、OPPO、vivo等手机厂商都有相应的SDK提供支持。
+
+### ch2: 收发架构
+![设计图](PixPin_2026-11-13_09-34-44.webp)
+### ch3: 轮询与长连接
+聊天类应用的技术有一个发展历程:
+1. 一问一答
+2. 短轮询: 不断发送消息请求
+   1. 太耗资源,负载也高
+3. 长轮询: 当本次请求没有新消息时,会在服务端等待(hang)一段时间,如果有新消息,就马上响应返回
+   1. 用户量上来之后,负载还是很高
+4. 服务端推送: 由服务器触发消息推送,而非客户端主动触发
+   1. WebSocket: 双方创建持久的长连接,进行随时的双向数据传输
+   2. 同时基于TCP长连接衍生的各种有状态的通信协议，也能够实现服务端主动推送，从而更好解决“消息收发实时性”的问题。
+
+
+
+### 总结
+存个档,以后看
+
+- [链接](https://learn.lianglianglee.com/%e4%b8%93%e6%a0%8f/%e5%8d%b3%e6%97%b6%e6%b6%88%e6%81%af%e6%8a%80%e6%9c%af%e5%89%96%e6%9e%90%e4%b8%8e%e5%ae%9e%e6%88%98/03%20%e8%bd%ae%e8%af%a2%e4%b8%8e%e9%95%bf%e8%bf%9e%e6%8e%a5%ef%bc%9a%e5%a6%82%e4%bd%95%e8%a7%a3%e5%86%b3%e6%b6%88%e6%81%af%e7%9a%84%e5%ae%9e%e6%97%b6%e5%88%b0%e8%be%be%e9%97%ae%e9%a2%98%ef%bc%9f.md)
+
+
+
 ## Test-Driven Development with Python
 ### ch1: 使用Django
 >通常，Web 开发的第一步是安装和配置 Web 框架。下载这个，安装那个，配置其他的，运行脚本……但 TDD 需要不同的思维方式。当你进行 TDD 时，你的脑子里总会有一只“测试山羊”——就像山羊一样，一心只想着测试——不停地叫着：“先测试，先测试！”
@@ -20785,6 +20560,299 @@ SFT数据的来历:
 >Agent 技术仍在飞速演进，一本书追不上所有变化。但如果这本书让你带走的不是某个 API 的具体用法，而是一套能在技术浪潮里保持清醒的判断力，那它就完成了使命。本书全部正文、配图与配套实验代码都是开源的，欢迎你去仓库里把实验亲手跑一遍、提 issue 和 PR——读懂和做出来之间，隔着一条只能靠双手跨过的河。而 Agent 最迷人的地方，正在于它能通过写代码创造新的能力，甚至改进自己；读到这里，你已经握住了“创造”的原则。接下来，去造点什么吧。
 
 我说这是近几年最优秀的中文技术书籍应该不过分吧,时效性高,专业性强,又有配套实验,至少国外目前还是没有这么清晰的书籍的.
+## Build a Large Language Model
+### ch1: 理解LLM
+对LLM的基本介绍
+### ch2: 文本处理
+如果采用一个词对应一个id的方式的话,映射方法如下:
+1. 根据语料库建立映射表
+2. 处理新文本时,已经遇到的词可以被映射为向量,未知词则被映射为`<|unk|>`,并增加一个标记文本结束的`<|endoftext|>`,类似于EOS标记.
+   1. 根据LLM的不同,我们还会按需添加:`BOS`(beginning of sentence),`EOS`(end of sentence),`PAD`(padding)等特殊标记
+
+文中还介绍了tiktoken库,其应用了GPT-2,GPT-3所用的BPE(Byte Pair Encoding)分词器,词汇量总计为50257,可以处理任何未知词,关键在于在不在词汇表里的词分解为更小的子词,甚至是单个字符:
+
+![示例](PixPin_2026-11-08_12-54-31.webp)
+#### 滑动窗口构建训练数据
+鉴于GPT模型是逐词预测的,所以我们可以构造一个差额为1的双数组,通过滑动窗口构建训练数据:
+```py
+context_size = 999
+
+for i in range(1, context_size+1):
+  context = enc_sample[:i]
+  desired = enc_sample[i]
+  print(context, "---->", desired)
+
+# [290] ----> 4920
+# [290, 4920] ----> 2241
+```
+#### 转成embedding
+假设我们的embedding维度是三维,那么我们先根据id来一个随机映射:
+![示意图](PixPin_2026-11-09_11-56-48.webp)
+
+至于为什么随机映射,是因为后面还要通过训练来修改embedding的值.
+
+>理论上,我们可以把ID看成是多为的one-hot编码,然后再与embedding矩阵相乘.
+
+问题在于,如果单纯做ID映射,对于相同的单词,无论在什么位置出现,得到的embedding数组都是相同的,这显然不符合我们做NLP的要求,所以需要注入额外的位置信息.
+
+实现的方法就是给每个映射的embedding再加上一个相对位置嵌入(根据前面token的相对位置设置的向量)或者绝对位置嵌入(根据自己的绝对位置设置的向量),二者合成得到输给LLM的`Input Embeddings`.
+
+原始的Transformer模型采用的是绝对位置编码,而现代LLM采用RoPE方法,即相对位置编码.
+
+绝对位置嵌入有两种设置方式:
+1. 随机初始化,再通过训练学习
+2. 固定为正弦位置编码,Transformer用的就是这个.
+
+### ch3: Attention
+#### 简化表示
+输入token中的一个token对其他每个token分配的注意力分数,是通过将两个token的embedding矩阵相乘得到的.
+
+得到的注意力分数既有可能是负数,也有可能相当巨大,所以我们要进行归一化处理,简单一点的话,就是直接算一个分数占所有分数的比例了,这就是注意力权重:
+
+![示意图](PixPin_2026-11-11_10-07-03.webp)
+
+- 实践中用的则是softmax函数
+
+最终,与单个token相关的上下文向量(context vector)即为所有的embedding与相应的注意力权重相乘,并将所有向量相加后的结果.
+
+![示意图](PixPin_2026-11-11_10-13-11.webp)
+
+如此一来,我们可以先将所有的注意力权重计算出来:
+
+![权重矩阵](PixPin_2026-11-11_10-15-12.webp)
+
+然后计算出所有的上下文向量即可,这就是self-attention的简化版本
+#### 复杂表示
+原始Transformer采用的机制为缩放点积注意力,与简化表示的区别并没有那么大.
+
+该注意力机制引入了三个可训练的维度相同的权重矩阵:Q,K,V,分别用于将embedding的token映射到查询,键和值向量上,记为query,key,value向量.
+
+首先是随机初始化三个权重矩阵,并将对应token的embedding与这三个矩阵相乘得到Q,K,V对应的向量.
+
+我们先计算第二个token的query与所有token的key向量的点积结果,得到query对key的注意力分数:
+![示意图](PixPin_2026-11-11_10-32-55.webp)
+
+归一化处理时,我们将分数除以key向量维度的平方根(如10000维对应除以100)来进行**缩放**,再通过softmax得到注意力权重.
+
+原因如下:
+![示意图](PixPin_2026-11-11_10-42-38.webp)
+
+最终,我们将所有的value向量和注意力权重相乘后相加,就得到了上下文向量.
+
+![诠释图](PixPin_2026-11-11_10-50-02.webp)
+
+#### masked attention
+鉴于LLM的输出不需要考虑未来的token,所以我们需要屏蔽在当前词之后的token,将原来的矩阵变成下三角形状:
+![示意图](PixPin_2026-11-11_10-53-17.webp)
+
+方法很简单,将注意力分数矩阵的上三角清零后,重新计算下三角部分的注意力权重并归一化即可.这就得到了**masked attention**.
+
+另一个方法则是将上三角置为负无穷,然后应用softmax,效果是一样的.
+
+对于得到的注意力权重矩阵,我们可以先用dropout方法对部分注意力权重置零,减少训练期间的过拟合,这被称为**causal attention**.
+#### multi-head attention
+Multi-head Attention由多个Single-head Attention组成,换句话说,每个子Attention模块都有自己的权重,只在输出时对多个子Attention的结果进行汇总:
+![示意图](PixPin_2026-11-12_09-55-32.webp)
+
+这在直观上表现为多组平行的Q,K,V向量和多组上下文向量.
+### ch4: 实现GPT模型
+#### 架构设计
+![架构设计图](PixPin_2026-11-12_10-24-21.webp)
+
+#### Normalization层
+对每个token的embedding进行归一化处理,将均值统一为0,方差统一为1,从而避免参数过大给训练带来影响.
+#### GELU激活的前馈网络
+GELU是ReLU的进阶版,能够提供更优的训练效果:
+![公式](PixPin_2026-11-12_10-28-46.webp)
+
+![对比](PixPin_2026-11-12_10-29-29.webp)
+
+![训练过程](PixPin_2026-11-12_10-33-24.webp)
+
+#### Adding shortcut connections
+shortcut用于在反向传播中缓解梯度消失的问题,这也被称为残差连接:
+![shortcut 示意图](PixPin_2026-11-12_10-42-00.webp)
+
+```python
+class ExampleDeepNeuralNetwork(nn.Module):
+    def __init__(self, layer_sizes, use_shortcut):
+        super().__init__()
+        self.use_shortcut = use_shortcut
+        self.layers = nn.ModuleList([
+            nn.Sequential(nn.Linear(layer_sizes[0], layer_sizes[1]),
+                          GELU()),
+            nn.Sequential(nn.Linear(layer_sizes[1], layer_sizes[2]),
+                          GELU()),
+            nn.Sequential(nn.Linear(layer_sizes[2], layer_sizes[3]),
+                          GELU()),
+            nn.Sequential(nn.Linear(layer_sizes[3], layer_sizes[4]),
+                          GELU()),
+            nn.Sequential(nn.Linear(layer_sizes[4], layer_sizes[5]),
+                          GELU())
+        ])
+
+    def forward(self, x):
+        for layer in self.layers:
+            layer_output = layer(x)
+            if self.use_shortcut and x.shape == layer_output.shape:
+                x = x + layer_output
+            else:
+                x = layer_output
+        return x
+```
+#### 实现Transformer模块
+
+![示意图](PixPin_2026-11-13_08-06-23.webp)
+
+#### GPT模型实现
+GPT采用了权重绑定(weight tying),即输入token的映射矩阵和输出logits的映射矩阵为同一个权重矩阵,均为(50257x768)维,从而可以降低模型的整体内存占用.
+
+不过,现代LLM倾向于使用独立的权重矩阵,从而可以获得更好的训练效果.
+
+通过计算 GPTModel 对象中 1.63 亿个参数的内存需求，并假设每个参数都是一个 32 位浮点数，占用 4 个字节，我们发现模型的总大小为 621.83 MB，这表明即使是相对较小的 LLM 也需要相对较大的存储容量。
+#### 输出文本
+GPT会对每一个输入的token都生成对下一个token的**预测**,那么我们只需要提取输入文本的最后一行对应的50257x1维向量,用softmax处理后即可得到最终的token概率,选取概率最大的token即可,并将其作为下一轮的输入.
+
+- 我们还可以设置一个上下文窗口大小,确保LLM的输出不会超出这些token数量.
+### ch5: Pretraining on unlabeled data
+#### 评估
+为了让LLM输出可读文本,我们需要定义一个输出目标,从而能够评估模型的质量:
+```python
+import torch
+
+inputs = torch.tensor([
+    [16833, 3626, 6100],  # ["every effort moves",
+    [40, 1107, 588]       #  "I really like"]
+])
+
+targets = torch.tensor([
+    [3626, 6100, 345],    # [" effort moves you",
+    [1107, 588, 11311]    #  " really like chocolate"]
+])
+```
+很显然,我们应该让target仅仅针对输入值向前移动一位,否则的话LLM是无法根据上下文来学习的.
+
+模型的训练目标为: 尽可能让target对应token_id的概率最大化.
+
+但对于一句话来说,如果我们要依次预测多个token,那么就需要计算概率乘积以判断输出文本的质量,但这样一来会让数值变得过小,影响训练,所以可以转换成对数后相加得到多个token的概率和.
+
+对于概率和,显然句子越长,那么概率和就会相对越大,直接拿来计算loss的话,就会对训练产生显著的影响,但我们更希望是提升单个token的预测质量,所以需要对概率和取均值,即除以待预测的token数量.
+
+对于log来说,如果真数趋近于1,那么对数值就趋近于0,因此,我们需要让算出来的平均对数概率(average log probability score)尽可能接近0.
+
+但在深度学习中,惯例是要对平均对数概率取反的,即让负平均对数概率趋近于0.
+
+所以,我们最终的loss函数就是这个负平均对数概率,一个简易方法就是用torch的`cross_entropy`一键算出负平均对数概率.
+
+为了加快训练速度,我们通常会将一批数据(epoch)同时输入进去训练,计算总的loss函数.
+
+另外,我们需要将训练的数据集分成彼此不相关的两部分:
+1. train数据: 用于实际训练
+2. value数据: 用于评估模型效果
+
+#### 训练
+我们设置一个循环次数,并在循环中不断计算训练数据的损失函数,用损失函数来进行反向传播更新参数矩阵.
+
+- 在训练时启动dropout,但在评估和实际推理时都应该关闭dropout
+
+![过拟合问题](PixPin_2026-11-14_13-27-21.webp)
+
+#### 文本生成策略
+如果我们每次输出token都是选取概率最高的,那么对于相同的输入token,多次运行都会得到相同的输出token序列.
+
+有两种策略可以改变生成文本的单调性:
+1. Temperature scaling(温度缩放): 我们通常使用argmax函数直接获取概率最大的token,但也可以用multinomial函数按照logits的概率实际选取token(也就是等概率采样)
+   1. 如果将得到的logits除以一个大于0的数,这被成为温度(temperature),就可以对token的概率进行缩放
+   2. 因为最终归一化logits是用的softmax,要做指数运算,当温度大于1时,token的概率分布会更加分散,当温度小于1时,token的概率分布则会更加集中.
+
+![示意图](PixPin_2026-11-14_20-18-15.webp)
+
+2. Top-k sampling(Top-k采样): 简单使用multinomial的话有极低概率会出现错误或者毫无意义的输出,所以更好的方法是只在概率最高的前k个token中进行采样,将所有未被选中的logits替换为-inf即可.
+### ch6: Fine-tuning for classification
+- 到这里,其实我们的模型已经基本完成了预训练,剩下的则属于后训练了.
+
+>指令微调虽然用途更广泛，但需要更大的数据集和更强大的计算资源才能开发出能够胜任各种任务的模型。相比之下，分类微调所需的数据和计算能力较少，但其应用范围仅限于模型训练时所针对的特定类别。
+
+![架构](PixPin_2026-11-14_20-39-06.webp)
+
+
+#### 数据集处理
+本章采用一个垃圾邮件识别的分类微调,只有ham和spam两种类别,所以词表只需要两个token_id: 0和1.
+
+接着我们将数据集分成三部分,70%用于训练,10%用于验证,20%用于测试.验证在训练过程中进行,而测试则在训练结束后进行,这是二者的区别.
+
+鉴于数据集中每条数据的长度不一,如果不统一就不能进行批量训练,而只能逐条数据训练,对此,我们有两种选择:
+* 将所有消息截断为数据集或批次中最短消息的长度。
+* 将所有消息填充到数据集或批次中最长消息的长度。
+
+问题在于第一种方法会丢失信息,极有可能影响模型性能,所以还是采用第二种方法.
+
+![示意图](PixPin_2026-11-14_20-49-33.webp)
+#### 替换输出层为classification head
+
+![示意图](PixPin_2026-11-14_21-08-39.webp)
+
+由于我们使用的是预训练模型，因此无需对所有模型层进行微调。在基于神经网络的语言模型中，底层通常捕捉适用于各种任务和数据集的基本语言结构和语义。因此，只需微调最后几层（即靠近输出层的层），这些层更侧重于细微的语言模式和特定任务的特征，通常就足以使模型适应新的任务。
+
+对于我们这个任务,需要解释一下为什么只需要获取最后一个输入token的输出即可,原因在于我们是用casual attention训练的,只有最后一个token能够获取文本的所有信息.
+
+#### 损失函数
+对于我们这个分类任务,最终只会输出一个二维向量,我们同样可以用softmax归一化处理后获取id0和id1的概率,但由于输出值越大概率就越高,所以用argmax即可得到最终的输出.
+
+我们依旧采用交叉熵损失作为损失函数,但只需要激活最后一层的Transformer块即可.
+
+
+
+
+
+#### Supervised Fine-tuning
+### ch7: Instruction Fine-tuning
+#### 数据集
+首先构造一个指令-输出对数据集,内容如下:
+```python
+{
+    'instruction': 'Identify the correct spelling of the following word.',
+    'input': 'Ocassion', 
+    'output': "The correct spelling is 'Occasion.'"
+}
+```
+常见的两种提示风格如下:
+![图示](PixPin_2026-11-15_09-55-31.webp)
+
+本章将使用Alpaca风格,因为它最流行.
+
+![处理原始json数据](PixPin_2026-11-15_10-01-19.webp)
+
+![batch化数据](PixPin_2026-11-15_10-04-52.webp)
+
+- 50256被换成ID`-100`后,会在计算交叉熵损失时被pytorch默认忽略,从而确保padding不会影响模型训练
+- 之所以保留一个50256是为了让LLM学习什么时候要生成文本结束符,从而判断响应是否完整
+
+在训练时,我们可以对指令部分也换成`-100`,但又有研究表明,不用掩码的效果反而会更好.
+
+#### 评估LLM
+对于IFT来说,输出质量并不是那么好判断的,人工一个个看太累了,一个方法是使用一个训练好的LLM来评估训练模型的输出,我们可以给出以下指令:
+```python
+for entry in test_data[:3]:
+    prompt = (
+        f"Given the input `{format_input(entry)}` "
+        f"and correct output `{entry['output']}`, "
+        f"score the model response `{entry['model_response']}`"
+        f" on a scale from 0 to 100, where 100 is the best score. "
+    )
+    print("\nDataset response:")
+    print(">>", entry['output'])
+    print("\nModel response:")
+    print(">>", entry["model_response"])
+    print("\nScore:")
+    print(">>", query_model(prompt))
+    print("\n-------------------------")
+```
+
+
+
+### 总结
+相见恨晚
 
 # 高级
 
