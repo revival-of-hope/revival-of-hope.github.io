@@ -843,6 +843,395 @@ print(page["content"])
 #### 总结
 综上所述,我们需要的搜索工具最好是能够根据查询自己返回全文的,尽管Exa和Tavily等平台支持智能总结,但架不住用多了要收费啊,那还不如直接用LLM的搜索接口,而久负盛名的SearXNG在RAG方面的表现是最差的,毕竟只能返回元信息,还要经过第二轮的处理.因此,ddgs从中脱颖而出
 
+## PPT制作
+### 概览
+市面上主流的PPT制作skill有两个:
+1. [A公司](https://github.com/anthropics/skills)
+2. [PPT-Master](https://github.com/hugohe3/ppt-master)
+
+#### A公司Skill
+看一下description:
+```yml
+description: "Use this skill any time a .pptx or .potx file is involved in any way — as input, output, or both. This includes: creating slide decks, pitch decks, or presentations; reading, parsing, or extracting text from any .pptx or .potx file (even if the extracted content will be used elsewhere, like in an email or summary); editing, modifying, or updating existing presentations; combining or splitting slide files; working with templates (.potx), layouts, speaker notes, or comments. Trigger whenever the user mentions \"deck,\" \"slides,\" \"presentation,\" or references a .pptx or .potx filename, regardless of what they plan to do with the content afterward. If a .pptx or .potx file needs to be opened, created, or touched, use this skill."
+```
+
+- 指令给的确实详细,只要用到了pptx就要用这个skill去解决.
+
+skill里面对字体,图像,表格都事无巨细地说明了要求,列出了一堆禁止项,skill这么详细,Agent想做错都难.
+
+用到的主要制作工具为pptxgenjs,加了一堆格式检查和验证的python脚本
+#### PPT-Master
+相当相当复杂的一个Skill,看一下这望不到头的脚本文件:
+![图示](PixPin_2026-11-16_22-12-40.webp)
+
+支持pdf,docx,图片识别输入,当然,我们直接将材料和布局交给Agent,让它选用这个skill来制作即可.
+
+底层是用SVG转换和python-pptx设计的,至于到底怎么处理的,属实是有点复杂哈,一段技术路线的文本如下:
+
+>最小语义标记不会削弱这条闭包。自由设计、仅 Brand/Style，以及 Default 的 template_reuse_scope: style 页面采用 flat 的 Slide 本地所有权：所有已表达对象保持在 Slide，不创作 Master/Layout 身份、分层或 placeholder metadata。Default flat 导出器根据当前配色/字体 lock 生成一个属于本项目的干净 Master 和一个 Blank Layout；Quick 的无锁 flat 导出使用转换器默认 theme 壳。两者都不会提升任何 Slide 内容。
+
+
+其实到了现在换一个强力的Agent的话就够了,没必要这么琐碎的处理.
+#### Hermes Skill
+- 再拿一个Hermes的PPT Skill作为对照借鉴
+
+skill的描述简单到了极致:
+```yml
+description: Create, read, edit .pptx decks with python-pptx.
+```
+
+但用到的脚本和约束还是挺丰富的:
+
+![示意图](PixPin_2026-11-16_22-20-32.webp)
+
+
+
+
+### PptxGenJS
+#### 测试效果
+```js
+import pptxgen from "pptxgenjs";
+
+const pptx = new pptxgen();
+pptx.layout = "LAYOUT_WIDE";
+
+const slide = pptx.addSlide();
+
+slide.addText("Hello World", {
+  x: 1,
+  y: 1,
+  w: 5,
+  h: 1,
+  fontSize: 24,
+});
+
+await pptx.writeFile({ fileName: "demo.pptx" });
+```
+用es6写好后,再用node运行即可:
+```bash
+npm install pptxgenjs
+node test.js
+```
+就能产出一个空白页内带有`Hello World`文本的可编辑ppt
+
+如果要复杂点,就是这样的:
+```js
+import pptxgen from "pptxgenjs";
+
+const pptx = new pptxgen();
+
+// 1. 基础设置
+pptx.layout = "LAYOUT_WIDE";
+pptx.author = "Research Team";
+pptx.subject = "研究数据汇报";
+pptx.title = "五波纵向研究示例";
+
+pptx.theme = {
+  headFontFace: "Microsoft YaHei",
+  bodyFontFace: "Microsoft YaHei",
+  lang: "zh-CN",
+};
+
+const C = {
+  navy: "183153",
+  blue: "2F6CA3",
+  gray: "5B6573",
+  light: "EDF3F9",
+  white: "FFFFFF",
+};
+
+// 通用标题函数
+function addTitle(slide, title) {
+  slide.addText(title, {
+    x: 0.7,
+    y: 0.35,
+    w: 11.8,
+    h: 0.55,
+    fontFace: "Microsoft YaHei",
+    fontSize: 26,
+    bold: true,
+    color: C.navy,
+    margin: 0,
+  });
+
+  slide.addShape(pptx.ShapeType.line, {
+    x: 0.7,
+    y: 1.05,
+    w: 11.8,
+    h: 0,
+    line: { color: C.blue, width: 1.5 },
+  });
+}
+
+// 第 1 页：封面
+{
+  const slide = pptx.addSlide();
+  slide.background = { color: C.navy };
+
+  slide.addText("五波纵向研究", {
+    x: 1,
+    y: 2.2,
+    w: 11,
+    h: 1,
+    fontSize: 42,
+    bold: true,
+    color: C.white,
+    align: "center",
+    margin: 0,
+  });
+
+  slide.addText("研究设计与样本概况", {
+    x: 1,
+    y: 3.4,
+    w: 11,
+    h: 0.6,
+    fontSize: 22,
+    color: "CBD9E8",
+    align: "center",
+    margin: 0,
+  });
+}
+
+// 第 2 页：原生图表
+{
+  const slide = pptx.addSlide();
+  addTitle(slide, "五波样本量变化");
+
+  slide.addChart(
+    pptx.ChartType.bar,
+    [
+      {
+        name: "样本人数",
+        labels: ["T1", "T2", "T3", "T4", "T5"],
+        values: [502, 556, 566, 493, 354],
+      },
+    ],
+    {
+      x: 1,
+      y: 1.45,
+      w: 11,
+      h: 4.6,
+      chartColors: [C.blue],
+      showLegend: false,
+      showValue: true,
+      showTitle: false,
+      showCatName: false,
+    },
+  );
+
+  slide.addText("图示：各波实际参与人数", {
+    x: 1,
+    y: 6.3,
+    w: 10,
+    h: 0.35,
+    fontSize: 13,
+    color: C.gray,
+  });
+}
+
+// 第 3 页：数据表格
+{
+  const slide = pptx.addSlide();
+  addTitle(slide, "研究变量");
+
+  const rows = [
+    ["变量", "英文缩写", "量表题数"],
+    ["问题性手机使用", "PMU", "10"],
+    ["社交焦虑", "SA", "23"],
+    ["攻击行为", "AGG", "22"],
+  ];
+
+  slide.addTable(rows, {
+    x: 0.8,
+    y: 1.55,
+    w: 11.5,
+    colW: [5, 3.5, 3],
+    rowH: 0.8,
+    fontSize: 19,
+    fontFace: "Microsoft YaHei",
+    color: C.navy,
+    border: { type: "solid", pt: 0.6, color: "D2DCE6" },
+    margin: 8,
+    autoFit: false,
+  });
+
+  slide.addNotes("本页介绍三个研究变量及对应的测量量表。");
+}
+
+// 生成 PPTX
+await pptx.writeFile({
+  fileName: "research-report.pptx",
+  compression: true,
+});
+
+console.log("PPT 已生成");
+```
+![示意图](PixPin_2026-11-16_20-04-15.webp)
+
+还是很有看头的,如此一来,写PPT就完全成为一个代码活儿了,我们可以精确控制排版和布局,从而产出相当精美的ppt.
+
+#### 支持功能
+该库支持以下功能:
+| 功能               | 主要 API              | 实际用途             |
+| :----------------- | :-------------------- | :------------------- |
+| **创建演示文稿**   | `new pptxgen()`       | 初始化 PPT           |
+| **创建幻灯片**     | `addSlide()`          | 新增页面             |
+| **文本排版**       | `addText()`           | 标题、正文、标注     |
+| **绘制图形**       | `addShape()`          | 卡片、箭头、流程图   |
+| **插入图片**       | `addImage()`          | 照片、Logo、SVG      |
+| **创建原生图表**   | `addChart()`          | 折线图、柱状图、饼图 |
+| **创建表格**       | `addTable()`          | 数据表、对照表       |
+| **插入媒体**       | `addMedia()`          | 音频、视频           |
+| **定义母版**       | `defineSlideMaster()` | 统一品牌与布局       |
+| **添加演讲备注**   | `addNotes()`          | 演讲者讲稿           |
+| **导出文件**       | `writeFile()`         | 保存 .pptx           |
+| **内存中生成文件** | `write()`             | Web API、云端导出    |
+
+
+至于具体怎么写,那还是让AI干吧,我们只要知道有这么个东西,有哪些基本功能,就能正确指挥Agent干活了.
+
+
+### python-pptx
+传统的pptx制作库,支持以下功能:
+| 功能         | 主要 API                  |
+| :----------- | :------------------------ |
+| 新建 PPT     | `Presentation()`          |
+| 打开已有 PPT | `Presentation(path)`      |
+| 新增幻灯片   | `slides.add_slide()`      |
+| 创建文本框   | `shapes.add_textbox()`    |
+| 绘制基本图形 | `shapes.add_shape()`      |
+| 插入图片     | `shapes.add_picture()`    |
+| 创建表格     | `shapes.add_table()`      |
+| 创建原生图表 | `shapes.add_chart()`      |
+| 修改已有图表 | `chart.replace_data()` 等 |
+| 修改演讲备注 | `notes_slide`             |
+| 复用已有母版 | `slide_layouts`           |
+
+示例代码:
+```py
+
+from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.dml.color import RGBColor
+from pptx.enum.text import PP_ALIGN
+from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.chart import XL_CHART_TYPE
+from pptx.chart.data import CategoryChartData
+
+# 创建演示文稿，设置为宽屏
+prs = Presentation()
+prs.slide_width = Inches(13.333)
+prs.slide_height = Inches(7.5)
+
+NAVY = RGBColor(25, 48, 78)
+BLUE = RGBColor(44, 108, 165)
+WHITE = RGBColor(255, 255, 255)
+
+def add_text(slide, content, x, y, w, h, size=24):
+    textbox = slide.shapes.add_textbox(
+        Inches(x), Inches(y),
+        Inches(w), Inches(h)
+    )
+    frame = textbox.text_frame
+    frame.word_wrap = True
+
+    p = frame.paragraphs[0]
+    p.text = content
+    p.font.name = "Microsoft YaHei"
+    p.font.size = Pt(size)
+    p.font.color.rgb = NAVY
+
+    return textbox
+
+
+# 第一页：封面
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+
+background = slide.shapes.add_shape(
+    MSO_SHAPE.RECTANGLE,
+    0, 0, prs.slide_width, prs.slide_height
+)
+background.fill.solid()
+background.fill.fore_color.rgb = NAVY
+background.line.fill.background()
+
+title = add_text(
+    slide, "五波纵向研究",
+    1.0, 2.0, 11.0, 1.2, 42
+)
+
+title.text_frame.paragraphs[0].font.color.rgb = WHITE
+title.text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
+
+# 第二页：图表
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+
+add_text(
+    slide, "五波样本量变化",
+    0.7, 0.4, 11, 0.8, 28
+)
+
+chart_data = CategoryChartData()
+chart_data.categories = ["T1", "T2", "T3", "T4", "T5"]
+
+chart_data.add_series(
+    "样本量",
+    [502, 556, 566, 493, 354]
+)
+
+frame = slide.shapes.add_chart(
+    XL_CHART_TYPE.COLUMN_CLUSTERED,
+    Inches(1), Inches(1.5),
+    Inches(11), Inches(4.7),
+    chart_data
+)
+
+chart = frame.chart
+chart.has_legend = False
+
+# 演讲者备注
+slide.notes_slide.notes_text_frame.text = (
+    "介绍五波追踪调查的样本量变化。"
+)
+
+prs.save("research.pptx")
+```
+至于做出的效果,和pptxgenjs并没有什么差别,但在语法上不得不说是简洁了很多,所以现存的Skill也多以python-pptx为主.
+
+
+### Slidev
+- [官网](https://sli.dev/guide/)
+
+又一个ppt制作利器,能够将md渲染为ppt,官网的示例图片如下:
+
+![图示](PixPin_2026-11-16_22-48-18.webp)
+
+- 效果还是很惊人的
+
+每页ppt通过`---`分隔,通过html元素实现多样化布局:
+```md
+---
+layout: cover
+background: https://sli.dev/demo-cover.png
+---
+
+# Welcome to Slidev!
+
+Presentation Slides for Developers
+
+---
+
+# Page 2
+
+- 📄 Write slides in a single Markdown file
+- 🌈 Themes, code blocks, interactive components
+- 😎 Read the docs to learn more!
+```
+底层通过node来转换成ppt.
+
+鉴于md本身的表达能力比较弱,所以需要引入大量的html元素,不过对于Agent来说确实没差.
+
+但这个库只能用于生成ppt,不能修改现有的ppt,所以削弱了它的适用性.
 
 # Agent Harness
 

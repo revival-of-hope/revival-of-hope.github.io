@@ -1016,5 +1016,227 @@ async def websocket_endpoint(
         )
 ```
 
-鉴于这部分的耦合实在太严重了,所以代码非常难理解,让我们先看一下一个小项目
-## ch3: mini项目学习
+鉴于这部分的耦合实在太严重了,所以代码非常难理解,让我们先看一下一个小项目:
+
+- [仓库](https://github.com/leonh/redis-streams-fastapi-chat)
+
+里面的核心router是这样的:
+```py
+@app.websocket("/ws")
+async def websocket_endpoint(
+    websocket: WebSocket, chat_info: dict = Depends(chat_info_vars)
+):
+    # print('request.hostname', websocket.url.hostname)
+    tenant_id = ":".join([websocket.url.hostname.replace(".", "_"), chat_info["room"]])
+    cvar_tenant.set(tenant_id)
+    cvar_chat_info.set(chat_info)
+
+    # check the user is allowed into the chat room
+    verified = await verify_user_for_room(chat_info)
+    # open connection
+    await websocket.accept()
+    if not verified:
+
+        print("failed verification")
+        print(chat_info)
+        await websocket.close()
+    else:
+
+        # spin up coro's for inbound and outbound communication over the socket
+        await asyncio.gather(
+            ws_recieve(websocket, chat_info), ws_send(websocket, chat_info)
+        )
+
+
+@app.websocket("/ws/moderator")
+async def websocket_moderator_endpoint(
+    websocket: WebSocket, chat_info: dict = Depends(chat_info_vars)
+):
+    # check the user is allowed into the chat room
+    # verified = await verify_user_for_room(chat_info)
+    # open connection
+
+    if not chat_info["username"] == "moderator":
+        print("failed verification")
+        await websocket.close()
+        return
+
+    await websocket.accept()
+    # spin up coro's for inbound and outbound communication over the socket
+    await asyncio.gather(ws_send_moderator(websocket, chat_info))
+```
+
+会发现同样非常难以理解,这我想并非维护者不会写,只是牵扯到redis和websocket后,代码就会自然变得复杂起来,因此,我计划在自己的项目中,先加redis,再加websocket,确保websocket能够尽可能承担更少的职责.
+
+
+## ch3: TDD实践
+当我试图一开始就按照分层架构来编写代码时,我发现根本就无从下手,原因在于分层架构是一个相当抽象的设计,缺乏经验的我脑海里尚不能一下子解析这么多依赖.
+
+接着我想到,要不试试TDD呢,根据小步更改,小步重构的方式来构建代码,确保这次尽量没有任何bug.
+
+### 第一个测试
+在tests文件夹下新建一个`test_begin.py`,编写最小测试用例:
+```py
+def test_fastapi_start():
+    pass
+```
+
+- 一开始我想着要不要写一个conftest.py,后来想到既然连功能都还没开始搭建,又有什么必要先写fixture呢.
+
+我们现在有两个东西要学习:
+1. 如何在测试中检查fastapi是否启动
+   1. 通过TestClient
+2. 如何启动fastapi
+   1. app实例化后,写一个健康检查路由
+
+首先是实现测试:
+```py
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
+def test_fastapi_start():
+    with TestClient(app) as client:
+        response = client.get("/health")
+    assert response == "ok"
+```
+然后实现`main.py`:
+```py
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/health")
+def health_check() -> str:
+    return "ok"
+```
+
+接着在根目录运行测试:
+```bash
+uv run python -m pytest 
+```
+- `-m`表示以python模块方式运行,会将当前工作目录加入了sys.path中,避免因为找不到要用的模块而报错.
+
+测试报错了,看一下原因:
+```bash
+E       AssertionError: assert <Response [200 OK]> == 'ok'
+```
+
+换句话说fastapi返回的是一个Response对象,而不是字符串,那么我们修改测试如下:
+```py
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
+def test_fastapi_start():
+    with TestClient(app) as client:
+        response = client.get("/health")
+    assert response.json() == "ok"
+```
+修改后测试通过.
+
+
+
+### 第二个测试
+考虑一下我们首先要实现哪些用户相关路由:
+1. GET
+   1. `/users`: 管理员获取注册用户列表
+   2. `/users/me`: 用户获取自己主页信息
+   3. `/users/me/friends`: 用户获取联系人列表
+2. POST
+   1. `/users`: 新用户注册
+   2. `/users/me/friends`: 加好友
+3. PATCH
+   1. `/users/me`: 用户更新自己的主页
+4. DELETE
+   1. `/users/me`:用户注销
+   2. `/users/me/friends`: 用户删除好友
+
+
+先不管有没有实现,测试写了再说:
+```py
+def test_get_routers():
+    with TestClient(app) as client:
+        response1 = client.get("/users")
+        response2 = client.get("/users/me")
+        response3 = client.get("/users/me/friends")
+
+    assert response1.json() == "get1"
+    assert response2.json() == "get2"
+    assert response3.json() == "get3"
+
+
+def test_post_routers():
+    with TestClient(app) as client:
+        response1 = client.post("/users")
+        response2 = client.post("/users/me/friends")
+
+    assert response1.json() == "post1"
+    assert response2.json() == "post2"
+
+
+def test_patch_routers():
+    with TestClient(app) as client:
+        response = client.patch("/users/me")
+
+    assert response.json() == "patch"
+
+
+def test_delete_routers():
+    with TestClient(app) as client:
+        response1 = client.delete("/users/me")
+        response2 = client.delete("/users/me/friends")
+
+    assert response1.json() == "delete1"
+    assert response2.json() == "delete2"
+```
+
+非常非常非常明显的是,写这么多TestClient实在是太累了,因此我们这里可以写第一个fixture了,把TestClient包装起来:
+```py
+@pytest.fixture(scope="function")
+def client():
+    with TestClient(app) as client:
+        yield client
+```
+- 之所以用yield,是因为我们要保证client要在我们调用时还能持续生效,而在调用结束后能够自动执行yield之后的部分(也就是终止with函数,清理资源).
+
+于是,测试代码可以初步简化成这个样子:
+```py
+def test_get_routers(client: TestClient):
+    response1 = client.get("/users")
+    response2 = client.get("/users/me")
+    response3 = client.get("/users/me/friends")
+
+    assert response1.json() == "get1"
+    assert response2.json() == "get2"
+    assert response3.json() == "get3"
+
+
+def test_post_routers(client: TestClient):
+    response1 = client.post("/users")
+    response2 = client.post("/users/me/friends")
+
+    assert response1.json() == "post1"
+    assert response2.json() == "post2"
+
+
+def test_patch_routers(client: TestClient):
+    response = client.patch("/users/me")
+
+    assert response.json() == "patch"
+
+
+def test_delete_routers(client: TestClient):
+    response1 = client.delete("/users/me")
+    response2 = client.delete("/users/me/friends")
+
+    assert response1.json() == "delete1"
+    assert response2.json() == "delete2"
+
+```
+
+尽管要写这么多路由和json还是很累,但目前还能接受,等到后面再改进.最重要的是先让测试通过.
+

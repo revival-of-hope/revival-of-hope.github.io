@@ -8,259 +8,119 @@ math: true
 
 # 阅读中
 
-## Apache Kafka in Action
-### ch1: 介绍
->Kafka 是一个强大、开源、分布式的流式处理平台，它从根本上改变了组织处理数据流的方式。Kafka 的核心功能是持久化、分布式地记录组织的所有数据事件。
+## Build an AI Agent 
+### 前言
+>当我们开始构建代理时，框架简直是天赐之物。LangGraph、CrewAI、AutoGen 等框架使得只需几行代码就能搭建一个可运行的智能体。但每当我们试图深入探究，无论是为了理解智能体的行为原因，还是为了修复生产环境中出现的故障，最终都会不得不阅读框架的源代码。当我们深入研究时，会发现同样的问题：每个框架的底层都蕴含着相同的核心理念：消息循环、工具调用、执行上下文、内存、规划和协作。名称和默认值各不相同，但模式却是共通的。
+### ch1: What is an AI agent?
+在着手开发代理之前，我们必须按正确的顺序提出正确的问题。有两个关键决策决定了代理是否是合适的解决方案：
+- Does this task require an LLM?
+- If an LLM is needed, does it require an agent, or will aworkflow suffice?
 
-![架构](PixPin_2026-10-19_10-24-40.webp)
+在任何一个阶段回答“否”都意味着选择更简单、更经济高效的方法。
+### ch2: LLM介绍
+#### 从Hugging Face下载GAIA数据集
 
+```py
+from datasets import load_dataset
 
-### ch2: 入门
-![本书用例](PixPin_2026-10-19_10-29-37.webp)
+level1_problems = load_dataset(
+    "gaia-benchmark/GAIA",
+    "2023_level1",
+    split="validation",
+)
 
-Kafka 默认保留数据七天，但我们也可以设置不删除数据,与go中的channel还是不一样的.
+# 提取第一条 Problem
+problem = level1_problems[0]
 
-我们已成功完成第一个 Kafka 用例，该用例涉及 Kafka 的数据读写操作。首先，我们使用 kafka-topics.sh 命令行工具创建了一个名为 products.prices.changelog 的主题，用于存储所有产品的价格变动。接下来，我们使用 kafka-console-producer.sh 命令将数据写入该主题，捕获价格更新。随后，我们使用 kafka-console-consumer.sh 命令读取并显示这些数据。此外，我们还通过使用多个生产者并行生产数据并使用多个消费者同时读取数据，进一步探索了 Kafka 的用法。通过在 kafka-console-consumer.sh 中使用 --from-beginning 标志，我们访问了历史数据。通过这个过程，我们熟悉了如何使用 Kafka 的命令行工具进行数据读写操作。
+# 提取问题和标准答案
+question = problem["Question"]
+final_answer = problem["Final answer"]
 
-### 补充: compose部署+ui管理
-```yml
-services:
-  kafka:
-    image: apache/kafka:4.1.2
-    container_name: kafka
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:9092:9092"
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-
-      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNAL://:9094,EXTERNAL://:9092
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9094,EXTERNAL://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-
-      CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: 1
-
-      KAFKA_LOG_DIRS: /var/lib/kafka/data
-
-  kafka-ui:
-    image: provectuslabs/kafka-ui:v0.7.2
-    container_name: kafka-ui
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:8080:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9094
-    depends_on:
-      - kafka
+print("Question:", question)
+print("Final Answer:", final_answer)
+```
+每个GAIA数据的格式如下:
+```json
+{
+    'task_id': 'e1fc63a2-da7a-432f-be78-7c4a95598703',
+    'Question': 'If Eliud Kipchoge could maintain his record-making marathon pace '
+                'indefinitely, how many thousand hours would it take him to run '
+                'the distance between the Earth and the Moon at its closest approach? '
+                'Please use the minimum perigee value on the Wikipedia page for the Moon '
+                'when carrying out your calculation. Round your result to the nearest '
+                '1000 hours and do not use any comma separators if necessary.',
+    'Level': 1,
+    'Final answer': '17',
+    'file_name': '',
+    'Annotator Metadata': {
+        'Steps': '1. Googled Eliud Kipchoge marathon pace...',
+        'Tools': '1. A web browser.\n2. A search engine.\n3. A calculator.',
+        'Number of tools': '3'
+    }
+}
 ```
 
-![ui界面](PixPin_2026-11-08_15-45-07.webp)
+Question 字段包含用户向我们的智能体提出的问题。Final answer 是我们要与之比较的真实值——在本例中为 17。file_name 字段指示问题是否包含附件；空字段表示问题没有附件。Annotator Metadata 字段揭示了问题创建者解决该问题所需的工具，包括网络浏览器、搜索引擎和计算器。
 
-看了ui图就能明白,kafka集群只负责创建broker,topic和partition.而producer和consumer通过broker进行信息传输.
-
-### ch3: Kafka topic and messages
-Kafka topics就像是数据库中的表,可以有多个Partition,类似于数据库的备份
-
-
-![kafka结构图](PixPin_2026-11-08_15-42-33.webp)
-
-比如我创建了3个broker,然后只创建了一个topic,这个topic有两个partition,每个partition有两个副本,那么这总共有4个partition,需要有两个Leader:
-![示意图](PixPin_2026-11-08_15-54-50.webp)
-
-Broker1是Partition0的Leader,Broker2是Partition1的Follower,而Broker3是Partition1的Leader,是Partition0的Follower.
-
-- 当 Producer 向 Partition 1 发送新消息时，消息首先写入 Broker 1 上的 Leader 副本。
-- Broker 3 随后从 Leader 拉取新消息，复制到自己的本地日志中。
-
-换句话说:
-* 一个 Partition 在同一时刻只能有一个 Leader。
-* 一个 Broker 可以是多个 Partition 的 Leader，也可以同时是其他 Partition 的 Follower。
-* 不同 Topic 的 Partition 也可以由同一个 Broker 担任 Leader。
-
-
-一般来说,partition的分布是由kafka来将负载均匀分配的.例如,我们再加一个partition的话,结构就会变成这样:
-
-![示意图](PixPin_2026-11-08_16-02-18.webp)
-
-Leader负责接收和发送消息,而Follower负责实现数据冗余,在Leader故障后接管.
-#### messages
-Kafka 对数据类型没有限制，这意味着它内部只处理byte序列,具有高度的灵活性.
-
-唯一需要记住的是，Kafka 针对处理大量小消息进行了优化。消息的最大大小被限制为 1 MB。虽然我们可以调整这个值，但应该避免这样做，因为过大的消息会严重影响性能和资源使用。那么，大量小消息究竟意味着什么呢？极端情况下，这意味着像 LinkedIn 这样的公司在 2019 年每天使用 Kafka 处理大约 7 万亿条消息（不是 70 亿条）。需要注意的是，LinkedIn 当时并非只有一个 Kafka 集群，而是大约 100 个 Kafka 集群。即使是规模较小的部署也能让我们快速处理大量消息。
-
-### ch4: Kafka 作为分布式日志
-#### logs
-日志是一个事件列表,支持两个操作:
-1. 写入: 新条目被添加到列表末尾
-2. 读取: 可以从某个特定条目开始读取,通常会一直读到末尾.
-
-而kafka会根据消息传入顺序自动编号,非常适合存取无穷无尽的日志条目
-#### 分布式原理
->当我们对系统进行垂直扩展时，我们会得到更强大的系统。例如，我们不再使用配备 8 个 CPU 核心和 16 GB 内存的数据库服务器，而是使用配备 64 个 CPU 核心和 256 GB 内存的服务器，希望获得更好的性能。这是一种提升系统性能的简便方法，并且在短期内效果显著。然而，可靠性却并未得到改善。大多数情况下，当我们用更强大的服务器替换旧服务器时，故障概率并不会显著降低。
-
-如果我们对一个topic设置多个partition,那么kafka就会自动将传输到topic的消息负载均衡到各个partition上,如此一来,读取的时候就可能出现顺序问题.
-
-一个顺序机制是key,我们可以显式设置让consumer传输消息时带上key,同时还可以自定义采用的`key`分隔符,挑选partition的方式是通过hash(key)的方式实现的:
-```bash
-# 首先像上面那样创建主题 products.prices.changelog.multi-partitions-keys
-$ kafka-console-producer.sh \
-    --topic products.prices.changelog.multi-partitions-keys \
-    --property parse.key=true \
-    --property key.separator=":" \
-    --bootstrap-server localhost:9092
-> coffee pads:10
-> cola:2
-> cola:1
-> energy drink:3
-> coffee pads:11
-> coffee pads:12
-> energy drink:4
-> coffee pads:10
-# 按 Ctrl-D 取消
-```
-由此一来,有相同key的消息就会被传输到相同的partition,从而保证相同partition中的消息是有序的:
-```bash
-$ kafka-console-consumer.sh \
-    --from-beginning \
-    --topic products.prices.changelog.multi-partitions-keys \
-    --property print.key=true \
-    --property key.separator=":" \
-    --bootstrap-server localhost:9092
-coffee pads:10
-cola:2
-cola:1
-coffee pads:11
-coffee pads:12
-coffee pads:10
-energy drink:3
-energy drink:4
-# 按 Ctrl-C 取消
-Processed a total of 8 messages
-```
-
-这特别适用于用户个人消息的传输,也就是说每个用户的消息都对应了一个独特的key,并能够存储在一个partition中,保证时间顺序.
-
->现在我们可以将这些分区分发给不同的代理，从而平衡代理之间的负载。生产者独立决定哪些数据应该分发到哪些分区。如果不使用键，生产者会以轮询的方式将数据分发到各个分区，即先分发到分区 0，然后是分区 1，依此类推。如果使用键，则会将消息分发到各个分区，使得具有相同键的消息最终位于同一个分区。
-#### 消费者组: 消费者的水平扩展
-在一个消费者组中,一个partition只能被最多一个消费者读取,但一个消费者能够读取多个分区.
-
-消费者组通过内置的分配器来决定哪个分区由哪个消费者消费,我们可以设定不同的策略:
-![设置](PixPin_2026-11-14_22-26-59.webp)
-
-![Round Robin Assignor](PixPin_2026-11-14_22-28-13.webp)
-
-#### kafka的组成部分
-- 协调集群(Coordination cluster): 持续监控集群的当前状态，并检查所有代理是否仍然可达且运行正常。作为这项任务的一部分，它还管理所有活动代理的列表，并负责向集群添加新代理和从中移除现有代理。
-  - 使用Raft或者Paxos共识算法,目前kafka使用的协调集群为KRaft
-- Broker: 负责接收,存储和发送消息
-- Clients: 包括生产者和消费者,指的是连接到集群的任何外部应用程序
-### ch5: Reliability
-#### Acknowledgments(ACK)
-鉴于网络协议不能确保数据传输或者解析成功,所以Kafka使用了自己的ACK机制,确保Broker收到了Producer发送的数据.
-
-kafka有三种ACK配置:
-![示意图](PixPin_2026-11-11_12-32-01.webp)
-
-- 注意：设置 acks=-1 等同于 acks=all。
-
-一个权衡在于,如果设置`acks=0`,那么消息只会被发送一次,至多持久化一次,但如果设置`acks=-1`,那么如果消息成功持久化,但由于网络问题,ACK未返回到Producer的话,就会触发retry机制,导致消息重复发送,这是一个非常严重的问题.
-
-好在Kafka支持给Producer加上幂等性参数: `enable.idempotence=true`,如果重复发送消息,那么Broker就会检查到消息冲突,并只重发ACK而不实际存储.
-
-#### Transactions
-kafka支持在传输中开启事务:
+为了格式化模型的输出,我们引入Pydantic:
 ```python
-from confluent_kafka import Producer
+from pydantic import BaseModel
 
-producer = Producer({
-    'bootstrap.servers': 'localhost:9092',
-    'acks': 'all',
-    'enable.idempotence': True,
-    'partitioner': 'murmur2_random',
-    'transactional.id': 'transaction-1'
-})
-
-producer.init_transactions()
-producer.begin_transaction()
-
-producer.produce("customer.balance",
-                 key="bob", value="-10")
-producer.produce("customer.balance",
-                 key="alice", value="+10")
-
-producer.commit_transaction()
+class GaiaOutput(BaseModel):
+    is_solvable: bool
+    unsolvable_reason: str = ""
+    final_answer: str = ""
 ```
-### ch6: 性能
-一些配置上的细节
-### ch7: 集群管理
-![示意图](PixPin_2026-11-12_11-51-47.webp)
 
-我们建议使用三到五个 controller 节点以提高可靠性，并至少配备三个broker。（四个 controller 与三个 controller 相比并无优势，因为我们仍然只能弥补一个 controller 的故障。）
+模型比较:
+![图片](PixPin_2026-11-16_13-52-04.webp)
 
-KRaft和Zookeeper负责从Broker中选举唯一的Active Controller,Controller负责管理Partition和Broker.
+在20个问题中,只有5个问题是不用工具也能解决的,意味着理论准确率最大也只有25%,但由于LLM在训练时已有内置的互联网知识,所以它们往往能够成功解决那些看似需要外部信息的问题
 
-### ch8: 生成和保存消息
-#### Producer
-![发送消息](PixPin_2026-11-13_13-34-43.webp)
+现在我们有了一个基准：即使功能强大的低级逻辑模型 (LLM) 在没有工具的情况下，也只能解决一小部分一级问题。在第三章中，我们将赋予智能体使用工具的能力，首先从网络搜索开始。然后，我们将回到这些相同的 GAIA 问题，并衡量智能体的性能提升。
+### ch3: Tool use
 
-当设置ack=0时,由于不需要重发消息,所以消息进入buffer后即可批量发送,占用时间短,当设置ack=1或者-1时,由于需要确认ack到达后才能判断是否要重发消息,所以消息会一直占据缓冲区,有导致缓冲区耗尽的风险.
 
-#### Broker
-![流程](PixPin_2026-11-13_14-10-41.webp)
+## The Internals of PostgreSQL
+- [英文原版](https://www.interdb.jp/pg/index.html)
+- [中文翻译](https://pgint.vonng.com/)
+### ch1: 数据库集簇、数据库与数据表
+>数据库集簇（database cluster）是一组数据库（database） 的集合，由一个PostgreSQL服务器管理。第一次听到这个定义也许会令人疑惑，PostgreSQL中的术语“数据库集簇”，并非 意味着“一组数据库服务器”。 一个PostgreSQL服务器只会在单机上运行并管理单个数据库集簇。
 
-1. broker接收producer的消息,放入请求队列中
-2. 将消息写入到文件系统中,由操作系统确保持久化
-3. 确认满足ack条件后,发送ack给producer
-#### 数据和文件结构
-kafka在创建新主题时,首先会在元数据文件中注册该主题,然后会为topic的每个分区单独创建一个子目录,而消息则存在扩展名为`.log`的文件中.
 
-分区本身又可以划分为多个segment(当分区存放的消息长度超过阈值时或者达到一定时间时自动创建新段,阈值默认为1GiB和7天),segment是存放日志文件和索引文件的最小单元:
+>在 PostgreSQL 内部，所有的数据库对象都通过相应的 对象标识符（Object Identifiers, OID） 进行管理，这些标识符是无符号的4字节整型
 
-![示意图](PixPin_2026-11-13_14-24-38.webp)
+![逻辑结构](PixPin_2026-11-16_14-18-03.webp)
 
-如果要删除topic,kafka会先将topic所在的文件夹标记为待删除,并在1分钟后永久删除.
+database cluster本质上是一个文件夹,数据库中每个表和索引都会在相应的子目录下存储为至少一个文件(超过1GiB后会创建第二个文件,以此类推).base文件夹中的每一个子文件夹都对应了一个数据库.
 
-#### Replication(待补充)
-为了避免某些特别慢的副本拖累acks=all时的ack返回,kafka定义了一个In-Sync Replicas(ISR),表示能够跟上Leader Partition的对应Partition集合,如果Follower在最大延迟时间内(如30s)未能处理掉Leader的在某个阈值前的所有消息,那么就将该Partition从ISR中移除.
+![结构图](PixPin_2026-11-16_14-20-25.webp)
 
-如果某个Partition不再响应heartbeat信号,那么也立即将它从ISR中移除.
 
-- 只有ISR中的Partition才有资格被选为Leader
+数据文件(如索引和表)被划分为固定长度的pages(也叫blocks),默认大小为8KiB,每个文件中的页从0开始顺序编号,这被称为block number.
 
-高水位线(High Watermark,HWM)是ISR中所有副本已经消费消息的位置,
+表文件的页面布局如下:
+![示意图](PixPin_2026-11-16_14-25-57.webp)
 
-- 比较繁琐,日后用到再看
+表的页面包含了三种类型的数据：
 
-### ch9: Consuming messages
-默认情况下，kafka-console-consumer.sh 从分区末尾开始读取，而 --from-beginning 标志则从分区开头读取。Kafka 库使用相同的默认设置。当我们启动一个消费者时，它会从读取最新的消息开始。要从分区开头开始读取，我们需要将配置选项 auto.offset.reset 设置为 earliest（默认值为 latest）。
+1. **堆元组（heap tuples）** —— 堆元组就是数据记录本身。它们从页面底部开始依序堆叠。第5.2节与第9章会描述元组的内部结构，这一知识对于理解PostgreSQL并发控制与WAL机制是必须的。
 
-到目前为止，我们一直认为消费者会从分区领导者那里获取消息。这种说法并不完全正确，因为自 Kafka Improvement Proposal 392 起，消费者可以从最近的副本中消费消息。
+2. **行指针（line pointer）** —— 每个行指针占4个字节，保存着指向堆元组的指针。它们也被称为**项目指针（item pointer）**。行指针简单地组织为一个数组，扮演了元组索引的角色。每个索引项从1开始依次编号，称为**偏移号（offset number）**。当向页面中添加新元组时，一个相应的新行指针也会被放入数组中，并指向新添加的元组。
 
-kafka通过rack参数获知哪个副本距离consumer最近,rack指的是服务器的物理或者逻辑分组,从而能够更加精细的调控consumer的消费.
+3. **首部数据（header data）** —— 页面的起始位置分配了由结构 `PageHeaderData` 定义的首部数据。它的大小为24个字节，包含关于页面的元数据。该结构的主要成员变量为：
 
-在传统的消息传递系统中，系统本身会管理哪些消息发送给哪些消费者。然而，在 Kafka 中，消费者需要负责跟踪来自各个分区的消息。这意味着消费者必须记录哪些消息已经读取，哪些消息尚未读取。在 Kafka 中，这是通过offset来实现的。
+   - `pd_lsn` —— 本页面最近一次变更所写入XLOG记录对应的LSN。它是一个8字节无符号整数，与WAL机制相关，**第9章**将详细展开。
+   - `pd_checksum` —— 本页面的校验和值。（注意只有在9.3或更高版本才有此变量，早期版中该字段用于存储页面的时间线标识）
+   - `pd_lower`, `pd_upper` —— `pd_lower` 指向行指针的末尾，`pd_upper` 指向最新堆元组的起始位置。
+   - `pd_special` —— 在索引页中会用到该字段。在堆表页中它指向页尾。（在索引页中它指向特殊空间的起始位置，特殊空间是仅由索引使用的特殊数据区域，包含特定的数据，具体内容依索引的类型而定，如B树，GiST，GiN等。
 
-生成一条消息时,它会被分配唯一的offset,第一条为0,第二条为1,以此类推,即便某些消息被删除,其他消息的offset也保持不变.
+访问heap tuples有两种方法:
+1. 顺序扫描: 用行指针依次读取所有页面中的所有元组
+2. B树索引扫描: 索引文件中的元组存储的是索引元组，索引元组由一个键值对组成，键为被索引的列值，值为目标堆元组的TID(即页号加offset)
 
-但对于消费者来说,我们希望保持服务的无状态性,而不需要主动存储消息的offset,否则一旦服务重启,就需要迁移offset数据.我们可以通过创建一个额外的offset表存在数据库里面,但终归比较麻烦.
-
-好在消费者组记录了每个分区还有多少未读消息,称为lag(延迟),所以我们可以借此获知offset.
-
-### ch10: 清理消息
-#### 删除策略
-Kafka有两种删除策略:
-1. log retention: 基于时间或者空间删除,删除所有达到一定年龄(即在特定时间之前生成)的消息
-2. log compaction: 基于key清理旧数据,即删除过时的key-value对,只保留最新的有效记录
+![示意图](PixPin_2026-11-16_14-38-03.webp)
+### ch2: 进程和内存架构
 
 
 ## Reinforcement Learning from Human Feedback
@@ -338,17 +198,29 @@ p(s_{t+1}\mid s_t,a_t)
 ![RLHF环路](PixPin_2026-11-14_23-11-23.webp)
 
 ### ch4: IFT
+介绍了Chat Template和IFT的一些基本原理,可跳过.
+### ch5: 奖励模型(Reward Model)
+>最常见的奖励模型（RM）,被称为Bradley–Terry奖励模型,也是本章的主要讨论对象
+#### Training a Bradley–Terry reward model
+BT RM假设每个item都有一个大于零的强度p_i,在比较两个item时,使用该公式进行计算:
 
+![公式图](PixPin_2026-11-16_10-26-21.webp)
 
+通常,该公式会用指数形式改写:
+\[
+P(i>j)=\frac{e^{r_i}}{e^{r_i}+e^{r_j}}=\sigma(r_i-r_j).
+\]
 
-## Build an AI Agent 
+- 其中,σ表示sigmoid函数.
 
+>如果我们同时给p_i和p_j加一个倍数,并不会影响p(i>j)的值
 
+在给定一个提示词x下,我们得到两个LLM的输出y_1和y_2,那么评分模型就变成了这样:
 
-## The Internals of PostgreSQL
-- [英文原版](https://www.interdb.jp/pg/index.html)
-- [中文翻译](https://pgint.vonng.com/)
-
+\[
+P(y_1>y_2\mid x)=\frac{\exp(r_\theta(y_1\mid x))}{\exp(r_\theta(y_1\mid x))+\exp(r_\theta(y_2\mid x))}.
+\]
+#### 实现
 
 # 先放着
 ## 深入理解 AI Infra
@@ -1329,6 +1201,271 @@ Elasticsearch按节点和数据类型对数据进行分类。每个节点都有�
 介绍了数据库原型System R,数据库新秀Postgres和分区数据库Gamma,都是相当重要的论文.
 ### 
 很值得看,但现在看还是有点早了
+## Apache Kafka in Action(待补充)
+### ch1: 介绍
+>Kafka 是一个强大、开源、分布式的流式处理平台，它从根本上改变了组织处理数据流的方式。Kafka 的核心功能是持久化、分布式地记录组织的所有数据事件。
+
+![架构](PixPin_2026-10-19_10-24-40.webp)
+
+
+### ch2: 入门
+![本书用例](PixPin_2026-10-19_10-29-37.webp)
+
+Kafka 默认保留数据七天，但我们也可以设置不删除数据,与go中的channel还是不一样的.
+
+我们已成功完成第一个 Kafka 用例，该用例涉及 Kafka 的数据读写操作。首先，我们使用 kafka-topics.sh 命令行工具创建了一个名为 products.prices.changelog 的主题，用于存储所有产品的价格变动。接下来，我们使用 kafka-console-producer.sh 命令将数据写入该主题，捕获价格更新。随后，我们使用 kafka-console-consumer.sh 命令读取并显示这些数据。此外，我们还通过使用多个生产者并行生产数据并使用多个消费者同时读取数据，进一步探索了 Kafka 的用法。通过在 kafka-console-consumer.sh 中使用 --from-beginning 标志，我们访问了历史数据。通过这个过程，我们熟悉了如何使用 Kafka 的命令行工具进行数据读写操作。
+
+### 补充: compose部署+ui管理
+```yml
+services:
+  kafka:
+    image: apache/kafka:4.1.2
+    container_name: kafka
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNAL://:9094,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9094,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: 1
+
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka-ui
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9094
+    depends_on:
+      - kafka
+```
+
+![ui界面](PixPin_2026-11-08_15-45-07.webp)
+
+看了ui图就能明白,kafka集群只负责创建broker,topic和partition.而producer和consumer通过broker进行信息传输.
+
+### ch3: Kafka topic and messages
+Kafka topics就像是数据库中的表,可以有多个Partition,类似于数据库的备份
+
+
+![kafka结构图](PixPin_2026-11-08_15-42-33.webp)
+
+比如我创建了3个broker,然后只创建了一个topic,这个topic有两个partition,每个partition有两个副本,那么这总共有4个partition,需要有两个Leader:
+![示意图](PixPin_2026-11-08_15-54-50.webp)
+
+Broker1是Partition0的Leader,Broker2是Partition1的Follower,而Broker3是Partition1的Leader,是Partition0的Follower.
+
+- 当 Producer 向 Partition 1 发送新消息时，消息首先写入 Broker 1 上的 Leader 副本。
+- Broker 3 随后从 Leader 拉取新消息，复制到自己的本地日志中。
+
+换句话说:
+* 一个 Partition 在同一时刻只能有一个 Leader。
+* 一个 Broker 可以是多个 Partition 的 Leader，也可以同时是其他 Partition 的 Follower。
+* 不同 Topic 的 Partition 也可以由同一个 Broker 担任 Leader。
+
+
+一般来说,partition的分布是由kafka来将负载均匀分配的.例如,我们再加一个partition的话,结构就会变成这样:
+
+![示意图](PixPin_2026-11-08_16-02-18.webp)
+
+Leader负责接收和发送消息,而Follower负责实现数据冗余,在Leader故障后接管.
+#### messages
+Kafka 对数据类型没有限制，这意味着它内部只处理byte序列,具有高度的灵活性.
+
+唯一需要记住的是，Kafka 针对处理大量小消息进行了优化。消息的最大大小被限制为 1 MB。虽然我们可以调整这个值，但应该避免这样做，因为过大的消息会严重影响性能和资源使用。那么，大量小消息究竟意味着什么呢？极端情况下，这意味着像 LinkedIn 这样的公司在 2019 年每天使用 Kafka 处理大约 7 万亿条消息（不是 70 亿条）。需要注意的是，LinkedIn 当时并非只有一个 Kafka 集群，而是大约 100 个 Kafka 集群。即使是规模较小的部署也能让我们快速处理大量消息。
+
+### ch4: Kafka 作为分布式日志
+#### logs
+日志是一个事件列表,支持两个操作:
+1. 写入: 新条目被添加到列表末尾
+2. 读取: 可以从某个特定条目开始读取,通常会一直读到末尾.
+
+而kafka会根据消息传入顺序自动编号,非常适合存取无穷无尽的日志条目
+#### 分布式原理
+>当我们对系统进行垂直扩展时，我们会得到更强大的系统。例如，我们不再使用配备 8 个 CPU 核心和 16 GB 内存的数据库服务器，而是使用配备 64 个 CPU 核心和 256 GB 内存的服务器，希望获得更好的性能。这是一种提升系统性能的简便方法，并且在短期内效果显著。然而，可靠性却并未得到改善。大多数情况下，当我们用更强大的服务器替换旧服务器时，故障概率并不会显著降低。
+
+如果我们对一个topic设置多个partition,那么kafka就会自动将传输到topic的消息负载均衡到各个partition上,如此一来,读取的时候就可能出现顺序问题.
+
+一个顺序机制是key,我们可以显式设置让consumer传输消息时带上key,同时还可以自定义采用的`key`分隔符,挑选partition的方式是通过hash(key)的方式实现的:
+```bash
+# 首先像上面那样创建主题 products.prices.changelog.multi-partitions-keys
+$ kafka-console-producer.sh \
+    --topic products.prices.changelog.multi-partitions-keys \
+    --property parse.key=true \
+    --property key.separator=":" \
+    --bootstrap-server localhost:9092
+> coffee pads:10
+> cola:2
+> cola:1
+> energy drink:3
+> coffee pads:11
+> coffee pads:12
+> energy drink:4
+> coffee pads:10
+# 按 Ctrl-D 取消
+```
+由此一来,有相同key的消息就会被传输到相同的partition,从而保证相同partition中的消息是有序的:
+```bash
+$ kafka-console-consumer.sh \
+    --from-beginning \
+    --topic products.prices.changelog.multi-partitions-keys \
+    --property print.key=true \
+    --property key.separator=":" \
+    --bootstrap-server localhost:9092
+coffee pads:10
+cola:2
+cola:1
+coffee pads:11
+coffee pads:12
+coffee pads:10
+energy drink:3
+energy drink:4
+# 按 Ctrl-C 取消
+Processed a total of 8 messages
+```
+
+这特别适用于用户个人消息的传输,也就是说每个用户的消息都对应了一个独特的key,并能够存储在一个partition中,保证时间顺序.
+
+>现在我们可以将这些分区分发给不同的代理，从而平衡代理之间的负载。生产者独立决定哪些数据应该分发到哪些分区。如果不使用键，生产者会以轮询的方式将数据分发到各个分区，即先分发到分区 0，然后是分区 1，依此类推。如果使用键，则会将消息分发到各个分区，使得具有相同键的消息最终位于同一个分区。
+#### 消费者组: 消费者的水平扩展
+在一个消费者组中,一个partition只能被最多一个消费者读取,但一个消费者能够读取多个分区.
+
+消费者组通过内置的分配器来决定哪个分区由哪个消费者消费,我们可以设定不同的策略:
+![设置](PixPin_2026-11-14_22-26-59.webp)
+
+![Round Robin Assignor](PixPin_2026-11-14_22-28-13.webp)
+
+#### kafka的组成部分
+- 协调集群(Coordination cluster): 持续监控集群的当前状态，并检查所有代理是否仍然可达且运行正常。作为这项任务的一部分，它还管理所有活动代理的列表，并负责向集群添加新代理和从中移除现有代理。
+  - 使用Raft或者Paxos共识算法,目前kafka使用的协调集群为KRaft
+- Broker: 负责接收,存储和发送消息
+- Clients: 包括生产者和消费者,指的是连接到集群的任何外部应用程序
+### ch5: Reliability
+#### Acknowledgments(ACK)
+鉴于网络协议不能确保数据传输或者解析成功,所以Kafka使用了自己的ACK机制,确保Broker收到了Producer发送的数据.
+
+kafka有三种ACK配置:
+![示意图](PixPin_2026-11-11_12-32-01.webp)
+
+- 注意：设置 acks=-1 等同于 acks=all。
+
+一个权衡在于,如果设置`acks=0`,那么消息只会被发送一次,至多持久化一次,但如果设置`acks=-1`,那么如果消息成功持久化,但由于网络问题,ACK未返回到Producer的话,就会触发retry机制,导致消息重复发送,这是一个非常严重的问题.
+
+好在Kafka支持给Producer加上幂等性参数: `enable.idempotence=true`,如果重复发送消息,那么Broker就会检查到消息冲突,并只重发ACK而不实际存储.
+
+#### Transactions
+kafka支持在传输中开启事务:
+```python
+from confluent_kafka import Producer
+
+producer = Producer({
+    'bootstrap.servers': 'localhost:9092',
+    'acks': 'all',
+    'enable.idempotence': True,
+    'partitioner': 'murmur2_random',
+    'transactional.id': 'transaction-1'
+})
+
+producer.init_transactions()
+producer.begin_transaction()
+
+producer.produce("customer.balance",
+                 key="bob", value="-10")
+producer.produce("customer.balance",
+                 key="alice", value="+10")
+
+producer.commit_transaction()
+```
+### ch6: 性能
+一些配置上的细节
+### ch7: 集群管理
+![示意图](PixPin_2026-11-12_11-51-47.webp)
+
+我们建议使用三到五个 controller 节点以提高可靠性，并至少配备三个broker。（四个 controller 与三个 controller 相比并无优势，因为我们仍然只能弥补一个 controller 的故障。）
+
+KRaft和Zookeeper负责从Broker中选举唯一的Active Controller,Controller负责管理Partition和Broker.
+
+### ch8: 生成和保存消息
+#### Producer
+![发送消息](PixPin_2026-11-13_13-34-43.webp)
+
+当设置ack=0时,由于不需要重发消息,所以消息进入buffer后即可批量发送,占用时间短,当设置ack=1或者-1时,由于需要确认ack到达后才能判断是否要重发消息,所以消息会一直占据缓冲区,有导致缓冲区耗尽的风险.
+
+#### Broker
+![流程](PixPin_2026-11-13_14-10-41.webp)
+
+1. broker接收producer的消息,放入请求队列中
+2. 将消息写入到文件系统中,由操作系统确保持久化
+3. 确认满足ack条件后,发送ack给producer
+#### 数据和文件结构
+kafka在创建新主题时,首先会在元数据文件中注册该主题,然后会为topic的每个分区单独创建一个子目录,而消息则存在扩展名为`.log`的文件中.
+
+分区本身又可以划分为多个segment(当分区存放的消息长度超过阈值时或者达到一定时间时自动创建新段,阈值默认为1GiB和7天),segment是存放日志文件和索引文件的最小单元:
+
+![示意图](PixPin_2026-11-13_14-24-38.webp)
+
+如果要删除topic,kafka会先将topic所在的文件夹标记为待删除,并在1分钟后永久删除.
+
+#### Replication(待补充)
+为了避免某些特别慢的副本拖累acks=all时的ack返回,kafka定义了一个In-Sync Replicas(ISR),表示能够跟上Leader Partition的对应Partition集合,如果Follower在最大延迟时间内(如30s)未能处理掉Leader的在某个阈值前的所有消息,那么就将该Partition从ISR中移除.
+
+如果某个Partition不再响应heartbeat信号,那么也立即将它从ISR中移除.
+
+- 只有ISR中的Partition才有资格被选为Leader
+
+高水位线(High Watermark,HWM)是ISR中所有副本已经消费消息的位置,
+
+- 比较繁琐,日后用到再看
+
+### ch9: Consuming messages
+默认情况下，kafka-console-consumer.sh 从分区末尾开始读取，而 --from-beginning 标志则从分区开头读取。Kafka 库使用相同的默认设置。当我们启动一个消费者时，它会从读取最新的消息开始。要从分区开头开始读取，我们需要将配置选项 auto.offset.reset 设置为 earliest（默认值为 latest）。
+
+到目前为止，我们一直认为消费者会从分区领导者那里获取消息。这种说法并不完全正确，因为自 Kafka Improvement Proposal 392 起，消费者可以从最近的副本中消费消息。
+
+kafka通过rack参数获知哪个副本距离consumer最近,rack指的是服务器的物理或者逻辑分组,从而能够更加精细的调控consumer的消费.
+
+在传统的消息传递系统中，系统本身会管理哪些消息发送给哪些消费者。然而，在 Kafka 中，消费者需要负责跟踪来自各个分区的消息。这意味着消费者必须记录哪些消息已经读取，哪些消息尚未读取。在 Kafka 中，这是通过offset来实现的。
+
+生成一条消息时,它会被分配唯一的offset,第一条为0,第二条为1,以此类推,即便某些消息被删除,其他消息的offset也保持不变.
+
+但对于消费者来说,我们希望保持服务的无状态性,而不需要主动存储消息的offset,否则一旦服务重启,就需要迁移offset数据.我们可以通过创建一个额外的offset表存在数据库里面,但终归比较麻烦.
+
+好在消费者组记录了每个分区还有多少未读消息,称为lag(延迟),这被存储在topic之中,所以我们可以借此获知offset.
+
+### ch10: 清理消息
+#### 删除策略
+Kafka有两种删除策略:
+1. log retention: 基于时间或者空间删除,删除所有达到一定年龄(即在特定时间之前生成)的消息
+2. log compaction: 基于key清理旧数据,即删除过时的key-value对,只保留最新的有效记录
+
+我们的删除都是以segment作为最小单位的,因此只要我们定期向某个segment中写入消息,该segment就无法被log retention策略删除,因此我们呢可以针对segment中最旧的消息也做出限制.
+
+压缩时,日志清理器的工作原理如下:
+
+1. 首先检查未压缩的段，并记录每个键的最新偏移量
+2. 从最早的消息开始读取。日志清理器会跳过过时的键或消息（即已被更新条目覆盖的键），并将保留的消息写入新的段。
+3. 一旦新段写满，旧段便会被这个干净的新段替换。
+4. 这也解释了为什么日志清理器最多只需要一个段大小的额外存储空间。
+### 总结
+还有很多实战内容,以后来看
+
 # 基础
 ## 即时消息技术剖析与实战
 ### ch0
