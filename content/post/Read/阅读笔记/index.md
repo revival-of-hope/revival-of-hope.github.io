@@ -79,6 +79,87 @@ class GaiaOutput(BaseModel):
 
 现在我们有了一个基准：即使功能强大的低级逻辑模型 (LLM) 在没有工具的情况下，也只能解决一小部分一级问题。在第三章中，我们将赋予智能体使用工具的能力，首先从网络搜索开始。然后，我们将回到这些相同的 GAIA 问题，并衡量智能体的性能提升。
 ### ch3: Tool use
+#### 工具定义
+```python
+calculator_tool_definition = {
+    "type": "function",
+    "function": {
+        "name": "calculator",
+        "description": "Perform basic arithmetic operations.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "operator": {
+                    "type": "string",
+                    "description": "Arithmetic operation to perform",
+                    "enum": ["add", "subtract", "multiply", "divide"]
+                },
+                "first_number": {
+                    "type": "number",
+                    "description": "First number for the calculation"
+                },
+                "second_number": {
+                    "type": "number",
+                    "description": "Second number for the calculation"
+                }
+            },
+            "required": ["operator", "first_number", "second_number"]
+        }
+    }
+}
+```
+上述为Chat Completions API的格式,如果是Responses API的话,则是这样的:
+```py
+tools = [
+    {
+        "type": "function",
+        "name": "calculator",
+        "description": "Perform arithmetic operations",
+        "parameters": {
+            "type": "object",
+            "properties": {}
+        }
+    }
+]
+```
+
+#### 循环
+文中的设计如下:
+```python
+def simple_agent_loop(system_prompt, question):
+    tools = [search_web]
+    tool_box = {tool.__name__: tool for tool in tools}
+    tool_definitions = [function_to_tool_definition(tool) for tool in tools]
+    
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": question}
+    ]
+    
+    while True:
+        response = completion(
+            model="gpt-5-mini",
+            messages=messages,
+            tools=tool_definitions
+        )
+        assistant_message = response.choices[0].message
+        
+        if assistant_message.tool_calls:
+            messages.append(assistant_message)
+            for tool_call in assistant_message.tool_calls:
+                tool_result = tool_execution(tool_box, tool_call)
+                messages.append({
+                    "role": "tool",
+                    "content": str(tool_result),
+                    "tool_call_id": tool_call.id
+                })
+        else:
+            return assistant_message.content
+```
+#### MCP
+![示意图](PixPin_2026-11-17_09-50-20.webp)
+
+### ch4: 实现ReAct
 
 
 ## The Internals of PostgreSQL

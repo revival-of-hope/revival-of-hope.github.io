@@ -938,6 +938,54 @@ async def predict(x: float):
 ```
 yield之前的部分会在应用启动之前执行,yield之后的部分会在应用完成后执行,和pytest的fixture设置一样.
 
+### Uvicorn文档阅读(11/17)
+#### 概览
+先搞清楚一个概念就行:
+
+Uvicorn是ASGI web server,而FastAPI是一个web application,FastAPI再强,也需要Uvicorn来全面负责所有的外部通信,Uvicorn支持什么协议,FastAPI也只能用什么协议.
+
+任何一个能够在Uvicorn上运行的app,都需要满足以下这个原语:
+```py
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+
+    await send({
+        'type': 'http.response.start',
+        'status': 200,
+        'headers': [
+            (b'content-type', b'text/plain'),
+            (b'content-length', b'13'),
+        ],
+    })
+    await send({
+        'type': 'http.response.body',
+        'body': b'Hello, world!',
+    })
+```
+即可通过uvicorn来运行:
+```bash
+uvicorn main:app
+```
+
+当然,也可以写在python代码里:
+```py
+import uvicorn
+
+async def app(scope, receive, send):
+    ...
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", port=5000, log_level="info")
+```
+#### ASGI
+WSGI server不支持WebSocket和长连接,而ASGI不仅支持,还可以运行后台任务和实现I/O并发.
+#### worker
+启动uvicorn时可以指定worker,本质上就是启动了一个父进程后,由这个父进程来管理多个子进程,进程之间彼此独立,分别对应自己的application,所以lifespan也是独立的.
+
+
+### trio文档阅读(11/17)
+asyncio的一个问题在于,当我们创建一个异步的后台任务后,就把它放着不管了,无论是否处理完,是否发生了错误,我们一概不知,必须通过一些特定的函数去获取进度.
+
 
 ## Golang
 ### Gin速通(10/30)

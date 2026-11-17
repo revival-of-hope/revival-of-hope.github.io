@@ -1240,3 +1240,200 @@ def test_delete_routers(client: TestClient):
 
 尽管要写这么多路由和json还是很累,但目前还能接受,等到后面再改进.最重要的是先让测试通过.
 
+首先是在`users.py`中填写占位符:
+```py
+from fastapi import APIRouter
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+
+@router.get("")
+def get_users_list():
+    return "get1"
+
+
+@router.get("/me")
+def get_user_profile():
+    return "get2"
+
+
+@router.get("/me/friends")
+def get_friends():
+    return "get3"
+
+
+@router.post("")
+def create_user():
+    return "post1"
+
+
+@router.post("/me/friends")
+def add_friend():
+    return "post2"
+
+
+@router.patch("/me")
+def update_user_profile():
+    return "patch"
+
+
+@router.delete("/me")
+def delete_user():
+    return "delete1"
+
+
+@router.delete("/me/friends")
+def delete_friend():
+    return "delete2"
+```
+
+接着在api文件夹的main.py中导入router:
+```py
+from app.api.routers import users
+from fastapi import APIRouter
+
+router = APIRouter()
+router.include_router(users.router)
+```
+最终在main.py中启用router:
+```py
+from fastapi import FastAPI
+from app.api.main import router
+
+app = FastAPI()
+app.include_router(router)
+
+
+@app.get("/health")
+def health_check() -> str:
+    return "ok"
+```
+
+运行测试:
+```bash
+uv run python -m pytest -v
+```
+- 全部通过 
+
+### 第三个测试: 启用数据库
+鉴于我们的数据都要存在数据库中,所以越早引入数据库就能越早发现配置上或者代码上的错误,那么现在的问题就有三个:
+1. 如何测试数据库已经启动
+2. 如何启动数据库
+3. 测试的时候是否有必要启动开发数据库
+
+#### 第一个问题
+一般来说,通过compose来启动数据库是最好的,测试和启动一并完成,配置又简单:
+```yml
+services:
+  db:
+    image: postgres:17-alpine
+    ports:
+      - "127.0.0.1:5432:5432"
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres_data:
+```
+问题也是很明显的,每次测试时我们都要显式运行一遍docker,但有时候我们就想在测试时一键启动,不想多走这一步,那也是有方法的
+
+第一个方法是引入Testcontainers库:
+```bash
+pip install "testcontainers[postgres]" "psycopg[binary]" sqlmodel pytest
+```
+然后作为fixture启用即可:
+```py
+
+import pytest
+from sqlalchemy import text
+from testcontainers.postgres import PostgresContainer
+
+from app.db import create_db_engine
+
+@pytest.fixture(scope="session")
+def db_engine():
+    with PostgresContainer(
+        "postgres:17-alpine",
+        driver="psycopg",
+    ) as postgres:
+        engine = create_db_engine(
+            postgres.get_connection_url()
+        )
+
+        try:
+            yield engine
+        finally:
+            engine.dispose()
+
+def test_db_connection(db_engine):
+    with db_engine.connect() as conn:
+        result = conn.execute(text("SELECT 1"))
+        assert result.scalar_one() == 1
+
+def test_postgres_version(db_engine):
+    with db_engine.connect() as conn:
+        version = conn.execute(
+            text("SELECT version()")
+        ).scalar_one()
+
+    assert version.startswith("PostgreSQL")
+```
+
+如此一来,在本次测试中Testcontainer就会启动一个独立的Postgres容器,并在测试结束后销毁容器.
+
+但问题很简单,Testcontainers还是依赖Docker Engine,所以这样还是要启动Docker Desktop,只不过现在的生产数据库和测试数据库隔离开了而已.
+
+另外一个方案就是,用pytest直接调用docker compose,不过嘛,都这样了你还用的生产数据库,那还不如直接显式启动呢.
+
+所以,第一个问题的答案是,**不需要写测试**,直接由docker compose管理,毕竟既然在测试,那么你的开发环境和部署环境就一定是分开的,所以不会有任何影响,至少不会有正常人能够做出来部署环境下运行测试的行为.
+
+#### 第二个问题
+考虑到创建数据库只要给一个DSN即可,那么我们直接在.env中给出,并通过config读取:
+
+```env
+# DB
+POSTGRES_SERVER=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=app
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=123456
+```
+
+然后在compose中写明:
+```yml
+services:
+  db:
+    image: postgres:18-alpine
+    ports:
+      - "127.0.0.1:5432:5432"
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres_data:
+```
+其中，只有 `POSTGRES_DB`、`POSTGRES_USER`、`POSTGRES_PASSWORD` 三个变量会被识别，分别用于初始化数据库名称、初始化数据库用户、初始化数据库密码。
+
+之后则是创建一个settings.py:
+
