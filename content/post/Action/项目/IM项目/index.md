@@ -1436,4 +1436,230 @@ volumes:
 其中，只有 `POSTGRES_DB`、`POSTGRES_USER`、`POSTGRES_PASSWORD` 三个变量会被识别，分别用于初始化数据库名称、初始化数据库用户、初始化数据库密码。
 
 之后则是创建一个settings.py:
+```py
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+)
+
+from pydantic import (
+    computed_field,
+    PostgresDsn,
+)
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file="../.env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    POSTGRES_SERVER: str = "localhost"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_DB: str
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+
+    @computed_field
+    @property
+    def DSN(self) -> PostgresDsn:
+        return PostgresDsn.build(
+            scheme="postgresql+psycopg",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD,
+            host=self.POSTGRES_SERVER,
+            port=self.POSTGRES_PORT,
+            path=self.POSTGRES_DB,
+        )
+
+
+settings = Settings()  # type: ignore
+```
+
+获取连接:
+```py
+from collections.abc import Generator
+from typing import Annotated
+from fastapi import Depends
+from sqlmodel import Session
+
+from app.core.db import engine
+
+
+def get_db() -> Generator[Session]:
+    with Session(engine) as session:
+        yield session
+
+
+SessionDep = Annotated[Session, Depends(get_db)]
+```
+
+接下来就是创建`db.py`,用于实际构建engine和初始化建表了:
+```py
+from app.core.settings import settings
+from sqlmodel import create_engine
+
+engine = create_engine(str(settings.DSN))
+
+
+def init_db() -> None:
+    # import app.models
+    from sqlmodel import SQLModel
+
+    SQLModel.metadata.create_all(engine)
+```
+- 鉴于我们还没写models,所以先注释掉.
+
+鉴于数据库初始化还需要一个单独的脚本文件,所以放在app根目录的`db_init.py`里比较好:
+```py
+from app.core.db import init_db
+
+if __name__ == "__main__":
+    init_db()
+```
+
+现在,我们在第一次测试前,只需要通过init_db实现数据库初始化即可:
+```py
+from collections.abc import Generator
+import pytest
+from fastapi.testclient import TestClient
+from sqlmodel import Session
+
+from app.core.db import init_db, engine
+from app.main import app
+
+
+@pytest.fixture(scope="function")
+def client() -> Generator[TestClient]:
+    with TestClient(app) as client:
+        yield client
+
+
+@pytest.fixture(scope="session")
+def db() -> Generator[Session]:
+    init_db()
+    with Session(engine) as session:
+        yield session
+```
+如此一来,我们每次测试时以db为fixture,即可测试crud效果.但是数据库的健康检查就不用做了,因为compose已经检查过了.
+#### 第三个问题
+最后一个问题在于,尽管之前说只用一个数据库就够了,但认真想一想,我们需不需要考虑弄一个独立的内存数据库来进行测试呢,
+
+换句话说,引入sqlite这样的数据库是否合理.如果用的是sqlmodel,那么用两种数据库的效果是一样的,如果有不适配的地方,那我们也不太可能专门针对sqlite进行适配.
+
+所以,我们就直接用原数据库来测试即可,不用考虑那么多了.
+
+如此一来,我们一开始考量建立的`test_db.py`也就可以直接删除了,因为根本不需要单独测试嘛.换句话说,这次测试还是通过了,因为docker帮我们承担了测试的职责.
+
+
+### 第四个测试: 建表
+鉴于之前有过领域模型和SQLModel转换的惨痛教训,我决定以后的中型项目在service层和repo层就只用SQLModel表了,只要api层用的全是Schema,那么代码还是看上去很美丽的.
+#### 用户表格设计
+现在先让我们想想,我们这个IM项目的用户表格是怎样的:
+1. User类
+   1. 需要有用户名和邮箱(没错,我打算之后引入邮箱)
+   2. 需要有hash密码,由用户登录和注册时输入的密码转换过来
+   3. 用户注册的时间戳,方便用户回顾自己的账号历史
+   4. 朋友列表,用关系实现
+2. Admin类
+   1. 本来想着管理员只要有用户名和邮箱即可,但管理也应该可以建群讨论,所以直接继承用户类即可,不单独建表,换句话说,我们在User下面加一个`is_admin`字段即可
+
+SQLModel一个不太方便的地方在于,没有可以自动加上时间戳的函数,所以我们还要自己配置,最终实现的User类版本如下:
+```py
+from pydantic import EmailStr
+from sqlmodel import SQLModel, Field
+from datetime import datetime, timezone
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class User(SQLModel, table=True):
+    __tablename__: str = "users"
+    id: int = Field(default=None, primary_key=True)
+    name: str = Field(
+        min_length=1,
+        max_length=50,
+    )
+    email: EmailStr | None = Field(default=None, max_length=255)
+    hashed_password: str
+    created_at: datetime = Field(
+        default_factory=utc_now,
+        nullable=False,
+    )
+    is_admin: bool = Field(default=False)
+```
+对于关系来说,其实有点小复杂,首先不能单方面交好友,总要对面同意吧,应该有三种状态:
+
+| 状态     | 含义           |
+| :------- | :------------- |
+| pending  | 等待对方接受   |
+| accepted | 已经成为好友   |
+| rejected | 好友请求被拒绝 |
+
+然后嘛,朋友关系不需要主键,而是用发送请求的用户id和接受请求的用户id构成主键即可.
+
+最终设计如下:
+```py
+class Friendship(SQLModel, table=True):
+    __tablename__: str = "friendships"
+    __table_args__ = (
+        CheckConstraint(
+            "user_id != friend_id",
+            name="ck_no_self_friendship",
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'accepted', 'rejected')",
+            name="ck_friendship_status",
+        ),
+    )
+    user_id: int = Field(
+        foreign_key="users.id",
+        primary_key=True,
+    )
+    friend_id: int = Field(
+        foreign_key="users.id",
+        primary_key=True,
+    )
+    status: str = Field(default="pending")
+
+
+from typing import Literal
+
+FriendshipStatus = Literal[
+    "pending",
+    "accepted",
+    "rejected",
+]
+```
+- 这个设计可以说是最简了吧.
+
+#### 测试设计
+重写`init_db`如下:
+```py
+from app.core.settings import settings
+from sqlmodel import create_engine
+
+engine = create_engine(str(settings.DSN))
+
+
+def init_db() -> None:
+    import app.models.users
+    from sqlmodel import SQLModel
+
+    SQLModel.metadata.create_all(engine)
+```
+那么fixture也要改一改,因为这次是真的会建表,所以也要在测试结束后删除表:
+```py
+@pytest.fixture(scope="session")
+def db() -> Generator[Session]:
+    with Session(engine) as session:
+        init_db()
+        yield session
+        SQLModel.metadata.drop_all(engine)
+```
+接下来是编写实际的models测试文件`test_users.py`:
+
 

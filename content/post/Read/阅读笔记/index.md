@@ -159,8 +159,51 @@ def simple_agent_loop(system_prompt, question):
 #### MCP
 ![示意图](PixPin_2026-11-17_09-50-20.webp)
 
-### ch4: 实现ReAct
+### ch4: 实现ReAct(待补充)
+![示意图](PixPin_2026-11-18_09-43-48.webp)
 
+如果现在没有显式的“思考”步骤，它还能算是 ReAct 吗？是的。推理过程并没有消失；它只是转移到了 LLM 内部。现代 LLM 经过大量工具调用示例的训练，学习识别哪种工具适用于每种情况。当 LLM 选择工具并指定其参数时，它已经在内部完成了推理。
+
+#### Context设计
+消息,工具调用,工具结果的pydantic模型:
+```python
+from typing import Literal, Union
+from pydantic import BaseModel
+
+class Message(BaseModel):
+    """A text message in the conversation."""
+    type: Literal["message"] = "message"
+    role: Literal["system", "user", "assistant"]
+    content: str
+
+class ToolCall(BaseModel):
+    """LLM's request to execute a tool."""
+    type: Literal["tool_call"] = "tool_call"
+    tool_call_id: str
+    name: str
+    arguments: dict
+
+class ToolResult(BaseModel):
+    """Result from tool execution."""
+    type: Literal["tool_result"] = "tool_result"
+    tool_call_id: str
+    name: str
+    status: Literal["success", "error"]
+    content: list
+
+ContentItem = Union[Message, ToolCall, ToolResult]
+```
+
+### ch5: 知识库建立
+#### 概览
+| 场景                | 推荐方法       | 原因                                           |
+| :------------------ | :------------- | :--------------------------------------------- |
+| 精确词/代码搜索     | 关键词搜索     | 需要精确匹配 `get_user_by_id`、错误代码 404 等 |
+| 自然语言问题        | 向量搜索       | 需要语义搜索，例如“如何存储数据”之类的查询     |
+| 基于关系的问题      | 图搜索         | 需要关系遍历，例如“调用此函数的代码”           |
+| 文件夹/文件结构探索 | 基于结构的搜索 | 当结构本身就是信息时，例如 zip 文件或代码库    |
+| 生产环境            | 混合搜索       | 结合多种方法的优势                             |
+#### Practicing vector search
 
 ## The Internals of PostgreSQL
 - [英文原版](https://www.interdb.jp/pg/index.html)
