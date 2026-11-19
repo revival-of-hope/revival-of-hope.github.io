@@ -203,7 +203,10 @@ ContentItem = Union[Message, ToolCall, ToolResult]
 | 基于关系的问题      | 图搜索         | 需要关系遍历，例如“调用此函数的代码”           |
 | 文件夹/文件结构探索 | 基于结构的搜索 | 当结构本身就是信息时，例如 zip 文件或代码库    |
 | 生产环境            | 混合搜索       | 结合多种方法的优势                             |
-#### Practicing vector search
+
+
+callback部分的设计很值得学习.
+### ch6: Adding memory
 
 ## The Internals of PostgreSQL
 - [英文原版](https://www.interdb.jp/pg/index.html)
@@ -345,6 +348,79 @@ P(i>j)=\frac{e^{r_i}}{e^{r_i}+e^{r_j}}=\sigma(r_i-r_j).
 P(y_1>y_2\mid x)=\frac{\exp(r_\theta(y_1\mid x))}{\exp(r_\theta(y_1\mid x))+\exp(r_\theta(y_2\mid x))}.
 \]
 #### 实现
+## The Healthy Programmer, Second Edition
+### ch2: 
+
+### ch6: Preventing Wrist Pain
+您可能意想不到的是，每天使用键盘超过7小时的人患腕管综合征的几率并不比普通人群高。然而，键盘使用者更容易出现腕部疼痛和手部麻木。这些症状不如腕管综合征严重，但您可以使用相同的方法来缓解。
+
+### ch7: 预防头痛和眼疲劳
+CVS（Computer Vision Syndrome，计算机视觉综合征）是一种暂时性疾病，由长时间盯着电脑屏幕引起。其症状包括头痛、眼睛干涩、眼睛发痒、眼睛发红、视力模糊、颈部疼痛、疲劳、复视以及难以重新聚焦。因此，对于大多数程序员来说，CVS 就是他们生活中的常态。
+
+>眨眼可以湿润眼睛，并补充覆盖在角膜上的保护膜。使用电脑时，您眨眼的频率往往会降低——大约比平时少五倍。这会导致眼睛更快干涩。因此，你需要强迫自己眨眼——理想情况下，每隔20分钟有意识地眨一下眼。慢慢闭上眼睛，就像要睡着了一样，重复10次。
+
+眼睛疲劳的主要原因是长时间聚焦于同一深度。想想拿着一个重物——过一段时间后，你需要调整它的位置。这就是为什么锻炼眼睛很重要。遵循“20-20-20”法则——即每隔20分钟将视线从电脑上移开，看向20英尺（6米）外的物体，并注视20秒。
+
+## The Software Engineer's Guidebook
+### ch1: CAREER PATHS
+#### 公司种类
+*   **Big Tech（大型科技公司）**
+    *   **特点**：规模大、上市、雇佣数万名工程师、市值数十亿。
+    *   **代表**：Apple, Google, Microsoft, Amazon。
+    *   **优势**：顶级薪酬、晋升空间大（超越 Staff Engineer）、影响数亿客户、与顶尖人才共事。
+*   **Medium to large tech companies（中大型科技公司）**
+    *   **特点**：技术优先，软件工程是核心业务，规模略小于大厂（数百至数千名工程师）。
+    *   **代表**：Atlassian, Dropbox, Shopify, Snap, Uber。
+    *   **优势**：薪酬和晋升空间接近大厂、工作仍具大规模影响力。
+*   **Scaleups（规模化企业）**
+    *   **特点**：风投支持的后期公司，已实现产品-市场契合（PMF），正投资于增长（可能故意亏损以抢占市场）。
+    *   **代表**：Airtable, Klarna, Notion。子集为“独角兽”（估值≥10亿美元的私营企业）。
+    *   **特征**：高压快速扩张、为下一轮融资或上市做准备。
+*   **Startups（创业公司）**
+    *   **特点**：风投支持、早期融资阶段，正在寻找产品-市场契合（PMF）。
+    *   **代表**：早期 Airbnb（成功蜕变为 Scaleup），Secret（失败倒闭）。
+    *   **特征**：高风险（往往无实质收入）、最大自由度、最不稳定、工作生活平衡需求高、创始人文化影响大。提供股权的公司属于高风险高回报。
+*   **Traditional, non-tech companies with tech divisions（拥有技术部门的传统非科技公司）**
+    *   **特点**：核心业务非技术，技术仅为支撑部门（成本中心），部分公司历史悠久。
+    *   **代表**：IKEA（家居）, JPMorgan Chase（金融）, Pfizer（制药）, Toyota（汽车）, Walmart（零售）。
+    *   **特征**：薪酬低于大厂、晋升路径少（Staff Engineer 以上罕见）、工作相对稳定、工作生活平衡较好。
+*   **Traditional but technology-heavy companies（传统但技术密集型公司）**
+    *   **特点**：技术（硬件/软件）是核心业务，公司发展成熟、可靠、盈利，但组织结构相对僵化。
+    *   **代表**：Broadcom, Cisco, Intel, Nokia, Ericsson, Mercedes-Benz, Saab。
+    *   **特征**：薪酬低于大厂、不轻易采用新工作方式。但工程挑战复杂、工作影响规模大、极度稳定、工程师任期长、工作生活平衡可预测。
+
+#### Typical Paths
+| Level | Individual contributor   | Manager           |
+| :---- | :----------------------- | :---------------- |
+| 1     | Software Engineer        |                   |
+| 2     | Senior Engineer          |                   |
+| 3     | Staff/Principal Engineer | Manager           |
+| 4     |                          | Director          |
+| 5     |                          | VP of Engineering |
+| 6     |                          | CTO               |
+
+典型的单一职业发展路径。薪酬随级别提升而增长，期望值也随之提高。
+
+规模稍大的公司会采用双轨制:
+
+| Level | Individual contributor ladder | Manager ladder           |
+| :---- | :---------------------------- | :----------------------- |
+| 1     | Software engineer             |                          |
+| 2     | Senior engineer               |                          |
+| 3     | Staff engineer                | Manager                  |
+| 4     | Senior staff engineer         | Director                 |
+| 5     | Principal engineer            | Senior director          |
+| 6     | Distinguished engineer        | VP of engineering        |
+| 7     | Fellow                        | Senior VP of engineering |
+| 8     |                               | CTO                      |
+
+典型的双轨制职业发展路径：薪酬和期望值都会随着级别提升而增长。
+#### 成本中心和利润中心
+成本中心流动性更大,挑战更多,晋升更难,裁员的首要目标,利润中心奖金更多,更加平稳,晋升更容易
+
+
+
+
 
 # 先放着
 ## 深入理解 AI Infra
@@ -1589,8 +1665,7 @@ Kafka有两种删除策略:
 4. 这也解释了为什么日志清理器最多只需要一个段大小的额外存储空间。
 ### 总结
 还有很多实战内容,以后来看
-
-# 基础
+# 博文
 ## 即时消息技术剖析与实战
 ### ch0
 其实，除了QQ和微信外，陌陌、抖音等直播业务为主的App也都深度用到了IM相关的技术。
@@ -1630,6 +1705,8 @@ Kafka有两种删除策略:
 - [链接](https://learn.lianglianglee.com/%e4%b8%93%e6%a0%8f/%e5%8d%b3%e6%97%b6%e6%b6%88%e6%81%af%e6%8a%80%e6%9c%af%e5%89%96%e6%9e%90%e4%b8%8e%e5%ae%9e%e6%88%98/03%20%e8%bd%ae%e8%af%a2%e4%b8%8e%e9%95%bf%e8%bf%9e%e6%8e%a5%ef%bc%9a%e5%a6%82%e4%bd%95%e8%a7%a3%e5%86%b3%e6%b6%88%e6%81%af%e7%9a%84%e5%ae%9e%e6%97%b6%e5%88%b0%e8%be%be%e9%97%ae%e9%a2%98%ef%bc%9f.md)
 
 
+
+# 基础
 
 ## Test-Driven Development with Python
 ### ch1: 使用Django

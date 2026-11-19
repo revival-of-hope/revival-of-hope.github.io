@@ -1069,7 +1069,7 @@ async def websocket_moderator_endpoint(
 会发现同样非常难以理解,这我想并非维护者不会写,只是牵扯到redis和websocket后,代码就会自然变得复杂起来,因此,我计划在自己的项目中,先加redis,再加websocket,确保websocket能够尽可能承担更少的职责.
 
 
-## ch3: TDD实践
+## ch3: TDD实践-user部分
 当我试图一开始就按照分层架构来编写代码时,我发现根本就无从下手,原因在于分层架构是一个相当抽象的设计,缺乏经验的我脑海里尚不能一下子解析这么多依赖.
 
 接着我想到,要不试试TDD呢,根据小步更改,小步重构的方式来构建代码,确保这次尽量没有任何bug.
@@ -1661,5 +1661,127 @@ def db() -> Generator[Session]:
         SQLModel.metadata.drop_all(engine)
 ```
 接下来是编写实际的models测试文件`test_users.py`:
+```py
+from sqlmodel import Session
+
+from app.models.users import Friendship, User
 
 
+def test_user_default_values() -> None:
+    user = User(name="Tom", email="test@example.com", hashed_password="test")
+
+    assert user.is_admin is False
+    assert user.created_at is not None
+    assert user.created_at.tzinfo is not None
+
+
+def test_user_creation(db: Session) -> None:
+    user = User(name="test", email="tom@example.com", hashed_password="test")
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    assert user.id is not None
+    assert user.name == "test"
+    assert user.email == "tom@example.com"
+    assert user.hashed_password == "test"
+
+
+def test_friendship_creation(db: Session) -> None:
+    user1 = User(name="Tom", email="tom@example.com", hashed_password="test")
+    user2 = User(name="Jack", email="jack@example.com", hashed_password="test")
+
+    db.add(user1)
+    db.add(user2)
+    db.commit()
+    db.refresh(user1)
+    db.refresh(user2)
+
+    friendship = Friendship(
+        user_id=user1.id,
+        friend_id=user2.id,
+    )
+    db.add(friendship)
+    db.commit()
+
+    assert friendship.status == "pending"
+```
+
+运行测试,完美通过.
+### 第五个测试: repo层
+对照API设计,我们考虑一下需要支持哪些CRUD:
+1. GET
+   1. `/users`: 管理员获取注册用户列表
+      1. get_users_list
+   2. `/users/me`: 用户获取自己主页信息
+      1. get_user_profile
+   3. `/users/me/friends`: 用户获取联系人列表
+      1. get_user_friends
+2. POST
+   1. `/users`: 新用户注册
+      1. create_user
+   2. `/users/me/friends`: 加好友
+      1. add_friend
+3. PATCH
+   1. `/users/me`: 用户更新自己的主页
+      1. update_user_profile
+4. DELETE
+   1. `/users/me`:用户注销
+      1. delete_user
+   2. `/users/me/friends`: 用户删除好友
+      1. delete_friend
+#### 测试设计
+考虑到分层设计,而且以后会加很多repo,我们先做一个repo的基类:
+```py
+from abc import ABC
+from sqlmodel import Session
+
+
+class BaseRepo(ABC):
+    def __init__(self, session: Session) -> None:
+        self._session = session
+```
+然后实现一个UserRepo的占位类:
+```py
+from app.repo.base import BaseRepo
+
+
+class UserRepo(BaseRepo):
+    def get_users_list(): ...
+    def get_user_profile(): ...
+    def get_user_friends(): ...
+    def create_user(): ...
+    def add_friend(): ...
+    def update_user_profile(): ...
+    def delete_user(): ...
+    def delete_friend(): ...
+```
+接下来就是先在fixture里写一个组装了:
+```py
+@pytest.fixture(scope="session")
+def userrepo(db: Session) -> UserRepo:
+    return UserRepo(db)
+```
+
+之后每次调用userrepo时,直接声明参数即可.
+##### 用户工厂
+考虑到每个测试函数都写一遍用户初始化,还要照着填`test@example`实在是太麻烦了,所以我们加一个用户初始化函数:
+```py
+def create_default_user(
+    userrepo: UserRepo,
+    name: str = "Mike",
+    email: str = "test@example.com",
+    hashed_password: str = "test",
+    is_admin: bool = False,
+) -> User:
+    user = userrepo.create_user(
+        name=name,
+        email=email,
+        hashed_password=hashed_password,
+        is_admin=is_admin,
+    )
+    return user
+```
+
+
+#### Repo实现
