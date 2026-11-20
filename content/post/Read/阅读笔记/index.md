@@ -8,205 +8,7 @@ math: true
 
 # 阅读中
 
-## Build an AI Agent 
-### 前言
->当我们开始构建代理时，框架简直是天赐之物。LangGraph、CrewAI、AutoGen 等框架使得只需几行代码就能搭建一个可运行的智能体。但每当我们试图深入探究，无论是为了理解智能体的行为原因，还是为了修复生产环境中出现的故障，最终都会不得不阅读框架的源代码。当我们深入研究时，会发现同样的问题：每个框架的底层都蕴含着相同的核心理念：消息循环、工具调用、执行上下文、内存、规划和协作。名称和默认值各不相同，但模式却是共通的。
-### ch1: What is an AI agent?
-在着手开发代理之前，我们必须按正确的顺序提出正确的问题。有两个关键决策决定了代理是否是合适的解决方案：
-- Does this task require an LLM?
-- If an LLM is needed, does it require an agent, or will aworkflow suffice?
-
-在任何一个阶段回答“否”都意味着选择更简单、更经济高效的方法。
-### ch2: LLM介绍
-#### 从Hugging Face下载GAIA数据集
-
-```py
-from datasets import load_dataset
-
-level1_problems = load_dataset(
-    "gaia-benchmark/GAIA",
-    "2023_level1",
-    split="validation",
-)
-
-# 提取第一条 Problem
-problem = level1_problems[0]
-
-# 提取问题和标准答案
-question = problem["Question"]
-final_answer = problem["Final answer"]
-
-print("Question:", question)
-print("Final Answer:", final_answer)
-```
-每个GAIA数据的格式如下:
-```json
-{
-    'task_id': 'e1fc63a2-da7a-432f-be78-7c4a95598703',
-    'Question': 'If Eliud Kipchoge could maintain his record-making marathon pace '
-                'indefinitely, how many thousand hours would it take him to run '
-                'the distance between the Earth and the Moon at its closest approach? '
-                'Please use the minimum perigee value on the Wikipedia page for the Moon '
-                'when carrying out your calculation. Round your result to the nearest '
-                '1000 hours and do not use any comma separators if necessary.',
-    'Level': 1,
-    'Final answer': '17',
-    'file_name': '',
-    'Annotator Metadata': {
-        'Steps': '1. Googled Eliud Kipchoge marathon pace...',
-        'Tools': '1. A web browser.\n2. A search engine.\n3. A calculator.',
-        'Number of tools': '3'
-    }
-}
-```
-
-Question 字段包含用户向我们的智能体提出的问题。Final answer 是我们要与之比较的真实值——在本例中为 17。file_name 字段指示问题是否包含附件；空字段表示问题没有附件。Annotator Metadata 字段揭示了问题创建者解决该问题所需的工具，包括网络浏览器、搜索引擎和计算器。
-
-为了格式化模型的输出,我们引入Pydantic:
-```python
-from pydantic import BaseModel
-
-class GaiaOutput(BaseModel):
-    is_solvable: bool
-    unsolvable_reason: str = ""
-    final_answer: str = ""
-```
-
-模型比较:
-![图片](PixPin_2026-11-16_13-52-04.webp)
-
-在20个问题中,只有5个问题是不用工具也能解决的,意味着理论准确率最大也只有25%,但由于LLM在训练时已有内置的互联网知识,所以它们往往能够成功解决那些看似需要外部信息的问题
-
-现在我们有了一个基准：即使功能强大的低级逻辑模型 (LLM) 在没有工具的情况下，也只能解决一小部分一级问题。在第三章中，我们将赋予智能体使用工具的能力，首先从网络搜索开始。然后，我们将回到这些相同的 GAIA 问题，并衡量智能体的性能提升。
-### ch3: Tool use
-#### 工具定义
-```python
-calculator_tool_definition = {
-    "type": "function",
-    "function": {
-        "name": "calculator",
-        "description": "Perform basic arithmetic operations.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "operator": {
-                    "type": "string",
-                    "description": "Arithmetic operation to perform",
-                    "enum": ["add", "subtract", "multiply", "divide"]
-                },
-                "first_number": {
-                    "type": "number",
-                    "description": "First number for the calculation"
-                },
-                "second_number": {
-                    "type": "number",
-                    "description": "Second number for the calculation"
-                }
-            },
-            "required": ["operator", "first_number", "second_number"]
-        }
-    }
-}
-```
-上述为Chat Completions API的格式,如果是Responses API的话,则是这样的:
-```py
-tools = [
-    {
-        "type": "function",
-        "name": "calculator",
-        "description": "Perform arithmetic operations",
-        "parameters": {
-            "type": "object",
-            "properties": {}
-        }
-    }
-]
-```
-
-#### 循环
-文中的设计如下:
-```python
-def simple_agent_loop(system_prompt, question):
-    tools = [search_web]
-    tool_box = {tool.__name__: tool for tool in tools}
-    tool_definitions = [function_to_tool_definition(tool) for tool in tools]
-    
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": question}
-    ]
-    
-    while True:
-        response = completion(
-            model="gpt-5-mini",
-            messages=messages,
-            tools=tool_definitions
-        )
-        assistant_message = response.choices[0].message
-        
-        if assistant_message.tool_calls:
-            messages.append(assistant_message)
-            for tool_call in assistant_message.tool_calls:
-                tool_result = tool_execution(tool_box, tool_call)
-                messages.append({
-                    "role": "tool",
-                    "content": str(tool_result),
-                    "tool_call_id": tool_call.id
-                })
-        else:
-            return assistant_message.content
-```
-#### MCP
-![示意图](PixPin_2026-11-17_09-50-20.webp)
-
-### ch4: 实现ReAct(待补充)
-![示意图](PixPin_2026-11-18_09-43-48.webp)
-
-如果现在没有显式的“思考”步骤，它还能算是 ReAct 吗？是的。推理过程并没有消失；它只是转移到了 LLM 内部。现代 LLM 经过大量工具调用示例的训练，学习识别哪种工具适用于每种情况。当 LLM 选择工具并指定其参数时，它已经在内部完成了推理。
-
-#### Context设计
-消息,工具调用,工具结果的pydantic模型:
-```python
-from typing import Literal, Union
-from pydantic import BaseModel
-
-class Message(BaseModel):
-    """A text message in the conversation."""
-    type: Literal["message"] = "message"
-    role: Literal["system", "user", "assistant"]
-    content: str
-
-class ToolCall(BaseModel):
-    """LLM's request to execute a tool."""
-    type: Literal["tool_call"] = "tool_call"
-    tool_call_id: str
-    name: str
-    arguments: dict
-
-class ToolResult(BaseModel):
-    """Result from tool execution."""
-    type: Literal["tool_result"] = "tool_result"
-    tool_call_id: str
-    name: str
-    status: Literal["success", "error"]
-    content: list
-
-ContentItem = Union[Message, ToolCall, ToolResult]
-```
-
-### ch5: 知识库建立
-#### 概览
-| 场景                | 推荐方法       | 原因                                           |
-| :------------------ | :------------- | :--------------------------------------------- |
-| 精确词/代码搜索     | 关键词搜索     | 需要精确匹配 `get_user_by_id`、错误代码 404 等 |
-| 自然语言问题        | 向量搜索       | 需要语义搜索，例如“如何存储数据”之类的查询     |
-| 基于关系的问题      | 图搜索         | 需要关系遍历，例如“调用此函数的代码”           |
-| 文件夹/文件结构探索 | 基于结构的搜索 | 当结构本身就是信息时，例如 zip 文件或代码库    |
-| 生产环境            | 混合搜索       | 结合多种方法的优势                             |
-
-
-callback部分的设计很值得学习.
-### ch6: Adding memory
+## Fine-Tuning AI
 
 ## The Internals of PostgreSQL
 - [英文原版](https://www.interdb.jp/pg/index.html)
@@ -21195,7 +20997,207 @@ for entry in test_data[:3]:
 
 ### 总结
 相见恨晚
+## Build an AI Agent 
+### 前言
+>当我们开始构建代理时，框架简直是天赐之物。LangGraph、CrewAI、AutoGen 等框架使得只需几行代码就能搭建一个可运行的智能体。但每当我们试图深入探究，无论是为了理解智能体的行为原因，还是为了修复生产环境中出现的故障，最终都会不得不阅读框架的源代码。当我们深入研究时，会发现同样的问题：每个框架的底层都蕴含着相同的核心理念：消息循环、工具调用、执行上下文、内存、规划和协作。名称和默认值各不相同，但模式却是共通的。
+### ch1: What is an AI agent?
+在着手开发代理之前，我们必须按正确的顺序提出正确的问题。有两个关键决策决定了代理是否是合适的解决方案：
+- Does this task require an LLM?
+- If an LLM is needed, does it require an agent, or will aworkflow suffice?
 
+在任何一个阶段回答“否”都意味着选择更简单、更经济高效的方法。
+### ch2: LLM介绍
+#### 从Hugging Face下载GAIA数据集
+
+```py
+from datasets import load_dataset
+
+level1_problems = load_dataset(
+    "gaia-benchmark/GAIA",
+    "2023_level1",
+    split="validation",
+)
+
+# 提取第一条 Problem
+problem = level1_problems[0]
+
+# 提取问题和标准答案
+question = problem["Question"]
+final_answer = problem["Final answer"]
+
+print("Question:", question)
+print("Final Answer:", final_answer)
+```
+每个GAIA数据的格式如下:
+```json
+{
+    'task_id': 'e1fc63a2-da7a-432f-be78-7c4a95598703',
+    'Question': 'If Eliud Kipchoge could maintain his record-making marathon pace '
+                'indefinitely, how many thousand hours would it take him to run '
+                'the distance between the Earth and the Moon at its closest approach? '
+                'Please use the minimum perigee value on the Wikipedia page for the Moon '
+                'when carrying out your calculation. Round your result to the nearest '
+                '1000 hours and do not use any comma separators if necessary.',
+    'Level': 1,
+    'Final answer': '17',
+    'file_name': '',
+    'Annotator Metadata': {
+        'Steps': '1. Googled Eliud Kipchoge marathon pace...',
+        'Tools': '1. A web browser.\n2. A search engine.\n3. A calculator.',
+        'Number of tools': '3'
+    }
+}
+```
+
+Question 字段包含用户向我们的智能体提出的问题。Final answer 是我们要与之比较的真实值——在本例中为 17。file_name 字段指示问题是否包含附件；空字段表示问题没有附件。Annotator Metadata 字段揭示了问题创建者解决该问题所需的工具，包括网络浏览器、搜索引擎和计算器。
+
+为了格式化模型的输出,我们引入Pydantic:
+```python
+from pydantic import BaseModel
+
+class GaiaOutput(BaseModel):
+    is_solvable: bool
+    unsolvable_reason: str = ""
+    final_answer: str = ""
+```
+
+模型比较:
+![图片](PixPin_2026-11-16_13-52-04.webp)
+
+在20个问题中,只有5个问题是不用工具也能解决的,意味着理论准确率最大也只有25%,但由于LLM在训练时已有内置的互联网知识,所以它们往往能够成功解决那些看似需要外部信息的问题
+
+现在我们有了一个基准：即使功能强大的低级逻辑模型 (LLM) 在没有工具的情况下，也只能解决一小部分一级问题。在第三章中，我们将赋予智能体使用工具的能力，首先从网络搜索开始。然后，我们将回到这些相同的 GAIA 问题，并衡量智能体的性能提升。
+### ch3: Tool use
+#### 工具定义
+```python
+calculator_tool_definition = {
+    "type": "function",
+    "function": {
+        "name": "calculator",
+        "description": "Perform basic arithmetic operations.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "operator": {
+                    "type": "string",
+                    "description": "Arithmetic operation to perform",
+                    "enum": ["add", "subtract", "multiply", "divide"]
+                },
+                "first_number": {
+                    "type": "number",
+                    "description": "First number for the calculation"
+                },
+                "second_number": {
+                    "type": "number",
+                    "description": "Second number for the calculation"
+                }
+            },
+            "required": ["operator", "first_number", "second_number"]
+        }
+    }
+}
+```
+上述为Chat Completions API的格式,如果是Responses API的话,则是这样的:
+```py
+tools = [
+    {
+        "type": "function",
+        "name": "calculator",
+        "description": "Perform arithmetic operations",
+        "parameters": {
+            "type": "object",
+            "properties": {}
+        }
+    }
+]
+```
+
+#### 循环
+文中的设计如下:
+```python
+def simple_agent_loop(system_prompt, question):
+    tools = [search_web]
+    tool_box = {tool.__name__: tool for tool in tools}
+    tool_definitions = [function_to_tool_definition(tool) for tool in tools]
+    
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": question}
+    ]
+    
+    while True:
+        response = completion(
+            model="gpt-5-mini",
+            messages=messages,
+            tools=tool_definitions
+        )
+        assistant_message = response.choices[0].message
+        
+        if assistant_message.tool_calls:
+            messages.append(assistant_message)
+            for tool_call in assistant_message.tool_calls:
+                tool_result = tool_execution(tool_box, tool_call)
+                messages.append({
+                    "role": "tool",
+                    "content": str(tool_result),
+                    "tool_call_id": tool_call.id
+                })
+        else:
+            return assistant_message.content
+```
+#### MCP
+![示意图](PixPin_2026-11-17_09-50-20.webp)
+
+### ch4: 实现ReAct(待补充)
+![示意图](PixPin_2026-11-18_09-43-48.webp)
+
+如果现在没有显式的“思考”步骤，它还能算是 ReAct 吗？是的。推理过程并没有消失；它只是转移到了 LLM 内部。现代 LLM 经过大量工具调用示例的训练，学习识别哪种工具适用于每种情况。当 LLM 选择工具并指定其参数时，它已经在内部完成了推理。
+
+#### Context设计
+消息,工具调用,工具结果的pydantic模型:
+```python
+from typing import Literal, Union
+from pydantic import BaseModel
+
+class Message(BaseModel):
+    """A text message in the conversation."""
+    type: Literal["message"] = "message"
+    role: Literal["system", "user", "assistant"]
+    content: str
+
+class ToolCall(BaseModel):
+    """LLM's request to execute a tool."""
+    type: Literal["tool_call"] = "tool_call"
+    tool_call_id: str
+    name: str
+    arguments: dict
+
+class ToolResult(BaseModel):
+    """Result from tool execution."""
+    type: Literal["tool_result"] = "tool_result"
+    tool_call_id: str
+    name: str
+    status: Literal["success", "error"]
+    content: list
+
+ContentItem = Union[Message, ToolCall, ToolResult]
+```
+
+### ch5: 知识库建立
+#### 概览
+| 场景                | 推荐方法       | 原因                                           |
+| :------------------ | :------------- | :--------------------------------------------- |
+| 精确词/代码搜索     | 关键词搜索     | 需要精确匹配 `get_user_by_id`、错误代码 404 等 |
+| 自然语言问题        | 向量搜索       | 需要语义搜索，例如“如何存储数据”之类的查询     |
+| 基于关系的问题      | 图搜索         | 需要关系遍历，例如“调用此函数的代码”           |
+| 文件夹/文件结构探索 | 基于结构的搜索 | 当结构本身就是信息时，例如 zip 文件或代码库    |
+| 生产环境            | 混合搜索       | 结合多种方法的优势                             |
+
+
+callback部分的设计很值得学习.
+
+### 总结
+最后两章可以跳过,但前面都是必读的,只不过鉴于文字的表达有限,还是直接看源代码来的更有效果.
 # 高级
 
 

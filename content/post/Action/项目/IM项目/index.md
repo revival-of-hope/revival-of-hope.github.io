@@ -1730,7 +1730,7 @@ def test_friendship_creation(db: Session) -> None:
       1. delete_user
    2. `/users/me/friends`: 用户删除好友
       1. delete_friend
-#### 测试设计
+#### 测试初步设计
 考虑到分层设计,而且以后会加很多repo,我们先做一个repo的基类:
 ```py
 from abc import ABC
@@ -1785,3 +1785,161 @@ def create_default_user(
 
 
 #### Repo实现
+- 这次我不打算先写异常了,反过来,是在写测试的时候发现某些问题代码中没有检查到,这样才会引入异常.
+
+>考虑到用户验证和管理员创建的情况,我们有必要额外引入一个`get_user_by_email`函数,原来的`get_user_profile`则更名为`get_user_by_id`.
+
+前三个函数写起来还是比较顺利的:
+```py
+class UserRepo(BaseRepo):
+    def get_users_list(self, offset: int, limit: int) -> list[User]:
+        statement = (
+            select(User)
+            .order_by(
+                desc(User.created_at),
+                desc(User.id),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
+        users = self._session.exec(statement).all()
+        return list(users)
+
+    def get_user_by_id(self, user_id: int) -> User | None:
+        user = self._session.get(User, user_id)
+        return user
+
+    def get_user_by_email(self, email: str) -> User | None:
+        statement = select(User).where(User.email == email)
+        user = self._session.exec(statement).first()
+        return user
+```
+但是对于选取朋友,我们之前的考虑还是不够周全,有两个问题:
+1. 朋友应该怎么排序,按照名称?还是创建时间?
+   1. 正常情况下,是用创建时间来排的,所以我们要加一个`created_at`字段
+2. 获取朋友列表需要哪些信息?
+   1. 如果单纯拿之前的Friendship,会发现我们只能知道朋友的id,而要获取朋友的具体信息如name和邮箱,就得再过一遍`get_user_by_id`,而且是每个朋友都要过一遍,这显然有问题,那么我们就要在函数设计上下心思了
+
+这个时候我们就会感受到ORM的局限性了,如果使用join,那么我们就要过滤掉hashed_password字段,查询就会变得冗长,如果使用关系隐式加载,那么就会让Model变得冗长.
+
+看一下初步实现的长代码:
+```py
+    def get_user_friends(self, user_id: int) -> list[Friendship]:
+        statement = (
+            select(Friendship, User.id, User.name, User.email)
+            .join(
+                User,
+                or_(
+                    and_(
+                        Friendship.user_id == user_id,
+                        User.id == Friendship.friend_id,
+                    ),
+                    and_(
+                        Friendship.friend_id == user_id,
+                        User.id == Friendship.user_id,
+                    ),
+                ),
+            )
+            .order_by(desc(Friendship.created_at))
+        )
+        lists = self._session.exec(statement).all()
+        return list(lists)
+```
+>中间的处理逻辑非常有趣,如果查询用户是好友发起人,那么就查询好友接受人的信息,如果查询用户是好友接受人,那么就查询好友发起人的信息.
+
+现在的问题在于,我们最终得到的list既不是Friendship,也不是User,需要用一个专门的数据类来封装,考虑到传统,我们将其作为DTO置于repo层内:
+```py
+from datetime import datetime
+
+from pydantic import BaseModel
+
+
+class FriendShipDTO(BaseModel):
+    friend_id: int
+    name: str
+    email: str
+    status: str
+    created_at: datetime
+
+```
+
+最终的函数如下:
+```py
+    def get_user_friends(self, user_id: int) -> list[FriendShipDTO]:
+        statement = (
+            select(Friendship, User.id, User.name, User.email)
+            .join(
+                User,
+                or_(
+                    and_(
+                        Friendship.user_id == user_id,
+                        User.id == Friendship.friend_id,
+                    ),
+                    and_(
+                        Friendship.friend_id == user_id,
+                        User.id == Friendship.user_id,
+                    ),
+                ),
+            )
+            .order_by(desc(Friendship.created_at))
+        )
+
+        rows = self._session.exec(statement).all()
+        return [
+            FriendShipDTO(
+                friend_id=friend_id,
+                name=name,
+                email=email,
+                status=friendship.status,
+                created_at=friendship.created_at,
+            )
+            for friendship, friend_id, name, email in rows
+        ]
+```
+
+就创建用户而言,我以前是把验证已有用户的权限交给service,而hash密码的权限交给repo,如今看来,更合理的设计应该是把验证用户权限和hash密码全都交给上层service.
+
+如此一来,crud的时候就完全不用管会不会有报错,而是一股脑把责任丢给service即可.
+
+先创建一个DTO:
+```py
+class UserCreateDTO(BaseModel):
+    name: str
+    email: str
+    hashed_password: str
+```
+
+然后编写crud,commit职责交给uow:
+```py
+    def create_user(self, userdto: UserCreateDTO) -> User:
+        user = User(
+            name=userdto.name,
+            email=userdto.email,
+            hashed_password=userdto.hashed_password,
+        )
+        self._session.add(user)
+        self._session.flush()
+        return user
+```
+
+>我写的时候在想一个问题,创建用户需不需要返回用户数据呢,毕竟可见的数据都由用户在前端输入了,而不可见的数据也不应该返回.虽然创建token可以将用户id作为payload,但用邮箱来作为加密数据又是否可以,只要私钥不泄露,不是也很好吗.
+>
+>最终又想到,如果用户换了邮箱,或者说这个token被其他人提取出了邮箱信息,那也确实是一个问题,所以还是返回一个用户id比较好.
+
+
+写的时候又发现漏了一个friendship_handler,即用来处理好友请求,而原来的friendship_list也没有考虑三种状态,所以需要重新考量一下.
+
+在models下新建一个datas.py:
+```py
+from enum import StrEnum
+
+
+class FriendshipStatus(StrEnum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    DROPPED = "dropped"
+```
+其中,`dropped`表示曾经是好友,后来被某一方删除了.
+
+
