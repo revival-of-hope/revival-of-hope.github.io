@@ -421,3 +421,18 @@ tags:
 
 (11/19): 移除六小时时限,按照任务表来完成即可,不额外加心理负担
 
+(11/20): 新搭了一个kanban[网站](https://qingzhan-tech-kanban.breezewind6579.chatgpt.site/),打算根据这个来试着学习一下.现在的问题在于我的技术广度是有了,但深度还不够,经不起拷打,所以现在重点转向实战和原理探析,这一个月内(到圣诞节为止)的计划如下:
+
+1. 必须写完IM和Harness项目,Go重写项目暂时放着
+2. 重学巩固操作系统,Linux命令行,系统结构和计算机网络
+   1. 操作系统: `Modern Operating Systems`
+   2. Linux与命令行: `The Linux Programming Interface`和`UNIX环境高级编程`
+   3. 计算机系统结构: `Introduction to Computer Organization`
+   4. 计算机网络: `Computer Networks: A Systems Approach`
+3. 算法保持每日一题的进度,每周空出一天不刷
+4. Agent原理和分布式/云原生基础继续深入学习,课上要学的几本教材速通一下应付考试,除了编译原理(发现确实很有意思).
+5. 每天的最后都需要跟AI面试官battle 30min左右,然后想干嘛干嘛
+6. 每三天确保有一次比较成体系的运动,无论是跑步,散步,还是打球,避免过于压抑.
+
+深切希望一个月后这些任务都能完成🙏
+

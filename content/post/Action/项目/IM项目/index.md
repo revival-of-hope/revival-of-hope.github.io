@@ -1924,12 +1924,12 @@ class UserCreateDTO(BaseModel):
 
 >我写的时候在想一个问题,创建用户需不需要返回用户数据呢,毕竟可见的数据都由用户在前端输入了,而不可见的数据也不应该返回.虽然创建token可以将用户id作为payload,但用邮箱来作为加密数据又是否可以,只要私钥不泄露,不是也很好吗.
 >
->最终又想到,如果用户换了邮箱,或者说这个token被其他人提取出了邮箱信息,那也确实是一个问题,所以还是返回一个用户id比较好.
+>最终又想到,如果用户换了邮箱,或者说这个token被其他人提取出了邮箱信息,那也确实是一个问题,所以还是返回用户id比较好.
 
 
-写的时候又发现漏了一个friendship_handler,即用来处理好友请求,而原来的friendship_list也没有考虑三种状态,所以需要重新考量一下.
+写的时候发现漏了一个friendship_handler,即用来处理好友请求,而原来的friendship_list也没有考虑好友状态,所以需要重新设计一下.
 
-在models下新建一个datas.py:
+在models下新建一个`datas.py`:
 ```py
 from enum import StrEnum
 
@@ -1943,3 +1943,109 @@ class FriendshipStatus(StrEnum):
 其中,`dropped`表示曾经是好友,后来被某一方删除了.
 
 
+现在就要考虑一下原来的`get_user_friends`了,是应该将已接受和待接收的两种朋友关系分开处理呢,还是一次性完成,就我目前来看,一次性完成就行了,只除掉拒绝和删除掉的好友即可.
+
+>不想看到已经拒绝掉和删除掉的好友,我认为是比较合理的.
+
+前端在用户刷新时一次性获取两种好友,并分别展示,在处理完好友请求后直接跳入对话界面,并在后台更新好友列表.
+
+因此更新函数如下:
+```py
+    def get_user_friends(self, user_id: int) -> list[FriendShipDTO]:
+        statement = (
+            select(Friendship, User.id, User.name, User.email)
+            .join(
+                User,
+                or_(
+                    and_(
+                        Friendship.user_id == user_id,
+                        User.id == Friendship.friend_id,
+                    ),
+                    and_(
+                        Friendship.friend_id == user_id,
+                        User.id == Friendship.user_id,
+                    ),
+                ),
+            )
+++            .where(
+                or_(Friendship.status == FriendshipStatus.ACCEPTED),
+                (Friendship.status == FriendshipStatus.PENDING),
+            )
+            .order_by(desc(Friendship.created_at))
+        )
+
+        rows = self._session.exec(statement).all()
+        return [
+            FriendShipDTO(
+                friend_id=friend_id,
+                name=name,
+                email=email,
+                status=friendship.status,
+                created_at=friendship.created_at,
+            )
+            for friendship, friend_id, name, email in rows
+        ]
+```
+
+添加好友的函数如下:
+```py
+def add_friend(self, frienddto: FriendHandlerDTO) -> None:
+        friendship = Friendship(
+            user_id=frienddto.user_id,
+            friend_id=frienddto.friend_id,
+            status=FriendshipStatus.PENDING,
+        )
+        self._session.add(friendship)
+```
+本来想着这个应该返回点什么的,但考虑了一会后发现,啥也不返回也没有任何问题,毕竟只要后端返回了204,那么前端就能体会到隐含信息: 用户发送了好友请求,从而做出相应的页面变化.
+
+至于接收好友请求,操作上也是同理的,但是获取好友这个操作,我们之前并没有实现,考虑到之后的删除好友也要获取一次,不如包装成函数比较好:
+```py
+    def get_friendship(self,frienddto:FriendHandlerDTO)->Friendship|None:
+        statement = select(Friendship).where(
+                    Friendship.user_id == frienddto.friend_id,
+                    Friendship.friend_id == frienddto.user_id,
+                )
+        friendship=self._session.exec(statement).first()
+        return friendship
+```
+
+那么,我们实际的加好友操作就可以简易到惊人了:
+```py
+    def accept_friend(self, friend: Friendship) -> None:
+        friend.status = FriendshipStatus.ACCEPTED
+```
+
+>写到这里,我发现更新用户主页这个功能目前还用不上,所以果断删了,等到后面支持什么换邮箱,换头像的时候再加回来.
+
+接着是删除用户和删除好友:
+```py
+    def delete_user(self, user: User) -> None:
+        self._session.delete(user)
+
+    def delete_friend(self, friend: Friendship) -> None:
+        self._session.delete(friend)
+```
+
+#### 完成测试
+注意到我们之前的fixture中,db产出的session是会话级的,也就是说从测试启动一直到测试结束,我们用的是同一个数据库,所以,必须确保测试数据足够随机,否则就会导致测试彼此污染.
+
+先创建一个`utils`文件夹,然后写入两个文件:
+
+**utils.py**
+```py
+import random
+import string
+
+
+def random_lower_string() -> str:
+    return "".join(random.choices(string.ascii_lowercase, k=32))
+
+
+def random_email() -> str:
+    return f"{random_lower_string()}@{random_lower_string()}.com"
+```
+
+**users.py**
+
+<!-- todo: friend部分的测试只写了add_friend没写同意好友请求 -->
