@@ -1,12 +1,11 @@
 ---
 title: "IM项目"
-date: 2026-11-06T09:20:50+08:00
+date: 2026-11-25T09:20:50+08:00
 description: 项目2-b
 image: 122308550_p0-无题.webp
 tags: 
     - PDL
 math: 
-draft: true
 ---
 >[!NOTE]
 >
@@ -2210,3 +2209,206 @@ class UserRepo(BaseRepo):
         self._session.delete(friend)
         self._session.flush()
 ```
+
+至于测试,则要重新设计一下models层和repo层的.
+#### 重新测试
+##### models测试
+请AI大人出手写了一下测试,毕竟自己写属实有点累了:
+user表的测试没动,但朋友部分需要大改:
+
+```py
+ef test_friendship_creation(db: Session) -> None:
+    user1 = User(name="Tom", email="tom@example.com", hashed_password="test")
+    user2 = User(name="Jack", email="jack@example.com", hashed_password="test")
+
+    db.add_all([user1, user2])
+    db.flush()
+
+    low_id, high_id = sorted((user1.id, user2.id))
+
+    friendship = Friendship(
+        user_low_id=low_id,
+        user_high_id=high_id,
+        requester_id=high_id,
+    )
+
+    db.add(friendship)
+    db.commit()
+    db.refresh(friendship)
+
+    assert friendship.user_low_id == low_id
+    assert friendship.user_high_id == high_id
+    assert friendship.requester_id == high_id
+    assert friendship.status == "pending"
+    assert friendship.created_at is not None
+
+
+@pytest.mark.parametrize(
+    "low, high, requester, status",
+    [
+        (1, 0, 1, "pending"),  # 非法存储顺序
+        (0, 0, 0, "pending"),  # 自我申请
+        (0, 1, 2, "pending"),  # 非法申请人
+        (0, 1, 0, "invalid"),  # 非法状态
+    ],
+    ids=[
+        "invalid_order",
+        "self_request",
+        "invalid_requester",
+        "invalid_status",
+    ],
+)
+def test_friendship_constraints(
+    db: Session,
+    low: int,
+    high: int,
+    requester: int,
+    status: str,
+) -> None:
+    users = [
+        User(
+            name=f"User{i}",
+            email=f"user{i}@example.com",
+            hashed_password="test",
+        )
+        for i in range(3)
+    ]
+
+    db.add_all(users)
+    db.flush()
+
+    ids = sorted(user.id for user in users)
+
+    db.add(
+        Friendship(
+            user_low_id=ids[low],
+            user_high_id=ids[high],
+            requester_id=ids[requester],
+            status=status,
+        )
+    )
+
+    with pytest.raises(IntegrityError):
+        db.flush()
+
+    db.rollback()
+
+
+def test_friendship_duplicate(db: Session) -> None:
+    user1 = User(name="Tom", email="tom@example.com", hashed_password="test")
+    user2 = User(name="Jack", email="jack@example.com", hashed_password="test")
+
+    db.add_all([user1, user2])
+    db.flush()
+
+    low_id, high_id = sorted((user1.id, user2.id))
+
+    db.add(
+        Friendship(
+            user_low_id=low_id,
+            user_high_id=high_id,
+            requester_id=low_id,
+        )
+    )
+    db.flush()
+
+    db.add(
+        Friendship(
+            user_low_id=low_id,
+            user_high_id=high_id,
+            requester_id=high_id,
+        )
+    )
+
+    with pytest.raises(IntegrityError):
+        db.flush()
+
+    db.rollback()
+```
+说实话,这个测试写的还不错,创建朋友当然没问题,测试数据库约束上写的也很完美,最后的检查双重好友也是很有说法的.
+
+##### repo测试
+原来的一百行测试直接变成了两百行,AI大人写起测试来真的是得心应手,不过问题在于我根本没有耐心去详细考量AI的测试写的是否到位,只能用AI去审核,导致恶性循环.
+
+- 不过嘛,暂时先这样吧,日后出了问题再说.
+
+### 第六个测试: service层
+#### uow设计
+仿照先前项目的uow设计,不过这次移除了Self,毕竟确实用不到:
+```py
+from sqlmodel import Session
+from app.repo.users import UserRepo
+
+
+class UOW:
+
+    def __init__(self, session: Session) -> None:
+        self.session = session
+        self.users = UserRepo(session)
+
+    def commit(self):
+        self.session.commit()
+
+    def rollback(self):
+        self.session.rollback()
+
+    def __enter__(self) -> UOW:
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.rollback()
+```
+#### service设计
+到了这里就必须与API进行一一核验了:
+1. GET
+   1. `/users`: 管理员获取注册用户列表
+      1. admin_get_users
+   2. `/users/me`: 用户获取自己主页信息
+      1. get_user_info,对应repo中的get_user_by_id
+   3. `/users/me/friends`: 用户获取联系人列表
+      1. get_friends
+2. POST
+   1. `/users`: 新用户注册
+      1. user_register
+   2. `/users/me/friends`: 加好友
+      1. add_friend
+3. DELETE
+   1. `/users/me`:用户注销
+      1. delete_user
+   2. `/users/me/friends`: 用户删除好友
+      1. delete_friend
+
+由于咱repo层写的挺好,把异常处理全都交给了上层,所以service层的操作都很简单,首先是get部分:
+```py
+class UserService:
+    def __init__(self, uow: UOW) -> None:
+        self.uow = uow
+
+    def admin_get_users(self, offset: int = 0, limit: int = 100) -> UserListSchema:
+        with self.uow as uow:
+            dto = UserListDTO(offset=offset, limit=limit)
+            users = uow.users.get_users_list(dto)
+
+            return UserListSchema(
+                data=[UserSchema.model_validate(user) for user in users]
+            )
+
+    def get_user_info(self, user_id: int) -> UserSchema:
+        with self.uow as uow:
+            user = uow.users.get_user_by_id(user_id)
+            if user is None:
+                raise UserNotFound(user_id)
+
+            return UserSchema.model_validate(user)
+
+    def get_friends(self, user_id: int) -> FriendListSchema:
+        with self.uow as uow:
+            lists = uow.users.get_user_friends(user_id)
+            return FriendListSchema(
+                data=[FriendSchema.model_validate(friend) for friend in lists]
+            )
+```
+##### 实现密码hash
+
+
+
