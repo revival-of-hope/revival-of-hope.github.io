@@ -2868,6 +2868,62 @@ theme_minimal()
 theme_test()
 theme_void()
 ```
+#### 绘制回归线
+```r
+ggplot(df, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm",
+              formula = y ~ x,
+              se = FALSE)
+```
+se表示绘制标准误差带,如果设置为TRUE则是这样的:
+![示意图](PixPin_2026-11-25_08-15-10.webp)
+
+#### Bar Chart(条形图)
+```r
+ford_cars <- Cars93 %>%
+  filter(Manufacturer == "Ford")
+
+ggplot(ford_cars, aes(Model, Horsepower)) +
+  geom_bar(stat = "identity")
+```
+stat默认值是`count`,也就是说会统计对应值的数量,所以要改成`identity`,提取数据集中默认包含的高度参数.
+#### 绘制连线
+```r
+ggplot(economics, aes(date, unemploy)) +
+  geom_point() +
+  geom_line()
+```
+geom_line会将所有散点连接到一起:
+![示意图](PixPin_2026-11-25_08-50-24.webp)
+#### 绘制Boxplot
+![箱线图](PixPin_2026-11-25_08-55-19.webp)
+箱线图中:
+1. 中间的粗线为中位数
+2. 框顶和框底对应的线为第三和第一四分位数
+3. 圆点标出了离群值(outliers),默认情况下为超出1.5倍Q3-Q1距离的值
+
+```r
+ggplot(samp_df) +
+  aes(y = samp) +
+  geom_boxplot()
+```
+#### 绘制直方图(histogram)
+```r
+ggplot(Cars93) +
+  aes(x = MPG.city) +
+  geom_histogram(aes(y = ..density..), bins = 21) +
+  geom_density()
+```
+绘制直方图的时候还可以指定样本密度线的绘制.
+
+#### 保存绘制的图像
+```r
+ggsave("g1.png", plot = g1, units = "in", width = 5, height = 4)
+```
+### ch11: 线性回归与方差分析
+
+### ch14: Time Series Analysis
 
 # 编译原理
 ## 大纲
@@ -3062,8 +3118,30 @@ int count = 10;
 *(注：关键字、运算符和分号通常没有属性值，因此填“-”；标识符和数字需要记录具体的词素内容作为属性值传递给后续阶段。)*
 
 
+当多个token可以匹配到一个pattern时,我们就需要给token加上attribute说明(这也反过来说明关键字和符号为什么不需要attribute).
 
 
+
+#### Input Buffering
+>实际上有很多情况下我们需要查看至少一个额外的字符。例如，只有当我们看到一个既不是字母也不是数字的字符时，才能确定标识符已经结束，因为该字符不属于标识符的词素。在 C 语言中，像 `-`、`=` 或 `<` 这样的单字符运算符也可能是像 `->`、`==` 或 `<=` 这样的双字符运算符的开头。
+##### Buffer Pairs
+我们不可能一个字符一个字符的调用文件,而是一次性读入N个字符到缓冲区中,如果文件剩余不足N个字符,那么就在末尾放一个eof标记.
+
+
+常见的一个读取方案是用两个交替加载的缓冲区来读取字符,每个buffer的大小均为N(通常是一个磁盘block的大小,如4096bytes).
+
+![示意图](PixPin_2026-11-25_09-15-55.webp)
+
+1. lexemeBegin指针标记当前lexeme的起始位置
+2. forward指针移动扫描,直到找到匹配的pattern
+3. 确定了下一个lexeme后,lexemeBegin就会移动到该lexeme之后的下一个字符
+4. 如果某个lexeme刚好跨越了缓冲区边界(被拆成两半),那么我们就需要把下一块读入另一个缓冲区,forward指针继续扫描,从而读入完整lexeme
+
+##### Sentinels(哨兵)
+按照上述方法操作的话,每次移动指针都要检查有没有移动到eof处,比较麻烦,刚好我们本来就要对
+
+<!-- TODO -->
+因此我们引入了哨兵字符,
 
 # 软件工程
 ## 大纲

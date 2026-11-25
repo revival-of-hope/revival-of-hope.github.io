@@ -228,6 +228,11 @@ pip install transformers peft bitsandbytes trl accelerate datasets wandb sentenc
 ## Computer Networks: A Systems Approach
 
 ## INTRODUCTION TO COMPUTER ORGANIZATION: ARM
+### ch1: 基础介绍
+计算机硬件由三个独立的子系统组成:
+
+![示意图](PixPin_2026-11-24_17-46-14.webp)
+
 
 ## Vision Language Models
 - 出版于2026年，出版商：O'Reilly，作者：Merve Noyan。

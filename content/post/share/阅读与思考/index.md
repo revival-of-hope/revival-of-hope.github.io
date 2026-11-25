@@ -2569,6 +2569,109 @@ Client负责提要求,Server负责完成要求;Client负责发送消息,Server�
 
 正常的学习路径就是什么不懂查什么,但直接让AI搭一个完整项目出来的话,效果就差很多了,你以为自己看懂了AI代码就能去做个差不多的了,但真从零开始动手呢,总归是一筹莫展的吧.
 
+### 项目狂奔(11/24)
+又冒出来一个想法,通过项目实战才能真正体会到书籍中的知识,那么我打算接下来一周内,只看必要的复习教材(其实就两本),然后时间全都放到项目上,项目需要什么我就看什么,如此迭代,直到精疲力竭为止,试试效果如何.说干就干,暂缓阅读为好.
+
+不过最近几天总感觉时间不够用,让我来规划一下:
+
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Microsoft YaHei, sans-serif","lineColor":"#F59E0B"},"flowchart":{"curve":"basis","nodeSpacing":25,"rankSpacing":30}}}%%
+flowchart TB
+    subgraph DAY["SUNNY DAY · 无课 / 翘课日"]
+        direction TB
+
+        subgraph R1["上午 · Morning"]
+            direction LR
+            A(["09:00 起床"]) -->|30min| B("09:30 — 11:00<br/>学习 1.5h")
+            B -->|90min| C("12:30 — 14:30<br/>学习 2h")
+        end
+
+        subgraph R2["下午与夜晚 · Afternoon & Evening"]
+            direction RL
+            D("15:30 — 17:00<br/>学习 1.5h") -->|90min| E("18:30 — 20:00<br/>学习 1.5h")
+            E -->|60min| F("21:00 — 22:30<br/>学习 1.5h")
+        end
+
+        R1 -->|空闲 60min| R2
+
+        R2 --> G(["24:00 · 一日结束"])
+        G --> H["学习 8h ｜ 空闲 7h ｜ 休息 9h"]
+    end
+
+    classDef wake fill:#FDE68A,stroke:#EAB308,color:#854D0E,stroke-width:2px;
+    classDef peach fill:#FED7AA,stroke:#F97316,color:#9A3412,stroke-width:2px;
+    classDef pink fill:#FBCFE8,stroke:#EC4899,color:#9D174D,stroke-width:2px;
+    classDef mint fill:#BBF7D0,stroke:#22C55E,color:#166534,stroke-width:2px;
+    classDef summary fill:#FFEDD5,stroke:#F97316,color:#9A3412,stroke-width:3px,font-weight:bold;
+
+    class A,G wake;
+    class B,E peach;
+    class C,F mint;
+    class D pink;
+    class H summary;
+
+    style DAY fill:#FFFBEB,stroke:#F59E0B,stroke-width:2px,color:#92400E
+    style R1 fill:#FFF7ED,stroke:#FDBA74,color:#9A3412
+    style R2 fill:#F0FDF4,stroke:#86EFAC,color:#166534
+
+    linkStyle default stroke:#F59E0B,stroke-width:2px;
+```
+
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Microsoft YaHei, sans-serif","lineColor":"#6366F1"},"flowchart":{"curve":"basis","nodeSpacing":25,"rankSpacing":30}}}%%
+flowchart TB
+    subgraph DAY["BLUE CAMPUS · 有课 / 在校日"]
+        direction TB
+
+        subgraph R1["清晨 · Morning"]
+            direction LR
+            A(["07:00 起床"]) -->|60min| B("08:00 — 09:30<br/>学习 1.5h")
+            B -->|30min| C("10:00 — 11:00<br/>学习 1h")
+        end
+
+        subgraph R2["午间与下午 · Afternoon"]
+            direction RL
+            D("11:30 — 13:00<br/>学习 1.5h") -->|30min| E("13:30 — 15:00<br/>学习 1.5h")
+            E -->|30min| F("15:30 — 17:00<br/>学习 1.5h")
+        end
+
+        subgraph R3["傍晚与夜间 · Evening"]
+            direction LR
+            G("18:00 — 20:00<br/>学习 2h") -->|60min| H("21:00 — 22:30<br/>学习 1.5h")
+            H -->|90min| I(["24:00 · 一日结束"])
+        end
+
+        R1 -->|空闲 30min| R2
+        R2 -->|空闲 60min| R3
+        R3 --> J["学习 10.5h ｜ 空闲 6.5h ｜ 休息 7h"]
+    end
+
+    classDef wake fill:#C7D2FE,stroke:#6366F1,color:#3730A3,stroke-width:2px;
+    classDef blue fill:#BAE6FD,stroke:#0EA5E9,color:#075985,stroke-width:2px;
+    classDef cyan fill:#99F6E4,stroke:#14B8A6,color:#115E59,stroke-width:2px;
+    classDef purple fill:#DDD6FE,stroke:#8B5CF6,color:#5B21B6,stroke-width:2px;
+    classDef summary fill:#E0E7FF,stroke:#6366F1,color:#3730A3,stroke-width:3px,font-weight:bold;
+
+    class A,I wake;
+    class B,C blue;
+    class D,E,F cyan;
+    class G,H purple;
+    class J summary;
+
+    style DAY fill:#F5F7FF,stroke:#6366F1,stroke-width:2px,color:#3730A3
+    style R1 fill:#F0F9FF,stroke:#7DD3FC,color:#075985
+    style R2 fill:#F0FDFA,stroke:#5EEAD4,color:#115E59
+    style R3 fill:#F5F3FF,stroke:#C4B5FD,color:#5B21B6
+
+    linkStyle default stroke:#818CF8,stroke-width:2px;
+```
+
+实际的学习体感却基本是每天六小时,到了十点半却还觉得有一堆事没做,原因就是琐事不断地打乱我的原本计划,不能特别专心地进行学习.
+
+因此,我唯一的方法就是再压缩一下空闲时间,当然晚上不能压缩,不然那就太可怜了,早上也不能压缩,毕竟9点起床也够要命了(何况有时候有早八),因此,我要确保下午的学习要把时间花到刀刃上,尽可能地控制娱乐时间,增加学习时间.
+
+具体的方案嘛,那就是在无课日减少每次的休息时间到半小时,从而可以抢回大概一个小时,这一个小时貌似也够我学不少东西了;而在校日的下午和晚上嘛,我计划就这样了,毕竟讲课还是挺吵的,大致学习点轻松的技术即可.
+
 
 # 文章分享
 ## 技术文章

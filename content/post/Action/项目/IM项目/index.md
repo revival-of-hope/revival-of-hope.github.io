@@ -2030,8 +2030,7 @@ def add_friend(self, frienddto: FriendHandlerDTO) -> None:
 #### 完成测试
 注意到我们之前的fixture中,db产出的session是会话级的,也就是说从测试启动一直到测试结束,我们用的是同一个数据库,所以,必须确保测试数据足够随机,否则就会导致测试彼此污染.
 
-先创建一个`utils`文件夹,然后写入两个文件:
-
+先创建一个`utils`文件夹,然后写入:
 **utils.py**
 ```py
 import random
@@ -2045,7 +2044,169 @@ def random_lower_string() -> str:
 def random_email() -> str:
     return f"{random_lower_string()}@{random_lower_string()}.com"
 ```
+#### ADR: 中断测试,重构模型
+在写user相关的测试时,我很快就发现原来的models设计有问题,friendship不能揭示好友请求是从哪一边发起的,从而导致service层必须了解repo层的底层设计,而且写测试时也会导致彼此耦合.
 
-**users.py**
+>尽管我在编写的时候就考虑到了两边同时发起好友请求的情况,不过实际生产中是不可能出现的吧,真这么心有灵犀那赶紧去领证吧.
 
-<!-- todo: friend部分的测试只写了add_friend没写同意好友请求 -->
+鉴于我没这方面的经验,所以问了一下AI,有两种方案我比较感兴趣:
+1. 按照用户ID的大小固定存储顺序,然后增加一个request_id字段记录谁发起了申请
+2. 将好友关系和好友请求拆分成两张表,管理上会相对复杂一点,但是对于现在来说,确实没必要.
+
+重构以后models长这样:
+```py
+class Friendship(SQLModel, table=True):
+    __tablename__: str = "friendships"
+
+    __table_args__ = (
+        CheckConstraint(
+            "user_low_id < user_high_id",
+            name="ck_friendship_order",
+        ),
+        CheckConstraint(
+            "requested_by_id IN (user_low_id, user_high_id)",
+            name="ck_friendship_requester",
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'accepted', 'rejected')",
+            name="ck_friendship_status",
+        ),
+    )
+
+    user_low_id: int = Field(
+        foreign_key="users.id",
+        primary_key=True,
+    )
+
+    user_high_id: int = Field(
+        foreign_key="users.id",
+        primary_key=True,
+    )
+
+    requester_id: int = Field(
+        foreign_key="users.id",
+    )
+
+    created_at: datetime = Field(
+        default_factory=utc_now,
+        nullable=False,
+    )
+
+    status: str = Field(default="pending")
+```
+鉴于我们之前设计的还不错,所以repo层要改动的地方并不多:
+```py
+from sqlmodel import and_, or_, select, desc
+
+from app.models.datas import FriendshipStatus
+from app.models.users import Friendship, User
+from app.repo.base import BaseRepo
+from app.repo.dto import FriendHandlerDTO, FriendShipDTO, UserCreateDTO
+
+
+class UserRepo(BaseRepo):
+
+    def get_users_list(self, offset: int, limit: int) -> list[User]:
+        statement = (
+            select(User)
+            .order_by(
+                desc(User.created_at),
+                desc(User.id),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
+        users = self._session.exec(statement).all()
+        return list(users)
+
+    def get_user_by_id(self, user_id: int) -> User | None:
+        user = self._session.get(User, user_id)
+        return user
+
+    def get_user_by_email(self, email: str) -> User | None:
+        statement = select(User).where(User.email == email)
+        user = self._session.exec(statement).first()
+        return user
+
+    def get_user_friends(self, user_id: int) -> list[FriendShipDTO]:
+        statement = (
+            select(Friendship, User.id, User.name, User.email)
+            .join(
+                User,
+                or_(
+                    and_(
+                        Friendship.user_low_id == user_id,
+                        User.id == Friendship.user_high_id,
+                    ),
+                    and_(
+                        Friendship.user_high_id == user_id,
+                        User.id == Friendship.user_low_id,
+                    ),
+                ),
+            )
+            .where(
+                or_(
+                    (Friendship.status == FriendshipStatus.ACCEPTED),
+                    (Friendship.status == FriendshipStatus.PENDING),
+                ),
+            )
+            .order_by(desc(Friendship.created_at))
+        )
+
+        rows = self._session.exec(statement).all()
+        return [
+            FriendShipDTO(
+                friend_id=friend_id,
+                name=name,
+                email=email,
+                requester_id=friendship.requester_id,
+                status=friendship.status,
+                created_at=friendship.created_at,
+            )
+            for friendship, friend_id, name, email in rows
+        ]
+
+    def get_friendship(self, frienddto: FriendHandlerDTO) -> Friendship | None:
+        low_id, high_id = sorted((frienddto.user_id, frienddto.friend_id))
+        friendship = self._session.get(
+            Friendship,
+            (low_id, high_id),
+        )
+        return friendship
+
+    def create_user(self, userdto: UserCreateDTO) -> User:
+        user = User(
+            name=userdto.name,
+            email=userdto.email,
+            hashed_password=userdto.hashed_password,
+        )
+        self._session.add(user)
+        self._session.flush()
+        return user
+
+    def add_friend(self, frienddto: FriendHandlerDTO) -> None:
+        low_id, high_id = sorted((frienddto.user_id, frienddto.friend_id))
+
+        friendship = Friendship(
+            user_low_id=low_id,
+            user_high_id=high_id,
+            requester_id=frienddto.user_id,
+            status=FriendshipStatus.PENDING,
+        )
+
+        self._session.add(friendship)
+        self._session.flush()
+
+    def accept_friend(self, friend: Friendship) -> None:
+        friend.status = FriendshipStatus.ACCEPTED
+        self._session.add(friend)
+        self._session.flush()
+
+    def delete_user(self, user: User) -> None:
+        self._session.delete(user)
+        self._session.flush()
+
+    def delete_friend(self, friend: Friendship) -> None:
+        self._session.delete(friend)
+        self._session.flush()
+```
