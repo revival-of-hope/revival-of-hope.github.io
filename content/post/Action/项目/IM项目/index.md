@@ -2333,31 +2333,7 @@ def test_friendship_duplicate(db: Session) -> None:
 - 不过嘛,暂时先这样吧,日后出了问题再说.
 
 ### 第六个测试: service层
-#### uow设计
-仿照先前项目的uow设计,不过这次移除了Self,毕竟确实用不到:
-```py
-from sqlmodel import Session
-from app.repo.users import UserRepo
 
-
-class UOW:
-
-    def __init__(self, session: Session) -> None:
-        self.session = session
-        self.users = UserRepo(session)
-
-    def commit(self):
-        self.session.commit()
-
-    def rollback(self):
-        self.session.rollback()
-
-    def __enter__(self) -> UOW:
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        self.rollback()
-```
 #### service设计
 到了这里就必须与API进行一一核验了:
 1. GET
@@ -2409,6 +2385,332 @@ class UserService:
             )
 ```
 ##### 实现密码hash
+在core中新建`security.py`,内填:
+```py
+from pwdlib import PasswordHash
+
+hash_method = PasswordHash.recommended()
 
 
+def hash_password(plain_password: str) -> str:
+    return hash_method.hash(plain_password)
+```
+
+
+
+##### post和delete部分
+```py
+    def user_register(self, username: str, email: str, password: str) -> UserSchema:
+        with self.uow as uow:
+            dto = UserCreateDTO(
+                name=username,
+                email=email,
+                hashed_password=hash_password(password),
+            )
+            try:
+                user = uow.users.create_user(dto)
+                uow.commit()
+            except:
+                uow.rollback()
+
+            return UserSchema.model_validate(user)
+
+    def add_friend(self, user_id: int, friend_id: int) -> None:
+        with self.uow as uow:
+            dto = FriendHandlerDTO(user_id=user_id, friend_id=friend_id)
+            try:
+                uow.users.add_friend(dto)
+                uow.commit()
+            except:
+                uow.rollback()
+
+    def delete_user(self, user_id: int) -> None:
+        with self.uow as uow:
+            try:
+                user = uow.users.get_user_by_id(user_id)
+                if user is None:
+                    raise UserNotFound(user_id)
+                uow.users.delete_user(user)
+                uow.commit()
+            except:
+                uow.rollback()
+
+    def delete_friend(self, user_id: int, friend_id: int) -> None:
+        with self.uow as uow:
+            dto = FriendHandlerDTO(user_id=user_id, friend_id=friend_id)
+            try:
+                friend = uow.users.get_friend_pair(dto)
+                if friend is None:
+                    raise FriendNotExist(user_id, friend_id)
+                uow.users.delete_friend(friend)
+                uow.commit()
+            except:
+                uow.rollback()
+```
+##### ADR: uow设计
+上述代码中,我们通过`except:`包揽全部异常后明确写rollback,但这阻断了异常向router层传播,所以需要修改一下uow的实现,让它能够自动rollback,并确保不吞掉异常.
+
+```py
+from sqlmodel import Session
+from app.repo.users import UserRepo
+
+
+class UOW:
+
+    def __init__(self, session: Session) -> None:
+        self.session = session
+        self.users = UserRepo(session)
+
+    def commit(self):
+        self.session.commit()
+
+    def rollback(self):
+        self.session.rollback()
+
+    def __enter__(self) -> UOW:
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        self.rollback()
+```
+然后,我们在提交事务时,就不需要再写try-except块了,如果有异常,则会自动回滚并将异常交给上层:
+```py
+    def delete_friend(self, user_id: int, friend_id: int) -> None:
+        with self.uow as uow:
+            dto = FriendHandlerDTO(user_id=user_id, friend_id=friend_id)
+            friend = uow.users.get_friend_pair(dto)
+
+            if friend is None:
+                raise FriendNotExist(user_id, friend_id)
+
+            uow.users.delete_friend(friend)
+            uow.commit()
+
+```
+#### 测试编写
+首先写一个fixture:
+```py
+@pytest.fixture(scope="session")
+def uow(db: Session) -> UOW:
+    return UOW(db)
+
+@pytest.fixture
+def userservice(uow: UOW) -> UserService:
+    return UserService(uow)
+
+```
+
+接着在`utils/users.py`里加一个辅助函数,将repo和service层的用户生成测试分开:
+```py
+def seed_user(uow: UOW) -> User:
+    with uow:
+        user = create_random_user(uow.users)
+        uow.session.flush()
+        uow.commit()
+
+        return user
+```
+
+剩下的部分就由AI完成了:
+```py
+import pytest
+
+from app.models.exceptions import FriendNotExist, UserNotFound
+from app.repo.dto import FriendHandlerDTO
+from app.services.users import UserService
+from tests.utils.users import (
+    seed_user,
+    random_lower_string,
+    random_email,
+)
+
+
+def test_user_register(userservice: UserService) -> None:
+    username = random_lower_string()
+    email = random_email()
+    password = random_lower_string()
+
+    result = userservice.user_register(
+        username=username,
+        email=email,
+        password=password,
+    )
+
+    assert result.id is not None
+    assert result.name == username
+    assert result.email == email
+
+    with userservice.uow as uow:
+        user = uow.users.get_user_by_id(result.id)
+
+        assert user is not None
+        assert user.name == username
+        assert user.email == email
+        assert user.hashed_password
+        assert user.hashed_password != password
+        assert user.is_admin is False
+        assert user.created_at is not None
+
+
+def test_admin_get_users(userservice: UserService) -> None:
+    users = [seed_user(userservice.uow) for _ in range(3)]
+
+    result = userservice.admin_get_users(limit=10000)
+
+    expected_ids = {user.id for user in users}
+    actual_ids = {user.id for user in result.data}
+
+    assert expected_ids.issubset(actual_ids)
+
+    result = userservice.admin_get_users(offset=0, limit=2)
+
+    assert len(result.data) == 2
+
+
+def test_get_user_info(userservice: UserService) -> None:
+    user = seed_user(userservice.uow)
+
+    result = userservice.get_user_info(user.id)
+
+    assert result.id == user.id
+    assert result.name == user.name
+    assert result.email == user.email
+
+
+def test_get_user_info_not_found(userservice: UserService) -> None:
+    with pytest.raises(UserNotFound):
+        userservice.get_user_info(-1)
+
+
+def test_add_friend(userservice: UserService) -> None:
+    uow = userservice.uow
+
+    user = seed_user(uow)
+    friend = seed_user(uow)
+
+    userservice.add_friend(user.id, friend.id)
+
+    with uow:
+        dto = FriendHandlerDTO(
+            user_id=user.id,
+            friend_id=friend.id,
+        )
+        friendship = uow.users.get_friend_pair(dto)
+
+        assert friendship is not None
+        assert friendship.user_low_id == min(user.id, friend.id)
+        assert friendship.user_high_id == max(user.id, friend.id)
+        assert friendship.requester_id == user.id
+        assert friendship.status == "pending"
+        assert friendship.created_at is not None
+
+
+def test_get_friends(userservice: UserService) -> None:
+    uow = userservice.uow
+
+    user = seed_user(uow)
+    friend = seed_user(uow)
+
+    with uow:
+        dto = FriendHandlerDTO(
+            user_id=user.id,
+            friend_id=friend.id,
+        )
+
+        uow.users.add_friend(dto)
+
+        friendship = uow.users.get_friend_pair(dto)
+        assert friendship is not None
+
+        uow.users.accept_friend(friendship)
+        assert friendship.status == "accepted"
+
+        uow.commit()
+
+    result = userservice.get_friends(user.id)
+    reverse_result = userservice.get_friends(friend.id)
+
+    assert len(result.data) == 1
+    assert len(reverse_result.data) == 1
+
+
+def test_get_friends_empty(userservice: UserService) -> None:
+    user = seed_user(userservice.uow)
+
+    result = userservice.get_friends(user.id)
+
+    assert result.data == []
+
+
+def test_delete_user(userservice: UserService) -> None:
+    uow = userservice.uow
+    user = seed_user(uow)
+
+    userservice.delete_user(user.id)
+
+    with uow:
+        assert uow.users.get_user_by_id(user.id) is None
+
+
+def test_delete_user_not_found(userservice: UserService) -> None:
+    with pytest.raises(UserNotFound):
+        userservice.delete_user(-1)
+
+
+def test_delete_friend(userservice: UserService) -> None:
+    uow = userservice.uow
+
+    user = seed_user(uow)
+    friend = seed_user(uow)
+
+    dto = FriendHandlerDTO(
+        user_id=user.id,
+        friend_id=friend.id,
+    )
+
+    with uow:
+        uow.users.add_friend(dto)
+        uow.commit()
+
+    userservice.delete_friend(user.id, friend.id)
+
+    with uow:
+        assert uow.users.get_friend_pair(dto) is None
+
+        # 删除好友关系不应删除用户本身
+        assert uow.users.get_user_by_id(user.id) is not None
+        assert uow.users.get_user_by_id(friend.id) is not None
+
+
+def test_delete_friend_not_exist(
+    userservice: UserService,
+) -> None:
+    uow = userservice.uow
+
+    user = seed_user(uow)
+    friend = seed_user(uow)
+
+    with pytest.raises(FriendNotExist):
+        userservice.delete_friend(user.id, friend.id)
+```
+
+### 第七个测试: Router层
+对应API层再看一下:
+1. GET
+   1. `/users`: 管理员获取注册用户列表
+      1. admin_get_users
+   2. `/users/me`: 用户获取自己主页信息
+      1. get_user_info,对应repo中的get_user_by_id
+   3. `/users/me/friends`: 用户获取联系人列表
+      1. get_friends
+2. POST
+   1. `/users`: 新用户注册
+      1. user_register
+   2. `/users/me/friends`: 加好友
+      1. add_friend
+3. DELETE
+   1. `/users/me`:用户注销
+      1. delete_user
+   2. `/users/me/friends`: 用户删除好友
+      1. delete_friend
 
