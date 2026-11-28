@@ -1738,8 +1738,37 @@ double(10)  # 20
 
 ### Python模块与文件(11/26)
 #### 导入时发生了什么
+1. 对于普通 Python 源码模块，导入时会执行整个模块的顶层代码，并递归处理执行过程中遇到的其他导入语句,这就是为什么我们需要把函数执行语句隔离在`__main__`块中的原因
+2. 第一次执行/导入某个文件后,会在pycache中注册该文件的缓存,以后的执行就会快很多了.
 #### python -m 与python
+示例项目结构:
+```text
+project/
+├── app/
+│   ├── __init__.py
+│   └── server.py
+└── utils/
+    ├── __init__.py
+    └── logger.py
+```
+我们有两种方法执行server.py:
+```bash
+# 文件路径
+python app/server.py
 
+# 模块定位
+python -m app.server
+```
+
+对于跨模块的导入,我们需要额外小心,如果我们运行`python app/server.py`,而server中用到了utils模块中的函数,如:
+```py
+from utils.logger import Logger
+```
+但由于我们是根据文件路径直接进入文件执行的,sys.path被定位到了`app`文件夹中,而`utils`文件夹被排除,那么就会报错,提示找不到`utils`模块.
+
+如果我们用`python -m app.server`运行,那么sys.path还是固定在project文件夹下,就能正常找到utils模块.
+
+因此,我们就可以理解为什么Docker运行Python时总会由于模块问题而报错了.
 #### 双下划线方法
 常见的有以下四种,一般来说也只会在库文件中出现:
 *   `__name__`：当前模块名称
